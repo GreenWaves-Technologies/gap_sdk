@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2018 GreenWaves Technologies
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include <stdio.h>
 #include "Gap.h"
 #include "CNN_BasicKernels_fp16.h"
@@ -18,7 +34,7 @@ static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
 	return Chunk;
 }
 
-static int FirstDefinedOutput(unsigned int F, unsigned int Pad, unsigned int Stride)
+static int FirstDefinedOutput(int F, int Pad, int Stride)
 
 {
 	// k*S - (F-1)/2 >=0 => k >= (((F-1)/2) + S-1)/S
@@ -26,7 +42,7 @@ static int FirstDefinedOutput(unsigned int F, unsigned int Pad, unsigned int Str
 	return ((Pad+Stride-1)/Stride);
 }
 
-static int LastDefinedOutput(unsigned int DimIn, unsigned int F, unsigned int PadL, unsigned int Stride)
+static int LastDefinedOutput(int DimIn, int F, int PadL, int Stride)
 
 {
 	// k*S + ((F-1)/2 - PadL + F/2) < Dim  => k < (Dim-((F-1)/2 - PadL + (F/2)) + S-1)/S
@@ -992,7 +1008,7 @@ static void KerGlobalMaxPool_fp16(
 		M = MaxF2(Vi[2*i],   M);
 		M = MaxF2(Vi[2*i+1], M);
         }
-	if ((W*H)&0x2) M = MaxF2(Vi[(W*H)/2], M);
+	if ((W*H)&0x2) M = MaxF2(Vi[(W*H)/2-1], M);
 	m = MaxF(M[0], M[1]);
 	m = MaxF(In[W*H-1], m);
 	*Out = m;
@@ -1013,7 +1029,7 @@ static void KerGlobalMaxPoolFullFeat_fp16(
 		M = MaxF2(Vi[2*i],   M);
 		M = MaxF2(Vi[2*i+1], M);
 	}
-	if ((W*H)&0x2) M = MaxF2(Vi[(W*H)/2], M);
+	if ((W*H)&0x2) M = MaxF2(Vi[(W*H)/2-1], M);
 	m = MaxF(M[0], M[1]);
 	m = MaxF(In[W*H-1], m);
 	*Out = m;
@@ -1033,7 +1049,7 @@ static void KerGlobalAvgPool_fp16(
         for (int i=0; i<((W*H)/(2*2)); i++) {
                 Sum += Vi[2*i] + Vi[2*i+1];
         }
-        if ((W*H)&0x2) Sum += Vi[(W*H)/2];
+        if ((W*H)&0x2) Sum += Vi[(W*H)/2-1];
         F16 S = Sum[0]+Sum[1];
         if ((W*H)&0x1) S += In[W*H-1];
 
@@ -1054,7 +1070,7 @@ static void KerGlobalAvgPoolFullFeat_fp16(
 	for (int i=0; i<((W*H)/(2*2)); i++) {
 		Sum += Vi[2*i] + Vi[2*i+1];
 	}
-	if ((W*H)&0x2) Sum += Vi[(W*H)/2];
+	if ((W*H)&0x2) Sum += Vi[(W*H)/2-1];
 	F16 S = Sum[0]+Sum[1];
 	if ((W*H)&0x1) S += In[W*H-1];
 
@@ -1428,4 +1444,83 @@ void KerPoolNxMStrideSxSy_fp16(KerPool_fp16_T *Arg)
 		}
 	}
 	gap_waitbarrier(0);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_fp16(Ker_MM_Pool_fp16_T *Arg)
+
+{
+        F16 *__restrict__ In = Arg->In;
+        int W = Arg->W, H = Arg->H;
+        int Fx = Arg->Fx, Sx = Arg->Sx;
+        int Fy = Arg->Fy, Sy = Arg->Sy;
+        int PadL = Arg->Pad[0], PadT = Arg->Pad[2];
+        int Feat = Arg->Feat;
+        F16 * __restrict__ Out = Arg->Out;
+        int Wo = Arg->Wo, Ho = Arg->Ho;
+
+        unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(Feat), First = CoreId*ChunkCell, Last = Min(Feat, First+ChunkCell);
+        int PosL = Arg->FirstTile?(-PadT):0;
+        int Iter = Last-First;
+        for (int l=0; l<Ho; l++) {
+                int PosC = -PadL;
+                int Tb = Max(PosL, 0), Db = Min(PosL+Fy, H);
+                int OffL = -Tb - Min(PosL, 0);
+                for (int c=0; c<Wo; c++) {
+                        int Lb = Max(PosC, 0), Rb = Min(PosC+Fx, W);
+                        for (int f=0; f<Iter/2; f++) {
+                                F16V M = ((F16V *)(In+Rb*W*Feat + Lb*Feat+First))[f];
+                                for (int j=Tb; j<Db; j++) {
+                                        for (int i=Lb; i<Rb; i++) M = MaxF2(M, ((F16V *)(In+j*W*Feat + i*Feat+First))[f]);
+                                }
+                                ((F16V *)(Out+l*Wo*Feat + c*Feat+First))[f] = M;
+                        }
+                        if (Iter&0x1) {
+                                F16 M = (In+Tb*W*Feat + Lb*Feat+First)[Iter-1];
+                                for (int j=Tb; j<Db; j++) {
+                                        for (int i=Lb; i<Rb; i++) M = MaxF(M, (In+j*W*Feat + i*Feat+First)[Iter-1]);
+                                }
+                                ((F16 *)(Out+l*Wo*Feat + c*Feat+First))[0] = M;
+                        }
+                        PosC += Sx;
+                }
+                PosL += Sy;
+        }
+        gap_waitbarrier(0);
+}
+
+
+void KerParAvgPoolNxMStrideSxSy_HWC_fp16(Ker_MM_Pool_fp16_T *Arg)
+
+{
+        F16 *__restrict__ In = Arg->In;
+        int W = Arg->W, H = Arg->H;
+        int Fx = Arg->Fx, Sx = Arg->Sx;
+        int Fy = Arg->Fy, Sy = Arg->Sy;
+        int PadL = Arg->Pad[0], PadT = Arg->Pad[2];
+        int Feat = Arg->Feat;
+        F16 * __restrict__ Out = Arg->Out;
+        int Wo = Arg->Wo, Ho = Arg->Ho;
+	F16 PoolFactor = ((F16)1.0)/((F16)(Fx*Fy));
+
+        unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(Feat), First = CoreId*ChunkCell, Last = Min(Feat, First+ChunkCell);
+        int PosL = Arg->FirstTile?(-PadT):0;
+        int Iter = Last-First;
+        for (int l=0; l<Ho; l++) {
+                int PosC = -PadL;
+                int Tb = Max(PosL, 0), Db = Min(PosL+Fy, H);
+                int OffL = -Tb - Min(PosL, 0);
+                for (int c=0; c<Wo; c++) {
+                        int Lb = Max(PosC, 0), Rb = Min(PosC+Fx, W);
+                        for (int f=0; f<Iter; f++) {
+                                F16 S = (F16) 0.0;
+                                for (int j=Tb; j<Db; j++) {
+                                        for (int i=Lb; i<Rb; i++) S += (In+j*W*Feat + i*Feat+First)[f];
+                                }
+                                ((F16 *)(Out+l*Wo*Feat + c*Feat+First))[f] = S*PoolFactor;
+                        }
+                        PosC += Sx;
+                }
+                PosL += Sy;
+        }
+        gap_waitbarrier(0);
 }

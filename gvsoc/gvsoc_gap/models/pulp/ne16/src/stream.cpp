@@ -209,7 +209,7 @@ xt::xarray<T> Ne16VectorLoad<T>::ex(int width, int64_t& cycles) {
     xt::view(x, i) = *(T *)(load_data + (addr & 0x3) + i*sizeof(T));
   }
   xt::print_options::set_line_width(1000);
-  stringStream << "Read data: " << std::hex << x << std::dec << "\n";
+  stringStream << "Read data: " << (this->ne16->trace_format?std::hex:std::dec) << x << std::dec << "\n";
   string s = stringStream.str();
   if (this->ne16->trace_level == L3_ALL) {
     this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, s.c_str());
@@ -275,7 +275,7 @@ xt::xarray<T> Ne16VectorStore<T>::ex(xt::xarray<T> data, int width, int64_t& cyc
   }
   xt::print_options::set_line_width(1000);
   if(enable) {
-    stringStream << "Write data: " << std::hex << data << std::dec << "\n";
+    stringStream << "Write data: " << (this->ne16->trace_format?std::hex:std::dec) << data << std::dec << "\n";
     string s = stringStream.str();
     if (this->ne16->trace_level == L3_ALL) {
       this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, s.c_str());

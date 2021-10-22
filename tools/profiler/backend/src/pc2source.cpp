@@ -35,8 +35,7 @@ void iss_register_debug_info(const char *binary, Pc_mapping& pcm)
 
   char* line = NULL;
   size_t len = 0;
-  ssize_t read;
-  while ((read = getline(&line, &len, file)) != -1)
+  while (getline(&line, &len, file) != -1)
   {
     char *token = strtok(line, " ");
     char *tokens[5];

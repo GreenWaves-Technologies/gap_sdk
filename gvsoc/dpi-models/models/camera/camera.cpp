@@ -53,6 +53,7 @@ public:
   void handle_byte(uint8_t byte);
   void stop();
   void ack();
+  void get_data();
 
 private:
   Camera *top;
@@ -493,29 +494,45 @@ void Camera_i2c_slave::start(unsigned int address, bool is_read)
   this->top->i2c_is_read = is_read;
 }
 
+void Camera_i2c_slave::get_data()
+{
+    if (this->top->i2c_is_read)
+    {
+      uint32_t addr = ((this->pending_addr & 0xff) << 8) | ((this->pending_addr >> 8) & 0xff);
+      if (addr == 0x0100)
+      {
+        this->send_byte(0x00);
+      }
+      else if (addr == 0x0000)
+      {
+        this->send_byte(0x01);
+      }
+      else if (addr == 0x0001)
+      {
+        this->send_byte(0xb0);
+      }
+      else
+      {
+        this->send_byte(0x55);
+      }
+      this->pending_addr = 0;
+      this->pending_bytes = 0;
+      this->top->trace_msg(this->top->trace, 2, "Reading register (address: 0x%x, value: 0x%x)", this->pending_addr, 0);
+    }
+}
+
+
 void Camera_i2c_slave::handle_byte(uint8_t byte)
 {
   if (this->pending_bytes == 0)
   {
-    this->pending_addr = this->pending_addr | (byte << 8);
+    this->pending_addr = this->pending_addr | (byte);
     this->pending_bytes = 1;
   }
   else if (this->pending_bytes == 1)
   {
-    this->pending_addr = this->pending_addr | byte;
+    this->pending_addr = this->pending_addr | byte << 8;
     this->pending_bytes = 2;
-
-    if (this->top->i2c_is_read)
-    {
-      this->pending_addr = 0;
-      this->pending_bytes = 0;
-      this->send_byte(0x00);
-      this->top->trace_msg(this->top->trace, 2, "Reading register (address: 0x%x, value: 0x%x)", this->pending_addr, 0);
-    }
-    else
-    {
-      this->pending_bytes = 2;
-    }
   }
   else
   {

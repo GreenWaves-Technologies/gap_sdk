@@ -274,6 +274,8 @@ public:
   static vp::io_req_status_e demux_req(void *__this, vp::io_req *req, int core);
   static void irq_ack_sync(void *__this, int irq, int core);
 
+  bool check_interrupted_elw(int core_id, uint32_t *data);
+
 protected:
 
   vp::trace     trace;
@@ -327,10 +329,10 @@ public:
   vp::reg_32 evt_mask;
   vp::reg_32 irq_mask;
   uint32_t clear_evt_mask;
-  uint32_t interrupt_elw_value;
+  vp::reg_32 interrupt_elw_value;
 
   int sync_irq;
-  int interrupted_elw;       // True if an ELW was interrupted to handle an IRQ
+  vp::reg_1 interrupted_elw;       // True if an ELW was interrupted to handle an IRQ
 
   vp::reg_1  is_active;
 
@@ -505,6 +507,8 @@ void Core_event_unit::build(Event_unit *top, int core_id)
   this->top->new_reg("core_" + std::to_string(core_id) + "/evt_mask", &this->evt_mask, 32);
   this->top->new_reg("core_" + std::to_string(core_id) + "/irq_mask", &this->irq_mask, 32);
   this->top->new_reg("core_" + std::to_string(core_id) + "/state", &this->state, 32);
+  this->top->new_reg("core_" + std::to_string(core_id) + "/interrupt_elw_value", &this->interrupt_elw_value, 32);
+  this->top->new_reg("core_" + std::to_string(core_id) + "/interrupted_elw", &this->interrupted_elw, 1);
 
   demux_in.set_req_meth_muxed(&Event_unit::demux_req, core_id);
   top->new_slave_port("demux_in_" + std::to_string(core_id), &demux_in);
@@ -641,6 +645,23 @@ void Event_unit::irq_ack_sync(void *__this, int irq, int core)
   _this->core_eu[core].irq_ack_sync(irq, core);
 }
 
+bool Event_unit::check_interrupted_elw(int core, uint32_t *data)
+{
+  Core_event_unit *core_eu = &this->core_eu[core];
+
+  core_eu->interrupted_elw.set(false);
+
+  if (core_eu->get_state() == CORE_STATE_SKIP_ELW)
+  {
+    core_eu->set_state(CORE_STATE_NONE);
+    *(uint32_t *)data = core_eu->interrupt_elw_value.get();
+
+    return true;
+  }
+
+  return false;
+}
+
 vp::io_req_status_e Event_unit::demux_req(void *__this, vp::io_req *req, int core)
 {
   Event_unit *_this = (Event_unit *)__this;
@@ -654,19 +675,10 @@ vp::io_req_status_e Event_unit::demux_req(void *__this, vp::io_req *req, int cor
 
   Core_event_unit *core_eu = &_this->core_eu[core];
 
-  core_eu->interrupted_elw = false;
-
   if (size != 4)
   {
     _this->trace.warning("Only 32 bits accesses are allowed\n");
     return vp::IO_REQ_INVALID;
-  }
-
-  if (core_eu->get_state() == CORE_STATE_SKIP_ELW)
-  {
-    core_eu->set_state(CORE_STATE_NONE);
-    *(uint32_t *)data = core_eu->interrupt_elw_value;
-    return vp::IO_REQ_OK;
   }
 
   if (offset >= EU_CORE_DEMUX_OFFSET && offset < EU_CORE_DEMUX_OFFSET + EU_CORE_DEMUX_SIZE)
@@ -989,7 +1001,7 @@ void Core_event_unit::reset()
   irq_mask.set(0);
   clear_evt_mask = 0;
   sync_irq = -1;
-  interrupted_elw = false;
+  interrupted_elw.set(false);
   this->pending_req = NULL;
   state.set(CORE_STATE_NONE);
   this->clock_itf.sync(1);
@@ -1036,7 +1048,7 @@ void Core_event_unit::check_state()
   {
     // If a wakeup occurs while the core is handling an interrupt (e.g. a barrier is reached)
     // skip the next elw 
-    if (this->interrupted_elw)
+    if (this->interrupted_elw.get())
     {
       top->trace.msg("Wakeup during interrupted elw (core: %d)\n", core_id);
       this->set_state(CORE_STATE_SKIP_ELW);
@@ -1056,7 +1068,7 @@ void Core_event_unit::check_state()
       top->trace.msg("Activating clock for IRQ handling(core: %d)\n", core_id);
 
       // Remeber that we interrupted an ELW so that we can properly restore it after IRQ handling
-      this->interrupted_elw = true;
+      this->interrupted_elw.set(true);
 
       //if (!irq_wakeup_event->is_enqueued())
       {
@@ -1150,6 +1162,11 @@ void Semaphore::set_value(uint32_t value)
 
 vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool is_write, uint32_t *data, int core)
 {
+    if (this->top->check_interrupted_elw(core, data))
+    {
+      return vp::IO_REQ_OK;
+    }
+
   unsigned int id = EU_SEM_AREA_SEMID_GET(offset);
   offset = offset - (id << EU_SEM_SIZE_LOG2);
 
@@ -1223,13 +1240,13 @@ vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool i
       // Store the semaphore value into the pending request
       // Don't reply now to the initiator, this will be done by the wakeup event
       // to introduce some delays
-      if (!this->top->core_eu[semaphore->elected_core].interrupted_elw)
+      if (!this->top->core_eu[semaphore->elected_core].interrupted_elw.get())
       {
         *(uint32_t *)waiting_req->get_data() = semaphore->value;
       }
       else
       {
-        this->top->core_eu[semaphore->elected_core].interrupt_elw_value = semaphore->value;
+        this->top->core_eu[semaphore->elected_core].interrupt_elw_value.set(semaphore->value);
       }
 
       // And trigger the event to the core
@@ -1398,6 +1415,11 @@ vp::io_req_status_e Mutex_unit::req(vp::io_req *req, uint64_t offset, bool is_wr
   Core_event_unit *evtUnit = &top->core_eu[core];
   top->trace.msg("Received mutex IO access (offset: 0x%x, mutex: %d, is_write: %d)\n", offset, id, is_write);
   
+    if (this->top->check_interrupted_elw(core, data))
+    {
+      return vp::IO_REQ_OK;
+    }
+
   if (!is_write)
   {
     if (!mutex->locked)
@@ -1439,13 +1461,13 @@ vp::io_req_status_e Mutex_unit::req(vp::io_req *req, uint64_t offset, bool is_wr
           // Store the mutex value into the pending request
           // Don't reply now to the initiator, this will be done by the wakeup event
           // to introduce some delays
-          if (!this->top->core_eu[i].interrupted_elw)
+          if (!this->top->core_eu[i].interrupted_elw.get())
           {
             *(uint32_t *)waiting_req->get_data() = mutex->value;
           }
           else
           {
-            this->top->core_eu[i].interrupt_elw_value = mutex->value;
+            this->top->core_eu[i].interrupt_elw_value.set(mutex->value);
           }
 
           // And trigger the event to the core
@@ -1523,6 +1545,11 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
 
   vp::io_req_status_e Dispatch_unit::req(vp::io_req *req, uint64_t offset, bool is_write, uint32_t *data, int core_id)
   {
+    if (this->top->check_interrupted_elw(core_id, data))
+    {
+      return vp::IO_REQ_OK;
+    }
+
     if (offset == EU_DISPATCH_FIFO_ACCESS)
     {
       if (is_write)
@@ -1560,15 +1587,15 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
               // Store the dispatch value into the pending request
               // Don't reply now to the initiator, this will be done by the wakeup event
               // to introduce some delays
-              if (!this->top->core_eu[i].interrupted_elw)
+              if (!this->top->core_eu[i].interrupted_elw.get())
               {
-              top->trace.msg("Storing to pending (coreId: %d)\n", i);
+                top->trace.msg("Storing to pending (coreId: %d)\n", i);
                 *(uint32_t *)waiting_req->get_data() = dispatch->value.get();
               }
               else
               {
-              top->trace.msg("Storing to interrupted_elw (coreId: %d)\n", i);
-                this->top->core_eu[i].interrupt_elw_value = dispatch->value.get();
+                top->trace.msg("Storing to interrupted_elw (coreId: %d)\n", i);
+                this->top->core_eu[i].interrupt_elw_value.set(dispatch->value.get());
               }
 
               // Update the core fifo
@@ -1698,6 +1725,11 @@ void Barrier_unit::check_barrier(int barrier_id)
 
 vp::io_req_status_e Barrier_unit::req(vp::io_req *req, uint64_t offset, bool is_write, uint32_t *data, int core)
 {
+    if (this->top->check_interrupted_elw(core, data))
+    {
+      return vp::IO_REQ_OK;
+    }
+
   unsigned int barrier_id = EU_BARRIER_AREA_BARRIERID_GET(offset);
   offset = offset - EU_BARRIER_AREA_OFFSET_GET(barrier_id);
   if (barrier_id >= nb_barriers) return vp::IO_REQ_INVALID;

@@ -141,7 +141,7 @@ class HandleQuantizeMult(MultQuantizionHandler):
                 o_q = QType.from_min_max_sq(stats['range_out'][0]['min'],
                                             stats['range_out'][0]['max'],
                                             dtype=o_dtype,
-                                            asymmetric=params.to_qtype and params.to_qtype.is_asymmetric)
+                                            asymmetric=params.to_qtype and params.to_qtype.asymmetric)
 
         params.from_qtype = in_q
         params.to_qtype = o_q

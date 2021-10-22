@@ -7,6 +7,10 @@
 #include "pmsis_gcc.h"
 #include "pmsis_backend_native_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct pi_task_delayed_s
 {
     struct pi_task *fifo_head;
@@ -39,7 +43,7 @@ static inline void __os_native_api_restore_irq(int irq_enable)
 
 static inline void __os_native_api_sem_take(void *sem_object)
 {
-    int irq = __disable_irq();
+    //int irq = __disable_irq();
     if (pi_is_fc())
     {
 #ifndef __VEGA__
@@ -55,7 +59,7 @@ static inline void __os_native_api_sem_take(void *sem_object)
             xSemaphoreTake(sem_object, portMAX_DELAY);
         }
     }
-    __restore_irq(irq);
+    //__restore_irq(irq);
 }
 
 static inline void __os_native_api_sem_give(void *sem_object)
@@ -136,6 +140,34 @@ static inline int __os_native_api_mutex_deinit(pmsis_mutex_t *mutex)
     return 0;
 }
 
+
+static inline int __os_native_api_sync_obj_init(void *sync_obj)
+{
+    *((TaskHandle_t *) sync_obj) = xTaskGetCurrentTaskHandle();
+    return 0;
+}
+
+static inline int __os_native_api_sync_obj_deinit(void *sync_obj)
+{
+    return 0;
+}
+
+static inline void __os_native_api_sync_obj_take(void *sync_obj)
+{
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+}
+
+static inline void __os_native_api_sync_obj_release(void *sync_obj)
+{
+    uint32_t irq = __disable_irq();
+    BaseType_t higher_priority_task_woken = pdFALSE;
+    TaskHandle_t task_handler = sync_obj;
+    vTaskNotifyGiveFromISR(task_handler, &higher_priority_task_woken);
+    portYIELD_FROM_ISR(higher_priority_task_woken);
+    __restore_irq(irq);
+}
+
+
 static inline void __os_native_yield(void)
 {
     taskYIELD();
@@ -170,7 +202,7 @@ static inline void *__os_native_api_create_user_task(pi_task_entry_t entry,
 {
     TaskHandle_t task_handle = NULL;
     BaseType_t task_ret = pdFALSE;
-    pi_user_task_arg_t *user_arg = pi_fc_l1_malloc(sizeof(pi_user_task_arg_t));
+    pi_user_task_arg_t *user_arg = (pi_user_task_arg_t *) pi_fc_l1_malloc(sizeof(pi_user_task_arg_t));
     user_arg->entry = entry;
     user_arg->arg = arg;
     task_ret = xTaskCreate(system_usermode_entry,name,stack_size,user_arg,
@@ -192,7 +224,7 @@ static inline void __os_native_task_suspend(__os_native_task_t *task)
     vTaskDelete( (TaskHandle_t) task );
 }
 
-#if !defined(__GAP8__) && !defined(__VEGA__)
+#if !defined(__GAP8__)// && !defined(__VEGA__)
 extern void pi_irq_handler_wrapper(void);
 extern uint32_t pi_irq_handler_wrapper_vector[32];
 extern uint32_t pi_exception_vector[16];
@@ -260,4 +292,7 @@ static inline int pi_platform(void)
 
 #define rt_platform pi_platform
 
+#ifdef __cplusplus
+}
+#endif
 #endif

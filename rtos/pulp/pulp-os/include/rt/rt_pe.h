@@ -187,18 +187,36 @@ static inline void pi_cl_team_barrier()
   rt_team_barrier();
 }
 
-static inline void pi_cl_team_critical_enter()
+static inline void pi_cl_team_critical_enter(void)
 {
   rt_team_critical_enter();
 }
 
 
-static inline void pi_cl_team_critical_exit()
+static inline void pi_cl_team_critical_exit(void)
 {
   rt_team_critical_exit();
 }
 
 #if !defined(ARCHI_HAS_CC)
+
+
+static inline void pi_cl_team_preset_fork(void (*entry)(void *), void *arg)
+{
+  eu_dispatch_push((int)entry);
+  eu_dispatch_push((int)arg);
+  entry(arg);
+
+  __rt_team_barrier();
+}
+
+
+static inline void pi_cl_team_prepare_fork(int nb_cores)
+{
+  __rt_team_config(nb_cores);
+}
+
+
 
 static inline void rt_team_fork(int nb_cores, void (*entry)(void *), void *arg)
 {

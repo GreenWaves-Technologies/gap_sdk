@@ -79,7 +79,7 @@ uint64_t get_max_time(){
 }
 
 uint get_nPe(){
-  std::cout << "** get_nPe **" << std::endl;
+  //std::cout << "** get_nPe **" << std::endl;
   return Data_manager::TLHeight;
 }
 
@@ -87,12 +87,12 @@ std::string get_source_code(std::string function_name){
   //std::cout << "** get_source_code **" << std::endl;
   std::string file = file_of(function_name);
   if (file == ""){
-    std::cout << "** get_source_code **" << std::endl;
+    std::cout << "[-] Warning: get_source_code of function  ";
     std::cout << function_name << std::endl;
-    std::cout << "no file" << std::endl;
+    std::cout << "not available" << std::endl;
     return std::string("");
   }
-    
+
   return core->file_m[file];
 }
 
@@ -112,9 +112,10 @@ int function2line_number(std::string function_name){
 
   char* endptr;
   int line_number = strtol(token, &endptr, 10);
-  
+
   if (endptr == token || ! line_number){
     std::cout << "[-] Warning: no debugging information (please compile with -g option):"  << std::endl;
+    free(line);
     return 0;
   }
   free(line);
@@ -122,7 +123,7 @@ int function2line_number(std::string function_name){
 }
 
 std::string file_of(std::string function_name){
-  if (core->fctm.find(function_name) == core->fctm.end()) 
+  if (core->fctm.find(function_name) == core->fctm.end())
     return std::string("");
   return core->fctm[function_name].file;
 }

@@ -24,7 +24,8 @@
 
 
 
-PI_FC_TINY int pos_freq_domains[ARCHI_NB_FLL];
+PI_FC_TINY uint32_t pos_freq_domains[ARCHI_NB_FLL];
+PI_FC_TINY uint32_t pos_max_freq_domains[ARCHI_NB_FLL];
 
 
 
@@ -35,6 +36,11 @@ int pos_freq_set_and_get(pi_freq_domain_e domain, unsigned int freq, unsigned in
     FREQ_TRACE(POS_LOG_INFO, "Setting domain frequency (domain: %d, freq: %d)\n", domain, freq);
 
     pos_cbsys_exec(POS_CBSYS_PERIPH_SETFREQ_BEFORE);
+
+    if (pos_max_freq_domains[domain] != 0 && freq > pos_max_freq_domains[domain])
+    {
+        freq = pos_max_freq_domains[domain];
+    }
 
     int fll_freq = pos_fll_set_freq(pos_freq_get_fll(domain), freq);
     if (out_freq)

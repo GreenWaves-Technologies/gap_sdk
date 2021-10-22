@@ -8,7 +8,7 @@ from typing import Mapping, Sequence, Tuple
 import numpy as np
 from graph.types import (ConcatParameters, FusionInputParameters,
                          FusionOutputParameters, Parameters, SplitParameters,
-                         StridedSliceParameters, Transposable,
+                         StridedSliceParameters,
                          TransposeParameters)
 from utils.graph import GraphView
 
@@ -33,11 +33,6 @@ def explore_node(subg, node, state, out_slice=None, in_slice=None):
         # in_slice needs to be reduced to the elements of the portion that make up that output
         out_slice = out_slice[0]
         in_slice = in_slice[0]
-        if node.transpose_out and node.transpose_out[0]:
-            out_slice = do_transpose(reverse_transpose(
-                node.transpose_out[0]), out_slice)
-            in_slice = do_transpose(reverse_transpose(
-                node.transpose_out[0]), in_slice)
         dest_start = out_slice[node.axis][1][0]
         dest_end = out_slice[node.axis][1][1]
         dest_stride = out_slice[node.axis][1][2]
@@ -57,9 +52,6 @@ def explore_node(subg, node, state, out_slice=None, in_slice=None):
                 [out_slice[idx][0], out_slice[idx][1] if idx !=
                     node.axis else [seg_dest_start, seg_dest_end, dest_stride]]
                 for idx, _ in enumerate(in_shape)]
-            if node.transpose_in and node.transpose_in[edge.to_idx]:
-                dest_slice_set = do_transpose(reverse_transpose(
-                    node.transpose_in[edge.to_idx]), dest_slice_set)
             dest_slice_sets.append(dest_slice_set)
             src_seg_start = dest_next - seg_dest_start
             src_seg_end = min(seg_dest_end - seg_dest_start, in_end)
@@ -67,9 +59,6 @@ def explore_node(subg, node, state, out_slice=None, in_slice=None):
                 [in_slice[idx][0], in_slice[idx][1] if idx !=
                     node.axis else [src_seg_start, src_seg_end, dest_stride]]
                 for idx, _ in enumerate(in_shape)]
-            if node.transpose_in and node.transpose_in[edge.to_idx]:
-                src_slice_set = do_transpose(reverse_transpose(
-                    node.transpose_in[edge.to_idx]), src_slice_set)
             src_slice_sets.append(src_slice_set)
             dest_next += ((src_seg_end - src_seg_start) //
                           dest_stride) * dest_stride
@@ -77,9 +66,9 @@ def explore_node(subg, node, state, out_slice=None, in_slice=None):
         explore_edges(src_slice_sets, dest_slice_sets, state, node, subg)
     elif isinstance(node, TransposeParameters):
         dest_slice_sets = [do_transpose(
-            reverse_transpose(node.transpose_in[0]), out_slice)]
+            reverse_transpose(node.transpose), out_slice)]
         src_slice_sets = [do_transpose(
-            reverse_transpose(node.transpose_in[0]), in_slice)]
+            reverse_transpose(node.transpose), in_slice)]
         explore_edges(src_slice_sets, dest_slice_sets, state, node, subg)
     elif isinstance(node, StridedSliceParameters):
         # in_slice needs to be expanded to the indexes before the slice
@@ -353,21 +342,14 @@ def walk_down(
         # all edges not created
         if any(val is None for val in dim_slices):
             return
-        if isinstance(node, Transposable) and node.transpose_in:
-            for idx, transpose in enumerate(node.transpose_in):
-                if transpose:
-                    dim_slices[idx] = dim_slices[idx].transpose(transpose)
-        if isinstance(node, ConcatParameters):
+        if isinstance(node, TransposeParameters) and node.transpose:
+            dim_slices[0] = dim_slices[0].transpose(node.transpose)
+        elif isinstance(node, ConcatParameters):
             dim_slices = [SlicedTensor.concat(*dim_slices, axis=node.axis)]
         elif isinstance(node, SplitParameters):
             dim_slices = dim_slices[0].split(node.act_slices)
         elif isinstance(node, StridedSliceParameters):
             dim_slices = [dim_slices[0].slice(node.act_slice)]
-
-    if isinstance(node, Transposable) and node.transpose_out:
-        for idx, transpose in enumerate(node.transpose_out):
-            if transpose:
-                dim_slices[idx] = dim_slices[idx].transpose(transpose)
 
     # set output edges
     for edge_set in subg.indexed_out_edges(node.name):

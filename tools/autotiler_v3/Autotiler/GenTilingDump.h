@@ -76,6 +76,7 @@ extern void AT_DumpGraphNodeArg(CNNGraph_T *Graph, GraphNode_T *Node,
                          unsigned int Filter, int *Collect, char **EventHandle,
                          char *L2_Buffer, unsigned int L2_BufferSize,
                          FILE *Fi);
+extern char *TruncToMax(char *S, int M);
 extern void AT_DumpChecksum(CNNGraph_T *Graph, GraphNode_T *Node, int *Collect, char **EventHandle,
                          char *L2_Buffer, unsigned int L2_BufferSize,
                          FILE *Fi);

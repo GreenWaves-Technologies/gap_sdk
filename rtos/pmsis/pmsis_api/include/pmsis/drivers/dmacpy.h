@@ -19,6 +19,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * \ingroup groupDrivers
  *
@@ -135,4 +139,7 @@ int pi_dmacpy_copy_async(struct pi_device *device, void *src, void *dst,
  * \}
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_DRIVERS_DMACPY_H__ */

@@ -19,9 +19,9 @@ from typing import Sequence, Union
 
 from expressions.symbolic.symbol import Symbol
 from generation.at_types.gen_ctrl import CTRL_FEATURES, GenCtrl
-from graph.dim import Dim
+from graph.dim import Dim, PadDim, StrideDim
 
-from utils.graph import Edge, Node
+from utils.graph import Edge, Node, NodeRef
 from utils.option_list import OptionList
 
 LOG = logging.getLogger("nntool." + __name__)
@@ -57,13 +57,59 @@ def clone_dims(dims: Sequence[Dim], hints: Sequence[Dim]):
             if len(hint) == len(cloned_dim):
                 cloned_dim.apply_naming_hints(hints[dim_idx])
             elif not cloned_dim.is_named:
-                raise ValueError(f'hint length {hint} != dim length {cloned_dim}')
+                raise ValueError(
+                    f'hint length {hint} != dim length {cloned_dim}')
         cloned_dims.append(cloned_dim)
     return cloned_dims
 
 
+class NNNodeRef(NodeRef):
+    def __init__(self, node, idx, G) -> None:
+        super(NNNodeRef, self).__init__(node)
+        self._G = G
+        self._idx = idx
+
+    @property
+    def G(self):
+        return self._G
+
+    @property
+    def ref(self):
+        return ((self._node, self._idx), self._G)
+
+    def __getattr__(self, name):
+        return getattr(self._node, name)
+
+    def __setattr__(self, name, val):
+        if name in ['_node', '_G', '_idx']:
+            super().__setattr__(name, val)
+        return setattr(self._node, name, val)
+
+    def __hasattr__(self, name):
+        return self._node.__hasattr__(name)
+
+    def __str__(self) -> str:
+        return self._node.__str__()
+
+    def __repr__(self) -> str:
+        return self._node.__repr__()
+
+    def __eq__(self, o: object) -> bool:
+        if isinstance(o, NNNodeRef):
+            return super().__eq__(o)
+        return self._node.__eq__(o)
+
+    def __hash__(self) -> int:
+        return self._node.__hash__()
+
+    def __call__(self, *args, **kwargs):
+        raise ValueError("this is already a reference")
+
+
 class Parameters(Node):
     CLS_OP_NAME = None
+    NARGS = {1}
+    NOT_GENERATED = False
 
     def __init__(self, name, *args, in_dims_hint=None, out_dims_hint=None, constant_store=None, **kwargs):
         super().__init__(name, *args, **kwargs)
@@ -82,20 +128,58 @@ class Parameters(Node):
         self._ker_in_order = None
         self._ker_out_order = None
 
-    def verify(self, G):
-        """ Override to cause this verification test to be run on all instances of this node.
-        Should return a list of problem descriptions or an empty list if everything is OK
-        """
-        return []
-
-    def get_parameters(self):
-        return {}
-
-    def set_parameters(self, val):
+    @abstractmethod
+    def __str__(self):
         pass
 
-    def get_gen_ctrl(self):
-        return GenCtrl(self.at_options)
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.name})'
+
+    def __call__(self, *args, **kwargs):
+        # set of number of args
+        if isinstance(self.NARGS, set):
+            if '*' not in self.NARGS and len(args) not in self.NARGS:
+                raise ValueError("incorrect number of arguments")
+            inputs, fragments = [], []
+            for arg in args:
+                if arg is not None and not isinstance(arg, NNNodeRef):
+                    raise ValueError("expecting NNNodeRef")
+                inputs.append(arg.ref[0] if arg else None)
+                fragments.append(arg.ref[1] if arg else None)
+
+        # list of possible inputs passed in kwargs. Things passed in args get
+        # copied to kwargs with their index from the names in nargs
+        elif isinstance(self.nargs, list):
+            for idx, arg in enumerate(args):
+                if idx >= len(self.nargs):
+                    raise ValueError('Too many inputs for this node type')
+                kwargs[self.nargs[idx]] = arg
+            inputs = []
+            fragments = []
+            for name in self.nargs:
+                if name in kwargs:
+                    ref = kwargs[name]
+                    if not isinstance(ref, NNNodeRef):
+                        raise ValueError("expecting NNNodeRef")
+                    inputs.append(ref[0])
+                    fragments.append(ref[1])
+                else:
+                    inputs.append(None)
+                    fragments.append(None)
+            if inputs[0] is None:
+                raise ValueError('Expecting at least an input')
+
+        fragment = [frag for frag in fragments if frag is not None][0]
+        if len(fragments) > 1:
+            for other in fragments[1::]:
+                if other is not None:
+                    fragment.merge(other)
+        for to_idx, from_tuple in enumerate(inputs):
+            if from_tuple is not None:
+                from_node, from_idx = from_tuple
+                fragment.add_edge(NNEdge(from_node=from_node,
+                                         from_idx=from_idx, to_node=self, to_idx=to_idx))
+        return NNNodeRef(self, 0, fragment)
 
     @property
     def graph_label(self):
@@ -222,17 +306,24 @@ class Parameters(Node):
     def node_cname(self, val):
         self.at_options.node_cname = val
 
+    @property
+    @abstractmethod
+    def can_equalize(self):
+        pass
+
+    @property
+    def op_name(self):
+        return self.CLS_OP_NAME
+
+    def compute_load(self):
+        return None
+
     @abstractmethod
     def get_parameter_size(self):
         pass
 
     @abstractmethod
     def get_output_size(self, in_dims):
-        pass
-
-    @property
-    @abstractmethod
-    def can_equalize(self):
         pass
 
     def set_input_size(self, dims: Sequence[Dim]):
@@ -242,6 +333,21 @@ class Parameters(Node):
     def set_output_size(self, dims: Sequence[Dim]):
         self.out_dims = clone_dims(dims, self.out_dims_hint)
         return self.out_dims
+
+    def verify(self, G):
+        """ Override to cause this verification test to be run on all instances of this node.
+        Should return a list of problem descriptions or an empty list if everything is OK
+        """
+        return []
+
+    def get_parameters(self):
+        return {}
+
+    def set_parameters(self, val):
+        pass
+
+    def get_gen_ctrl(self):
+        return GenCtrl(self.at_options)
 
     def clone_dim_with_hint(self, dim, hint_idx, hint_dir="in"):
         if hint_dir == "in":
@@ -278,19 +384,21 @@ class Parameters(Node):
         return cloned_dims
 
     @property
-    def op_name(self):
-        return self.CLS_OP_NAME
-
-    def compute_load(self):
-        return None
-
-    @abstractmethod
-    def __str__(self):
-        pass
+    def is_not_generated(self):
+        return self.NOT_GENERATED
 
     @staticmethod
     def cls_op_name(name):
         return Parameters.property_register("CLS_OP_NAME", name)
+
+    @staticmethod
+    def nargs(name):
+        return Parameters.property_register("NARGS", name)
+
+    @staticmethod
+    def not_generated(cls):
+        setattr(cls, "NOT_GENERATED", True)
+        return cls
 
     @staticmethod
     def property_register(name, value):
@@ -301,11 +409,10 @@ class Parameters(Node):
 
         return deco
 
-    def __repr__(self):
-        return f'{self.__class__.__name__}({self.name})'
-
 
 cls_op_name = Parameters.cls_op_name
+nargs = Parameters.nargs
+not_generated = Parameters.not_generated
 
 
 class InsensitiveToQuantization():
@@ -367,7 +474,7 @@ class ComparableParameters():
     ''' Mixin that indicates that this operation can be compared with another of the same type
     to determine redundancy. It is assumed that if A==B and B==C then A==C.'''
 
-    def is_same_operation_as(self, other):
+    def is_same_operation_as(self, G, other):
         return False
 
     def can_be_grouped_with(self, other):
@@ -379,7 +486,11 @@ class ComparableParameters():
 class FilterLikeParameters(Parameters, SingleInputAndOutput):
     def __init__(self, *args, stride=None, padding=None,
                  pad_type="zero", **kwargs):
-        assert stride and padding
+        if stride is None:
+            stride = StrideDim(1, 1)
+        if padding is None:
+            padding = PadDim(0)
+
         super(FilterLikeParameters, self).__init__(*args, **kwargs)
         self.stride = stride
         self.padding = padding
@@ -403,76 +514,6 @@ class FilterLikeParameters(Parameters, SingleInputAndOutput):
     def can_equalize(self):
         return True
 
-
-class Transposable(Parameters):
-
-    def __init__(self, *args,
-                 transpose_in=None,
-                 transpose_out=None,
-                 eliminate_transposes_pass_down=False,
-                 eliminate_transposes_pass_up=False, **kwargs):
-        self._transpose_in = transpose_in
-        self._transpose_out = transpose_out
-        self._eliminate_transposes_pass_down = eliminate_transposes_pass_down
-        self._eliminate_transposes_pass_up = eliminate_transposes_pass_up
-        super(Transposable, self).__init__(*args, **kwargs)
-
-    @staticmethod
-    def first_last(dim):
-        trans = list(range(len(dim.shape)))
-        trans.append(trans.pop(0))
-        return trans
-
-    @staticmethod
-    def last_first(dim):
-        trans = list(range(len(dim.shape)))
-        trans.insert(0, trans.pop())
-        return trans
-
-    @property
-    def eliminate_transposes_pass_up(self):
-        return self._eliminate_transposes_pass_up
-
-    @property
-    def eliminate_transposes_pass_down(self):
-        return self._eliminate_transposes_pass_down
-
-    @property
-    def transpose_in(self):
-        return self._transpose_in
-
-    @transpose_in.setter
-    def transpose_in(self, val):
-        self._transpose_in = val
-
-    @property
-    def transpose_out(self):
-        return self._transpose_out
-
-    @transpose_out.setter
-    def transpose_out(self, val):
-        self._transpose_out = val
-
-    @property
-    def has_transpose(self):
-        return bool(self.transpose_in or self.transpose_out)
-
-    def apply_transposes(self, direction, dims: Sequence[Dim]):
-        trans = getattr(self, f'transpose_{direction}')
-        if trans:
-            return [dim.calc_transpose(trans[idx]) if trans[idx] else dim
-                    for idx, dim in enumerate(dims)]
-        return dims
-
-    def __str__(self):
-        trans = []
-        if self.transpose_in:
-            trans.append("t_in: %s" % ",".join(str(trans)
-                                               for trans in self.transpose_in))
-        if self.transpose_out:
-            trans.append("t_out: %s" % ",".join(str(trans)
-                                                for trans in self.transpose_out))
-        return ", ".join(trans)
 
 #pylint: disable=abstract-method
 

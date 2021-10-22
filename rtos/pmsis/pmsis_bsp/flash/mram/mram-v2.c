@@ -121,6 +121,19 @@ static int pos_get_div(pos_mram_t *mram, int freq)
     }
 }
 
+
+static void mram_set_baudrate(struct pi_device *device, int frequency)
+{
+    pos_mram_t *mram = (pos_mram_t *)device->data;
+
+    // // Setup clock divider
+    udma_mram_clk_div_set(mram->base,
+        UDMA_MRAM_CLK_DIV_ENABLE(1)   |
+        UDMA_MRAM_CLK_DIV_VALID(1)    |
+        UDMA_MRAM_CLK_DIV_DATA(pos_get_div(mram, frequency))
+    );
+}
+
 static void __attribute__((constructor)) pos_mram_init()
 {
     for (int i=0; i<ARCHI_UDMA_NB_MRAM; i++)
@@ -152,31 +165,16 @@ static void __rt_mram_do_trim(pos_mram_t *mram, void *_trim_cfg_buff)
 
     pi_task_t task;
 
-    // Init the CFG zone in L2 to scan the TRIM CGF in the MRAM
-    // TODO this should come from efuses
-    for(int index = 0; index < TRIM_CFG_SIZE; index ++)
-    {
-        trim_cfg_buff[index] = 0x00000000u;
-    }
-
-    // Write the info to num Pulses and Sector enable
-    //trim_cfg_buff[123] = (SECTOR_ERASE << 24) | ( NUM_PULSE << 17 );
-
-    trim_cfg_buff[3] = (SECTOR_ERASE << 24) | ( NUM_PULSE << 17 );
-
-    // section erase_en = cr_lat[3960]
-    // prog_pulse_cfg   = cr_lat[3955:3953]
-    //                    cr_lat[3955:3953]= 000 => number of program pulse = 8 (the default)
-    //                    cr_lat[3955:3953]= 001 => number of program pulse = 1
-    //                    cr_lat[3955:3953]= 010 => number of program pulse = 2
-    //                    cr_lat[3955:3953]= 011 => number of program pulse = 3
-    //                    cr_lat[3955:3953]= 100 => number of program pulse = 4
-    //                    cr_lat[3955:3953]= 101 => number of program pulse = 5
-    //                    cr_lat[3955:3953]= 110 => number of program pulse = 6
-    //                    cr_lat[3955:3953]= 111 => number of program pulse = 7
+    trim_cfg_buff[0] = 0x00000000;
+    trim_cfg_buff[1] = 0xFD798D00;
+    trim_cfg_buff[2] = 0x620490D0;
+    trim_cfg_buff[3] = 0x0406082E;
+    trim_cfg_buff[4] = 0x0580001B;
+    trim_cfg_buff[5] = 0x00000000;
+    trim_cfg_buff[6] = 0x00000000;
 
     mram->pending_copy = pi_task_block(&task);
-    __rt_mram_trim_cfg_exec(mram, trim_cfg_buff, 0, TRIM_CFG_SIZE);
+    __rt_mram_trim_cfg_exec(mram, trim_cfg_buff, 0, TRIM_CFG_SIZE*4);
     pi_task_wait_on(&task);
 }
 
@@ -839,7 +837,12 @@ static int32_t mram_ioctl(struct pi_device *device, uint32_t cmd, void *arg)
             flash_info->sector_size = 1<<13;
             // TODO find a way to know what is on the flash, as they may be a boot binary
             flash_info->flash_start = 1<<16;
+            break;
         }
+
+        case PI_FLASH_IOCTL_SET_BAUDRATE:
+            mram_set_baudrate(device, (int)arg);
+            break;
     }
     return 0;
 }
@@ -886,5 +889,5 @@ void pi_mram_conf_init(struct pi_mram_conf *conf)
 {
     conf->flash.api = &mram_api;
     conf->itf = 0;
-    conf->baudrate = 25000000;
+    conf->baudrate = 15000000;
 }

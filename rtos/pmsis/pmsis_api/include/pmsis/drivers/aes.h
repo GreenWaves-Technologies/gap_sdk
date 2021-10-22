@@ -19,6 +19,11 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /**
  * \ingroup groupDrivers
  *
@@ -175,4 +180,7 @@ int pi_aes_decrypt_async(struct pi_device* device, void* src, void* dest, uint16
  * @}
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_DRIVERS_AES_H__ */

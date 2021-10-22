@@ -88,16 +88,15 @@ static inline uint32_t syscall( uint32_t callNum,
 {
     uint32_t ret = 0;
     __asm__ volatile(
-	"or a0, zero, %1 \n\t"
-	"or a1, zero, %2 \n\t"
-	"or a2, zero, %3 \n\t"
-	"or a3, zero, %4 \n\t"
-	"or a7, zero, %5 \n\t"
+	"or a7, zero, %1 \n\t"
+	"or a0, zero, %2 \n\t"
+	"or a1, zero, %3 \n\t"
+	"or a2, zero, %4 \n\t"
+	"or a3, zero, %5 \n\t"
 	"ecall \n\t"
 	:"=r" ( ret )
-	:"r" ( arg0 ), "r" ( arg1 ), "r" ( arg2 ), "r" ( arg3 ), "r" ( callNum )
+	:"r" ( callNum ), "r" ( arg0 ), "r" ( arg1 ), "r" ( arg2 ), "r" ( arg3 )
 	);
-
     return ret;
 }
 
@@ -143,9 +142,10 @@ uint32_t _clusterid( void )
 
 void _isr_default( void )
 {
-    printf("Default\n");
-    __asm__ volatile ( "nop" );
-    return;
+    uint32_t mepc = 0;
+    asm volatile("csrr %0, mepc" : "=r"(mepc));
+    PI_LOG_ERR(__func__, "Error : default ISR called at %lx\n", mepc);
+    pmsis_exit(-197);
 }
 
 void _ill_insn_print(uint32_t mepc)

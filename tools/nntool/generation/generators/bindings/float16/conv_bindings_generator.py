@@ -22,7 +22,7 @@ from graph.types import (ActivationParameters, Conv2DParameters,
 from utils.node_id import NodeId
 
 
-@generation_function("bindings", (Conv2DParameters, ConvFusionParameters, ActivationParameters), qrec_types=(QREC_FLOAT,))
+@generation_function("bindings", (Conv2DParameters, ConvFusionParameters), qrec_types=(QREC_FLOAT,))
 def conv_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
     step_idx = node.step_idx
     if isinstance(node, ActivationParameters):
@@ -70,6 +70,5 @@ def set_act_bindings(gen, step_idx, in_eparams, out_eparams, cname,
     )
     gen.bindings.append(
         NodeBindingList(cname, GNodeArgEdge(in_eparams[0]),
-                        GNodeArgEdge(out_eparams[0], "GNA_OUT"),
-                        GNodeArgNode(act_params, INFOS)
+                        GNodeArgEdge(out_eparams[0], "GNA_OUT")
                         ))

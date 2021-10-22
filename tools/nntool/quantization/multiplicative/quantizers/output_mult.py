@@ -19,13 +19,14 @@ import numpy as np
 from graph.types import OutputParameters
 from quantization.new_qrec import QRec
 from quantization.unified_quantization_handler import (out_qs_constraint,
-                                                       params_type)
+                                                       params_type, needs_stats)
 
 from ..mult_quantization_handler import MultQuantizionHandler
 
 
 @params_type(OutputParameters)
 @out_qs_constraint({'dtype': set([np.int8, np.uint8, np.int16])})
+@needs_stats(False)
 class OutputMult(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):

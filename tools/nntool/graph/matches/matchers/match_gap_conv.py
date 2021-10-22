@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.activations import TanHActivationParameters
 import logging
 from copy import deepcopy
 
@@ -20,7 +21,7 @@ from graph.types import (ActivationParameters, Conv2DParameters,
                          ConvFusionParameters, HSigmoidActivationParameters,
                          HSwishActivationParameters, LeakyActivationParameters,
                          NNEdge, PoolingParameters, ReluActivationParameters,
-                         SigmoidActivationParameters, Transposable)
+                         SigmoidActivationParameters)
 from quantization.new_qrec import QRec
 from utils.graph import GraphView
 from utils.node_id import NodeId
@@ -34,7 +35,8 @@ VALID_ACTIVATIONS_SQ8 = (
     LeakyActivationParameters,
     HSigmoidActivationParameters,
     HSwishActivationParameters,
-    SigmoidActivationParameters
+    SigmoidActivationParameters,
+    TanHActivationParameters
 )
 
 VALID_ACTIVATIONS_POW2 = (
@@ -56,8 +58,6 @@ class FusionMatch():
         self.order = []
 
     def add_node(self, params):
-        if isinstance(params, Transposable) and (params.transpose_in or params.transpose_out):
-            return None
         if isinstance(params, Conv2DParameters):
             if self.conv:
                 return None

@@ -1,4 +1,5 @@
-Input file: fe/ips/apb/apb_adv_timer/doc/APB_ADV_TIMER_reference.md
+.. 
+   Input file: fe/ips/apb/apb_adv_timer/doc/APB_ADV_TIMER_reference.md
 
 Register map
 ^^^^^^^^^^^^

@@ -22,5 +22,7 @@ extern void AT_DefaultSetGraphCtrl();
 extern void GenerateGraphNodeTypeTemplate(CNNGraph_T *Graph, FILE *Fi);
 extern void GenerateOneNodeArgInit(char *FunArgName, NodeTypeTemplate_T *NodeType, FILE *Fi);
 
+extern char *GraphNodeArgImage(GraphNode_T *Node, CKernel_Arg_T *Arg, char *Str);
+
 
 #endif

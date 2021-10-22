@@ -153,7 +153,7 @@ static void __pi_i2c_send_stop_cmd(struct i2c_itf_data_s *driver_data)
 static void __pi_i2c_handler(void *arg)
 {
     uint32_t event = (uint32_t) arg;
-    uint32_t channel = event & 0x1;
+    uint32_t channel = ((event & 0x1) ? TX_CHANNEL : RX_CHANNEL);
     uint32_t periph_id = (event >> UDMA_CHANNEL_NB_EVENTS_LOG2) - UDMA_I2C_ID(0);
 
     struct i2c_itf_data_s *driver_data = g_i2c_itf_data[periph_id];
@@ -171,7 +171,7 @@ static void __pi_i2c_handler(void *arg)
     {
         return;
     }
-    if (driver_data->hw_buffer[channel] != NULL)
+    if (driver_data->hw_buffer[channel/TX_CHANNEL] != NULL)
     {
         /* Pending transfer. */
         if (driver_data->pending->pending_repeat)
@@ -184,7 +184,7 @@ static void __pi_i2c_handler(void *arg)
             {
                 if (channel == RX_CHANNEL)
                 {
-                    driver_data->hw_buffer[TX_CHANNEL] = driver_data->hw_buffer[RX_CHANNEL];
+                    driver_data->hw_buffer[TX_CHANNEL/TX_CHANNEL] = driver_data->hw_buffer[RX_CHANNEL];
                     driver_data->hw_buffer[RX_CHANNEL] = NULL;
                 }
                 __pi_i2c_send_stop_cmd(driver_data);
@@ -225,7 +225,7 @@ static int32_t __pi_i2c_hw_fifo_both_empty(struct i2c_itf_data_s *driver_data)
 static int32_t __pi_i2c_hw_fifo_empty(struct i2c_itf_data_s *driver_data,
                                       udma_channel_e channel)
 {
-    return ((driver_data->hw_buffer[channel] == NULL) ? 1 : 0);
+    return ((driver_data->hw_buffer[channel/TX_CHANNEL] == NULL) ? 1 : 0);
 }
 
 static void __pi_i2c_hw_fifo_enqueue(struct i2c_itf_data_s *driver_data,
@@ -234,7 +234,7 @@ static void __pi_i2c_hw_fifo_enqueue(struct i2c_itf_data_s *driver_data,
 {
     uint32_t irq = __disable_irq();
     /* Enqueue task in hw_buffer[channel] to signal the slot is used. */
-    driver_data->hw_buffer[channel] = task;
+    driver_data->hw_buffer[channel/TX_CHANNEL] = task;
     __restore_irq(irq);
 }
 
@@ -243,9 +243,9 @@ static struct pi_task *__pi_i2c_hw_fifo_pop(struct i2c_itf_data_s *driver_data,
 {
     uint32_t irq = __disable_irq();
     struct pi_task *task_to_return = NULL;
-    task_to_return = driver_data->hw_buffer[channel];
+    task_to_return = driver_data->hw_buffer[channel/TX_CHANNEL];
     /* Free the slot for another transfer. */
-    driver_data->hw_buffer[channel] = NULL;
+    driver_data->hw_buffer[channel/TX_CHANNEL] = NULL;
     __restore_irq(irq);
     return task_to_return;
 }

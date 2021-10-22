@@ -5,6 +5,7 @@ flatbuffers/
 __pycache__
 .pytest_cache/
 .value_cache/
+.ipynb_checkpoints/
 .vscode/
 sample_project/version.log
 .orig

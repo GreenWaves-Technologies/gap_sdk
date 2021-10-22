@@ -1,7 +1,24 @@
+/*
+ * Copyright (C) 2018 GreenWaves Technologies
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpointer-sign"
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #include <stdio.h>
 #include "CNN_BasicKernels_SQ8.h"
 
@@ -27,21 +44,18 @@ static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
 	Scaling is optional, no scaling is expressed using Scale=0
 *************************************************************************************************************************************************/
 
-void KerParMatAdd_SQ8(KerMat3_SQ8_T *Arg)
+void KerMatAdd_SQ8(KerMat3_SQ8_T *Arg)
 
 {
 	signed char * __restrict__ In1	= Arg->In1;
 	signed char * __restrict__ In2	= Arg->In2;
 	signed char * __restrict__ Out	= Arg->Out;
-	int W				= Arg->W;
-	int H				= Arg->H;
 	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
 	unsigned int OutScale = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALE], OutScaleN = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALEN];
-
-	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Arg->Feat*W*H), First = Chunk*CoreId, Last = Min(First+Chunk, Arg->Feat*W*H);
-
-	unsigned int F = First, S = Max(0, Last-F);
-	signed char * __restrict__ I1 = In1 + F, *__restrict__ I2 = In2 + F, *__restrict__ O  = Out + F;
+	int Size = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	int S = Last-First;
+	signed char * __restrict__ I1 = In1 + First, *__restrict__ I2 = In2 + First, *__restrict__ O  = Out + First;
 	if (In1Scale && OutScale) {
 		for (int i=0; i<S/2; i++) {
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
@@ -74,22 +88,20 @@ void KerParMatAdd_SQ8(KerMat3_SQ8_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParMatAdd_ReLU_SQ8(KerMat3_SQ8_T *Arg)
+void KerMatAdd_ReLU_SQ8(KerMat3_SQ8_T *Arg)
 
 {
 	signed char * __restrict__ In1	= Arg->In1;
 	signed char * __restrict__ In2	= Arg->In2;
 	signed char * __restrict__ Out	= Arg->Out;
-	int W				= Arg->W;
-	int H				= Arg->H;
 	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
 	unsigned int OutScale = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALE], OutScaleN = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALEN];
 	unsigned int ActScale = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALEN];
-
-	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Arg->Feat*W*H), First = Chunk*CoreId, Last = Min(First+Chunk, Arg->Feat*W*H);
-
+	int Size = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
 	unsigned int F = First, S = Max(0, Last-F);
-	signed char * __restrict__ I1 = In1 + F, *__restrict__ I2 = In2 + F, *__restrict__ O  = Out + F;
+	signed char * __restrict__ I1 = In1 + F, *__restrict__ I2 = In2 + First, *__restrict__ O  = Out + F;
+
 	if (ActScale) {
 		if (In1Scale && OutScale) {
 			for (int i=0; i<S/2; i++) {
@@ -154,21 +166,19 @@ void KerParMatAdd_ReLU_SQ8(KerMat3_SQ8_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParMatAdd_ReLUN_SQ8(KerMat3_SQ8_T *Arg)
+void KerMatAdd_ReLUN_SQ8(KerMat3_SQ8_T *Arg)
 
 {
 	signed char * __restrict__ In1	= Arg->In1;
 	signed char * __restrict__ In2	= Arg->In2;
 	signed char * __restrict__ Out	= Arg->Out;
-	int W				= Arg->W;
-	int H				= Arg->H;
 	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
 	unsigned int OutScale = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALE], OutScaleN = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALEN];
 	unsigned int ActScale = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALEN];
 
 	int A0 = Arg->Infos[AT_INF_A0];
-
-	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Arg->Feat*W*H), First = Chunk*CoreId, Last = Min(First+Chunk, Arg->Feat*W*H);
+	int Size = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
 
 	unsigned int F = First, S = Max(0, Last-F);
 	signed char * __restrict__ I1 = In1 + F, *__restrict__ I2 = In2 + F, *__restrict__ O  = Out + F;
@@ -236,20 +246,18 @@ void KerParMatAdd_ReLUN_SQ8(KerMat3_SQ8_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParMatAdd_HSigmoid_SQ8(KerMat3_SQ8_T *Arg)
+void KerMatAdd_HSigmoid_SQ8(KerMat3_SQ8_T *Arg)
 
 {
 	signed char * __restrict__ In1	= Arg->In1;
 	signed char * __restrict__ In2	= Arg->In2;
 	signed char * __restrict__ Out	= Arg->Out;
-	int W				= Arg->W;
-	int H				= Arg->H;
 	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
 	unsigned int OutScale = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALE], OutScaleN = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALEN];
 	unsigned int ActScale = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALEN];
 	int A0 = Arg->Infos[AT_INF_A0], B0 = Arg->Infos[AT_INF_B0], C0 = Arg->Infos[AT_INF_C0];
-
-	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Arg->Feat*W*H), First = Chunk*CoreId, Last = Min(First+Chunk, Arg->Feat*W*H);
+	int Size = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
 
 	unsigned int F = First, S = Max(0, Last-F);
 	signed char * __restrict__ I1 = In1 + F, *__restrict__ I2 = In2 + F, *__restrict__ O  = Out + F;
@@ -305,20 +313,18 @@ void KerParMatAdd_HSigmoid_SQ8(KerMat3_SQ8_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParMatAdd_HSwish_SQ8(KerMat3_SQ8_T *Arg)
+void KerMatAdd_HSwish_SQ8(KerMat3_SQ8_T *Arg)
 
 {
 	signed char * __restrict__ In1	= Arg->In1;
 	signed char * __restrict__ In2	= Arg->In2;
 	signed char * __restrict__ Out	= Arg->Out;
-	int W				= Arg->W;
-	int H				= Arg->H;
 	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
 	unsigned int OutScale = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALE], OutScaleN = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALEN];
 	unsigned int ActScale = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALEN];
 	int A0 = Arg->Infos[AT_INF_A0], B0 = Arg->Infos[AT_INF_B0], C0 = Arg->Infos[AT_INF_C0];
-
-	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Arg->Feat*W*H), First = Chunk*CoreId, Last = Min(First+Chunk, Arg->Feat*W*H);
+	int Size = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
 
 	unsigned int F = First, S = Max(0, Last-F);
 	signed char * __restrict__ I1 = In1 + F, *__restrict__ I2 = In2 + F, *__restrict__ O  = Out + F;
@@ -374,21 +380,19 @@ void KerParMatAdd_HSwish_SQ8(KerMat3_SQ8_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParMatAdd_LeakyReLU_SQ8(KerMat3_SQ8_T *Arg)
+void KerMatAdd_LeakyReLU_SQ8(KerMat3_SQ8_T *Arg)
 
 {
 	signed char * __restrict__ In1	= Arg->In1;
 	signed char * __restrict__ In2	= Arg->In2;
 	signed char * __restrict__ Out	= Arg->Out;
-	int W				= Arg->W;
-	int H				= Arg->H;
 	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
 	unsigned int OutScale = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALE], OutScaleN = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALEN];
 	unsigned int ActScale = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALEN];
 	int A0 = Arg->Infos[AT_INF_A0], B0 = Arg->Infos[AT_INF_B0], C0 = Arg->Infos[AT_INF_C0];
 
-	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Arg->Feat*W*H), First = Chunk*CoreId, Last = Min(First+Chunk, Arg->Feat*W*H);
-
+	int Size = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
 	unsigned int F = First, S = Max(0, Last-F);
 	signed char * __restrict__ I1 = In1 + F, *__restrict__ I2 = In2 + F, *__restrict__ O  = Out + F;
 	if (In1Scale && OutScale) {
@@ -463,6 +467,166 @@ void KerParMatAdd_LeakyReLU_SQ8(KerMat3_SQ8_T *Arg)
 	       		int Acc0N = AT_NORM(Acc0 * A0, 7);
 			O[S-1] = gap_clip(AT_SCALE((Neg0*Acc0N+Pos0*Acc0), ActScale, ActScaleN), 7);
 		}
+	}
+	gap_waitbarrier(0);
+}
+
+void KerMatAdd_USQ8(KerMat3_SQ8_T *Arg)
+
+{
+	unsigned char * __restrict__ In1	= Arg->In1;
+	unsigned char * __restrict__ In2	= Arg->In2;
+	unsigned char * __restrict__ Out	= Arg->Out;
+	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
+	unsigned int OutScale = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALE], OutScaleN = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALEN];
+	short int AddBias = *((short int *)(((unsigned char *)Arg->Infos)+AT_INF_ADD_BIAS));
+	int Size = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	int S = Last-First;
+	unsigned char * __restrict__ I1 = In1 + First, *__restrict__ I2 = In2 + First, *__restrict__ O  = Out + First;
+	for (int i=0; i<S/2; i++) {
+		int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
+		O[2*i  ] = gap_clipu(AddBias + AT_SCALE(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, OutScale, OutScaleN), 8);
+		O[2*i+1] = gap_clipu(AddBias + AT_SCALE(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, OutScale, OutScaleN), 8);
+	}
+	if (S&0x1) O[S-1] = gap_clipu(AddBias + AT_SCALE(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], OutScale, OutScaleN), 8);
+	gap_waitbarrier(0);
+}
+
+void KerMatAdd_ReLU_USQ8(KerMat3_SQ8_T *Arg)
+
+{
+	unsigned char * __restrict__ In1	= Arg->In1;
+	unsigned char * __restrict__ In2	= Arg->In2;
+	unsigned char * __restrict__ Out	= Arg->Out;
+	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
+	unsigned int OutScale = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALE], OutScaleN = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALEN];
+	unsigned int ActScale = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALEN];
+	short int AddBias = *((short int *)(((unsigned char *)Arg->Infos)+AT_INF_ADD_BIAS));
+	int Size = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int F = First, S = Max(0, Last-F);
+	unsigned char * __restrict__ I1 = In1 + F, *__restrict__ I2 = In2 + First, *__restrict__ O  = Out + F;
+
+	if (ActScale) {
+		for (int i=0; i<S/2; i++) {
+			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
+			O[2*i  ] = AT_CLIP_POS_IMM(AT_SCALE(AddBias + AT_SCALE(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, OutScale, OutScaleN), ActScale, ActScaleN), 8);		
+			O[2*i+1] = AT_CLIP_POS_IMM(AT_SCALE(AddBias + AT_SCALE(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, OutScale, OutScaleN), ActScale, ActScaleN), 8);
+		}
+		if (S&0x1) O[S-1] = AT_CLIP_POS_IMM(AddBias + AT_SCALE(AT_SCALE(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], OutScale, OutScaleN), ActScale, ActScaleN), 8);
+	} else {
+		for (int i=0; i<S/2; i++) {
+			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
+			O[2*i  ] = AT_CLIP_POS_IMM(AddBias + AT_SCALE(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, OutScale, OutScaleN), 8);
+			O[2*i+1] = AT_CLIP_POS_IMM(AddBias + AT_SCALE(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, OutScale, OutScaleN), 8);
+		}
+		if (S&0x1) O[S-1] = AT_CLIP_POS_IMM(AddBias + AT_SCALE(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], OutScale, OutScaleN), 8);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerMatAdd_ReLUN_USQ8(KerMat3_SQ8_T *Arg)
+
+{
+	unsigned char * __restrict__ In1	= Arg->In1;
+	unsigned char * __restrict__ In2	= Arg->In2;
+	unsigned char * __restrict__ Out	= Arg->Out;
+	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
+	unsigned int OutScale = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALE], OutScaleN = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALEN];
+	unsigned int ActScale = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALEN];
+	short int AddBias = *((short int *)(((unsigned char *)Arg->Infos)+AT_INF_ADD_BIAS));
+
+	int A0 = Arg->Infos[AT_INF_A0];
+	int Size = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+
+	unsigned int F = First, S = Max(0, Last-F);
+	unsigned char * __restrict__ I1 = In1 + F, *__restrict__ I2 = In2 + F, *__restrict__ O  = Out + F;
+	if (ActScale) {
+		for (int i=0; i<S/2; i++) {
+			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
+			O[2*i  ] = gap_clipu(AT_SCALE(AT_CLIP_POS(AddBias + AT_SCALE(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, OutScale, OutScaleN), A0), ActScale, ActScaleN), 8);
+			O[2*i+1] = gap_clipu(AT_SCALE(AT_CLIP_POS(AddBias + AT_SCALE(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, OutScale, OutScaleN), A0), ActScale, ActScaleN), 8);
+		}
+		if (S&0x1) O[S-1] = gap_clipu(AT_SCALE(AT_CLIP_POS(AddBias + AT_SCALE(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], OutScale, OutScaleN), A0), ActScale, ActScaleN), 8);
+	} else {
+		for (int i=0; i<S/2; i++) {
+			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
+			O[2*i  ] = gap_clipu(AT_CLIP_POS(AddBias + AT_SCALE(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, OutScale, OutScaleN), A0), 8);
+			O[2*i+1] = gap_clipu(AT_CLIP_POS(AddBias + AT_SCALE(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, OutScale, OutScaleN), A0), 8);
+		}
+		if (S&0x1) O[S-1] = gap_clipu(AT_CLIP_POS(AddBias + AT_SCALE(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], OutScale, OutScaleN), A0), 8);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerMatAdd_ReLUM_USQ8(KerMat3_SQ8_T *Arg)
+
+{
+	unsigned char * __restrict__ In1	= Arg->In1;
+	unsigned char * __restrict__ In2	= Arg->In2;
+	unsigned char * __restrict__ Out	= Arg->Out;
+	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
+	unsigned int OutScale = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALE], OutScaleN = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALEN];
+	unsigned int ActScale = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALEN];
+	short int AddBias = *((short int *)(((unsigned char *)Arg->Infos)+AT_INF_ADD_BIAS));
+	int Size = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int F = First, S = Max(0, Last-F);
+	unsigned char * __restrict__ I1 = In1 + F, *__restrict__ I2 = In2 + First, *__restrict__ O  = Out + F;
+
+	int A0 = Arg->Infos[AT_INF_A0];
+	int B0 = Arg->Infos[AT_INF_B0];
+	if (ActScale) {
+		for (int i=0; i<S/2; i++) {
+			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
+			O[2*i  ] = gap_clipu(Max(A0, AT_SCALE(AddBias + AT_SCALE(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, OutScale, OutScaleN), ActScale, ActScaleN)), 8);
+			O[2*i+1] = gap_clipu(Max(A0, AT_SCALE(AddBias + AT_SCALE(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, OutScale, OutScaleN), ActScale, ActScaleN)), 8);
+		}
+		if (S&0x1) O[S-1] = gap_clipu(Max(A0, AT_SCALE(AddBias + AT_SCALE(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], OutScale, OutScaleN), ActScale, ActScaleN)), 8);
+	} else {
+		for (int i=0; i<S/2; i++) {
+			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
+			O[2*i  ] = gap_clipu(Max(A0, AddBias + AT_SCALE(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, OutScale, OutScaleN)), 8);
+			O[2*i+1] = gap_clipu(Max(A0, AddBias + AT_SCALE(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, OutScale, OutScaleN)), 8);
+		}
+		if (S&0x1) O[S-1] = gap_clipu(Max(A0, AddBias + AT_SCALE(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], OutScale, OutScaleN)), 8);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerMatAdd_ReLUMN_USQ8(KerMat3_SQ8_T *Arg)
+
+{
+	unsigned char * __restrict__ In1	= Arg->In1;
+	unsigned char * __restrict__ In2	= Arg->In2;
+	unsigned char * __restrict__ Out	= Arg->Out;
+	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
+	unsigned int OutScale = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALE], OutScaleN = ((unsigned char *)Arg->Infos)[AT_INF_OUTSCALEN];
+	unsigned int ActScale = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Arg->Infos)[AT_INF_ACTSCALEN];
+	short int AddBias = *((short int *)(((unsigned char *)Arg->Infos)+AT_INF_ADD_BIAS));
+	int Size = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int F = First, S = Max(0, Last-F);
+	unsigned char * __restrict__ I1 = In1 + F, *__restrict__ I2 = In2 + First, *__restrict__ O  = Out + F;
+
+	int A0 = Arg->Infos[AT_INF_A0];
+	int B0 = Arg->Infos[AT_INF_B0];
+	if (ActScale) {
+		for (int i=0; i<S/2; i++) {
+			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
+			O[2*i  ] = gap_clipu(Min(B0, Max(A0, AT_SCALE(AddBias + AT_SCALE(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, OutScale, OutScaleN), ActScale, ActScaleN))), 8);
+			O[2*i+1] = gap_clipu(Min(B0, Max(A0, AT_SCALE(AddBias + AT_SCALE(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, OutScale, OutScaleN), ActScale, ActScaleN))), 8);
+		}
+		if (S&0x1) O[S-1] = gap_clipu(Min(B0, Max(A0, AT_SCALE(AddBias + AT_SCALE(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], OutScale, OutScaleN), ActScale, ActScaleN))), 8);
+	} else {
+		for (int i=0; i<S/2; i++) {
+			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
+			O[2*i  ] = gap_clipu(Min(B0, Max(A0, AddBias + AT_SCALE(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, OutScale, OutScaleN))), 8);
+			O[2*i+1] = gap_clipu(Min(B0, Max(A0, AddBias + AT_SCALE(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, OutScale, OutScaleN))), 8);
+		}
+		if (S&0x1) O[S-1] = gap_clipu(Min(B0, Max(A0, AddBias + AT_SCALE(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], OutScale, OutScaleN))), 8);
 	}
 	gap_waitbarrier(0);
 }
@@ -3411,6 +3575,51 @@ void KerParMatVectMul_SQ8(KerMat3_SQ8_T *Arg)
 	gap_waitbarrier(0);
 }
 
+
+void KerParMatVectMul_HWC_SQ8(KerMat3_SQ8_T *Arg)
+
+{
+	signed char * __restrict__ In1	= Arg->In1;
+	signed char * __restrict__ In2	= Arg->In2;
+	signed char * __restrict__ Out	= Arg->Out;
+	int W				= Arg->W;
+	int H				= Arg->H;
+	int Feat			= Arg->Feat;
+	unsigned int Scale		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALE];
+	unsigned int ScaleN		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALEN];
+	int S				= W*H;
+
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	if (Scale)
+		for (int i=First; i<Last; i++) {
+			signed char * __restrict__ I1 = In1 + i;
+			int I2 = In2[i];
+			signed char * __restrict__ O  = Out + i;
+			for (int j=0; j<(S/2); j++) {
+				int I10 = I1[(2*j)*Feat], I11 = I1[(2*j+1)*Feat];
+				int P1 = gap_clip(AT_SCALE(I10*Scale, I2, ScaleN), 7);
+				int P2 = gap_clip(AT_SCALE(I11*Scale, I2, ScaleN), 7);
+				O[(2*j)*Feat] = P1; O[(2*j+1)*Feat] = P2;
+			}
+			O[(S-1)*Feat] = gap_clip(AT_SCALE(I1[(S-1)*Feat]*Scale, I2, ScaleN), 7);
+		}
+	else
+		for (int i=First; i<Last; i++) {
+			signed char * __restrict__ I1 = In1 + i;
+			int I2 = In2[i];
+			signed char * __restrict__ O  = Out + i;
+			for (int j=0; j<(S/2); j++) {
+				int I10 = I1[(2*j)*Feat], I11 = I1[(2*j+1)*Feat];
+				int P1 = gap_clip(AT_SCALE(I10, I2, ScaleN), 7);
+				int P2 = gap_clip(AT_SCALE(I11, I2, ScaleN), 7);
+				O[(2*j+0)*Feat] = P1; O[(2*j+1)*Feat] = P2;
+			}
+			O[(S-1)*Feat] = gap_clip(AT_SCALE(I1[(S-1)*Feat], I2, ScaleN), 7);
+		}
+	gap_waitbarrier(0);
+}
+
 void KerParMatVectMul_ReLU_SQ8(KerMat3_SQ8_T *Arg)
 
 {
@@ -5074,5 +5283,3 @@ void KerParMatMulTransposedB32_ReLUN_SQ8(KerMatMul_SQ8_T *Arg)
                 gap_waitbarrier(0);
 	}
 }
-
-#pragma GCC diagnostic pop

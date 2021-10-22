@@ -104,7 +104,7 @@ static void RunMnist(void *arg)
     MnistCNN(image_in,output);
     
     uint8_t *digit = (uint8_t *) arg;
-    int16_t highest = output;
+    int16_t highest = *output;
     for (uint8_t i = 1; i < 10; i++)
     {
         if (highest < output[i])
@@ -169,6 +169,8 @@ void test_mnist(void)
     /* Configure And open cluster. */
     struct pi_device cluster_dev;
     struct pi_cluster_conf cl_conf;
+    
+    pi_cluster_conf_init(&cl_conf);
     cl_conf.id = 0;
     pi_open_from_conf(&cluster_dev, (void *) &cl_conf);
     if (pi_cluster_open(&cluster_dev))
@@ -181,10 +183,9 @@ void test_mnist(void)
     MnistCNN_Construct();
 
     struct pi_cluster_task *task = pmsis_l2_malloc(sizeof(struct pi_cluster_task));
-    memset(task, 0, sizeof(struct pi_cluster_task));
-    task->entry = RunMnist;
-    task->arg = (void *) &rec_digit;
-    task->stack_size = (uint32_t) STACK_SIZE;
+
+	pi_cluster_task(task, (void (*)(void *))RunMnist, (void *) &rec_digit);
+    
     printf("Calling Cluster\n");
     pi_cluster_send_task_to_cl(&cluster_dev, task);
 

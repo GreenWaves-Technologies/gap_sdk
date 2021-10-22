@@ -1,3 +1,0 @@
-# Avoid DOS conversion of texinfo files during git clone
-*.texi	text eol=lf
-*.txt	text eol=lf

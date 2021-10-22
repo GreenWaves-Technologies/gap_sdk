@@ -104,7 +104,7 @@ class FilterMixin(FilterPadMixin, HandlerOptions):
             LOG.warning('quantization is missing on node %s', params.name)
             return
         # scale weights as requested. change asymmetric and/or unsigned weights to signed symmetric
-        if wqtype.is_asymmetric or not wqtype.signed:
+        if wqtype.asymmetric or not wqtype.signed:
             if opts.get('rescale_perchannel'):
                 wqtype = cls.get_weights_qtype_by_channel(
                     filter_shape, filter_scale_axis, weights_node)
@@ -121,7 +121,7 @@ class FilterMixin(FilterPadMixin, HandlerOptions):
 
         iqtype = input_tensor.qtype
         # correct input qtype to symmetric tensor scaled
-        if iqtype.is_asymmetric or not iqtype.signed or len(iqtype.scale) > 1:
+        if iqtype.asymmetric or not iqtype.signed or len(iqtype.scale) > 1:
             iqtype = QType.from_min_max_sq(
                 min_val=iqtype.min_val, max_val=iqtype.max_val)
         else:
@@ -129,7 +129,7 @@ class FilterMixin(FilterPadMixin, HandlerOptions):
 
         oqtype = output_tensor.qtype
         # correct output qtype to symmetric tensor scaled
-        if oqtype.is_asymmetric or not oqtype.signed or len(oqtype.scale) > 1:
+        if oqtype.asymmetric or not oqtype.signed or len(oqtype.scale) > 1:
             oqtype = QType.from_min_max_sq(
                 min_val=oqtype.min_val, max_val=oqtype.max_val)
         else:

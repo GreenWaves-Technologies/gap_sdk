@@ -1,4 +1,5 @@
-Input file: fe/ips/apb_interrupt_cntrl/docs/FC_ITC_reference.md
+.. 
+   Input file: fe/ips/apb_interrupt_cntrl/docs/FC_ITC_reference.md
 
 Register map
 ^^^^^^^^^^^^

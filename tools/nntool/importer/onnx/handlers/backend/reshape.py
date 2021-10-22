@@ -13,8 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Counter
 import numpy as np
 from numpy.core.fromnumeric import prod
+from functools import reduce
 from graph.dim import Dim
 from graph.types import ConstantInputParameters, NNEdge, ReshapeParameters
 from importer.common.provisional_dim import ProvisionalDim
@@ -27,6 +29,20 @@ from importer.common.constant_mixin import ConstantMixin
 
 @onnx_op("Reshape")
 class Reshape(ConstantMixin, BackendHandler):
+    @classmethod
+    def moves_unknown(cls, inp, shape):
+        if None not in inp or Counter(inp)[None] > 1:
+            return False
+        if -1 not in shape or None in shape:
+            return False
+
+        inp_wo_nones = [dim for dim in inp if dim != None]
+        shape_wo_all = [dim for dim in shape if dim != -1]
+        if np.prod(inp_wo_nones) != np.prod(shape_wo_all):
+            return False
+        none_idx = list(inp).index(None)
+        return none_idx >= len(shape_wo_all) or shape_wo_all[none_idx] != -1
+
 
     @classmethod
     def _common(cls, node, **kwargs):
@@ -42,16 +58,27 @@ class Reshape(ConstantMixin, BackendHandler):
 
         input_shape = np.array(inputs[0][2].shape)
         shape = [dim if dim != 0 else input_shape[idx] for idx, dim in enumerate(shape)]
-        if -1 in shape:
-            wild_index = shape.index(-1)
-            in_size = prod([1 if dim is None else dim for dim in input_shape])
-            shape_size = prod([1 if dim is None or dim <= 0 else dim for dim in shape])
-            if in_size % shape_size != 0:
-                raise ValueError('invalid reshape')
-            shape[wild_index] = in_size // shape_size
-        shape = np.array(shape)
+        # this catches a special case where inp is something like [None, 2, 4] and shape is [2, -1, 4]
+        # The -1 is clearly the None moving so move it
+        if cls.moves_unknown(input_shape, shape):
+            shape = np.array([None if dim == -1 else dim for dim in shape])
+        else:
+            if -1 in shape:
+                new_shape_size = reduce(lambda x, y: x * 1 if y is None or y == -1 else x * y, shape, 1)
+                inp_size = reduce(lambda x, y: x * y if y is not None else x, input_shape, 1)
+                in_size = prod([1 if dim is None else dim for dim in input_shape])
+                shape_size = prod([1 if dim is None else dim for dim in shape])
+                if in_size % shape_size != 0:
+                    raise ValueError('invalid reshape')
+                shape[shape.index(-1)] = inp_size // new_shape_size
+            shape = np.array(shape)
+            # TODO - There must be a better way of doing this
+            # This hacks around the fact that the batch dimension will be in the reshape
+            if input_shape[0] is None and shape[0] == 1:
+                shape = np.array([None]+list(shape[1::]))
 
         if cls.is_constant(inputs[0]):
+            # there should be no None in shape since a constant always has known size
             logger.info("reducing %s to a constant", valid_name)
             params = ConstantInputParameters(
                 valid_name,
@@ -62,11 +89,6 @@ class Reshape(ConstantMixin, BackendHandler):
             pshape = ProvisionalDim(shape)
             all_nodes[node.output[0]] = (params, 0, pshape)
             return params
-
-        # TODO - There must be a better way of doing this
-        # This hacks around the fact that the batch dimension will be in the reshape
-        if input_shape[0] is None and shape[0] == 1:
-            shape = np.array([None]+list(shape[1::]))
 
         pshape = ProvisionalDim(shape)
 # pylint: disable=singleton-comparison

@@ -100,7 +100,12 @@ def get_all_options():
             continue
         for opt_name, opt in handler.OPTIONS.items():
             optrec = options.setdefault(opt_name, {'handlers': set()})
-            optrec.update(opt)
+            for k in opt.keys():
+                if k in optrec:
+                    if k != 'help' and opt[k] != optrec[k]:
+                        raise ValueError(f'Quantization option {k} has different definitions')
+                else:
+                    optrec[k] = opt[k]
             optrec['handlers'].add(handler)
     return options
 

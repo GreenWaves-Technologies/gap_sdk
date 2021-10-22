@@ -21,8 +21,6 @@
 
 struct hyper_driver_fifo
 {
-    struct pi_task *fifo_head;
-    struct pi_task *fifo_tail;
     uint32_t device_id;
     uint32_t pending_emu_hyper_addr;
     uint32_t pending_emu_buffer;

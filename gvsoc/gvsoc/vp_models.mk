@@ -1,3 +1,5 @@
+ROOT_VP_BUILD_DIR ?= build
+
 VP_BUILD_DIR = $(ROOT_VP_BUILD_DIR)/models
 
 VP_INSTALL_PATH ?= $(INSTALL_DIR)/lib
@@ -14,7 +16,7 @@ endif
 
 VP_COMP_PYBIND_FLAGS := $(shell python3-config --includes)
 
-VP_COMP_CFLAGS=-MMD -MP -O2 -g -fpic -D__GVSOC__=1 -I$(INSTALL_DIR)/include $(VP_COMP_PYBIND_FLAGS)
+VP_COMP_CFLAGS=-MMD -MP -O2 -g -fpic -DGVSOC_OLD_BUILD=1 -D__GVSOC__=1 -I$(INSTALL_DIR)/include $(VP_COMP_PYBIND_FLAGS)
 
 $(foreach dir, $(GVSOC_INC_PATHS), $(eval VP_COMP_CFLAGS += -I$(dir)))
 
@@ -214,3 +216,5 @@ build: $(VP_INSTALL_HEADERS) $(VP_INSTALL_TARGETS)
 
 vp_clean:
 	rm -rf $(VP_BUILD_DIR)
+
+.PHONY: vp_clean build

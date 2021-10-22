@@ -274,6 +274,7 @@ dpi_i2s_edge(
 DPI_LINK_DECL void
 dpi_i2c_rx_edge(
     int handle,
+    int scl,
     int sda);
 
 DPI_LINK_DECL void

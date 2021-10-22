@@ -17,6 +17,8 @@
 #ifndef __PMSIS__H__
 #define __PMSIS__H__
 
+#define PI_INLINE_CL_TEAM_0 static inline
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -34,10 +36,12 @@
 #include "pmsis/chips/gap8/perf.h"
 #include "pmsis/chips/gap8/pad.h"
 #include "pmsis/chips/gap8/gpio.h"
+#include "pmsis/chips/gap8/pmu.h"
 #elif PULP_CHIP_FAMILY == CHIP_VEGA
 #include "pmsis/chips/vega/perf.h"
 #include "pmsis/chips/vega/pad.h"
 #include "pmsis/chips/vega/gpio.h"
+#include "pmsis/chips/vega/pmu.h"
 #elif PULP_CHIP_FAMILY == CHIP_GAP9
 #include "pmsis/chips/gap9/perf.h"
 #include "pmsis/chips/gap9/pad.h"
@@ -65,6 +69,7 @@
 #include "pmsis/drivers/pad.h"
 #include "pmsis/cluster/dma/cl_dma.h"
 #include "rt/hwce.h"
+#include "pmsis/drivers/pmu.h"
 
 #include "pmsis/data/data.h"
 

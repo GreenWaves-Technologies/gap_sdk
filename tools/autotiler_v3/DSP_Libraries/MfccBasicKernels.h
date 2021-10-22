@@ -33,7 +33,21 @@ typedef struct {
         short int Mel_Coeff_Dyn;
         signed char IsMagSquared;
         signed char *__restrict__ shift_buff;
+        int LogOffset;
 } MFCC_Log_T;
+
+typedef struct {
+        void * __restrict__ FrameIn;
+        void * __restrict__ FrameOut;
+        unsigned int FrameSize;
+        unsigned short int Norm;
+        short int ExtraQ;
+        short int Q_FFT_Out;
+        short int Mel_Coeff_Dyn;
+        signed char IsMagSquared;
+        signed char *__restrict__ shift_buff;
+        float LogOffset;
+} MFCC_LogF_T;
 
 typedef struct {
         int * __restrict__ In;
@@ -73,10 +87,10 @@ void MelFilterBank_f32(MelFilterBank_T *Arg);
 
 void MFCC_ComputeLog_Fix32(MFCC_Log_T *Arg);
 void MFCC_ComputeLog_Fix32_Scal(MFCC_Log_T *Arg);
-void MFCC_ComputeLog_f32(MFCC_Log_T *Arg);
+void MFCC_ComputeLog_f32(MFCC_LogF_T *Arg);
 void MFCC_ComputeDB_Fix32(MFCC_Log_T *Arg);
 void MFCC_ComputeDB_Fix32_Scal(MFCC_Log_T *Arg);
-void MFCC_ComputeDB_f32(MFCC_Log_T *Arg);
+void MFCC_ComputeDB_f32(MFCC_LogF_T *Arg);
 
 void norm_clip_16(Norm_Clip_args_T *Args);
 void norm_clip_32_melspect(MFCC_Clip_32_T *Args);
@@ -92,8 +106,8 @@ int MFCC_Logfp(unsigned int a);
 
 #ifdef __gap9__
 void MelFilterBank_f16(MelFilterBank_T *Arg);
-void MFCC_ComputeLog_f16(MFCC_Log_T *Arg);
-void MFCC_ComputeDB_f16(MFCC_Log_T *Arg);
+void MFCC_ComputeLog_f16(MFCC_LogF_T *Arg);
+void MFCC_ComputeDB_f16(MFCC_LogF_T *Arg);
 void MFCC_ComputeDCT_II_f16(DCT_II_Arg_T *Args);
 void MFCC_Lifter_f16(Lifter_Arg_T *Args);
 #endif

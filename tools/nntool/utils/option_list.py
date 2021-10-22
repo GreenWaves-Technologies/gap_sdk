@@ -57,7 +57,7 @@ class OptionList(JsonSerializable):
         if upper_name in valid_options:
             return options.get(upper_name)
         else:
-            raise AttributeError()
+            raise AttributeError() # @IgnoreException
 
     def __len__(self):
         return len(self._options)

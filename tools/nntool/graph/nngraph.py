@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.dsp_preprocessing import DSPParameters
+from graph.types.fusions import FilterFusionBase, FusionBase
 import logging
 import os
 import re
@@ -20,7 +22,10 @@ from typing import Generator, Sequence, Union
 
 import numpy as np
 from quantization.quantization_set import QuantizationSet
+from reports.graph_reporter import GraphReporter
+from reports.quantization_reporter import QuantizationReporter
 from utils.graph import Graph, Node
+from utils.tabular import TextTableRenderer
 
 from graph.dim import Dim
 from graph.dump_tensor import PrintDumper, dump_tensor
@@ -28,12 +33,11 @@ from graph.graph_identity import GraphIdentity
 from graph.manipulations import (add_dimensions, adjust_order,
                                  balance_all_filters, calculate_liveness)
 from graph.manipulations.balance_filter import balance_filter_with_constants
-from graph.types import (ConstantInputParameters, ConvFusionParameters,
+from graph.types import (ConstantInputParameters,
                          InputBaseParameters, InputParameters,
                          MultiplicativeBiasParameters, OutputParameters,
-                         PaddedAddFusionParameters, ResizerParameters,
-                         RNNBaseParameters, SSDDetectorParameters)
-from graph.types.base import Transposable
+                         ResizerParameters, RNNBaseParameters, SSDDetectorParameters)
+from graph.types.base import NNNodeRef
 from graph.types.expression_fusion import ExpressionFusionParameters
 from graph.types.others import TransposeParameters
 
@@ -159,12 +163,6 @@ class NNGraph(Graph):
     def outputs_dim(self) -> list:
         return [out_node.out_dims[0].shape for out_node in self.output_nodes()]
 
-    @property
-    def has_transposes(self) -> bool:
-        return any([isinstance(node, Transposable) and not isinstance(node, TransposeParameters) and
-                    (node.transpose_in or node.transpose_out)
-                    for node in self.nodes()])
-
     @name.setter
     def name(self, val):
         self.graphname = val
@@ -184,6 +182,10 @@ class NNGraph(Graph):
     @property
     def has_rnn(self):
         return self.has_node_type(RNNBaseParameters)
+
+    @property
+    def has_dsp(self):
+        return self.has_node_type(DSPParameters)
 
     @property
     def all_expressions(self):
@@ -256,7 +258,7 @@ class NNGraph(Graph):
         node.in_dims_hint = in_dim_hint
         node.out_dim_hint = out_dim_hint
         self.add_node(node)
-        return node
+        return NNNodeRef(node, 0, self)
 
     def add_constant(self, dim: Dim, name: str = None,
                      adjust_transpose=None, is_mutated=False,
@@ -270,7 +272,7 @@ class NNGraph(Graph):
                                        short_name=short_name,
                                        constant_store=self.constant_store)
         self.add_node(node)
-        return node
+        return NNNodeRef(node, 0, self)
 
     def variable_in_edges(self, node_name):
         return list([edge for edge in self.in_edges(node_name)
@@ -286,7 +288,7 @@ class NNGraph(Graph):
     def nodes_iterator(self, yield_fusions=True):
         for step_idx, step in enumerate(self.graph_state.steps):
             node = step['node']
-            if isinstance(node, (ConvFusionParameters, PaddedAddFusionParameters)):
+            if isinstance(node, (FusionBase)) and not isinstance(node, ExpressionFusionParameters):
                 if yield_fusions:
                     for fusion_idx, fnode in enumerate(node.contained_nodes()):
                         yield (step_idx, node, fusion_idx, fnode)
@@ -315,7 +317,7 @@ class NNGraph(Graph):
             if step_idx > len(self.graph_state.steps) or step_idx < 0:
                 raise ValueError("step idx out of range")
             pnode = self.graph_state.steps[step_idx]['node']
-            if isinstance(pnode, ConvFusionParameters):
+            if isinstance(pnode, FilterFusionBase):
                 fnode = pnode.contained_filters()
                 if len(fnode) > 1:
                     raise NotImplementedError(
@@ -362,3 +364,21 @@ class NNGraph(Graph):
             for idx, out in enumerate(outputs):
                 print_step(self.graph_state.steps[idx], out, idx)
         print()
+
+    def qshow(self):
+        tab = QuantizationReporter().report(self, self.quantization)
+        renderer = TextTableRenderer(150)
+        tab.render(renderer)
+        return renderer.get_output()
+
+    def merge(self, other: 'NNGraph'):
+        if self != other:
+            for edge in other.edges:
+                self.add_edge(edge)
+        return self
+
+    def __repr__(self):
+        tab = GraphReporter().report(self)
+        renderer = TextTableRenderer(150)
+        tab.render(renderer)
+        return renderer.get_output()

@@ -17,4 +17,4 @@ RISCV_FLAGS ?= -march=rv32imcxgap8
 
 RISCV_FLAGS += -mPE=8 -mFC=1 -D__riscv__
 
-include $(GAP_SDK_HOME)/tools/rules/pulp_rules.mk
+include $(GAP_SDK_HOME)/utils/rules/pulp_rules.mk

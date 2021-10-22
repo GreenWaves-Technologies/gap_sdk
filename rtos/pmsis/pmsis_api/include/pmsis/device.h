@@ -19,6 +19,10 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Open a device using its name if available
 // if no name is passed, just allocate necessary memory
 struct pi_device *pi_open(const char *name);
@@ -39,4 +43,7 @@ uint32_t pmsis_write(struct pi_device *device, uintptr_t size,
 uint32_t pmsis_read(struct pi_device *device, uintptr_t size,
         const void *addr, const void *buffer);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -105,69 +105,71 @@ vp::io_req_status_e memory::req(void *__this, vp::io_req *req)
 
   _this->trace.msg("Memory access (offset: 0x%x, size: 0x%x, is_write: %d)\n", offset, size, req->get_is_write());
 
-  // Impact the memory bandwith on the packet
-  if (_this->width_bits != 0) {
-#define MAX(a,b) (((a)>(b))?(a):(b))
-    int duration = MAX(size >> _this->width_bits, 1);
-    req->set_duration(duration);
-    int64_t cycles = _this->get_cycles();
-    int64_t diff = _this->next_packet_start - cycles;
-    if (diff > 0) {
-      _this->trace.msg("Delayed packet (latency: %ld)\n", diff);
-      req->inc_latency(diff);
+  if (!req->is_debug())
+  {
+    // Impact the memory bandwith on the packet
+    if (_this->width_bits != 0) {
+  #define MAX(a,b) (((a)>(b))?(a):(b))
+      int duration = MAX(size >> _this->width_bits, 1);
+      req->set_duration(duration);
+      int64_t cycles = _this->get_cycles();
+      int64_t diff = _this->next_packet_start - cycles;
+      if (diff > 0) {
+        _this->trace.msg("Delayed packet (latency: %ld)\n", diff);
+        req->inc_latency(diff);
+      }
+      _this->next_packet_start = MAX(_this->next_packet_start, cycles) + duration;
     }
-    _this->next_packet_start = MAX(_this->next_packet_start, cycles) + duration;
+
+    if (_this->power_trace.get_active())
+    {
+      _this->last_access_timestamp = _this->get_time();
+
+      if (req->get_is_write())
+      {
+        if (size == 1)
+          _this->write_8_power.account_event();
+        else if (size == 2)
+          _this->write_16_power.account_event();
+        else if (size == 4)
+          _this->write_32_power.account_event();
+      }
+      else
+      {
+        if (size == 1)
+          _this->read_8_power.account_event();
+        else if (size == 2)
+          _this->read_16_power.account_event();
+        else if (size == 4)
+          _this->read_32_power.account_event();
+      }
+
+      if (!_this->power_event->is_enqueued())
+        _this->event_enqueue(_this->power_event, 1);
+    }
+
+  #ifdef VP_TRACE_ACTIVE
+    if (_this->power_trigger)
+    {
+      if (req->get_is_write() && size == 4 && offset == 0)
+      {
+        if (*(uint32_t *)data == 0xabbaabba)
+        {
+          _this->power.get_engine()->start_capture();
+        }
+        else if (*(uint32_t *)data == 0xdeadcaca)
+        {
+          _this->power.get_engine()->stop_capture();
+        }
+      }
+    }
+  #endif
   }
 
   if (offset + size > _this->size) {
     _this->trace.force_warning("Received out-of-bound request (reqAddr: 0x%x, reqSize: 0x%x, memSize: 0x%x)\n", offset, size, _this->size);
     return vp::IO_REQ_INVALID;
   }
-
-  if (_this->power_trace.get_active())
-  {
-    _this->last_access_timestamp = _this->get_time();
-
-    if (req->get_is_write())
-    {
-      if (size == 1)
-        _this->write_8_power.account_event();
-      else if (size == 2)
-        _this->write_16_power.account_event();
-      else if (size == 4)
-        _this->write_32_power.account_event();
-    }
-    else
-    {
-      if (size == 1)
-        _this->read_8_power.account_event();
-      else if (size == 2)
-        _this->read_16_power.account_event();
-      else if (size == 4)
-        _this->read_32_power.account_event();
-    }
-
-    if (!_this->power_event->is_enqueued())
-      _this->event_enqueue(_this->power_event, 1);
-  }
-
-#ifdef VP_TRACE_ACTIVE
-  if (_this->power_trigger)
-  {
-    if (req->get_is_write() && size == 4)
-    {
-      if (*(uint32_t *)data == 0xabbaabba)
-      {
-        _this->power.get_engine()->start_capture();
-      }
-      else if (*(uint32_t *)data == 0xdeadcaca)
-      {
-        _this->power.get_engine()->stop_capture();
-      }
-    }
-  }
-#endif
-
 
   if (req->get_is_write()) {
     if (_this->check_mem) {

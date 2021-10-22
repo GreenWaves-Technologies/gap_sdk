@@ -1,5 +1,0 @@
-{
-  "runner": {
-  	"platform_class": "runner/fpga/runner"
-  }
-}

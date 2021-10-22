@@ -13,12 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from email import iterators
 import logging
 from typing import Sequence
 
 import numpy as np
 from generation.code_block import CodeBlock
+from quantization.qtype import DTYPES
 
 from .function_collection import FunctionCollection
 
@@ -75,13 +75,9 @@ class BasicKernel():
 
     def ctype_len(self, sym_name):
         dtype = self.func_col.qrecs[sym_name].dtype
-        if dtype == np.int8:
-            return 1
-        if dtype == np.int16:
-            return 2
-        if dtype == np.float32:
-            return 4
-        assert False, f"don't know dtype {dtype}"
+        if dtype not in DTYPES:
+            raise ValueError(f"don't know dtype {dtype}")
+        return DTYPES[dtype][0]//8
 
     def gen_kernel_headers(self, code: CodeBlock = None):
         if code is None:
@@ -157,9 +153,11 @@ class BasicKernel():
             "AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, {0}, 0)".format(
                 bandwidth)
         ]
-        for name in self.input_names + self.output_names:
+        for name_type in self.input_names_and_ctypes + self.output_names_and_ctypes:
+            name = name_type[0]
             shape = self.shapes[name]
-            kinfos.append("AddKernelArgDim(Name, \"{0}\", {1}, {2}, {3})".format(
+            kinfos.append("{0}(Name, \"{1}\", {2}, {3}, {4})".format(
+                "AddKernelFloatArgDim" if name_type[1] == 'F16' or name_type[1] == 'float' else "AddKernelArgDim",
                 name, len(shape) + 1, ", ".join(str(dim) for dim in shape),
                 self.ctype_len(name)))
         return kinfos
@@ -168,7 +166,7 @@ class BasicKernel():
         cargs = []
         for name_type in self.input_names_and_ctypes + self.output_names_and_ctypes:
             name = name_type[0]
-            if name_type[1] == 'float':
+            if name_type[1] == 'F16' or name_type[1] == 'float':
                 cargs.append("TCArg(CNN_ArgDataTypeF({0},1,1),\"{1}\")".format(
                     self.ctype_len(name), name))
             else:

@@ -68,6 +68,7 @@ struct pi_sem
 #define PI_TASK_IMPLEM_NB_DATA 8
 #endif  /* PI_TASK_IMPLEM_NB_DATA */
 
+
 typedef struct pi_task
 {
     struct pi_task *next; /* Pointer to next task at the begining to match with cluster callback. */
@@ -76,7 +77,7 @@ typedef struct pi_task
     int32_t id;
     uint32_t data[PI_TASK_IMPLEM_NB_DATA];
     uint32_t timeout;
-    pi_sem_t wait_on;
+    void *sync_obj;
     volatile int8_t done;
     int8_t core_id;
     int8_t cluster_id;

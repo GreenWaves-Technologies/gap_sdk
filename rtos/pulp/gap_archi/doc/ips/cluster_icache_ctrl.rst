@@ -1,4 +1,5 @@
-Input file: fe/ips/hier-icache/DOC/CLUSTER_ICACHE_CTRL_reference.md
+.. 
+   Input file: fe/ips/hier-icache/DOC/CLUSTER_ICACHE_CTRL_reference.md
 
 Register map
 ^^^^^^^^^^^^

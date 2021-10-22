@@ -17,6 +17,10 @@
 #pragma once
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
 * @ingroup groupDrivers
 */
@@ -132,3 +136,7 @@ void pi_udma_fifo_ioctl(pi_device_t *device, uint32_t cmd, void *arg);
 /**
  * @}
  */
+
+#ifdef __cplusplus
+}
+#endif

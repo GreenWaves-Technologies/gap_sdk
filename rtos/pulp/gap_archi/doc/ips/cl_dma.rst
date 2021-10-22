@@ -1,4 +1,5 @@
-Input file: fe/ips/mchan/doc/CL_DMA_reference.md
+.. 
+   Input file: fe/ips/mchan/doc/CL_DMA_reference.md
 
 Register map
 ^^^^^^^^^^^^

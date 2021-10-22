@@ -42,8 +42,7 @@ pi_task_t *__pi_task_block(pi_task_t *callback_task)
 {
     callback_task->id = PI_TASK_NONE_ID;
     callback_task->done = 0;
-    pi_sem_init(&(callback_task->wait_on));
-    // lock the mutex so that task may be descheduled while waiting on it
+    pi_sync_obj_init((void *) &(callback_task->sync_obj));
     callback_task->destroy = 1;
     callback_task->core_id = -1;
     callback_task->timeout = 0;
@@ -55,10 +54,10 @@ pi_task_t *__pi_task_callback(pi_task_t *callback_task,
                               pi_callback_func_t func, void *arg)
 {
     callback_task->id = PI_TASK_CALLBACK_ID;
-    callback_task->arg[0] = (uintptr_t)func;
-    callback_task->arg[1] = (uintptr_t)arg;
+    callback_task->arg[0] = (uintptr_t) func;
+    callback_task->arg[1] = (uintptr_t) arg;
     callback_task->done = 0;
-    callback_task->wait_on.sem_object = (void*)NULL;
+    callback_task->sync_obj = NULL;
     callback_task->destroy = 0;
     callback_task->core_id = -1;
     callback_task->timeout = 0;
@@ -73,11 +72,9 @@ void __pi_task_destroy(pi_task_t *task)
         task->destroy = 0;
         // if the mutex is only virtual (e.g. wait on soc event)
         hal_compiler_barrier();
-        // if the sched support semaphore/mutexes
-        if (task->wait_on.sem_object)
+        if (task->sync_obj != NULL)
         {
-            pi_sem_deinit(&task->wait_on);
-            task->wait_on.sem_object = (void*)NULL;
+            pi_sync_obj_deinit((void *) &(task->sync_obj));
         }
         hal_compiler_barrier();
     }
@@ -89,12 +86,11 @@ void __pi_task_wait_on(pi_task_t *task)
     hal_compiler_barrier();
     while (!task->done)
     {
-        // if the underlying scheduler support it, deschedule the task
-        if (task->wait_on.sem_object != NULL)
+        if (task->sync_obj != NULL)
         {
-            pi_sem_take(&task->wait_on);
+            pi_sync_obj_take(task->sync_obj);
         }
-        DEBUG_PRINTF("[%s] waited on sem %p\n", __func__, &(task->wait_on));
+        DEBUG_PRINTF("[%s] waited on sync_obj=%lx\n", __func__, task->sync_obj);
     }
     hal_compiler_barrier();
     __pi_task_destroy(task);
@@ -121,12 +117,11 @@ pi_task_t *pi_task_block_no_mutex(pi_task_t *callback_task)
 {
     callback_task->id = PI_TASK_NONE_ID;
     callback_task->done = 0;
-    callback_task->wait_on.sem_object = (void*)NULL;
+    callback_task->sync_obj = NULL;
     callback_task->destroy = 0;
     callback_task->core_id = -1;
     callback_task->timeout = 0;
     callback_task->next = NULL;
-    // lock the mutex so that task may be descheduled while waiting on it
     return callback_task;
 }
 
@@ -134,12 +129,11 @@ void pi_task_release(pi_task_t *task)
 {
     DEBUG_PRINTF("[%s] releasing task %p\n",__func__,task);
     // if the mutex is only virtual (e.g. wait on soc event)
-    // if the sched support semaphore/mutexes
-    if (task->wait_on.sem_object)
+    if (task->sync_obj != NULL)
     {
-        DEBUG_PRINTF("[%s] sem give %p\n",__func__,task->wait_on);
-        pi_sem_give(&(task->wait_on));
+        pi_sync_obj_release(task->sync_obj);
     }
+
     hal_compiler_barrier();
     task->done = 1;
     hal_compiler_barrier();

@@ -1088,7 +1088,7 @@ static void KerGlobalMaxPoolFullFeat_fp(
 		M = gap_max2(Vi[2*i],   M);
 		M = gap_max2(Vi[2*i+1], M);
 	}
-	if ((W*H)&0x2) M = gap_max2(Vi[(W*H)/2], M);
+	if ((W*H)&0x2) M = gap_max2(Vi[(W*H)/2-1], M);
 	m = Max(M[0], M[1]);
 	m = Max(In[W*H-1], m);
 	*Out = m;
@@ -1110,7 +1110,7 @@ static void KerGlobalAvgPoolFullFeat_fp(
 		Sum = gap_sumdotp2(Vi[2*i], M, Sum);
 		Sum = gap_sumdotp2(Vi[2*i+1], M, Sum);
 	}
-	if ((W*H)&0x2) Sum = gap_sumdotp2(Vi[(W*H)/2], M, Sum);
+	if ((W*H)&0x2) Sum = gap_sumdotp2(Vi[(W*H)/2-1], M, Sum);
 	if ((W*H)&0x1) Sum += In[W*H-1];
 
 	*Out = AT_NORM((Sum<<N)/(W*H), N);

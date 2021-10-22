@@ -19,6 +19,9 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @ingroup groupDrivers
@@ -1040,4 +1043,7 @@ int pi_i2s_write_status(pi_task_t *task);
 
 /// @endcond
 
+#ifdef __cplusplus
+}
+#endif
 #endif

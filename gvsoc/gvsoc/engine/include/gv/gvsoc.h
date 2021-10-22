@@ -52,7 +52,7 @@ int64_t gv_time(void *instance);
 
 int gv_run(void *_instance);
 
-void gv_stop(void *_instance);
+void gv_stop(void *_instance, int status);
 
 void gv_destroy(void *handle);
 

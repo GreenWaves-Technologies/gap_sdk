@@ -1,4 +1,5 @@
-Input file: docs/IP_REFERENCES/FC_MPU_reference.md
+.. 
+   Input file: docs/IP_REFERENCES/FC_MPU_reference.md
 
 Register map
 ^^^^^^^^^^^^

@@ -18,6 +18,9 @@
 #define __EVENT_KERNEL_H__
 
 #include "pmsis/pmsis_types.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /** Typical event kernel main function **/
 void pmsis_event_kernel_main(void *arg);
@@ -44,4 +47,8 @@ struct pmsis_event_kernel_wrap *pmsis_event_get_default_scheduler(void);
 void pmsis_event_set_default_scheduler(struct pmsis_event_kernel_wrap *wrap);
 
 void pmsis_event_destroy_default_scheduler(struct pmsis_event_kernel_wrap *wrap);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

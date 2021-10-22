@@ -31,21 +31,25 @@ from ..mult_quantization_handler import MultQuantizionHandler
 
 LOG = logging.getLogger('nntool.' + __name__)
 
-AT_SW_KER_IN_ORDER = [['c', 'h', 'w']]
-AT_SW_KER_OUT_ORDER = [['c', 'h', 'w']]
-AT_NE16_KER_IN_ORDER = [['h', 'w', 'c']]
-AT_NE16_KER_OUT_ORDER = [['h', 'w', 'c']]
-
-
+@options(
+    {
+        'name': 'hwc',
+        'type': bool,
+        'help': 'Use HWC kernel',
+        'default': False
+    }
+)
 @params_type(GlobalPoolingParameters)
 @in_qs_constraint({'dtype': set([np.int8])})
-@out_qs_constraint({'dtype': set([np.int8])})
+@out_qs_constraint({'dtype': set([np.int8, np.int32])})
 class GlobalPoolingMult(MultQuantizionHandler):
 
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         # copy in_qs because we may modify it
         in_qs = in_qs.copy()
+        opts = kwargs['opts']
+        fusion = kwargs.get('fusion', None)
 
         force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
         force_out_q = force_out_qs and force_out_qs[0]
@@ -56,12 +60,16 @@ class GlobalPoolingMult(MultQuantizionHandler):
         min_val = stats['range_in'][0]['min']
         max_val = stats['range_in'][0]['max']
 
-        if force_out_q:
+        if fusion:
+            # Global pooling fused with activations need to have only the activation scale
+            o_q = deepcopy(in_q)
+            o_q.dtype = np.int32
+        elif force_out_q:
             if force_out_q.zero_point != in_q.zero_point:
                 return None
             o_q = force_out_q
             LOG.warning('node %s output forced to range %s/%s  %s - actual range %s/%s',
-                        params.name, o_q.min, o_q.max, "asymmetric" if o_q.is_asymmetric else "symmetric",
+                        params.name, o_q.min, o_q.max, "asymmetric" if o_q.asymmetric else "symmetric",
                         min_val, max_val)
         elif isinstance(params, GlobalAveragePoolParameters) or isinstance(params, GlobalSumPoolParameters):
             # scaling needs to be based on stats and zero point
@@ -71,6 +79,11 @@ class GlobalPoolingMult(MultQuantizionHandler):
                                         asymmetric=(stats['range_out'][0]['min'] == 0 and in_q.zero_point == -128))
         else:
             o_q = deepcopy(in_q)
+
+        if opts['hwc']:
+            cls.check_order(params, [['h', 'w', 'c']], [['h', 'w', 'c']])
+        elif params.in_dims_hint:
+            cls.check_order(params, [['c', 'h', 'w']], [['c', 'h', 'w']])
         return QRec.scaled(in_qs=[in_q],
                            out_qs=[o_q])
 
@@ -79,6 +92,6 @@ class GlobalPoolingMult(MultQuantizionHandler):
         return [QType.from_min_max_sq(stats['range_in'][idx]['min'],
                                       stats['range_in'][idx]['max'],
                                       dtype=np.int8,
-                                      asymmetric=in_qs[idx].is_asymmetric)
+                                      asymmetric=in_qs[idx].asymmetric)
                 if dim is not None else None
                 for idx, dim in enumerate(params.in_dims)]

@@ -141,13 +141,16 @@ def set_add_in_scale(qrec):
     scale = qrec.in_qs[scaled_idx].scale / qrec.in_qs[not_scaled_idx].scale
     scale_in_mul_biases_q.scale = scale
 
-
-def reorder_filter_weigths(qrec, trans, dim):
-    if qrec.in_qs[2]:
-        qrec.in_qs[2].reorder(trans, dim)
-    qrec.in_qs[1].reorder(trans, dim)
-    qrec.cache['mul_biases_q'].reorder(trans, dim)
-
+    if qrec.in_qs[0].asymmetric:
+        # (C - Zc)*Sc = (A - Za)*Sa + (B - Zb)*Sb =
+        # C = Sa/Sc*(A + B*Sb/Sa - Za - Zb*Sb/Sa) + Zc =
+        #   = Sa/Sc*(A + B*Sb/Sa) + (Zc - Sa/Sc*(Za + Zb*Sb/Sa))
+        #                           |---------- bias ----------|
+        add_bias = qrec.out_qs[0].zero_point - qrec.cache['scale_mul_biases_q'].scale * (
+            qrec.in_qs[not_scaled_idx].zero_point + scale_in_mul_biases_q.scale * qrec.in_qs[scaled_idx].zero_point)
+    else:
+        add_bias = 0
+    qrec.cache['add_bias_offset'] = np.round(add_bias).astype(np.int16)
 
 def set_ssd_scales(qrec, params):
     offset_q = qrec.in_qs[0]

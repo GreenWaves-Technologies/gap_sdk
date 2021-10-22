@@ -17,6 +17,10 @@
 #pragma once
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
 * @ingroup groupDrivers
 */
@@ -216,3 +220,8 @@ void pi_i2c_slave_stop_tx(void *handle);
 /**
  * @}
  */
+
+#ifdef __cplusplus
+}
+#endif
+

@@ -28,21 +28,17 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "pmsis/implem/drivers/timer/timer.h"
 #include "pmsis/targets/target.h"
+#include "pmsis/implem/drivers/timer/timer.h"
+#include "pmsis/rtos/os/pmsis_freq.h"
 
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
 
-#define TIMER_INIT  (0x1)
-#define TIMER_ENA   (0x2)
-
 /*******************************************************************************
  * Driver data
  *****************************************************************************/
-
-static uint32_t __g_timer_state = 0;
 
 /*******************************************************************************
  * API implementation
@@ -50,149 +46,97 @@ static uint32_t __g_timer_state = 0;
 
 void pi_timer_init(timer_e timer, timer_cfg_u cfg, uint32_t cmp_val)
 {
-    switch (timer)
+    uint32_t timer_base = 0;
+    if ((timer >= CL_TIMER_0))
     {
-    case FC_TIMER_0 :
-        //fc_timer(0)->CMP_LO = cmp_val;
-        hal_write32(&(fc_timer(0)->CMP_LO), cmp_val);
-        hal_write32(&(fc_timer(0)->VALUE_LO), 0);
-        hal_write32(&(fc_timer(0)->CFG_REG_LO), cfg.word);
-        break;
-    case FC_TIMER_1 :
-        hal_write32(&(fc_timer(0)->CMP_HI), cmp_val);
-        hal_write32(&(fc_timer(0)->VALUE_HI), 0);
-        hal_write32(&(fc_timer(0)->CFG_REG_HI), cfg.word);
-        break;
-    #if defined(FEATURE_CLUSTER)
-    case CL_TIMER_0 :
-        hal_write32(&(cl_timer(0)->CMP_LO), cmp_val);
-        hal_write32(&(cl_timer(0)->VALUE_LO), 0);
-        hal_write32(&(cl_timer(0)->CFG_REG_LO), cfg.word);
-        break;
-    case CL_TIMER_1 :
-        hal_write32(&(cl_timer(0)->CMP_HI), cmp_val);
-        hal_write32(&(cl_timer(0)->VALUE_HI), 0);
-        hal_write32(&(cl_timer(0)->CFG_REG_HI), cfg.word);
-        break;
-    #endif  /* FEATURE_CLUSTER */
-    default :
-        break;
+        timer_base = (uint32_t) cl_timer(0);
     }
-    __g_timer_state |= (TIMER_INIT << (((uint32_t) timer) << 1));
+    else
+    {
+        timer_base = (uint32_t) fc_timer((uint32_t) timer >> 1);
+    }
+    hal_timer_cfg_set(timer_base, cfg.word, cmp_val, 0, ((uint32_t) timer & 1));
 }
 
 void pi_timer_reset(timer_e timer)
 {
-    timer_cfg_u cfg = {0};
-    cfg.field.reset = 1;
-    switch (timer)
+    uint32_t timer_base = 0;
+    if ((timer >= CL_TIMER_0))
     {
-    case FC_TIMER_0 :
-        hal_or32(&(fc_timer(0)->CFG_REG_LO), cfg.word);
-        break;
-    case FC_TIMER_1 :
-        hal_or32(&(fc_timer(0)->CFG_REG_HI), cfg.word);
-        break;
-    #if defined(FEATURE_CLUSTER)
-    case CL_TIMER_0 :
-        hal_or32(&(cl_timer(0)->CFG_REG_LO), cfg.word);
-        break;
-    case CL_TIMER_1 :
-        hal_or32(&(cl_timer(0)->CFG_REG_HI), cfg.word);
-        break;
-    #endif  /* FEATURE_CLUSTER */
-    default :
-        break;
+        timer_base = (uint32_t) cl_timer(0);
     }
+    else
+    {
+        timer_base = (uint32_t) fc_timer((uint32_t) timer >> 1);
+    }
+    hal_timer_reset_set(timer_base, ((uint32_t) timer & 1));
 }
 
 void pi_timer_start(timer_e timer)
 {
-    timer_cfg_u cfg = {0};
-    cfg.field.enable = 1;
-    switch (timer)
+    uint32_t timer_base = 0;
+    if ((timer >= CL_TIMER_0))
     {
-    case FC_TIMER_0 :
-        hal_or32(&(fc_timer(0)->CFG_REG_LO), cfg.word);
-        break;
-    case FC_TIMER_1 :
-        hal_or32(&(fc_timer(0)->CFG_REG_HI), cfg.word);
-        break;
-    #if defined(FEATURE_CLUSTER)
-    case CL_TIMER_0 :
-        hal_or32(&(cl_timer(0)->CFG_REG_LO), cfg.word);
-        break;
-    case CL_TIMER_1 :
-        hal_or32(&(cl_timer(0)->CFG_REG_HI), cfg.word);
-        break;
-    #endif  /* FEATURE_CLUSTER */
-    default :
-        break;
+        timer_base = (uint32_t) cl_timer(0);
     }
-    __g_timer_state |= (TIMER_ENA << (((uint32_t) timer) << 1));
+    else
+    {
+        timer_base = (uint32_t) fc_timer((uint32_t) timer >> 1);
+    }
+    hal_timer_start_set(timer_base, ((uint32_t) timer & 1));
 }
 
 void pi_timer_stop(timer_e timer)
 {
-    switch (timer)
+    uint32_t timer_base = 0;
+    if ((timer >= CL_TIMER_0))
     {
-    case FC_TIMER_0 :
-        hal_write32(&(fc_timer(0)->CFG_REG_LO),
-                    hal_read32(&(fc_timer(0)->CFG_REG_LO)) & ~TIMERL_CFG_REG_LOW_ENABLE_Msk);
-        break;
-    case FC_TIMER_1 :
-        hal_write32(&(fc_timer(0)->CFG_REG_HI),
-                    hal_read32(&(fc_timer(0)->CFG_REG_HI)) & ~TIMERL_CFG_REG_LOW_ENABLE_Msk);
-        break;
-    #if defined(FEATURE_CLUSTER)
-    case CL_TIMER_0 :
-        hal_write32(&(cl_timer(0)->CFG_REG_LO),
-                    hal_read32(&(cl_timer(0)->CFG_REG_LO)) & ~TIMERL_CFG_REG_LOW_ENABLE_Msk);
-        break;
-    case CL_TIMER_1 :
-        hal_write32(&(cl_timer(0)->CFG_REG_HI),
-                    hal_read32(&(cl_timer(0)->CFG_REG_HI)) & ~TIMERL_CFG_REG_LOW_ENABLE_Msk);
-        break;
-    #endif  /* FEATURE_CLUSTER */
-    default :
-        break;
+        timer_base = (uint32_t) cl_timer(0);
     }
-    __g_timer_state &= ~(TIMER_ENA << (((uint32_t) timer) << 1));
+    else
+    {
+        timer_base = (uint32_t) fc_timer((uint32_t) timer >> 1);
+    }
+    hal_timer_stop_set(timer_base, ((uint32_t) timer & 1));
 }
 
 uint32_t pi_timer_value_read(timer_e timer)
 {
-    switch (timer)
+    uint32_t timer_base = 0;
+    if ((timer >= CL_TIMER_0))
     {
-    case FC_TIMER_0 :
-        return hal_read32(&(fc_timer(0)->VALUE_LO));
-    case FC_TIMER_1 :
-        return hal_read32(&(fc_timer(0)->VALUE_HI));
-    #if defined(FEATURE_CLUSTER)
-    case CL_TIMER_0 :
-        return hal_read32(&(cl_timer(0)->VALUE_LO));
-    case CL_TIMER_1 :
-        return hal_read32(&(cl_timer(0)->VALUE_HI));
-    #endif  /* FEATURE_CLUSTER */
-    default :
-        return 0;
+        timer_base = (uint32_t) cl_timer(0);
     }
+    else
+    {
+        timer_base = (uint32_t) fc_timer((uint32_t) timer >> 1);
+    }
+    uint32_t timer_value = hal_timer_value_get(timer_base, ((uint32_t) timer & 1));
+    return timer_value;
 }
 
 extern uint32_t system_core_clock_get();
 void pi_timer_irq_set(timer_e timer, uint32_t time_us, uint8_t one_shot)
 {
-    uint32_t timer_tick_us = system_core_clock_get() / 1000000;
-    uint32_t cmp_val = time_us * timer_tick_us;
-    if (__g_timer_state & ((TIMER_ENA << (((uint32_t) timer) << 1))))
+    if (timer == SYS_TIMER)
     {
-        pi_timer_stop(timer);
+        /* FC_TIMER_0 already used by kernel. */
+        return;
     }
+
+    /* Stop timer if it was used. */
+    pi_timer_stop(timer);
     timer_cfg_u cfg = {0};
     cfg.field.enable = 1;
     cfg.field.irq_en = 1;
     cfg.field.mode = 1;
     cfg.field.one_shot = one_shot;
+
+    float periph_freq = 0.0;
+    periph_freq = (float) system_core_clock_get();
+    float timer_tick_us = periph_freq / 1000000.0;
+    uint32_t cmp_val = time_us * timer_tick_us;
+    /* printf("periph_freq=%ld, tick_us=%ld, time_us=%ld, cmp_val=%ld\n", */
+    /*        (uint32_t) periph_freq, (uint32_t) timer_tick_us, time_us, cmp_val); */
     pi_timer_init(timer, cfg, cmp_val);
-    pi_timer_start(timer);
 }

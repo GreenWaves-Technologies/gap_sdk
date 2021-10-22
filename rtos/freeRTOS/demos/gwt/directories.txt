@@ -1,0 +1,8 @@
+This file describes the subdirectories found in the /demo/gwt directory of the
+Amazon FreeRTOS distribution.
+
+config:
+Contains a set of pre-configured demo projects for various target platforms.
+
+examples:
+Contains a set of examples to quick start with FreeRTOS, including a hello world example.

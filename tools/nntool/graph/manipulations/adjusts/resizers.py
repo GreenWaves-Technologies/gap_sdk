@@ -26,15 +26,13 @@ class ResizerAdjuster(AdjusterBase):
     def adjust_input(self, G, node, names):
         self.verify_chw(node, names)
         trans = self.get_trans(names, ['c', 'h', 'w'])
-        self.apply_input_trans(node, trans)
-        self.apply_output_trans(node, self.invert(trans), index=0)
+        self.apply_input_trans(G, node, trans)
+        self.apply_output_trans(G, node, self.invert(trans), index=0)
 
     def adjust(self, G, node):
         modified = False
         # check that the transposed input 0 matches autotiler order
         names = node.in_dims[0].order
-        if node.transpose_in is not None and node.transpose_in[0] is not None:
-            names = self.trans_names(names, node.transpose_in[0])
         if names != ['c', 'h', 'w']:
             self.adjust_input(G, node, names)
             modified = True

@@ -19,6 +19,11 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /**
 * @ingroup groupRTOS
 */
@@ -88,4 +93,7 @@ extern void pi_mem_slab_free(pi_mem_slab_t *slab, void **mem);
  * @}
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_MEM_SLAB_H__ */

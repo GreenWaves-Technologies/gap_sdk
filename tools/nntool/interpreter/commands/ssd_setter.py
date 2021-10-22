@@ -21,7 +21,7 @@ class SSDSetterCommand(NNToolShellBase):
     # SSD Setter command to set the ssd post process layer parameters
 
     parser_ssdsetter = Cmd2ArgumentParser()
-    parser_ssdsetter.add_argument('parameter',
+    parser_ssdsetter.add_argument('parameter', type=int,
                                   choices=('max_bb_before_nms', 'nms_score_threshold'),
                                   help='Set this parameter')
     parser_ssdsetter.add_argument('value', type=float, default=None,

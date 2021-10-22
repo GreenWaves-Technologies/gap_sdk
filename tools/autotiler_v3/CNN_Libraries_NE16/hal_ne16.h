@@ -23,9 +23,18 @@
 #ifndef __HAL_NE16_H__
 #define __HAL_NE16_H__
 
+#if defined(__riscv__)
+#ifdef PMSIS_DRIVERS
+    #define eu_evt_maskWaitAndClr(x) (hal_cl_eu_event_mask_wait_and_clear(x))
+#endif
+#else
+    #define eu_evt_maskWaitAndClr(x)
+#endif
+
 /* REGISTER MAP */
 
 // Special gvsoc register to enable traces
+#define NE16_SPECIAL_FORMAT_TRACE_REG 0x64
 #define NE16_SPECIAL_TRACE_REG 0x60
 #define NE16_L0_JOB_START_END 0
 #define NE16_L1_CONFIG 1
@@ -169,21 +178,21 @@
 // instead of classic load/store because otherwise the compiler is not able to correctly factorize
 // the NE16 base in case several accesses are done, ending up with twice more code
 #if defined(__riscv__) && !defined(RV_ISA_RV32)
-  #define NE16_WRITE_CMD(offset, value)        __builtin_pulp_OffsetedWrite(value, (int volatile *)(NE16_ADDR_BASE), offset)
+  #define NE16_WRITE_CMD(offset, value)        __builtin_pulp_OffsetedWrite(value, (void *)(NE16_ADDR_BASE), offset)
   #define NE16_WRITE_CMD_BE(offset, value, be) *(char volatile *)(NE16_ADDR_BASE + offset + be) = value
   // #define NE16_READ_CMD(offset)                (__builtin_pulp_OffsetedRead(*(int volatile *)(NE16_ADDR_BASE), offset))
   #define NE16_READ_CMD(ret, offset)           ret = (*(int volatile *)(NE16_ADDR_BASE + offset))
 
-  #define NE16_WRITE_REG(offset, value)        __builtin_pulp_OffsetedWrite(value, (int volatile *)(NE16_ADDR_BASE + NE16_REGISTER_OFFS), offset)
+  #define NE16_WRITE_REG(offset, value)        __builtin_pulp_OffsetedWrite(value, (void *)(NE16_ADDR_BASE + NE16_REGISTER_OFFS), offset)
   #define NE16_WRITE_REG_BE(offset, value, be) *(char volatile *)(NE16_ADDR_BASE + NE16_REGISTER_OFFS + offset + be) = value
   // #define NE16_READ_REG(offset)                (__builtin_pulp_OffsetedRead(*(int volatile *)(NE16_ADDR_BASE + NE16_REGISTER_OFFS), offset))
   #define NE16_READ_REG(ret, offset)           ret = (*(int volatile *)(NE16_ADDR_BASE + NE16_REGISTER_OFFS + offset))
 
-  #define NE16_WRITE_REG_CXT0(offset, value)        __builtin_pulp_OffsetedWrite(value, (int volatile *)(NE16_ADDR_BASE + NE16_REGISTER_CXT0_OFFS), offset)
+  #define NE16_WRITE_REG_CXT0(offset, value)        __builtin_pulp_OffsetedWrite(value, (void *)(NE16_ADDR_BASE + NE16_REGISTER_CXT0_OFFS), offset)
   #define NE16_WRITE_REG_CXT0_BE(offset, value, be) *(char volatile *)(NE16_ADDR_BASE + NE16_REGISTER_CXT0_OFFS + offset + be) = value
   #define NE16_READ_REG_CXT0(offset)                (__builtin_pulp_OffsetedRead(*(int volatile *)(NE16_ADDR_BASE + NE16_REGISTER_CXT0_OFFS), offset))
 
-  #define NE16_WRITE_REG_CXT1(offset, value)        __builtin_pulp_OffsetedWrite(value, (int volatile *)(NE16_ADDR_BASE + NE16_REGISTER_CXT1_OFFS), offset)
+  #define NE16_WRITE_REG_CXT1(offset, value)        __builtin_pulp_OffsetedWrite(value, (void *)(NE16_ADDR_BASE + NE16_REGISTER_CXT1_OFFS), offset)
   #define NE16_WRITE_REG_CXT1_BE(offset, value, be) *(char volatile *)(NE16_ADDR_BASE + NE16_REGISTER_CXT1_OFFS + offset + be) = value
   #define NE16_READ_REG_CXT1(offset)                (__builtin_pulp_OffsetedRead(*(int volatile *)(NE16_ADDR_BASE + NE16_REGISTER_CXT1_OFFS), offset))
 #else
@@ -195,11 +204,11 @@
   #define NE16_WRITE_REG_BE(offset, value, be) *(char volatile *)(NE16_ADDR_BASE + NE16_REGISTER_OFFS + offset + be) = value
   #define NE16_READ_REG(ret, offset)           ret = (*(int volatile *)(NE16_ADDR_BASE + NE16_REGISTER_OFFS + offset))
 
-  #define NE16_WRITE_REG_CXT0(offset, value)        __builtin_pulp_OffsetedWrite(value, (int volatile *)(NE16_ADDR_BASE + NE16_REGISTER_CXT0_OFFS), offset)
+  #define NE16_WRITE_REG_CXT0(offset, value)        __builtin_pulp_OffsetedWrite(value, (void *)(NE16_ADDR_BASE + NE16_REGISTER_CXT0_OFFS), offset)
   #define NE16_WRITE_REG_CXT0_BE(offset, value, be) *(char volatile *)(NE16_ADDR_BASE + NE16_REGISTER_CXT0_OFFS + offset + be) = value
   #define NE16_READ_REG_CXT0(offset)                (__builtin_pulp_OffsetedRead(*(int volatile *)(NE16_ADDR_BASE + NE16_REGISTER_CXT0_OFFS), offset))
 
-  #define NE16_WRITE_REG_CXT1(offset, value)        __builtin_pulp_OffsetedWrite(value, (int volatile *)(NE16_ADDR_BASE + NE16_REGISTER_CXT1_OFFS), offset)
+  #define NE16_WRITE_REG_CXT1(offset, value)        __builtin_pulp_OffsetedWrite(value, (CNN_MM_ConvolutionNE16 *)(NE16_ADDR_BASE + NE16_REGISTER_CXT1_OFFS), offset)
   #define NE16_WRITE_REG_CXT1_BE(offset, value, be) *(char volatile *)(NE16_ADDR_BASE + NE16_REGISTER_CXT1_OFFS + offset + be) = value
   #define NE16_READ_REG_CXT1(offset)                (__builtin_pulp_OffsetedRead(*(int volatile *)(NE16_ADDR_BASE + NE16_REGISTER_CXT1_OFFS), offset))
 #endif
@@ -216,7 +225,11 @@
 #define NE16_BARRIER_NOSTATUS()      eu_evt_maskWaitAndClr (1 << NE16_EVT0)
 #define NE16_BARRIER()               do { eu_evt_maskWaitAndClr (1 << NE16_EVT0); } while((*(int volatile *)(NE16_ADDR_BASE + NE16_STATUS)) != 0)
 #define NE16_BUSYWAIT()              do {                                         } while((*(int volatile *)(NE16_ADDR_BASE + NE16_STATUS)) != 0)
-#define NE16_BARRIER_ACQUIRE(job_id) job_id = NE16_READ_CMD(job_id, NE16_ACQUIRE); \
+#define NE16_READ_STATUS()           (*(int volatile *)(NE16_ADDR_BASE + NE16_STATUS))
+#define NE16_READ_RUNNING_JOB()           (*(int volatile *)(NE16_ADDR_BASE + NE16_RUNNING_JOB))
+#define NE16_BARRIER_ACQUIRE(job_id) NE16_READ_CMD(job_id, NE16_ACQUIRE); \
                                      while(job_id < 0) { eu_evt_maskWaitAndClr (1 << NE16_EVT0); NE16_READ_CMD(job_id, NE16_ACQUIRE); };
+#define NE16_BARRIER_ID_OR_IDLE(job_id) \
+  do { eu_evt_maskWaitAndClr (1 << NE16_EVT0); } while((*(int volatile *)(NE16_ADDR_BASE + NE16_STATUS))!=0&&NE16_READ_RUNNING_JOB()!=(job_id))
 
 #endif /* __HAL_NE16_H__ */

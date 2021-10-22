@@ -35,10 +35,12 @@ extern "C" void *dpi_open(char *config_path)
   return handle;
 }
 
-extern "C" void dpi_start(void *instance)
+extern "C" int dpi_start(void *instance)
 {
 
   gv_start(instance);
+
+  return 0;
 }
 
 extern "C" void dpi_start_task(void *arg0, void *arg1)

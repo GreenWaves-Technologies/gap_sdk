@@ -49,6 +49,10 @@ class QuantizationSet(MutableMapping, JsonSerializable):
     def schemes_present(self):
         return self._init['schemes_present']
 
+    @schemes_present.setter
+    def schemes_present(self, val):
+        self._init['schemes_present'] = val
+
     @property
     def scheme_priority(self):
         return self._init['scheme_priority']
@@ -90,7 +94,7 @@ class QuantizationSet(MutableMapping, JsonSerializable):
 
     def __getitem__(self, key):
         if key not in self.qset:
-            raise KeyError()
+            raise KeyError() # @IgnoreException
         item = self.qset[key]
         return item
 

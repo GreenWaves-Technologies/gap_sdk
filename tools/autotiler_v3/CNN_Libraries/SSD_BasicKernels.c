@@ -125,7 +125,7 @@ void Ker_SSD_Decoder(Ker_SSD_Decoder_ArgT  *KerArg0 )
     int initial_idx     = KerArg0->bbox_idx[0];
     int num_classes     = KerArg0->Class_W;
     int16_t n_max_bb    = KerArg0->n_max_bb;
-    int8_t score_th     = KerArg0->infos[1];
+    int8_t score_th     = KerArg0->ScoreThr;
     uint8_t* scales     = KerArg0->in_scales;
     uint8_t* norms      = KerArg0->in_norms;
     int num_coords      = 4;
@@ -140,16 +140,15 @@ void Ker_SSD_Decoder(Ker_SSD_Decoder_ArgT  *KerArg0 )
                 CL_CRITICAL_ENTER();
                 bbn = KerArg0->bbox_idx[0]++;
                 // printf("Core: %d\tbbox_idx:%d\n", CoreId, KerArg0->bbox_idx[0]);
-                if(bbn - initial_idx >= n_max_bb){ // check if we reched n_max_bb
-                    KerArg0->bbox_idx[0]--;
+                if(bbn > n_max_bb){ // check if we reched n_max_bb
                     CL_CRITICAL_EXIT();
                     goto exit_double_for;
                 }
                 CL_CRITICAL_EXIT();
                 // Valid BBOX --> alive
                 bbox[bbn].alive = 1;
-                //Save score always as a Q15
-                bbox[bbn].score = scores[(i*num_classes)+j]*scales[7] << (15 - norms[7]);
+                //Save score always as a Q7
+                bbox[bbn].score = scores[(i*num_classes)+j];
                 bbox[bbn].class = j;
                 // xcnt, ycnt --> Q14
                 // xcnt = (So*O * Sa*Aw)/params.x_scale + Sa*Ax = So*Sa/params.x_scale (O*Aw + x_scale/So * Ax) =
@@ -168,9 +167,9 @@ void Ker_SSD_Decoder(Ker_SSD_Decoder_ArgT  *KerArg0 )
                 //          (scale_ao * (Aw * exp17.15(scale_h*O<<15-scale_hNorm))>>scale_aoNorm) =
                 //          at_norm(scale_ao*(A*exp17.15(scale_h*O << 15-scale_hNorm)), scale_aoNorm)
                 O = KerArg0->boxes_in[boxes_idx+3];
-                bbox[bbn].w = AT_NORM(scales[6] * (Aw * Exp_fp_17_15((O * scales[5]) << 15-norms[5])), norms[6]);
+                bbox[bbn].w = AT_NORM(scales[6] * (Aw * Exp_fp_17_15((O * scales[5]) << (15-norms[5]))), norms[6]);
                 O = KerArg0->boxes_in[boxes_idx+2];
-                bbox[bbn].h = AT_NORM(scales[6] * (Ah * Exp_fp_17_15((O * scales[4]) << 15-norms[4])), norms[6]);
+                bbox[bbn].h = AT_NORM(scales[6] * (Ah * Exp_fp_17_15((O * scales[4]) << (15-norms[4]))), norms[6]);
 
                 bbox[bbn].x = bbox[bbn].x - (bbox[bbn].w >> 1);
                 bbox[bbn].y = bbox[bbn].y - (bbox[bbn].h >> 1);
@@ -179,11 +178,10 @@ void Ker_SSD_Decoder(Ker_SSD_Decoder_ArgT  *KerArg0 )
     }
     exit_double_for:
     gap_waitbarrier(0);
-    if (CoreId == 0) KerArg0->bbox_idx[0]--;
 }
 
-static int16_t KerIoverU( short a_x, short a_y, short a_w, short a_h,
-                short b_x, short b_y, short b_w, short b_h, float Thr ){
+static int8_t KerIoverU( short a_x, short a_y, short a_w, short a_h,
+                short b_x, short b_y, short b_w, short b_h, int Thr ){
 
     int intersect, runion;
     int x = Max(a_x,b_x);
@@ -201,8 +199,7 @@ static int16_t KerIoverU( short a_x, short a_y, short a_w, short a_h,
 
     runion = (a_w*a_h + b_w*b_h) - intersect;
 
-    float iou = (float) intersect / (float) runion;
-    return iou >= Thr;
+    return intersect >= AT_NORM(Thr * runion, 7);
 }
 
 
@@ -219,7 +216,7 @@ static void KerNonMaxSuppress(bbox_t * boundbxs, float iouThres, int nnbb){
             if((boundbxs[idx_int].alive==0 || idx_int==idx) || (boundbxs[idx_int].class != boundbxs[idx].class))
                 continue;
             //check the intersection between rects
-            int iou = KerIoverU(boundbxs[idx].x,boundbxs[idx].y,boundbxs[idx].w,boundbxs[idx].h,
+            int8_t iou = KerIoverU(boundbxs[idx].x,boundbxs[idx].y,boundbxs[idx].w,boundbxs[idx].h,
                              boundbxs[idx_int].x,boundbxs[idx_int].y,boundbxs[idx_int].w,boundbxs[idx_int].h, iouThres);
             if(iou){ //is non-max
                 //supress the one that has lower score that is alway the internal index, since the input is sorted
@@ -228,53 +225,18 @@ static void KerNonMaxSuppress(bbox_t * boundbxs, float iouThres, int nnbb){
         }
     }
 }
-#if 0
-void init_test(bbox_t * boundbxs){
-    boundbxs[0].x = FP2FIX(0.418335,14);
-    boundbxs[0].y = FP2FIX(0.227356,14);
-    boundbxs[0].w = FP2FIX(0.347717,14);
-    boundbxs[0].h = FP2FIX(0.349854,14);
-    boundbxs[0].score = FP2FIX(0.757812,15);
-    boundbxs[0].class = 3;
-    boundbxs[0].alive = 1;
-
-    boundbxs[1].x = FP2FIX(0.480591,14);
-    boundbxs[1].y = FP2FIX(0.148743,14);
-    boundbxs[1].w = FP2FIX(0.250061,14);
-    boundbxs[1].h = FP2FIX(0.481140,14);
-    boundbxs[1].score = FP2FIX(0.7,15);
-    boundbxs[1].class = 3;
-    boundbxs[1].alive = 1;
-
-    boundbxs[2].x = FP2FIX(0.1,14);
-    boundbxs[2].y = FP2FIX(0.1,14);
-    boundbxs[2].w = FP2FIX(0.3,14);
-    boundbxs[2].h = FP2FIX(0.3,14);
-    boundbxs[2].score = FP2FIX(0.7,15);
-    boundbxs[2].class = 2;
-    boundbxs[2].alive = 1;
-
-    boundbxs[3].x = FP2FIX(0.2,14);
-    boundbxs[3].y = FP2FIX(0.2,14);
-    boundbxs[3].w = FP2FIX(0.2,14);
-    boundbxs[3].h = FP2FIX(0.2,14);
-    boundbxs[3].score = FP2FIX(0.6,15);
-    boundbxs[3].class = 2;
-    boundbxs[3].alive = 1;
-
-
-}
-#endif
 
 void Ker_SSD_NMS(Ker_SSD_NMS_ArgT  *KerArg0 )
 {
     
     int16_t bbox_idx_max = *(KerArg0->bbox_idx);
     int16_t bbox_max     = KerArg0->n_max_bb;
-    int max_detections   = KerArg0->infos[2];
+    int max_detections   = KerArg0->n_out_box;
     bbox_t * bbox        = KerArg0->bbox_buf;
-    bbox_t * out_bbox    = KerArg0->bbox_out;
-    float non_max_thres  = FIX2FP((int) KerArg0->infos[0], 7);
+    int16_t * out_bbox   = KerArg0->bbox_out;
+    int8_t * scores_out  = KerArg0->scores_out;
+    int8_t * class_out   = KerArg0->class_out;
+    int non_max_thres  = (int) KerArg0->NMSThr;
     bbox_t temp;
 
     //Sort results from the most confident
@@ -292,38 +254,43 @@ void Ker_SSD_NMS(Ker_SSD_NMS_ArgT  *KerArg0 )
         }
     }while(changed);
 
-    #if 0
-    //To test algo with sample boxes
-    bbox_t test_bbx[4];
-    init_test(test_bbx);
-    KerNonMaxSuppress(test_bbx,(int16_t)KerArg0->infos[0]<<7,4);
-    int bbn=0;
-    for(int bbn=0; bbn<4;bbn++){
-        if(test_bbx[bbn].alive==1){
-            //printf("ADD BB %d, class: %d score %f - x: %d, y:%d, w: %d, h:%d\n",bbn,bbox[bbn].class,FIX2FP(bbox[bbn].score,15),bbox[bbn].x,bbox[bbn].y,bbox[bbn].w,bbox[bbn].h);
-            printf("ADD BB %d, class: %d score %f - x: %f, y:%f, w: %f, h:%f\n",bbn,test_bbx[bbn].class,FIX2FP(test_bbx[bbn].score,15),FIX2FP(test_bbx[bbn].y,14),FIX2FP(test_bbx[bbn].x,14),FIX2FP(test_bbx[bbn].h,14),FIX2FP(test_bbx[bbn].w,14));
+    // for (int i=0; i<bbox_idx_max; i++) printf("box: %d %d %d %d - %d@%d \n", bbox[i].x,bbox[i].y,bbox[i].w,bbox[i].h, bbox[i].class, bbox[i].score);
+    //Suppressing double detections
+    // KerNonMaxSuppress(bbox, non_max_thres, bbox_idx_max);
+    //BBOX value are in Q14 and non_max_threshold in Q14
+    int idx, idx_int;
+    //Non-max supression
+    for(idx=0; idx<bbox_idx_max; idx++){
+        //check if rect has been removed (-1)
+        if(bbox[idx].alive == 0)
+            continue;
+
+        for(idx_int=idx+1; idx_int<bbox_idx_max; idx_int++){
+            if((bbox[idx_int].alive==0 || idx_int==idx) || (bbox[idx_int].class != bbox[idx].class))
+                continue;
+            //check the intersection between rects
+            int8_t iou = KerIoverU(bbox[idx].x,bbox[idx].y,bbox[idx].w,bbox[idx].h,
+                                bbox[idx_int].x,bbox[idx_int].y,bbox[idx_int].w,bbox[idx_int].h, non_max_thres);
+            if(iou){ //is non-max
+                //supress the one that has lower score that is always the internal index, since the input is sorted
+                bbox[idx_int].alive = 0;
+            }
         }
     }
-    #endif
-
-    //Suppressing double detections
-    KerNonMaxSuppress(bbox, non_max_thres, bbox_idx_max);
 
     //Applying max output from TFLITE
-    for(int i=0; i<bbox_max; i++){
-        out_bbox[i] = bbox[i];
-        if  (bbox[i].alive==1 && max_detections) max_detections--;
-        else bbox[i].alive=0;
+    int out_idx = 0;
+    for(int i=0; i<bbox_idx_max&&out_idx<max_detections; i++){
+        if (!bbox[i].alive) continue;
+        out_bbox[4*out_idx]   = bbox[i].y;
+        out_bbox[4*out_idx+1] = bbox[i].x;
+        out_bbox[4*out_idx+2] = bbox[i].y + bbox[i].h;
+        out_bbox[4*out_idx+3] = bbox[i].x + bbox[i].w;
+        scores_out[out_idx] = bbox[i].score;
+        class_out[out_idx] = bbox[i].class;
+        out_idx++;
     }
+    while (out_idx<max_detections) scores_out[out_idx++] = 0;
 
-    #if 0
-    //To print them out
-    for(int bbn=0; bbn<bbox_max;bbn++){
-    if(bbox[bbn].alive==1){
-        //printf("ADD BB %d, class: %d score %f - x: %d, y:%d, w: %d, h:%d\n",bbn,bbox[bbn].class,FIX2FP(bbox[bbn].score,15),bbox[bbn].x,bbox[bbn].y,bbox[bbn].w,bbox[bbn].h);
-        printf("ADD BB %d, alive %d, class: %d score %f - x: %f, y:%f, w: %f, h:%f\n",bbn,bbox[bbn].alive,bbox[bbn].class,FIX2FP(bbox[bbn].score,15),FIX2FP(bbox[bbn].y,14),FIX2FP(bbox[bbn].x,14),FIX2FP(bbox[bbn].h,14),FIX2FP(bbox[bbn].w,14));
-     }
-    }
-    #endif
 }
 #pragma GCC diagnostic pop

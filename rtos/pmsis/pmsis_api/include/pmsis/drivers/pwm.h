@@ -19,6 +19,10 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @ingroup groupDrivers
  */
@@ -323,4 +327,7 @@ int32_t pi_pwm_duty_cycle_set(struct pi_device *device,
  * @} end of PWM
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PI_DRIVERS_PWM_H__ */

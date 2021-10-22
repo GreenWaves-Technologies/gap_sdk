@@ -14,18 +14,24 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-from copy import deepcopy
 import math
+from copy import deepcopy
 
 import numpy as np
 from graph.types import GRUParameters
 from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
+from quantization.quantizer_options import (FORCE_EXTERNAL_SIZE_OPTION,
+                                            NARROW_STATE_OPTION,
+                                            NARROW_WEIGHTS_OPTION,
+                                            NE16_WEIGHT_BITS_OPTION,
+                                            USE_NE16_OPTION)
 from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        option_constraint,
+                                                       options,
                                                        out_qs_constraint,
-                                                       params_type, options)
+                                                       params_type)
 
 from ..mult_quantization_handler import MultQuantizionHandler
 from .rescale_constant_mixin import RescaleConstantMixin
@@ -39,38 +45,16 @@ WEIGHTS_DTYPE = np.int8
 
 
 @options(
-    {
-        'name': 'weight_bits',
-        'type': int,
-        'help': 'how many bits to use in weights',
-        'choices': list(range(2, 9)),
-        'default': 8
-    },
-    {
-        'name': 'force_external_size',
-        'type': str,
-        'help': 'bits to use for features and state',
-        'choices': [8, 16],
-        'default': 8
-    },
-    {
-        'name': 'narrow_weights',
-        'shortcut': 'n',
-        'type': bool,
-        'help': 'scales filter weights with a representation of both 1 and -1 (i.e. -127 - 127 in 8 bits)',
-        'default': True
-    },
-    {
-        'name': 'narrow_state',
-        'type': bool,
-        'help': 'scales state in Q14 so that 1 <-> -1 can be represented',
-        'default': True
-    },
+    NE16_WEIGHT_BITS_OPTION,
+    FORCE_EXTERNAL_SIZE_OPTION,
+    NARROW_WEIGHTS_OPTION,
+    USE_NE16_OPTION,
+    NARROW_STATE_OPTION
 )
 @params_type(GRUParameters)
 @in_qs_constraint({'dtype': np.int16})
 @out_qs_constraint({'dtype': np.int16})
-@option_constraint(force_external_size=16)
+@option_constraint(force_external_size=16, use_ne16={None, False})
 class GRUMult16x8(RescaleConstantMixin, MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
@@ -86,13 +70,21 @@ class GRUMult16x8(RescaleConstantMixin, MultQuantizionHandler):
         cls.check_valid_ranges(params, stats, idx=0, dirs='out')
 
         names = {val: idx for idx, val in enumerate(GRUParameters.INPUT_NAMES)}
+        edges = kwargs['G'].indexed_in_edges(params.name)
 
-        for weight_name in ['w_2_z_w', 'w_2_r_w', 'w_2_h_w', 'r_2_z_w', 'r_2_r_w', 'r_2_h_w']:
-            w_q = in_qs[names[weight_name]]
-            in_qs[names[weight_name]] = QType.from_min_max_sq(
+        for gate in ['r', 'z', 'h']:
+            w_q = in_qs[names[f'w_2_{gate}_w']]
+            in_qs[names[f'w_2_{gate}_w']] = QType.from_min_max_sq(
                 w_q.min_val, w_q.max_val,
                 dtype=np.int8, bits=opts['weight_bits'],
-                narrow_range=opts.get('narrow_weights', True))
+                narrow_range=opts.get('narrow_weights', True),
+                dont_generate_value=True)
+            w_q = in_qs[names[f'r_2_{gate}_w']]
+            in_qs[names[f'r_2_{gate}_w']] = QType.from_min_max_sq(
+                w_q.min_val, w_q.max_val,
+                dtype=np.int8, bits=opts['weight_bits'],
+                narrow_range=opts.get('narrow_weights', True),
+                concatenated_nodes=[edges[names[f'w_2_{gate}_w']].from_node.name])
 
         wWz_scale = in_qs[names['w_2_z_w']].scale
         wWr_scale = in_qs[names['w_2_r_w']].scale

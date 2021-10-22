@@ -19,6 +19,10 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef PI_INLINE_OCTOSPI_LVL_0
 #define PI_INLINE_OCTOSPI_LVL_0
 #endif
@@ -654,4 +658,7 @@ void pi_octospi_xip_unlock(struct pi_device *device);
  * @} end of Octospi
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PI_PMSIS_DRIVERS_OCTOSPI_H__ */

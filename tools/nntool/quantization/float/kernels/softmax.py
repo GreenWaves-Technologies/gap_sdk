@@ -36,6 +36,8 @@ class SoftMaxFloat32(KernelBase):
             qrec = AllFloatQRec()
         old_err = np.seterr(over='raise')
         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float")[0]
-        in_tensor = softmax_func(in_tensor, axis=params.axis)
+        out_dtype = qrec.out_qs[0].dtype if qrec.ktype.startswith(
+            'float') else np.float32
+        in_tensor = softmax_func(in_tensor, axis=params.axis).astype(out_dtype)
         np.seterr(**old_err)
         return qrec.get_outputs(params, [in_tensor], ktype="float")

@@ -27,7 +27,7 @@ static int vcd_id = 0;
 
 
 
-vp::Event_trace::Event_trace(string trace_name, Event_file *file, int width, bool is_real, bool(is_string)) : is_real(is_real), is_string(is_string), is_enqueued(false), file(file)
+vp::Event_trace::Event_trace(string trace_name, Event_file *file, int width, bool is_real, bool(is_string)) : trace_name(trace_name), is_real(is_real), is_string(is_string), is_enqueued(false), file(file)
 {
   id = vcd_id++;
   file->add_trace(trace_name, id, width, is_real, is_string);
@@ -119,10 +119,24 @@ vp::Event_trace *vp::Event_dumper::get_trace_string(string trace_name, string fi
   return trace;
 }
 
+void vp::Event_trace::set_vcd_user(gv::Vcd_user *user)
+{
+  user->event_register(this->id, this->trace_name, this->is_real ? gv::Vcd_event_type_real : this->is_string ? gv::Vcd_event_type_string : gv::Vcd_event_type_logical, this->width);
+}
+
+
 void vp::Event_dumper::close()
 {
   for (auto &x: event_files)
   {
     x.second->close();
   }
+}
+
+void vp::Event_dumper::set_vcd_user(gv::Vcd_user *user)
+{
+    for (auto const& x : event_traces)
+    {
+      x.second->set_vcd_user(user);
+    }
 }

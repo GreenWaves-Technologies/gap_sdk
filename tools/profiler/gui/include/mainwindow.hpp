@@ -47,7 +47,8 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(std::string exampleDir,
                         std::string path_to_elf,
-                        std::string configFileName);
+                        std::string configFileName, 
+                        QString signalsTreeFileName);
     ~MainWindow();
 
 private:
@@ -110,6 +111,8 @@ private:
   std::string path_to_elf;
   // Gvsoc configuration file name
   std::string configFileName;
+  // Name of the txt file containing the signals tree to be uploaded
+  QString signalsTreeFileName;
 
   // Name of the FIFO file
   char const* fifoName="all.bin";
@@ -186,6 +189,18 @@ std::vector<std::string>  gvsocSignals = {
   std::string("/sys/board/chip/cluster/pe5/ipc_stat@all.bin"),
   std::string("/sys/board/chip/cluster/pe6/ipc_stat@all.bin"),
   std::string("/sys/board/chip/cluster/pe7/ipc_stat@all.bin")
+};
+
+// Gvsoc mandatory signals : must always be received frol gvsoc
+std::vector<std::string>  mandatorySig = {
+  std::string("/sys/board/chip/soc/fc/state@all.bin"),
+  std::string("/sys/board/chip/cluster/pe1/state@all.bin"),
+  std::string("/sys/board/chip/cluster/pe2/state@all.bin"),
+  std::string("/sys/board/chip/cluster/pe3/state@all.bin"),
+  std::string("/sys/board/chip/cluster/pe4/state@all.bin"),
+  std::string("/sys/board/chip/cluster/pe5/state@all.bin"),
+  std::string("/sys/board/chip/cluster/pe6/state@all.bin"),
+  std::string("/sys/board/chip/cluster/pe7/state@all.bin")
 };
 
 // Gvsoc always active Core signals Table

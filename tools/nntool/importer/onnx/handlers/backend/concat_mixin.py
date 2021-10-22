@@ -20,6 +20,10 @@ from importer.onnx.common import logger
 
 from importer.common.constant_mixin import ConstantMixin
 
+def print_small(tensor):
+    if tensor.size < 6:
+        return str(tensor)
+    return ""
 
 class ConcatMixin(ConstantMixin):
 
@@ -31,12 +35,13 @@ class ConcatMixin(ConstantMixin):
         inputs = [all_nodes[inp] for inp in node.input]
         input_shapes = [inp[2].shape for inp in inputs]
         axis_sum = sum(shape[axis] for shape in input_shapes)
+        axis = axis if axis >= 0 else len(input_shapes[0]) + axis
         output_shape = [axis_sum if idx == axis else dim for idx, dim in enumerate(input_shapes[0])]
         pout_dim = ProvisionalDim(output_shape)
         none_dims = sum([1 if dim is None else 0 for dim in output_shape[:axis:]])
         if all(cls.is_constant(inp) for inp in inputs):
-            logger.info("reducing %s to a constant", valid_name)
             value = np.concatenate([cls.get_constant(inp) for inp in inputs], axis=axis)
+            logger.info(f"reducing {valid_name} to a constant {print_small(value)}")
             params = ConstantInputParameters(valid_name, value=value, constant_store=G.constant_store)
         else:
             params = ConcatParameters(valid_name, axis=axis - none_dims)

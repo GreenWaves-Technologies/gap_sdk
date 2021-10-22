@@ -37,6 +37,7 @@ class QuantizionHandler(ConstraintBase):
     DOCUMENTATION = ''
     OPTIONS = {}
     CAN_DEQUANTIZE = False
+    NEEDS_STATS = True
     FUSION_HANDLER = False  # Indicates that the subgraph inside a fusion should be traversed
     PRIORITY = 1
 
@@ -129,6 +130,10 @@ class QuantizionHandler(ConstraintBase):
     @classmethod
     def get_default_options(cls):
         return {name: opt['default'] for name, opt in cls.OPTIONS.items()}
+
+    @staticmethod
+    def needs_stats(yesno):
+        return QuantizionHandler.property_register("NEEDS_STATS", yesno)
 
     @staticmethod
     def params_type(*args):
@@ -225,3 +230,4 @@ in_qs_constraint = QuantizionHandler.in_qs_constraint
 out_qs_constraint = QuantizionHandler.out_qs_constraint
 fusion_handler = QuantizionHandler.fusion_handler
 priority = QuantizionHandler.priority
+needs_stats = QuantizionHandler.needs_stats

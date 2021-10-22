@@ -1,4 +1,5 @@
-Input file: fe/ips/power_manager_vega/docs/DLC_reference.md
+.. 
+   Input file: fe/ips/power_manager_vega/docs/DLC_reference.md
 
 Register map
 ^^^^^^^^^^^^

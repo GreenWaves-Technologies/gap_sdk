@@ -32,6 +32,9 @@
 #include "pmsis.h"
 #include "gap_common.h"
 
+__attribute__((noinline)) void __io_lock();
+__attribute__((noinline)) void __io_unlock();
+
 extern struct cluster_driver_data *__per_cluster_data[];
 
 /* TAS offset. GAP8 : TAS in cluster L1. */

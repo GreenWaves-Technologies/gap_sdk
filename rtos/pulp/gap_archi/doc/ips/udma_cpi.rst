@@ -1,4 +1,5 @@
-Input file: fe/ips/udma/udma_camera/doc/CAM_CPI_reference.md
+.. 
+   Input file: fe/ips/udma/udma_camera/doc/CAM_CPI_reference.md
 
 Register map
 ^^^^^^^^^^^^

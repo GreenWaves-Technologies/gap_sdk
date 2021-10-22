@@ -1,6 +1,4 @@
-#! /bin/bash
-
-if [  -n "${ZSH_VERSION:-}" ]; then 
+if [  -n "${ZSH_VERSION:-}" ]; then
 	DIR="$(readlink -f -- "${(%):-%x}")"
 	DIRNAME="$(dirname $DIR)"
 	GAP_SDK_HOME=$(dirname $DIRNAME)

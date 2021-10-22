@@ -17,6 +17,10 @@
 #ifndef __CL_PMSIS_TYPES__H__
 #define __CL_PMSIS_TYPES__H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @addtogroup FcClusterSync
  * @{
@@ -120,4 +124,7 @@ typedef struct cluster_driver_api {
 
 /// @endcond
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -22,7 +22,7 @@
 
 void Ne16::fsm_start_handler(void *__this, vp::clock_event *event) {
   Ne16 *_this = (Ne16 *)__this;
-  _this->state = START;
+  _this->state.set(START);
   if(_this->trace_level == L3_ALL) {
     _this->trace.msg(vp::trace::LEVEL_DEBUG, "FSM START EVENT\n");
   }
@@ -30,6 +30,7 @@ void Ne16::fsm_start_handler(void *__this, vp::clock_event *event) {
   // clear state and propagate context
   _this->clear_all();
   _this->regfile_cxt();
+  _this->job_running = 1;
 
   // convenience parameters used internally in the model, but not set by register file
   _this->h_out     = (_this->subtile_nb_ho-(_this->subtile_rem_ho ? 1 : 0)) * _this->FILTER_SIZE + _this->subtile_rem_ho;
@@ -49,7 +50,7 @@ void Ne16::fsm_start_handler(void *__this, vp::clock_event *event) {
   assert(!(_this->streamin && _this->quantization_bits!=32));
 
   // padding is not compatible with FS=1. sorry!
-  assert((_this->padding_top==0 && _this->padding_right==0 && _this->padding_bottom==0 && _this->padding_left==0) || _this->fs==3);
+  // assert((_this->padding_top==0 && _this->padding_right==0 && _this->padding_bottom==0 && _this->padding_left==0) || _this->fs==3);
 
   // filter masking is not compatible with FS=1. sorry!
   assert((_this->filter_mask_top==0 && _this->filter_mask_right==0 && _this->filter_mask_bottom==0 && _this->filter_mask_left==0) || _this->fs==3);
@@ -76,10 +77,6 @@ void Ne16::fsm_start_handler(void *__this, vp::clock_event *event) {
     _this->w_out = 1;
   }
 
-  _this->trace.msg(vp::trace::LEVEL_INFO, "Starting a job (id=%d) with the following configuration:\n", _this->job_id);
-  if(_this->trace_level != L0_JOB_START_END) {
-    _this->printout();
-  }
   _this->fsm_loop();
 }
 
@@ -90,22 +87,27 @@ void Ne16::fsm_handler(void *__this, vp::clock_event *event) {
 
 void Ne16::fsm_end_handler(void *__this, vp::clock_event *event) {
   Ne16 *_this = (Ne16 *)__this;
+  int job_id = _this->cxt_job_id[_this->cxt_use_ptr];
+  _this->job_running = 0;
+  _this->cxt_job_id[_this->cxt_use_ptr] = -1;
   _this->cxt_use_ptr = 1-_this->cxt_use_ptr;
   _this->job_pending--;
   _this->irq.sync(true);
-  _this->trace.msg(vp::trace::LEVEL_INFO, "Ending job (id=%d).\n", _this->job_id);
+  _this->trace.msg(vp::trace::LEVEL_INFO, "Ending job (id=%d).\n", job_id);
   if (!_this->fsm_start_event->is_enqueued() && _this->job_pending > 0) {
       _this->event_enqueue(_this->fsm_start_event, 1);
       _this->trace.msg(vp::trace::LEVEL_INFO, "Starting a new job from the queue.\n");
   }
+  _this->activity.set(0);
+  _this->state.set(IDLE);
 }
 
 void Ne16::fsm_loop() {
   auto latency = 0;
   do {
     latency = this->fsm();
-  } while(latency == 0 && state != END);
-  if(state == END && !this->fsm_end_event->is_enqueued()) {
+  } while(latency == 0 && state.get() != END);
+  if(state.get() == END && !this->fsm_end_event->is_enqueued()) {
     this->event_enqueue(this->fsm_end_event, latency);
   }
   else if (!this->fsm_event->is_enqueued()) {
@@ -114,11 +116,12 @@ void Ne16::fsm_loop() {
 }
 
 int Ne16::fsm() {
-  auto state_next = this->state;
+  auto state_next = this->state.get();
   auto latency = 0;
 
   this->x_buffer_traces = false;
   this->x_buffer_traces_postload = false;
+  this->accum_traces_poststreamin = false;
   this->accum_traces = false;
   this->accum_traces_postmatrixvec =false;
   this->accum_traces_normquant = false;
@@ -126,23 +129,36 @@ int Ne16::fsm() {
   this->psum_block_traces = false;
   this->binconv_traces = false;
   this->fsm_traces = false;
-  // if(this->trace_level == L1_CONFIG) {
-  // }
-  if(this->trace_level == L2_ACTIV_INOUT) {
+  if(this->trace_level == L1_ACTIV_INOUT) {
     this->x_buffer_traces_postload = true;
     this->accum_traces_streamout = true;
   }
+  if(this->trace_level == L2_DEBUG) {
+    this->x_buffer_traces_postload = true;
+    this->fsm_traces = true;
+    this->accum_traces_poststreamin = true;
+    this->accum_traces_streamout = true;
+    this->accum_traces_postmatrixvec = true;
+    this->accum_traces_normquant = true;
+  }
   if(this->trace_level == L3_ALL) {
+    this->x_buffer_traces = true;
     this->x_buffer_traces_postload = true;
     this->fsm_traces = true;
     this->accum_traces = true;
+    this->accum_traces_poststreamin = true;
+    this->accum_traces_streamout = true;
     this->accum_traces_postmatrixvec = true;
     this->accum_traces_normquant = true;
   }
 
-  switch(this->state) {
+  switch(this->state.get()) {
     
     case START:
+      this->activity.set(1);
+      this->trace.msg(vp::trace::LEVEL_INFO, "Starting a job (id=%d) with the following configuration:\n", this->cxt_job_id[this->cxt_use_ptr]);
+      this->printout();
+
       state_next = START_STREAMIN;
       break;
     
@@ -169,13 +185,19 @@ int Ne16::fsm() {
     case STREAMIN:
       if(this->fsm_traces) {
         this->trace.msg(vp::trace::LEVEL_DEBUG, "State STREAMIN\n");
-        this->trace.msg(vp::trace::LEVEL_DEBUG, "  streamin_ij_out=%d\n", this->streamin_ij_out);
+        this->trace.msg(vp::trace::LEVEL_DEBUG, "  streamin_k_out_iter=%d\n", this->streamin_k_out_iter);
+        this->trace.msg(vp::trace::LEVEL_DEBUG, "  streamin_j_out_iter=%d\n", this->streamin_j_out_iter);
+        this->trace.msg(vp::trace::LEVEL_DEBUG, "  streamin_i_out_iter=%d\n", this->streamin_i_out_iter);
       }
       latency = this->streamin_cycle();
       if(this->accum_traces) {
         this->debug_accum();
       }
       if(this->streamin_exit_idx()) {
+        if(this->accum_traces_poststreamin) {
+          this->trace.msg(vp::trace::LEVEL_DEBUG, "State STREAMIN Finished\n");
+          this->debug_accum();
+        }
         state_next = STREAMIN_LOAD;
       }
       else {
@@ -292,7 +314,7 @@ int Ne16::fsm() {
         if(this->fsm_traces) {
           this->trace.msg(vp::trace::LEVEL_DEBUG, "Exiting MATRIXVEC\n");
         }
-        if(!this->accum_traces && this->accum_traces_postmatrixvec) {
+        if(this->accum_traces_postmatrixvec) {
           this->debug_accum();
         }
         if(!matrixvec_to_matrixvec_idx()) {
@@ -411,6 +433,6 @@ int Ne16::fsm() {
 
   }
 
-  this->state = state_next;
+  this->state.set(state_next);
   return latency;
 }

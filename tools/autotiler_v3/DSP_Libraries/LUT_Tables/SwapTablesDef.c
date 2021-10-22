@@ -1,4 +1,5 @@
 #include "Gap.h"
+#include "DSP_Lib.h"
 L2_MEM short int R2_SwapTable_fix_16[16] = {
 	0, 8, 
 	4, 12, 

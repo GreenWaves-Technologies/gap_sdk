@@ -60,9 +60,9 @@ class ConcatMixin(ABC):
         # our output cannot be forced at this point
         # if an input has scale or q forced then all forced inputs must be the same here
         # TODO - have a general function for this problem - should pick with force constraints respecting dtype
-        if forced_in_qs and any(fin_qs.forced_scale or fin_qs.forced_q for fin_qs in forced_in_qs):
-            in_qs = [deepcopy(forced_in_qs[0]) for _ in in_qs]
-            return QRec(ktype=cls.KTYPE, in_qs=in_qs, out_qs=[deepcopy(forced_in_qs[0])])
+        # if forced_in_qs and any(fin_qs.forced_scale or fin_qs.forced_q for fin_qs in forced_in_qs):
+        #     in_qs = [deepcopy(forced_in_qs[0]) for _ in in_qs]
+        #     return QRec(ktype=cls.KTYPE, in_qs=in_qs, out_qs=[deepcopy(forced_in_qs[0])])
 
         # if all the inputs are not the same then force all of them to the maximum input size with a Q that
         # fits the most int bits

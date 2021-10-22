@@ -467,6 +467,7 @@ vp::io_req_status_e apb_soc_ctrl::req(void *__this, vp::io_req *req)
 
             if ((_this->core_status >> APB_SOC_CTRL_CORESTATUS_EOC_BIT) & 1)
             {
+                _this->clock->stop_retain(-1);
                 _this->clock->stop_engine(_this->core_status & 0x7fffffff);
             }
             else
@@ -838,6 +839,7 @@ void apb_soc_ctrl::reset(bool active)
 
 void apb_soc_ctrl::start()
 {
+    this->clock->stop_retain(1);
 }
 
 extern "C" vp::component *vp_constructor(js::config *config)

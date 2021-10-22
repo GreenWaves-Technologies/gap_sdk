@@ -9,8 +9,8 @@ def ne16_conv_weight_layout(W, w_bits, is_depthwise=False):
         return ne16_conv_1x1_weight_layout(W, w_bits)
     raise NotImplementedError(f"NE16 weights generation for {W.shape} weight")
 
-def ne16_conv_3x3_weight_layout(W, w_bits=8, is_depthwise=False):
-    tp_in = 16
+def ne16_conv_3x3_weight_layout(W, w_bits=8, is_depthwise=False, mode16=False):
+    tp_in = 32 if mode16 else 16
     # tp_out = 32
     chan_out = W.shape[0]
     chan_in = W.shape[3]
@@ -73,8 +73,8 @@ def ne16_conv_dw_3x3_weight_layout(W, w_bits=8):
     w_layout = w_layout.reshape((1, subtile_nb_ki, w_bits, 3, 3, 2))
     return w_layout
 
-def ne16_conv_1x1_weight_layout(W, w_bits=8):
-    tp_in = 16
+def ne16_conv_1x1_weight_layout(W, w_bits=8, mode16=False):
+    tp_in = 8 if mode16 else 16
     # tp_out = 32
     chan_out = W.shape[0]
     chan_in = W.shape[3]
@@ -95,7 +95,7 @@ def ne16_conv_1x1_weight_layout(W, w_bits=8):
                             (W[k_out, 0, 0, k_in_major*tp_in+k_in_minor]) >> i)
     space = np.logspace(0, 7, num=8, base=2, dtype=np.int32).reshape((8, 1))
     w_layout = np.sum(w_binary * space, axis=2, dtype=np.uint8)
-    w_layout = w_layout.reshape((chan_out, subtile_nb_ki, w_bits, 2))
+    w_layout = w_layout.reshape((chan_out, subtile_nb_ki, w_bits, tp_in//8))
     return w_layout
 
 def ne16_linear_weight_layout(W, w_bits=8):

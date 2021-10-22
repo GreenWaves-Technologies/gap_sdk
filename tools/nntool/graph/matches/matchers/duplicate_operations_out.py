@@ -37,7 +37,7 @@ class MatchDuplicateOperationsOut(Matcher):
         out_edges_bundle = [G.indexed_out_edges(node.name) for node in nodes]
         if any(len(out_edges) != 1 or len(out_edges[0]) != 1 for out_edges in out_edges_bundle):
             return result
-        if any(not isinstance(node, ComparableParameters) or not node.is_same_operation_as(nodes[0])
+        if any(not isinstance(node, ComparableParameters) or not node.is_same_operation_as(G, nodes[0])
                for node in nodes[1::]):
             return result
         if not result:

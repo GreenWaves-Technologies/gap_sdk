@@ -22,7 +22,9 @@
  * FPGA
  */
 
+#ifndef ARCHI_FPGA_FREQUENCY
 #define ARCHI_FPGA_FREQUENCY 5000000
+#endif
 
 /*
  * MEMORIES
@@ -69,6 +71,7 @@
 #define RISCV_VERSION       4
 #define MCHAN_VERSION       7
 #define PADS_VERSION        2
+#define IMA_VERSION         1
 
 
 /*
@@ -114,23 +117,25 @@
  * UDMA
  */
 
-#define ARCHI_UDMA_HAS_SPIM   1
-#define ARCHI_UDMA_HAS_UART   1
+#define ARCHI_UDMA_HAS_SPIM      1
+#define ARCHI_UDMA_HAS_UART      1
 #define ARCHI_UDMA_HAS_SDIO      1
-#define ARCHI_UDMA_HAS_I2C    1
-#define ARCHI_UDMA_HAS_I2S    1
-#define ARCHI_UDMA_HAS_CAM    1
-#define ARCHI_UDMA_HAS_TRACER 1
+#define ARCHI_UDMA_HAS_I2C       1
+#define ARCHI_UDMA_HAS_I2S       1
+#define ARCHI_UDMA_HAS_CAM       1
+#define ARCHI_UDMA_HAS_TRACER    1
 #define ARCHI_UDMA_HAS_FILTER    1
+#define ARCHI_UDMA_HAS_HYPER     1
 
-#define ARCHI_UDMA_NB_SPIM   1
-#define ARCHI_UDMA_NB_UART   1
+#define ARCHI_UDMA_NB_SPIM      1
+#define ARCHI_UDMA_NB_UART      1
 #define ARCHI_UDMA_NB_SDIO      1
-#define ARCHI_UDMA_NB_I2C    1
-#define ARCHI_UDMA_NB_I2S    1
-#define ARCHI_UDMA_NB_CAM    1
-#define ARCHI_UDMA_NB_TRACER 1
+#define ARCHI_UDMA_NB_I2C       1
+#define ARCHI_UDMA_NB_I2S       1
+#define ARCHI_UDMA_NB_CAM       1
+#define ARCHI_UDMA_NB_TRACER    1
 #define ARCHI_UDMA_NB_FILTER    1
+#define ARCHI_UDMA_NB_HYPER     1
 
 #define ARCHI_UDMA_UART_ID(id)            0
 #define ARCHI_UDMA_SPIM_ID(id)            1
@@ -139,10 +144,11 @@
 #define ARCHI_UDMA_I2S_ID(id)             5
 #define ARCHI_UDMA_CAM_ID(id)             6
 #define ARCHI_UDMA_FILTER_ID(id)          (7  + (id))
-#define ARCHI_UDMA_TRACER_ID(id)          8
-#define ARCHI_UDMA_TGEN_ID(id)            9
+#define ARCHI_UDMA_HYPER_ID(id)           (8 + (id))
+#define ARCHI_UDMA_TRACER_ID(id)          9
+#define ARCHI_UDMA_TGEN_ID(id)            10
 
-#define ARCHI_NB_PERIPH                   10
+#define ARCHI_NB_PERIPH                   11
 
 
 
@@ -216,7 +222,7 @@
 #define ARCHI_SOC_EVENT_PMU_FIRST_EVENT  ARCHI_SOC_EVENT_CLUSTER_ON_OFF
 #define ARCHI_SOC_EVENT_PMU_NB_EVENTS    7
 
-#define ARCHI_SOC_EVENT_GPIO         42
+#define ARCHI_SOC_EVENT_GPIO             42
 
 
 #define ARCHI_SOC_EVENT_NB_I2S_CHANNELS  4
@@ -242,8 +248,8 @@
 
 #define ARCHI_CL_EVT_DMA0        8
 #define ARCHI_CL_EVT_DMA1        9
-#define ARCHI_EVT_TIMER0      10
-#define ARCHI_EVT_TIMER1      11
+#define ARCHI_EVT_TIMER0         10
+#define ARCHI_EVT_TIMER1         11
 #define ARCHI_CL_EVT_ACC0        12
 #define ARCHI_CL_EVT_ACC1        13
 #define ARCHI_CL_EVT_ACC2        14
@@ -251,9 +257,9 @@
 #define ARCHI_CL_EVT_BAR         16
 #define ARCHI_CL_EVT_MUTEX       17
 #define ARCHI_CL_EVT_DISPATCH    18
-#define ARCHI_EVT_MPU_ERROR   28
+#define ARCHI_EVT_MPU_ERROR      28
 #define ARCHI_CL_EVT_SOC_EVT     30
-#define ARCHI_EVT_SOC_FIFO    31
+#define ARCHI_EVT_SOC_FIFO       31
 
 
 
@@ -263,8 +269,8 @@
 
 #define ARCHI_FC_EVT_FIRST_SW         0
 #define ARCHI_FC_EVT_NB_SW            8
-#define ARCHI_FC_EVT_TIMER0_LO           10
-#define ARCHI_FC_EVT_TIMER0_HI           11
+#define ARCHI_FC_EVT_TIMER0_LO        10
+#define ARCHI_FC_EVT_TIMER0_HI        11
 #define ARCHI_FC_EVT_CLK_REF          14
 #define ARCHI_FC_EVT_GPIO             15
 #define ARCHI_FC_EVT_RTC              16

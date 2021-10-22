@@ -43,14 +43,3 @@
 /*******************************************************************************
  * API implementation
  ******************************************************************************/
-
-void pi_cl_team_prepare_fork(int nb_cores)
-{
-    uint32_t team_core_mask = 0;
-    uint32_t master_core_mask = (1 << ARCHI_CLUSTER_MASTER_CORE);
-    if (nb_cores != 0)
-    {
-        team_core_mask = ((1 << (uint32_t) nb_cores) - 1);
-        __pi_cl_team_config_set(team_core_mask);
-    }
-}

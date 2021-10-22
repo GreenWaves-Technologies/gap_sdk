@@ -277,6 +277,9 @@ class NNToolShellBase(NNToolShellSettings, Cmd):
                 else:
                     command.append(
                         f"--{option['name']} {getattr(args, option['name'])}")
+        if args.subs:
+            subs = [f'{k}={v}' for k, v in args.subs.items()]
+            command.append(f"--subs {' '.join(subs)}")
         return " ".join(command)
 
     def execute_adjust_order(self):
@@ -303,6 +306,8 @@ class NNToolShellBase(NNToolShellSettings, Cmd):
                 [None] * (self._graph_idx + 1 - len(self._history_stats)))
 
     def _record_history(self, data: plugin.PostcommandData) -> plugin.PostcommandData:
+        if not self.cmd_func(data.statement.command):
+            return data
         if self._replaying_history:
             return data
         if data.statement.command == 'set':
@@ -468,7 +473,7 @@ class NNToolShellBase(NNToolShellSettings, Cmd):
     @staticmethod
     def is_int(numstr: str):
         try:
-            int(numstr)
+            int(numstr) # @IgnoreException
             return True
         except ValueError:
             return False

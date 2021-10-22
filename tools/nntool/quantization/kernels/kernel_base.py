@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.base import Transposable
 from typing import Sequence
 
 import numpy as np
@@ -50,21 +49,6 @@ class KernelBase():
     @classmethod
     def description(cls):
         return f"execute {cls}: {cls.PARAMS_TYPE} {cls.QREC_TYPE}"
-
-    @classmethod
-    def calc_transposed_dims(cls, params):
-        in_dims = params.in_dims
-        out_dims = params.out_dims
-        if isinstance(params, Transposable):
-            if params.transpose_in:
-                in_dims = [dim.calc_transpose(params.transpose_in[idx])
-                           if params.transpose_in[idx] else dim
-                           for idx, dim in enumerate(in_dims)]
-            if params.transpose_out:
-                out_dims = [dim.calc_reversed_transpose(params.transpose_out[idx])
-                           if params.transpose_out[idx] else dim
-                           for idx, dim in enumerate(out_dims)]
-        return in_dims, out_dims
 
 
 params_type = KernelBase.params_type

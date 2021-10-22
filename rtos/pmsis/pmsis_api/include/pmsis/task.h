@@ -19,6 +19,11 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /**
 * @ingroup groupRTOS
 */
@@ -255,4 +260,7 @@ void pi_task_abort(pi_task_t *task);
 
 /// @endcond
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_TASK_H__ */

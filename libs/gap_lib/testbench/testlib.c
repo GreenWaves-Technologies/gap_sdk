@@ -110,7 +110,7 @@ struct pi_device *i2s_init(struct pi_device *i2s, i2s_config_t *config)
 
 static uint32_t slot_iter_next(i2s_slot_test_t *i2s_slot, int is_tx)
 {
-    uint32_t current_value = i2s_slot->current_value & (1ULL << i2s_slot->word_size) - 1;
+    uint32_t current_value = i2s_slot->current_value & ((1ULL << i2s_slot->word_size) - 1);
 
     // Convert the reduced element to the memory size, according to format (sign extension and shift)
     if (!is_tx && ((i2s_slot->format >> 2) & 1))
@@ -405,7 +405,7 @@ void i2s_slot_callback_rx_iter(void *arg)
 
     for (int i=0; i<nb_elem && i2s_slot->nb_sample > 0; i++)
     {
-        void *address;
+        void *address = NULL;
         uint32_t value = buffer_get_elem(chunk, i, i2s_slot->elem_size, &address);
 
         if (i2s_slot->is_first_rx)

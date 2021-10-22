@@ -28,7 +28,7 @@
 #include "gaplib/jpeg_encoder.h"
 
 
-unsigned char std_dc_luminance_huff[] =
+unsigned char std_dc_luminance_huff[28] =
 {
   0x00, 0x01, 0x05, 0x01, 0x01, 0x01, 0x01, 0x01,
   0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -36,9 +36,9 @@ unsigned char std_dc_luminance_huff[] =
   0x08, 0x09, 0x0A, 0x0B
 };
 
-unsigned char std_ac_luminance_huff[] =
+unsigned char std_ac_luminance_huff[178] =
 {
-  0x00, 0x02, 0x01, 0x03, 0x03, 0x02, 0x04, 0x03,
+  0x00, 0x02, 0x01, 0x03, 0x03, 0x02, 0x04, 0x03, 
   0x05, 0x05, 0x04, 0x04, 0x00, 0x00, 0x01, 0x7D,
   0x01, 0x02, 0x03, 0x00, 0x04, 0x11, 0x05, 0x12,
   0x21, 0x31, 0x41, 0x06, 0x13, 0x51, 0x61, 0x07,
@@ -63,6 +63,75 @@ unsigned char std_ac_luminance_huff[] =
   0xF9, 0xFA
 };
 
+    
+unsigned char std_dc_chrominance_huff[] =
+{
+  #if 0
+  0x00, 0x03, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 
+  0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 
+  0x08, 0x09, 0x0A, 0x0B
+  #else
+  0x00, 0x01, 0x05, 0x01, 0x01, 0x01, 0x01, 0x01,
+  0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+  0x08, 0x09, 0x0A, 0x0B
+  #endif
+
+};
+
+unsigned char std_ac_chrominance_huff[] =
+{
+    #if 0
+    0x00, 0x02, 0x01, 0x02, 0x04, 0x04, 0x03, 0x04, 
+    0x07, 0x05, 0x04, 0x04, 0x00, 0x01, 0x02, 0x77, 
+    0x00, 0x01, 0x02, 0x03, 0x11, 0x04, 0x05, 0x21, 
+    0x31, 0x06, 0x12, 0x41, 0x51, 0x07, 0x61, 0x71, 
+    0x13, 0x22, 0x32, 0x81, 0x08, 0x14, 0x42, 0x91, 
+    0xA1, 0xB1, 0xC1, 0x09, 0x23, 0x33, 0x52, 0xF0, 
+    0x15, 0x62, 0x72, 0xD1, 0x0A, 0x16, 0x24, 0x34, 
+    0xE1, 0x25, 0xF1, 0x17, 0x18, 0x19, 0x1A, 0x26, 
+    0x27, 0x28, 0x29, 0x2A, 0x35, 0x36, 0x37, 0x38, 
+    0x39, 0x3A, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 
+    0x49, 0x4A, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 
+    0x59, 0x5A, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 
+    0x69, 0x6A, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 
+    0x79, 0x7A, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 
+    0x88, 0x89, 0x8A, 0x92, 0x93, 0x94, 0x95, 0x96, 
+    0x97, 0x98, 0x99, 0x9A, 0xA2, 0xA3, 0xA4, 0xA5, 
+    0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xB2, 0xB3, 0xB4, 
+    0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0xC2, 0xC3, 
+    0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xD2, 
+    0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 
+    0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 
+    0xEA, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 
+    0xF9, 0xFA
+    #else
+    0x00, 0x02, 0x01, 0x03, 0x03, 0x02, 0x04, 0x03, 
+    0x05, 0x05, 0x04, 0x04, 0x00, 0x00, 0x01, 0x7D,
+    0x01, 0x02, 0x03, 0x00, 0x04, 0x11, 0x05, 0x12,
+    0x21, 0x31, 0x41, 0x06, 0x13, 0x51, 0x61, 0x07,
+    0x22, 0x71, 0x14, 0x32, 0x81, 0x91, 0xA1, 0x08,
+    0x23, 0x42, 0xB1, 0xC1, 0x15, 0x52, 0xD1, 0xF0,
+    0x24, 0x33, 0x62, 0x72, 0x82, 0x09, 0x0A, 0x16,
+    0x17, 0x18, 0x19, 0x1A, 0x25, 0x26, 0x27, 0x28,
+    0x29, 0x2A, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
+    0x3A, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49,
+    0x4A, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59,
+    0x5A, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69,
+    0x6A, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79,
+    0x7A, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89,
+    0x8A, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98,
+    0x99, 0x9A, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7,
+    0xA8, 0xA9, 0xAA, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6,
+    0xB7, 0xB8, 0xB9, 0xBA, 0xC2, 0xC3, 0xC4, 0xC5,
+    0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xD2, 0xD3, 0xD4,
+    0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xE1, 0xE2,
+    0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA,
+    0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8,
+    0xF9, 0xFA
+    #endif
+};
 
 
 #ifdef __pulp__
@@ -178,18 +247,18 @@ static int AppendBits(unsigned char *BitStream, unsigned int BitPos, unsigned in
   return result;
 }
 
-
+//#define DUMP_DU
 
 int process_du(
     short int *DU,
-    const signed short *FDctFactors,
-    const unsigned char *ZigZagLUT,
-    const unsigned char *QuantLUT,
+    const signed short   *FDctFactors,
+    const unsigned char  *ZigZagLUT,
+    const unsigned char  *QuantLUT,
     const unsigned short *RLE_DC_LUT,
-    const unsigned char *RLE_DC_Size_LUT,
+    const unsigned char  *RLE_DC_Size_LUT,
     const unsigned short *RLE_AC_LUT,
-    const unsigned char *RLE_AC_Size_LUT,
-    unsigned char *BitStream,
+    const unsigned char  *RLE_AC_Size_LUT,
+    unsigned char        *BitStream,
     short int *PrevDU,
     int BitStreamIndex)
 {
@@ -285,15 +354,24 @@ int process_du(
 #define FLOAT2FIX(f)  ((int)((f) * (1 << 11)))
 #define FIXQ 11
 
-void rgb_to_yuv(unsigned char r, unsigned char g, unsigned char b, int *y, int *u, int *v)
+void rgb_to_y(unsigned char r, unsigned char g, unsigned char b, int *y)
 {
     *y = FLOAT2FIX( 0.2990f) * r + FLOAT2FIX(0.5870f) * g + FLOAT2FIX(0.1140f) * b - (128 << FIXQ);
-    //*u = FLOAT2FIX(-0.1678f) * r - FLOAT2FIX(0.3313f) * g + FLOAT2FIX(0.5000f) * b;
-    //*v = FLOAT2FIX( 0.5000f) * r - FLOAT2FIX(0.4187f) * g - FLOAT2FIX(0.0813f) * b;
     *y >>= FIXQ - 2;
-    //*u >>= FIXQ - 2;
-    //*v >>= FIXQ - 2;
 }
+void rgb_to_cb(unsigned char r, unsigned char g, unsigned char b, int *u)
+{
+    *u = FLOAT2FIX(-0.1678f) * r - FLOAT2FIX(0.3313f) * g + FLOAT2FIX(0.5000f) * b;
+    *u >>= FIXQ - 2;
+}
+
+void rgb_to_cr(unsigned char r, unsigned char g, unsigned char b, int *v)
+{
+    *v = FLOAT2FIX( 0.5000f) * r - FLOAT2FIX(0.4187f) * g - FLOAT2FIX(0.0813f) * b ;
+    *v >>= FIXQ - 2;
+}
+
+
 
 void gray_to_y(int r, int *y)
 {
@@ -305,6 +383,87 @@ void gray_to_y(int r, int *y)
   #endif
 }
 
+static int32_t jpeg_y_header(jpeg_encoder_t *enc, pi_buffer_t *encoded_bitstream, uint32_t *encoded_size)
+{
+  int cnt = 0;
+  uint8_t *output = encoded_bitstream->data;
+
+  // SOS, Start Of Scan
+  // SOS
+  output[cnt++] = 0xFF; //SOS
+  output[cnt++] = 0xDA; //Start
+  // Ls(Length) = 8 bytes
+  output[cnt++] = 0x00;
+  output[cnt++] = 0x08; // 6 + 2 * num_component
+  // Number of components in this sos
+  output[cnt++] = 0x01;
+  // Parameter of specified luminance component
+  output[cnt++] = 0x00; //Component ID
+  output[cnt++] = 0x00; //Luminance table
+
+  output[cnt++] = 0x00; //not used
+  output[cnt++] = 0x3F; //default value
+  output[cnt++] = 0x00; //default value
+
+  *encoded_size = cnt;
+
+  return 0;
+}
+
+static int32_t jpeg_cb_header(jpeg_encoder_t *enc, pi_buffer_t *encoded_bitstream, uint32_t *encoded_size)
+{
+  int cnt = 0;
+  uint8_t *output = encoded_bitstream->data;
+
+  // SOS, Start Of Scan
+  // SOS
+  output[cnt++] = 0xFF; //SOS
+  output[cnt++] = 0xDA; //Start
+  // Ls(Length) = 8 bytes
+  output[cnt++] = 0x00;
+  output[cnt++] = 0x08; // 6 + 2 * num_component
+  // Number of components in this sos
+  output[cnt++] = 0x01;
+  // Parameter of specified luminance component
+  output[cnt++] = 0x01; //Component ID
+  output[cnt++] = 0x11; //Luminance table
+
+  output[cnt++] = 0x00; //not used
+  output[cnt++] = 0x3F; //default value
+  output[cnt++] = 0x00; //default value
+
+  *encoded_size = cnt;
+
+  return 0;
+}
+
+static int32_t jpeg_cr_header(jpeg_encoder_t *enc, pi_buffer_t *encoded_bitstream, uint32_t *encoded_size)
+{
+  int cnt = 0;
+  uint8_t *output = encoded_bitstream->data;
+
+  // SOS, Start Of Scan
+  // SOS
+  output[cnt++] = 0xFF; //SOS
+  output[cnt++] = 0xDA; //Start
+  // Ls(Length) = 8 bytes
+  output[cnt++] = 0x00;
+  output[cnt++] = 0x08; // 6 + 2 * num_component
+  // Number of components in this sos
+  output[cnt++] = 0x01;
+  // Parameter of specified luminance component
+  output[cnt++] = 0x02; //Component ID
+  output[cnt++] = 0x11; //Chorminance table
+
+  output[cnt++] = 0x00; //not used
+  output[cnt++] = 0x3F; //default value
+  output[cnt++] = 0x00; //default value
+
+  *encoded_size = cnt;
+
+  return 0;
+}
+
 
 int32_t jpeg_encoder_process_status(uint32_t *encoded_size, pi_task_t *task)
 {
@@ -312,7 +471,8 @@ int32_t jpeg_encoder_process_status(uint32_t *encoded_size, pi_task_t *task)
   return task->arg[3];
 }
 
-void jpeg_encoder_process_fc(jpeg_encoder_t *enc, pi_buffer_t *image, pi_buffer_t *encoded_bitstream, pi_task_t *task)
+
+static void jpeg_encoder_process_fc(jpeg_encoder_t *enc, pi_buffer_t *image, pi_buffer_t *encoded_bitstream, pi_task_t *task,uint8_t color,uint8_t comp)
 {
   int image_size = image->width * image->height;
   unsigned int bitstream_nb_bits = encoded_bitstream->size*8;
@@ -333,46 +493,89 @@ void jpeg_encoder_process_fc(jpeg_encoder_t *enc, pi_buffer_t *image, pi_buffer_
   {
     short int du[64];
 
-    if (enc->current_du_x == 0 && enc->current_du_y == 0)
+    if (enc->current_du_x == 0 && enc->current_du_y == 0){
       enc->prev_du = 0;
+    }
 
     for (int i=0; i<8; i++)
     {
       for (int j=0; j<8; j++)
       {
-        if (enc->current_du_x + j < width && enc->current_du_y + i < height)
-          du[i*8 + j] = data[(enc->current_du_y + i)*width + enc->current_du_x + j];
-        else
+        if (enc->current_du_x + j < width && enc->current_du_y + i < height){
+          if(color){
+            if(comp==0){ //process Y
+              int val;
+              rgb_to_y(data[((enc->current_du_y + i)*width + enc->current_du_x + j)*3],
+                       data[((enc->current_du_y + i)*width + enc->current_du_x + j)*3+1],
+                       data[((enc->current_du_y + i)*width + enc->current_du_x + j)*3+2],
+                       &val);
+              du[i*8 + j] = (short int) val;
+            }else if(comp==1){ //Process Cb
+              int val;
+              rgb_to_cb(data[((enc->current_du_y + i)*width + enc->current_du_x + j)*3],
+                       data[((enc->current_du_y + i)*width + enc->current_du_x + j)*3+1],
+                       data[((enc->current_du_y + i)*width + enc->current_du_x + j)*3+2],
+                       &val);
+              du[i*8 + j] = (short int) val;
+            }
+            else if(comp==2){ //Process Cr
+              int val;
+              rgb_to_cr(data[((enc->current_du_y + i)*width + enc->current_du_x + j)*3],
+                       data[((enc->current_du_y + i)*width + enc->current_du_x + j)*3+1],
+                       data[((enc->current_du_y + i)*width + enc->current_du_x + j)*3+2],
+                       &val);
+              du[i*8 + j] = (short int) val;
+            }
+          }
+          else{
+            int val;
+            gray_to_y(data[((enc->current_du_y + i)*width + enc->current_du_x + j)],&val);
+            du[i*8 + j] = val;
+          }
+        }
+        else{
           du[i*8 + j] = 0x00;
-
-#if 1
-        int val;
-        gray_to_y(du[i*8 + j], &val);
-        du[i*8 + j] = val;
-#endif
-
+        }
       }
     }
 
     //printf("Handling block (%d, %d)\n", enc->current_du_x, enc->current_du_y);
+    int du_bitstream_nb_bits;
 
-    int du_bitstream_nb_bits = process_du(
+    if(comp==0){
+      du_bitstream_nb_bits = process_du(
+        du,
+        JpegConstants.FDCT_FACTORS,
+        JpegConstants.ZIGZAG_LUT,
+        JpegConstants.QUANT_TAB_LUMIN,
+        JpegConstants.HUFTAB_LUMIN_DC_Code,
+        JpegConstants.HUFTAB_LUMIN_DC_Size,
+        JpegConstants.HUFTAB_LUMIN_AC_Code,
+        JpegConstants.HUFTAB_LUMIN_AC_Size,
+        bitstream,
+        &enc->prev_du,
+        BitStreamIndex
+      );
+    }
+    else {
+      du_bitstream_nb_bits = process_du(
       du,
       JpegConstants.FDCT_FACTORS,
       JpegConstants.ZIGZAG_LUT,
-      JpegConstants.QUANT_TAB_LUMIN,
-      JpegConstants.HUFTAB_LUMIN_DC_Code,
-      JpegConstants.HUFTAB_LUMIN_DC_Size,
-      JpegConstants.HUFTAB_LUMIN_AC_Code,
-      JpegConstants.HUFTAB_LUMIN_AC_Size,
+      JpegConstants.QUANT_TAB_CHROM,
+      JpegConstants.HUFTAB_CHROM_DC_Code,
+      JpegConstants.HUFTAB_CHROM_DC_Size,
+      JpegConstants.HUFTAB_CHROM_AC_Code,
+      JpegConstants.HUFTAB_CHROM_AC_Size,
       bitstream,
       &enc->prev_du,
       BitStreamIndex
-    );
+      );
+    }
 
     BitStreamIndex += du_bitstream_nb_bits;
     bitstream_nb_bits -= du_bitstream_nb_bits;
-
+    
     enc->current_du_x += 8;
     if (enc->current_du_x >= width)
     {
@@ -385,6 +588,7 @@ void jpeg_encoder_process_fc(jpeg_encoder_t *enc, pi_buffer_t *image, pi_buffer_
         break;
       }
     }
+    
   }
 
   unsigned int nb_bits = encoded_bitstream->size*8 - bitstream_nb_bits + enc->pending_bits;
@@ -407,19 +611,65 @@ void jpeg_encoder_process_fc(jpeg_encoder_t *enc, pi_buffer_t *image, pi_buffer_
 
   task->arg[2] = result;
   task->arg[3] = retval;
-
-  pi_task_push(task);
+  
 }
 
 void jpeg_encoder_process_async(jpeg_encoder_t *enc, pi_buffer_t *image, pi_buffer_t *encoded_bitstream, pi_task_t *task)
 {
-  if (enc->flags & JPEG_ENCODER_FLAGS_CLUSTER_OFFLOAD)
-  {
-    __jpeg_encoder_process_cl(enc, image, encoded_bitstream, task);
+  if(enc->flags & JPEG_ENCODER_FLAGS_COLOR){
+    if (enc->flags & JPEG_ENCODER_FLAGS_CLUSTER_OFFLOAD)
+    {
+      printf("Error: Color Jpeg not yet implemented on cluster\n");
+      return;
+    }
+    else{
+      uint32_t written_size=0,encoded_size;
+      jpeg_y_header(enc, encoded_bitstream, &encoded_size);
+      
+      encoded_bitstream->data = encoded_bitstream->data+encoded_size;
+      written_size+=encoded_size;
+      enc->current_du_x=0;
+      enc->current_du_y=0;
+      jpeg_encoder_process_fc(enc, image, encoded_bitstream, task,1,0);
+
+      encoded_bitstream->data = encoded_bitstream->data+task->arg[2];
+      written_size+=task->arg[2];
+      task->arg[2]=0;
+      
+      jpeg_cb_header(enc, encoded_bitstream, &encoded_size);
+      
+      encoded_bitstream->data = encoded_bitstream->data+encoded_size;
+      written_size+=encoded_size;
+      enc->current_du_x=0;
+      enc->current_du_y=0;
+      jpeg_encoder_process_fc(enc, image, encoded_bitstream, task,1,1);
+      
+      encoded_bitstream->data = encoded_bitstream->data+task->arg[2];
+      written_size+=task->arg[2];
+      task->arg[2]=0;
+      jpeg_cr_header(enc, encoded_bitstream, &encoded_size);
+
+      encoded_bitstream->data = encoded_bitstream->data+encoded_size;
+      written_size+=encoded_size;
+      enc->current_du_x=0;
+      enc->current_du_y=0;
+      jpeg_encoder_process_fc(enc, image, encoded_bitstream, task,1,2);
+      encoded_bitstream->data = encoded_bitstream->data+task->arg[2];
+      written_size+=task->arg[2];
+      task->arg[2] = written_size;
+      pi_task_push(task);
+    }
   }
   else
   {
-    jpeg_encoder_process_fc(enc, image, encoded_bitstream, task);
+    if (enc->flags & JPEG_ENCODER_FLAGS_CLUSTER_OFFLOAD)
+    {
+      __jpeg_encoder_process_cl(enc, image, encoded_bitstream, task);
+    }
+    else{
+      jpeg_encoder_process_fc(enc, image, encoded_bitstream, task,0,0);
+      pi_task_push(task);
+    }
   }
 }
 
@@ -476,6 +726,9 @@ void jpeg_encoder_conf_init(struct jpeg_encoder_conf *conf)
 }
 
 
+//An example could be found here:
+//https://github.com/schiermike/jpeg-encoder/blob/master/jpeg_encoder.c
+
 int32_t jpeg_encoder_header(jpeg_encoder_t *enc, pi_buffer_t *encoded_bitstream, uint32_t *encoded_size)
 {
   int cnt = 0;
@@ -485,82 +738,192 @@ int32_t jpeg_encoder_header(jpeg_encoder_t *enc, pi_buffer_t *encoded_bitstream,
   // SOI, Start Of Image
   output[cnt++] = 0xFF;
   output[cnt++] = 0xD8;
-  // DQT, Define Quantization Table
-  // DQT
-  output[cnt++] = 0xFF;
-  output[cnt++] = 0xDB;
-  // Lq(Length) = 2+65 bytes
-  output[cnt++] = 0x00;
-  output[cnt++] = 0x43;
-  // ID:0, Quantization table for luminance
-  output[cnt++ ]= 0x00;
-  for(int i = 0; i < 64; i++){
-    output[cnt++] = JpegConstants.QUANT_TAB_LUMIN[JpegConstants.ZIGZAG_LUT[i]];
-  }
-  // DHT, Define Huffman Table
-  // DHT
-  output[cnt++] = 0xFF;
-  output[cnt++] = 0xC4;
-  // Lh(Length) = 2+29+179 bytes
-  output[cnt++] = 0x00;
-  output[cnt++] = 0xD2;
-  // ID:01, Huffman code table for DC luminance.
-  output[cnt++] = 0x00;
-  for(uint16_t i = 0; i < sizeof(std_dc_luminance_huff); i++){
-    output[cnt++] = std_dc_luminance_huff[i];
-  }
-  // ID:10, Huffman code table for AC luminance.
-  output[cnt++] = 0x10;
-  for(uint16_t i = 0; i < sizeof(std_ac_luminance_huff); i++){
-    output[cnt++] = std_ac_luminance_huff[i];
-  }
-  // SOF0, Start Of Frame 0
-  // SOF0
-  output[cnt++] = 0xFF;
-  output[cnt++] = 0xC0;
-  // Lf(Length) = 11 bytes
-  output[cnt++] = 0x00;
-  output[cnt++] = 0x0b;
-  // Sampling accuracy = 8 bits
-  output[cnt++] = 0x08;
-  // Height
-  //output[cnt++] = (uint8_t)(FRAME_HEIGHT >> 8);
-  //output[cnt++] = (uint8_t)(FRAME_HEIGHT & 0xff);
 
-  output[cnt++] = (uint8_t)(enc->height >> 8);
-  output[cnt++] = (uint8_t)(enc->height & 0xff);
-  // Width
-  //output[cnt++] = (uint8_t)(FRAME_WIDTH >> 8);
-  //output[cnt++] = (uint8_t)(FRAME_WIDTH & 0xff);
-  output[cnt++] = (uint8_t)(enc->width >> 8);
-  output[cnt++] = (uint8_t)(enc->width & 0xff);
-  // Number of image components = 1(Grayscale)
-  output[cnt++] = 0x01;
-  // Parameter of specified luminance component (sampling coefficient=2/2, quantization table=0)
-  output[cnt++] = 0x00;
-  output[cnt++] = 0x22;
-  output[cnt++] = 0x00;
-  // SOS, Start Of Scan
-  // SOS
-  output[cnt++] = 0xFF;
-  output[cnt++] = 0xDA;
-  // Ls(Length) = 8 bytes
-  output[cnt++] = 0x00;
-  output[cnt++] = 0x08;
-  // Number of image components = 1 (grayscale)
-  output[cnt++] = 0x01;
-  // Parameter of specified luminance component
-  output[cnt++] = 0x00;
-  output[cnt++] = 0x00;
-  // Reserved
-  output[cnt++] = 0x00;
-  output[cnt++] = 0x3F;
-  output[cnt++] = 0x00;
+  // APP0(JFIF) not needed
+  /*  output[cnt++]=0xFF;output[cnt++]=0xE0;//APP0
+  output[cnt++]=0x00;output[cnt++]=0x10;//La(Length) = 16 bytes
+  output[cnt++]=0x4A;output[cnt++]=0x46;output[cnt++]=0x49;output[cnt++]=0x46;output[cnt++]=0x00;//"JFIF\0"
+  output[cnt++]=0x01;output[cnt++]=0x01;//Version = 1.01
+  output[cnt++]=0x01;//dots/inch(dpi)
+  output[cnt++]=0x00;output[cnt++]=0x48;output[cnt++]=0x00;output[cnt++]=0x48;//72*72dpi
+  output[cnt++]=0x00;output[cnt++]=0x00;//No thumbnail
+  */
 
+  if(enc->flags & JPEG_ENCODER_FLAGS_COLOR){
+    
+    // DQT, Define Quantization Table
+    // DQT
+    output[cnt++] = 0xFF;
+    output[cnt++] = 0xDB;
+    // Lq(Length) = 2+1+64 bytes
+    output[cnt++] = 0x00;
+    output[cnt++] = 0x43;
+    // ID:0, Quantization table for luminance
+    output[cnt++ ]= 0x00;
+    for(int i = 0; i < 64; i++){
+      output[cnt++] = JpegConstants.QUANT_TAB_LUMIN[JpegConstants.ZIGZAG_LUT[i]];
+    }
+    output[cnt++] = 0xFF;
+    output[cnt++] = 0xDB;
+    // Lq(Length) = 2+1+64 bytes
+    output[cnt++] = 0x00;
+    output[cnt++] = 0x43;
+    // ID:1, Quantization table for chroma
+    output[cnt++ ]= 0x01;
+    for(int i = 0; i < 64; i++){
+      output[cnt++] = JpegConstants.QUANT_TAB_CHROM[JpegConstants.ZIGZAG_LUT[i]];
+    }
+
+    // DHT, Define Huffman Table
+    // DHT
+    output[cnt++] = 0xFF;
+    output[cnt++] = 0xC4;
+    // Lh(Length) = 2+1+28
+    output[cnt++] = 0x00;
+    output[cnt++] = 0x1F; //2+1+28
+    // ID:00, Huffman code table for Direct Component  (DC) luminance.
+    output[cnt++] = 0x00;
+    for(uint16_t i = 0; i < sizeof(std_dc_luminance_huff); i++){
+      output[cnt++] = std_dc_luminance_huff[i];
+    }
+
+    output[cnt++] = 0xFF;
+    output[cnt++] = 0xC4;
+    // Lh(Length) = 2+1+178
+    output[cnt++] = 0x00;
+    output[cnt++] = 0xB5;
+    // ID:10, Huffman code table for Alternate Components (AC) luminance.
+    output[cnt++] = 0x10;
+    for(uint16_t i = 0; i < sizeof(std_ac_luminance_huff); i++){
+      output[cnt++] = std_ac_luminance_huff[i];
+    }
+
+    output[cnt++] = 0xFF;
+    output[cnt++] = 0xC4;
+    
+    output[cnt++] = 0x00;
+    output[cnt++] = 0x1F;//2+1+28
+    // ID:01, Huffman code table for DC chrominance.
+    output[cnt++] = 0x01;
+    for(uint16_t i = 0; i < sizeof(std_dc_chrominance_huff); i++){
+      output[cnt++] = std_dc_chrominance_huff[i];
+    }
+
+    output[cnt++] = 0xFF;
+    output[cnt++] = 0xC4;
+    output[cnt++] = 0x00;
+    output[cnt++] = 0xB5;
+    // ID:11, Huffman code table for AC chrominance.
+    output[cnt++] = 0x11;
+    for(uint16_t i = 0; i < sizeof(std_ac_chrominance_huff); i++){
+      output[cnt++] = std_ac_chrominance_huff[i];
+    }
+    
+
+    // SOF0, Start Of Frame 0
+    // SOF0
+    output[cnt++] = 0xFF;
+    output[cnt++] = 0xC0;
+    // Lf(Length) = 11 bytes
+    output[cnt++] = 0x00;
+    output[cnt++] = 0x11; // 8 + 3 * colors (components)
+    // Sampling accuracy = 8 bits
+    output[cnt++] = 0x08;
+    // Height
+    output[cnt++] = (uint8_t)(enc->height >> 8);
+    output[cnt++] = (uint8_t)(enc->height & 0xff);
+    // Width
+    output[cnt++] = (uint8_t)(enc->width >> 8);
+    output[cnt++] = (uint8_t)(enc->width & 0xff);
+    // Number of image components = 1(Grayscale)
+    output[cnt++] = 0x03; //0x1 grayscale, 0x3 color
+    // Parameter of specified luminance component (sampling coefficient=2/2, quantization table=0)
+    output[cnt++] = 0x00; //Component index
+    output[cnt++] = 0x11; //no subsapling is 0x11 (bit0-3=vertical, bit4-7=horiz)
+    output[cnt++] = 0x00; //quantization table index
+    
+    output[cnt++] = 0x01; //Component index
+    output[cnt++] = 0x11; //no subsapling is 0x11
+    output[cnt++] = 0x01; //quantization table index
+    
+    output[cnt++] = 0x02; //Component index
+    output[cnt++] = 0x11; //no subsapling is 0x11
+    output[cnt++] = 0x01; //quantization table index
+  }
+  else{ //Grayscale
+
+    // DQT, Define Quantization Table
+    // DQT
+    output[cnt++] = 0xFF;
+    output[cnt++] = 0xDB;
+    // Lq(Length) = 2+65 bytes
+    output[cnt++] = 0x00;
+    output[cnt++] = 0x43;
+    // ID:0, Quantization table for luminance
+    output[cnt++ ]= 0x00;
+    for(int i = 0; i < 64; i++){
+      output[cnt++] = JpegConstants.QUANT_TAB_LUMIN[JpegConstants.ZIGZAG_LUT[i]];
+    }
+    // DHT, Define Huffman Table
+    // DHT
+    output[cnt++] = 0xFF;
+    output[cnt++] = 0xC4;
+    // Lh(Length) = 2+29+179 bytes
+    output[cnt++] = 0x00;
+    output[cnt++] = 0xD2;
+    // ID:01, Huffman code table for DC luminance.
+    output[cnt++] = 0x00;
+    for(uint16_t i = 0; i < sizeof(std_dc_luminance_huff); i++){
+      output[cnt++] = std_dc_luminance_huff[i];
+    }
+    // ID:10, Huffman code table for AC luminance.
+    output[cnt++] = 0x10;
+    for(uint16_t i = 0; i < sizeof(std_ac_luminance_huff); i++){
+      output[cnt++] = std_ac_luminance_huff[i];
+    }
+    // SOF0, Start Of Frame 0
+    // SOF0
+    output[cnt++] = 0xFF;
+    output[cnt++] = 0xC0;
+    // Lf(Length) = 11 bytes
+    output[cnt++] = 0x00;
+    output[cnt++] = 0x0b;
+    // Sampling accuracy = 8 bits
+    output[cnt++] = 0x08;
+    // Height
+    output[cnt++] = (uint8_t)(enc->height >> 8);
+    output[cnt++] = (uint8_t)(enc->height & 0xff);
+    // Width
+    output[cnt++] = (uint8_t)(enc->width >> 8);
+    output[cnt++] = (uint8_t)(enc->width & 0xff);
+    // Number of image components = 1(Grayscale)
+    output[cnt++] = 0x01; //0x1 grayscale, 0x3 color
+    // Parameter of specified luminance component (sampling coefficient=2/2, quantization table=0)
+    output[cnt++] = 0x00;
+    output[cnt++] = 0x22; //no subsapling is 0x11
+    output[cnt++] = 0x00;
+    // SOS, Start Of Scan
+    // SOS
+    output[cnt++] = 0xFF;
+    output[cnt++] = 0xDA;
+    // Ls(Length) = 8 bytes
+    output[cnt++] = 0x00;
+    output[cnt++] = 0x08;
+    // Number of image components = 1 (grayscale)
+    output[cnt++] = 0x01;
+    // Parameter of specified luminance component
+    output[cnt++] = 0x00;
+    output[cnt++] = 0x00;
+    // Reserved
+    output[cnt++] = 0x00;
+    output[cnt++] = 0x3F;
+    output[cnt++] = 0x00;
+  }
   *encoded_size = cnt;
 
   return 0;
 }
+
 
 int32_t jpeg_encoder_footer(jpeg_encoder_t *enc, pi_buffer_t *encoded_bitstream, uint32_t *encoded_size)
 {

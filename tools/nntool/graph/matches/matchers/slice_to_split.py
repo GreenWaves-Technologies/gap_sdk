@@ -14,10 +14,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+from copy import deepcopy
+from functools import reduce
+from typing import OrderedDict
 
+import numpy as np
+from graph.dim import Dim
+from graph.manipulations.eliminate_transposes.transpose_helpers import reverse_transpose
 from graph.types import NNEdge, SplitParameters, StridedSliceParameters
 from graph.types.input_output import OutputParameters
-from quantization.unified_quantizer import UnifiedQuantizer
+from graph.types.others import ReshapeParameters, TransposeParameters
+from quantization.quantizer.new_quantizer import NewQuantizer
 from utils.graph import GraphView
 
 from ..matcher import Matcher, description, groups, match_name, run_before
@@ -26,12 +33,94 @@ from .remove_unnecessary_quantize_operators import \
 
 LOG = logging.getLogger("nntool." + __name__)
 
-@match_name("slice_to_split")
-@description("collects slices from a single node and converts to a single split")
-@run_before('unused_concats')
-@groups('*')
+
+def sort_recursive(tree):
+    if 'node' in tree:
+        return tree
+    return OrderedDict(sorted([(k, sort_recursive(v)) for k, v in tree.items()], key=lambda x: x[0]))
+
+
+def build_slice_tree(slices, slice_nodes):
+    # Build a sorted tree of the slices.
+    tree = {}
+    for idx, slice_set in enumerate(zip(*slices)):
+        leaf = tree
+        for sub_slice in slice_set:
+            leaf = leaf.setdefault(sub_slice, {})
+        if slice_nodes is not None:
+            leaf['node'] = slice_nodes[idx]
+
+    return sort_recursive(tree)
+
+
+def check_tree_complete(tree, lengths, each_complete=False):
+    # Check that each subtree is a complete set of slices of all the iteration space below it.
+    # if it isn't there are gaps and we cannot slice properly
+    # if any space has a length greater than one the individual spaces below it must be complete
+    if not tree or 'node' in tree:
+        return True
+    slices = list(tree.keys())
+    if each_complete:
+        if set(sl[1]-sl[0] for sl in slices) != {lengths[0]}:
+            return False
+    else:
+        # length of all the slices should equal the level interation space
+        length = reduce(lambda s, x: s+x[1]-x[0], slices, 0)
+        if length != lengths[0]:
+            return False
+    # slices must not overlap
+    if not all(sl[0] + sl[1] == slices[i+1][0] for i, sl in enumerate(slices[:-1:])):
+        return False
+    return all(
+        check_tree_complete(
+            tree[k],
+            lengths[1::],
+            each_complete=each_complete or (k[1]-k[0]) > 1)
+        for k in tree)
+
+
+def build_slices_from_tree(tree, lengths, start=0, shape=None, multiple=1):
+    if shape is None:
+        shape = []
+    slices = []
+    ilen = np.prod(lengths[1::]) if lengths else 1
+    for sl, subtree in tree.items():
+        if subtree and 'node' not in subtree:
+            sub_shape = shape.copy()
+            sub_shape.append((sl[1]-sl[0]))
+            slices.extend(build_slices_from_tree(
+                subtree, lengths[1::], start=start+ilen*sl[0], multiple=(sl[1]-sl[0])*multiple, shape=sub_shape))
+        else:
+            slice_desc = (start+sl[0], start+sl[0]+(sl[1]-sl[0])*multiple, 1)
+            shape_desc = tuple(shape+[sl[1]-sl[0]])
+            if 'node' in subtree:
+                slices.append((slice_desc, shape_desc, subtree['node']))
+            else:
+                slices.append((slice_desc, shape_desc))
+    return slices
+
+
+def combine_slices(lengths, slices, slice_nodes=None):
+    sl_tree = build_slice_tree(slices, slice_nodes)
+    if not check_tree_complete(sl_tree, lengths):
+        return None
+    return build_slices_from_tree(sl_tree, lengths)
+
+
+def slices_to_sizes(slices_and_shapes, shape_rest):
+    sizes = [sands[0][1]-sands[0][0] for sands in slices_and_shapes]
+    shapes = [tuple(list(sands[1]) + list(shape_rest))
+              for sands in slices_and_shapes]
+    nodes = [sands[2] for sands in slices_and_shapes]
+    return sizes, shapes, nodes
+
+
+@ match_name("slice_to_split")
+@ description("collects slices from a single node and converts to a single split")
+@ run_before('unused_concats')
+@ groups('*')
 class SliceToSplitMatch(Matcher):
-    @staticmethod
+    @ staticmethod
     def slice_to_split(G, slice_nodes, slices):
         slice_node = slice_nodes[0]
         in_dims = slice_node.in_dims[0].shape
@@ -83,8 +172,8 @@ class SliceToSplitMatch(Matcher):
                                   to_node=out_con[0], to_idx=out_con[1]))
         if G.quantization:
             G.add_dimensions()
-            quantizer = UnifiedQuantizer.from_quantized_graph(G)
-            quantizer.quantize(G, start_nodes=[split_params])
+            quantizer = NewQuantizer.from_quantized_graph(G)
+            quantizer.quantize()
             RemoveUnnecessaryQuantizeOperators().match(G)
 
     def _match(self, G: GraphView, set_identity: bool = True, **kwargs) -> bool:
@@ -101,44 +190,106 @@ class SliceToSplitMatch(Matcher):
                 self.slice_to_split(G, slice_nodes, slices)
                 continue
 
-            diff_slices = [(idx, elems) for idx, elems in enumerate(slices)
-                           if not all(elems[0] == elem for elem in elems[1::])]
-            if len(diff_slices) != 1:
-                continue
             # strides must be one
-            if any(sl[2] != 1 for sl in diff_slices[0][1]):
+            if any(sl[2] != 1 for sl_axis in slices for sl in sl_axis):
                 continue
-            # check if slices are consecutive and non overlapping
-            slices = sorted(diff_slices[0][1], key=lambda x: x[0])
-            if not all(sl[0] + sl[1] == slices[i+1][0] for i, sl in enumerate(slices[:-1:])):
+
+            diff_axes = list([idx for idx, elems in enumerate(
+                slices) if not all(elems[0] == elem for elem in elems[1::])])
+            not_diff_axes = [idx for idx in range(
+                len(slices)) if idx not in diff_axes]
+            diff_slices = [sl for idx, sl in enumerate(
+                slices) if idx in diff_axes]
+            axis_lengths = in_edge[0].out_dims[in_edge[1]].shape
+            if min(not_diff_axes) < max(diff_axes):
+                transpose_from = tuple(range(len(slices)))
+                transpose_to = tuple(diff_axes + not_diff_axes)
+                axis_lengths = [axis_lengths[idx] for idx in transpose_to]
+            else:
+                transpose_from = transpose_to = None
+            diff_axis_lengths = axis_lengths[0:len(diff_axes):]
+
+            diff_slices = combine_slices(
+                diff_axis_lengths, diff_slices, slice_nodes)
+            if diff_slices is None:
                 continue
-            szes = [sl[1] - sl[0] for sl in slices]
-            axis = diff_slices[0][0]
-            slice_nodes = sorted(
-                slice_nodes, key=lambda x: x.act_slice[axis][0])
+
+            if len(diff_axes) > 1:
+                reshape_from = axis_lengths
+                reshape_to = [np.prod(diff_axis_lengths)] + \
+                    axis_lengths[len(diff_axes)::]
+            else:
+                reshape_from = None
+                reshape_to = slice_nodes[0].in_dims[0].shape
+                if transpose_from:
+                    reshape_to = [reshape_to[idx] for idx in transpose_to]
+
+            sizes, shapes, sorted_nodes = slices_to_sizes(
+                diff_slices, axis_lengths[len(diff_axes)::])
+
+            name_prefix = sorted_nodes[0].name
+
+            in_edge = G.in_edges(sorted_nodes[0].name)[0]
+            in_node = in_edge.from_node
+            in_idx = in_edge.from_idx
+
+            if transpose_from:
+                params = TransposeParameters(
+                    G.unique_name(name_prefix + '_tin'), transpose=transpose_to)
+                G.add_edge(NNEdge(from_node=in_node,
+                                  to_node=params, from_idx=in_idx))
+                in_node = params
+                in_idx = 0
+
+            if reshape_from:
+                params = ReshapeParameters(
+                    G.unique_name(name_prefix + '_reshape'), old_shape=Dim.unnamed(reshape_from), shape=Dim.unnamed(reshape_to))
+                G.add_edge(NNEdge(from_node=in_node,
+                                  to_node=params, from_idx=in_idx))
+                in_node = params
+                in_idx = 0
+
             act_slices, out_shapes, axis = SplitParameters.get_splits(
-                slice_nodes[0].in_dims[0].shape, axis, splits=szes)
-            params = SplitParameters(
-                slice_nodes[0].name + '_split', act_slices=act_slices, out_shapes=out_shapes, axis=axis)
-            in_edge = G.in_edges(slice_nodes[0].name)[0]
-            G.add_edge(NNEdge(from_node=in_edge.from_node,
-                              to_node=params, from_idx=in_edge.from_idx))
+                reshape_to, 0, splits=sizes)
+            split_node = SplitParameters(
+                G.unique_name(name_prefix + '_split'), act_slices=act_slices, out_shapes=out_shapes, axis=axis)
+
+            G.add_edge(NNEdge(from_node=in_node, from_idx=in_idx,
+                              to_node=split_node))
+
             sub_names = []
-            for idx, node in enumerate(slice_nodes):
+            for idx, node in enumerate(sorted_nodes):
                 sub_names.append(node.name)
                 out_edges = G.out_edges(node.name)
                 G.remove(node)
                 for out_edge in out_edges:
+                    params = split_node
+                    out_idx = idx
+                    if reshape_from:
+                        from_node = params
+                        params = ReshapeParameters(
+                            G.unique_name(name_prefix + f'_reshape{idx}'), shape=Dim.unnamed(shapes[idx]))
+                        G.add_edge(NNEdge(from_node=from_node,
+                                          to_node=params, from_idx=out_idx))
+                        out_idx = 0
+                    if transpose_from:
+                        from_node = params
+                        params = TransposeParameters(
+                            G.unique_name(name_prefix + f'_tout{idx}'), transpose=reverse_transpose(transpose_to))
+                        G.add_edge(NNEdge(from_node=from_node,
+                                          to_node=params, from_idx=out_idx))
+                        out_idx = 0
+
                     G.add_edge(NNEdge(from_node=params, to_node=out_edge.to_node,
-                                      from_idx=idx, to_idx=out_edge.to_idx))
+                                      from_idx=out_idx, to_idx=out_edge.to_idx))
             if G.quantization:
                 G.add_dimensions()
-                quantizer = UnifiedQuantizer.from_quantized_graph(G)
-                quantizer.quantize(G, start_nodes=[params])
+                quantizer = NewQuantizer.from_quantized_graph(G)
+                quantizer.quantize()
                 RemoveUnnecessaryQuantizeOperators().match(G)
 
             LOG.info(
-                f'replaced slice nodes {",".join(sub_names)} with split node {sub_names[0]}')
+                f'replaced slice nodes {",".join(sub_names)} with split node {split_node.name}')
 
             has_modified_graph = True
 

@@ -1,4 +1,5 @@
-Input file: docs/IP_REFERENCES/FC_ICACHE_CTRL_reference.md
+.. 
+   Input file: docs/IP_REFERENCES/FC_ICACHE_CTRL_reference.md
 
 Register map
 ^^^^^^^^^^^^

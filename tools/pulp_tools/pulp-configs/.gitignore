@@ -1,9 +1,0 @@
-*.sw[po]
-.vscode
-build/
-*~
-__pycache__/
-install/
-gmon.out
-.sconsign.dblite
-*.pyc

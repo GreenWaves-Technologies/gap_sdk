@@ -19,6 +19,10 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @ingroup groupRTOS
  *
@@ -490,4 +494,78 @@ static inline void pmsis_mutex_release(pmsis_mutex_t *mutex);
  * \endcond
  */
 
+
+/**
+ * \cond IMPLEM
+ */
+
+/**
+ * @ingroup groupRTOS
+ *
+ * @defgroup Other Other
+ *
+ * \brief Specific sync objects management.
+ *
+ * This part details OS specific objects used to synchronize tasks.
+ *
+ * @addtogroup Other
+ * @{
+ */
+
+/**
+ * \brief Initialize a sync object.
+ *
+ * This function creates and intializes a sync object.
+ *
+ * \param sync_obj       Pointer to the object.
+ *
+ * \retval 0             If operation is successful.
+ * \retval ERRNO         An error code otherwise.
+ */
+static inline int pi_sync_obj_init(void *sync_obj);
+
+/**
+ * \brief Delete a sync object.
+ *
+ * This function deletes a sync object.
+ *
+ * \param sync_obj       Pointer to the object.
+ *
+ * \retval 0             If operation is successful.
+ * \retval ERRNO         An error code otherwise.
+ */
+static inline int pi_sync_obj_deinit(void *sync_obj);
+
+/**
+ * \brief Take/Lock a sync object.
+ *
+ * This function is used to lock a sync object.
+ *
+ * \param sync_obj       Pointer to the object.
+ *
+ * \note The behaviour when the sync object is not locked depend on OS
+ *       implementation.
+ */
+static inline void pi_sync_obj_take(void *sync_obj);
+
+/**
+ * \brief Give/Unlock a sync object..
+ *
+ * This function is used to release a sync object.
+ *
+ * \param sync_obj       Pointer to the object.
+ */
+static inline void pi_sync_obj_release(void *sync_obj);
+
+/**
+ * @}
+ */
+
+/**
+ * \endcond IMPLEM
+ */
+
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_RTOS_OS_H__ */

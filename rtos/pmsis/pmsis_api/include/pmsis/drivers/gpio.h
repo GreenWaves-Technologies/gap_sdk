@@ -20,6 +20,9 @@
 #include "pmsis/pmsis_types.h"
 #include "pmsis/drivers/pad.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @ingroup groupDrivers
@@ -381,4 +384,7 @@ static inline void pi_gpio_callback_init(pi_gpio_callback_t *cb,
  */
 
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_DRIVERS_GPIO_H__ */

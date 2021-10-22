@@ -1,4 +1,4 @@
-# Copyright (C) 2020  GreenWaves Technologies, SAS
+# Copyright (C) 2021  GreenWaves Technologies, SAS
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -16,16 +16,16 @@
 import logging
 
 import numpy as np
-from quantization.multiplicative.mulbias import reorder_filter_weigths
 
 from ..dim import Dim
 from .base import (MultiplicativeBiasParameters, SingleInputAndOutput,
-                   cls_op_name)
+                   cls_op_name, nargs)
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
 @cls_op_name('linear')
+@nargs({2, 3})
 class FcParameters(MultiplicativeBiasParameters, SingleInputAndOutput):
     def __init__(self, *args, batch_size=1, keep_dims=False, has_bias=True,
                  ker_in_order=None, ker_out_order=None, **kwargs):
@@ -46,7 +46,8 @@ class FcParameters(MultiplicativeBiasParameters, SingleInputAndOutput):
     @property
     def graph_label(self):
         if self.batch_size > 1:
-            batch = [f'Batches {self.batch_size} {"minor" if self._batch_minor else "major"}']
+            batch = [
+                f'Batches {self.batch_size} {"minor" if self._batch_minor else "major"}']
         else:
             batch = []
         return [self.name, f'Filter {self.filter}'] + batch
@@ -77,47 +78,6 @@ class FcParameters(MultiplicativeBiasParameters, SingleInputAndOutput):
         else:
             out_dim = Dim.named(c=self.filter.out_c, order=True)
         return [out_dim]
-
-    def transpose_filter_in(self, trans: list, dim: Dim, weights_node):
-        if self.batch_size > 1:
-            raise ValueError(
-                'transposing batched linear filter is not supported')
-        weights = weights_node.value
-        assert dim.size() * self.filter.out_c == weights.size, "weights do not match transpose shape"
-        # add the output channel dimension to the transpose (which is only for the input)
-        real_transpose = [0] + [t + 1 for t in trans]
-        # transpose the filter dimensions
-        if len(self.filter) > 2:
-            assert len(self.filter) == len(
-                real_transpose), f"strange filter length {self.filter} vs {real_transpose}/{dim.shape} in {self.name}"
-            self.filter.transpose(real_transpose)
-        if self.in_dims_hint and self.in_dims_hint[0] and len(self.in_dims_hint[0]) > 1:
-            assert len(self.in_dims_hint[0]) == len(
-                trans), "strange in hints length"
-            # if there is an input hint then transpose the hint
-            self.in_dims_hint[0] = [self.in_dims_hint[0][i] for i in trans]
-        # now transpose the weights to match the new input order
-        weights_node.value = np.reshape(np.transpose(np.reshape(weights, [int(self.filter.out_c)] + dim.shape),
-                                                     real_transpose),
-                                        [self.filter.out_c, dim.size()])
-
-    def transpose_filter_out(self, trans: list, dim: Dim, qrec, weights_node, biases_node):
-        if self.batch_size > 1:
-            raise ValueError(
-                'transposing batched linear filter is not supported')
-        weights = weights_node.value
-        biases = biases_node.value
-        rest = self.filter.size()//self.filter.out_c
-        assert dim.size() * rest == weights.size, "weights do not match transpose shape"
-        temp = np.reshape(weights, dim.shape + [rest])
-        temp = np.transpose(temp, list(trans) + [len(trans)])
-        weights_node.value = np.reshape(temp, [self.filter.out_c, rest])
-        temp = np.reshape(biases, dim.shape)
-        temp = np.transpose(temp, trans)
-        biases_node.value = np.reshape(temp, [self.filter.out_c])
-        # no need to transpose filter or output dimension since it will just be [out_c]
-        if qrec and qrec.ktype.startswith('scaled'):
-            reorder_filter_weigths(qrec, trans, dim)
 
     @property
     def can_equalize(self):

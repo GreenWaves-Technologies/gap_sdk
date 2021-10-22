@@ -39,8 +39,6 @@ class ConcatSplitMatch(Matcher):
             concat_node = in_edge.from_node
             if len(G.out_edges(concat_node.name)) > 1:
                 continue
-            if concat_node.transpose_out or split_node.transpose_in:
-                continue
             if concat_node.axis != split_node.axis:
                 continue
             axis = concat_node.axis

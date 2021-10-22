@@ -43,7 +43,10 @@
  * Driver data
  *****************************************************************************/
 
-struct hyper_driver_fifo *__global_hyper_driver_fifo[UDMA_NB_HYPER];
+GAP_FC_TINY_DATA struct hyper_driver_fifo *__global_hyper_driver_fifo[UDMA_NB_HYPER];
+
+GAP_FC_TINY_DATA struct pi_task *__global_hyper_fifo_head;
+GAP_FC_TINY_DATA struct pi_task *__global_hyper_fifo_tail;
 
 static uint8_t __pi_hyper_temp_buffer[__PI_HYPER_TEMP_BUFFER_SIZE];
 
@@ -165,22 +168,30 @@ static void __pi_hyper_handle_end_of_task(struct pi_task *task)
     }
     else
     {
-        if(task->id == PI_TASK_CALLBACK_ID)
+        if(task->id == PI_TASK_IRQ_ID)
         {
-            pmsis_event_push(pmsis_event_get_default_scheduler(), task);
+            pi_callback_func_t callback_func = (pi_callback_func_t) task->arg[0];
+            callback_func((void*) task->arg[1]);
+        }
+        else
+        {
+            if(task->id == PI_TASK_CALLBACK_ID)
+            {
+                pmsis_event_push(pmsis_event_get_default_scheduler(), task);
+            }
         }
     }
 }
 
+__attribute__((section(".text")))
 void hyper_handler(void *arg)
 {
-    uint32_t event = (uint32_t) arg;
-    uint32_t channel = event & 0x1;
-    uint32_t periph_id = (event >> UDMA_CHANNEL_NB_EVENTS_LOG2) - UDMA_HYPER_ID(0);
-    HYPER_TRACE("Hyper IRQ %d %d\n", periph_id, event);
+    uint32_t periph_id = 0;
+    HYPER_TRACE("Hyper IRQ\n");
 
     struct hyper_driver_fifo *fifo = __global_hyper_driver_fifo[periph_id];
-    struct pi_task *task = fifo->fifo_head;
+    struct pi_task *task = __global_hyper_fifo_head;
+#if CHIP_VERSION != 3
     if (task->data[7] != 0)
     {
         task->data[0] += task->data[2]; /* Hyper_addr + repeat_size */
@@ -198,13 +209,14 @@ void hyper_handler(void *arg)
                           task->data[1], iter_size, UDMA_CFG_EN(1));
     }
     else
+#endif
     {
         HYPER_TRACE("No reenqueue\n");
         /* Case end of current transfer. */
         struct pi_task *task = NULL;
         uint32_t emu_task = 0;
         /* Case pending misaligned transfer. */
-        task = fifo->fifo_head;
+        task = __global_hyper_fifo_head;
         if (task->data[6])
         {
             HYPER_TRACE("Emul? Yes\n");
@@ -221,7 +233,7 @@ void hyper_handler(void *arg)
             task = NULL;
             task = __pi_hyper_task_fifo_pop(fifo);
             __pi_hyper_handle_end_of_task(task);
-            task = fifo->fifo_head;
+            task = __global_hyper_fifo_head;
             /* Maybe use a struct to get fifo of tasks. */
             if (task != NULL)
             {
@@ -244,19 +256,19 @@ static uint8_t __pi_hyper_task_fifo_enqueue(struct hyper_driver_fifo *fifo, stru
 {
     uint8_t head = 0;
     uint32_t irq = __disable_irq();
-    if (fifo->fifo_head == NULL)
+    if (__global_hyper_fifo_head == NULL)
     {
         /* Transfer on going, enqueue this one to the list. */
         /* Empty fifo. */
-        fifo->fifo_head = task;
-        fifo->fifo_tail = fifo->fifo_head;
+        __global_hyper_fifo_head = task;
+        __global_hyper_fifo_tail = __global_hyper_fifo_head;
         head = 0;
     }
     else
     {
         /* Execute the transfer. */
-        fifo->fifo_tail->next = task;
-        fifo->fifo_tail = fifo->fifo_tail->next;
+        __global_hyper_fifo_tail->next = task;
+        __global_hyper_fifo_tail = __global_hyper_fifo_tail->next;
         head = 1;
     }
     __restore_irq(irq);
@@ -268,13 +280,13 @@ static struct pi_task *__pi_hyper_task_fifo_pop(struct hyper_driver_fifo *fifo)
 {
     uint32_t irq = __disable_irq();
     struct pi_task *task_to_return = NULL;
-    if (fifo->fifo_head != NULL)
+    if (__global_hyper_fifo_head != NULL)
     {
-        task_to_return = fifo->fifo_head;
-        fifo->fifo_head = fifo->fifo_head->next;
-        if (fifo->fifo_head == NULL)
+        task_to_return = __global_hyper_fifo_head;
+        __global_hyper_fifo_head = __global_hyper_fifo_head->next;
+        if (__global_hyper_fifo_head == NULL)
         {
-            fifo->fifo_tail = NULL;
+            __global_hyper_fifo_tail = NULL;
         }
     }
     __restore_irq(irq);
@@ -284,7 +296,7 @@ static struct pi_task *__pi_hyper_task_fifo_pop(struct hyper_driver_fifo *fifo)
 /* Copy functions. */
 static int32_t __pi_hyper_resume_emu_task(struct hyper_driver_fifo *fifo)
 {
-    return __pi_hyper_copy_misaligned(fifo, fifo->fifo_head);
+    return __pi_hyper_copy_misaligned(fifo, __global_hyper_fifo_head);
 }
 
 static int32_t __pi_hyper_copy_misaligned(struct hyper_driver_fifo *fifo, struct pi_task *task)

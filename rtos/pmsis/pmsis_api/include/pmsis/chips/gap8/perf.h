@@ -17,6 +17,10 @@
 #ifndef __CHIPS_GAP8_DRIVERS_PERF_H__
 #define __CHIPS_GAP8_DRIVERS_PERF_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**        
  * @ingroup groupChips
  */
@@ -131,4 +135,7 @@ typedef enum {
  * @}
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif

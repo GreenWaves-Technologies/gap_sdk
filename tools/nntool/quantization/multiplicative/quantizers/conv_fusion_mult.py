@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from graph.types import ConvFusionParameters
+from graph.types import ConvFusionParameters, LinearFusionParameters
 from quantization.multiplicative.quantizers.filter_mult import (can_ne16,
                                                                 check_option)
 from quantization.new_qrec import QRec
@@ -42,7 +42,7 @@ def check_filter_options(is_ne16, input_size, output_size):
     return check_options
 
 
-@params_type(ConvFusionParameters)
+@params_type(ConvFusionParameters, LinearFusionParameters)
 @in_qs_constraint({'dtype': set([np.int8, np.uint8])})
 @out_qs_constraint({'dtype': set([np.int8, np.uint8])})
 # @option_constraint(check_filter_options(False, input_size=set([8, None]), output_size=set([8, None])))

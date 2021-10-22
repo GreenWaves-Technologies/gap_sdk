@@ -52,7 +52,7 @@ class ScaleQuantized(CompoundFunction):
         self._to_qrec = to_qrec
         self._qbias, self._qnorm = None, None
         self._num_bits = num_bits
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, qrec=self._to_qrec, **kwargs)
 
     @property
     def from_qrec(self):
@@ -102,20 +102,23 @@ class ScaleQuantized(CompoundFunction):
                     sym,
                     #pylint: disable=invalid-unary-operand-type
                     QuantizedConstant(-qnorm, dtype=np.int8),
-                    name=self.name
+                    name=self.name,
+                    dtype=self._to_qrec.dtype
                 )
             elif qnorm > 0:
                 sym = Norm(
                     sym,
                     QuantizedConstant(qnorm, dtype=np.int8),
-                    name=self.name
+                    name=self.name,
+                    dtype=self._to_qrec.dtype
                 )
             # if 0 do nothing
         elif qnorm < 0:
             sym = LShift(
                 Mul(
                     sym,
-                    QuantizedConstant(qbias, dtype=np.int32)
+                    QuantizedConstant(qbias, dtype=np.int32),
+                    dtype=self._to_qrec.dtype
                 ),
                 #pylint: disable=invalid-unary-operand-type
                 QuantizedConstant(-qnorm, dtype=np.int8),
@@ -125,7 +128,8 @@ class ScaleQuantized(CompoundFunction):
             sym = Norm(
                 Mul(
                     sym,
-                    QuantizedConstant(qbias, dtype=np.int32)
+                    QuantizedConstant(qbias, dtype=np.int32),
+                    dtype=self._to_qrec.dtype
                 ),
                 QuantizedConstant(qnorm, dtype=np.int8),
                 name=self.name
@@ -134,7 +138,8 @@ class ScaleQuantized(CompoundFunction):
             sym = Mul(
                 sym,
                 QuantizedConstant(qbias, dtype=np.int32),
-                name=self.name
+                name=self.name,
+                dtype=self._to_qrec.dtype
             )
         if self._to_qrec.dtype != np.int32:
             sym = Cast(sym, dtype=self._to_qrec.dtype)

@@ -28,6 +28,9 @@ typedef struct
 static pi_gpio_t __rt_gpio[NB_GPIO_PORT];
 
 
+void __pi_gpio_handler(void *arg)
+{
+}
 
 void pi_gpio_conf_init(struct pi_gpio_conf *conf)
 {

@@ -1,4 +1,4 @@
-    # Copyright (C) 2020  GreenWaves Technologies, SAS
+# Copyright (C) 2020  GreenWaves Technologies, SAS
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -19,8 +19,8 @@ from generation.at_types.at_params import (NO_ACTIVATION, gen_active_at_params,
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
 from generation.generator_decorators import (QREC_MULT8,
-                                                        generation_function)
-from graph.types import ConvFusionParameters, FcParameters
+                                             generation_function)
+from graph.types import LinearFusionParameters, FcParameters
 from utils.node_id import NodeId
 
 from ..autotiler_kernel import (AutotilerKernel, gen_include_paths,
@@ -31,14 +31,15 @@ from ..autotiler_kernel import (AutotilerKernel, gen_include_paths,
 LOG = logging.getLogger("nntool." + __name__)
 
 
-@generation_function("kernels", (ConvFusionParameters, FcParameters), qrec_types=(QREC_MULT8, ))
+@generation_function("kernels", (LinearFusionParameters, FcParameters), qrec_types=(QREC_MULT8, ))
 def linear_relu_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cname):
     del in_eparams, out_eparams
     if isinstance(node, FcParameters):
         gen.kernels.append(LinearReluKernel(node.name, cname, node, qrec, None, None,
-                                            at_ver=gen.opts['at_ver'], gen_ctrl=node.get_gen_ctrl(),
+                                            at_ver=gen.opts['at_ver'], gen_ctrl=node.get_gen_ctrl(
+                                            ),
                                             force_relu=gen.force_relu))
-    elif isinstance(node, ConvFusionParameters) and node.fusion_type == "linear_active":
+    elif isinstance(node, LinearFusionParameters) and node.fusion_type == "linear_active":
         cnodes = node.contained_nodes()
         quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
         gen.kernels.append(LinearReluKernel(node.name, cname, cnodes[0], quants[0],
@@ -47,6 +48,7 @@ def linear_relu_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cnam
     else:
         return False
     return True
+
 
 def gen_at_linear_relu(code_block, cname, biases_ds, mulbiases_ds,
                        in_dim, out_dim, linear_oper, act_oper, gen_ctrl, at_ver=3):
@@ -60,6 +62,7 @@ def gen_at_linear_relu(code_block, cname, biases_ds, mulbiases_ds,
                      out_dim,
                      linear_oper,
                      act_oper)
+
 
 def gen_at_linear_relu_ne16(code_block, cname, in_size, out_size, filter_bits, biases_ds, mulbiases_ds,
                             in_dim, out_dim, linear_oper, act_oper, gen_ctrl, at_ver=3):
@@ -76,6 +79,7 @@ def gen_at_linear_relu_ne16(code_block, cname, in_size, out_size, filter_bits, b
                      out_dim,
                      linear_oper,
                      act_oper)
+
 
 @kernel_sources(
     '$(TILER_CNN_KERNEL_PATH_SQ8)/CNN_Bias_Linear_SQ8.c')
@@ -111,7 +115,8 @@ class LinearReluKernel(AutotilerKernel):
         mulbiases_q = linear_q.cache['mul_biases_q']
 
         if act_params is not None:
-            at_act_params = gen_active_at_params(act_params, force_relu=force_relu)
+            at_act_params = gen_active_at_params(act_params, force_relu=force_relu,
+                                                 asymmetric=act_q.in_qs[0].zero_point != 0)
             if in_dim is None:
                 in_dim = act_params.in_dims[0]
             if out_dim is None:
@@ -150,15 +155,15 @@ class LinearReluKernel(AutotilerKernel):
 
         if self.ne16:
             gen_at_linear_relu_ne16(code_block, self.cname,
-                                    self.in_q.bits//8 if self.in_q.signed else -self.in_q.bits//8,
-                                    self.out_q.bits//8 if self.out_q.signed else -self.out_q.bits//8,
-                                    self.filter_q.bits, self.bias_q.bits//8, self.mulbiases_q.bits//8,
+                                    self.in_q.dtype_bits//8 if self.in_q.signed else -self.in_q.dtype_bits//8,
+                                    self.out_q.dtype_bits//8 if self.out_q.signed else -self.out_q.dtype_bits//8,
+                                    self.filter_q.bits, self.bias_q.dtype_bits//8, self.mulbiases_q.dtype_bits//8,
                                     self.in_dim, self.out_dim,
                                     self.at_linear_params.LinearOper,
                                     self.at_act_params.ReLUOper,
                                     at_ver=self.at_ver, gen_ctrl=gen_ctrl)
         else:
-            gen_at_linear_relu(code_block, self.cname, self.bias_q.bits//8, self.mulbiases_q.bits//8,
+            gen_at_linear_relu(code_block, self.cname, self.bias_q.dtype_bits//8, self.mulbiases_q.dtype_bits//8,
                                self.in_dim, self.out_dim,
                                self.at_linear_params.LinearOper,
                                self.at_act_params.ReLUOper,

@@ -17,7 +17,8 @@ import tempfile
 
 from expressions.symbolic.symbol import Constant, Variable
 from graph.nngraph import NNGraph
-from graph.types import ExpressionFusionParameters
+from graph.types import ExpressionFusionParameters, FusionBase
+from graph.types.fusions import FusionInputParameters, FusionOutputParameters
 from graph.types.linear import FcParameters
 from graphviz import Digraph, nohtml
 from utils.node_id import NodeId
@@ -39,6 +40,12 @@ def make_ports(x, in_ports, out_ports):
 class DrawGraphReporter():
     def __init__(self):
         self._name_cache = None
+
+    @staticmethod
+    def dim_or_error(dims, idx):
+        if dims is None or len(dims) <= idx:
+            return "not set", True
+        return f'({dims[idx]})', False
 
     @staticmethod
     def get_trans(node, dir_name):
@@ -96,7 +103,8 @@ class DrawGraphReporter():
             else:
                 trans = [''] * num_in
             ports[0] = [f'{node.name}:in{idx}' for idx in range(num_in)]
-            edges = [f'<in{idx}> {idx if num_in > 1 else ""}{trans[idx] if idx < len(trans) else ""}' for idx in range(num_in)]
+            edges = [
+                f'<in{idx}> {idx if num_in > 1 else ""}{trans[idx] if idx < len(trans) else ""}' for idx in range(num_in)]
             names.append(edges)
             names.extend(node.graph_anon_label if anon else node.graph_label)
         else:
@@ -109,7 +117,8 @@ class DrawGraphReporter():
             else:
                 trans = [''] * num_out
             ports[1] = [f'{node.name}:o{idx}' for idx in range(num_out)]
-            edges = [f'<o{idx}> {idx if num_out > 1 else ""}{trans[idx] if idx < len(trans) else ""}' for idx in range(num_out)]
+            edges = [
+                f'<o{idx}> {idx if num_out > 1 else ""}{trans[idx] if idx < len(trans) else ""}' for idx in range(num_out)]
             names.append(edges)
         else:
             if len(names) == 1:
@@ -134,22 +143,37 @@ class DrawGraphReporter():
         self._name_cache[name_type] = next_idx + 1
         return next_id
 
-    def out_label(self, G, edge, quant_labels):
+    def out_label(self, G, edge, qrecs, parent=None, to_node=True, from_node=True):
         node = edge.from_node
         idx = edge.from_idx
-        if quant_labels:
-            qrec = G.quantization.get(NodeId(node))
-            if qrec is None:
-                return 'no quant', True
-            qtype = qrec.out_qs and qrec.out_qs[idx]
-            if not qtype:
-                return 'no qtype', True
-            to_qrec = G.quantization.get(NodeId(edge.to_node))
-            if to_qrec is None:
-                return f'{qtype}/None', True
-            to_qtype = to_qrec.in_qs and to_qrec.in_qs[edge.to_idx]
-            if not to_qtype:
-                return f'{qtype}/None', True
+        if qrecs:
+            nid = NodeId(node) if parent is None else NodeId(
+                parent, fnode=node)
+            if from_node:
+                qrec = qrecs.get(nid)
+                if qrec is None:
+                    return 'no quant', True
+                qtype = qrec.out_qs and qrec.out_qs[idx]
+                if not qtype:
+                    return 'no qtype', True
+            else:
+                qtype = "n/a"
+            if to_node:
+                nid = NodeId(edge.to_node) if parent is None else NodeId(
+                    parent, fnode=edge.to_node)
+                to_qrec = qrecs.get(nid)
+                if to_qrec is None:
+                    return f'{qtype}/None', True
+                to_qtype = to_qrec.in_qs and to_qrec.in_qs[edge.to_idx]
+                if not to_qtype:
+                    return f'{qtype}/None', True
+            else:
+                to_qtype = "n/a"
+            if not to_node:
+                assert from_node
+                return str(qtype), False
+            if not from_node:
+                return str(to_qtype), False
             if not to_qtype.quantization_equal(qtype):
                 return f'{qtype}/{to_qtype}', True
             return str(qtype), False
@@ -158,55 +182,71 @@ class DrawGraphReporter():
                 return f'({node.out_dims[idx]})', False
             return 'not set', True
 
-    def in_label(self, G, edge, quant_labels):
+    def in_label(self, G, edge, qrecs, parent=None, to_node=True, from_node=True):
         node = edge.to_node
         idx = edge.to_idx
-        if quant_labels:
-            qrec = G.quantization.get(NodeId(node))
-            if qrec is None:
-                return 'no quant', True
-            qtype = qrec.in_qs and qrec.in_qs[idx]
-            if qtype is None:
-                return 'no qtype', True
-            from_qrec = G.quantization.get(NodeId(edge.from_node))
-            if from_qrec is None:
-                return f'None/{qtype}', True
-            from_qtype = from_qrec.out_qs and from_qrec.out_qs[edge.from_idx]
-            if not from_qtype:
-                return f'None/{qtype}', True
+        if qrecs:
+            if to_node:
+                nid = NodeId(node) if parent is None else NodeId(
+                    parent, fnode=node)
+                qrec = qrecs.get(nid)
+                if qrec is None:
+                    return 'no quant', True
+                qtype = qrec.in_qs and qrec.in_qs[idx]
+                if qtype is None:
+                    return 'no qtype', True
+            else:
+                qtype = "n/a"
+            if from_node:
+                nid = NodeId(edge.from_node) if parent is None else NodeId(
+                    parent, fnode=edge.from_node)
+                from_qrec = qrecs.get(nid)
+                if from_qrec is None:
+                    return f'None/{qtype}', True
+                from_qtype = from_qrec.out_qs and from_qrec.out_qs[edge.from_idx]
+                if not from_qtype:
+                    return f'None/{qtype}', True
+            else:
+                from_qtype = "n/a"
+            if not from_node:
+                assert to_node
+                return str(qtype), False
+            if not to_node:
+                return str(from_qtype), False
             if not from_qtype.quantization_equal(qtype):
                 return f'{from_qtype}/{qtype}', True
             return str(qtype), False
         else:
             if node.in_dims:
-                return f'({node.in_dims[idx]})', False
+                return self.dim_or_error(node.in_dims, idx)
             return 'not set', True
 
-    def report(self, G: NNGraph, nodes=None, graph_format='PDF', all_dims=False,
-               filename=None, view=True, anonymise=False, expressions=False, quant_labels=False):
+    def report_graph(self, G: NNGraph, dot, all_ports, fake_idx, nodes=None, all_dims=False,
+                     anonymise=False, expressions=False, qrecs=None, fusions=False, parent=None):
         if nodes is None:
             nodes = set(G.nodes())
-
-        self.init_name_cache()
-        all_ports = {}
-        graph_name = G.graphname if hasattr(G, 'graphname') else 'graph'
-        dot = Digraph(comment=graph_name, format=graph_format, node_attr={
-                      'height': '.1'}, edge_attr={'fontsize': '10.0'})
-        fake_idx = 0
         for node in G.dfs():
             if node not in nodes:
+                continue
+            if isinstance(node, (FusionInputParameters)):
                 continue
             if expressions and isinstance(node, ExpressionFusionParameters):
                 all_ports[node] = self.report_expression(
                     dot, G, node, anonymise=anonymise, report_quantized=expressions == "quantized")
+            elif fusions and isinstance(node, FusionBase):
+                all_ports[node] = self.report_fusion(
+                    dot, G, node, all_ports, fake_idx, all_dims=all_dims,
+                    anonymise=anonymise, expressions=expressions, qrecs=qrecs)
+
             else:
                 num_in_edges = len(G.indexed_in_edges(node.name))
                 num_out_edges = len(G.indexed_out_edges(node.name))
                 ports = all_ports.setdefault(node, [None] * 2)
-                names = self.build_nodebox(
-                    node, ports, num_in_edges, num_out_edges, anon=anonymise)
-                dot.node(node.name, nohtml(names), shape='record',
-                         xlabel=str(node.step_idx))
+                if not isinstance(node, FusionOutputParameters):
+                    names = self.build_nodebox(
+                        node, ports, num_in_edges, num_out_edges, anon=anonymise)
+                    dot.node(node.name, nohtml(names), shape='record',
+                             xlabel=str(node.step_idx), color="blue" if node.is_not_generated else "black")
             for edge in G.in_edges(node.name):
                 if edge.from_node not in nodes:
                     if not all_dims:
@@ -216,7 +256,10 @@ class DrawGraphReporter():
                 if edge.from_node in nodes:
                     from_node_id = self.get_from_id(all_ports, edge, out_port)
                     to_node_id = self.get_to_id(all_ports, edge, in_port)
-                    edge_label, edge_error = self.in_label(G, edge, quant_labels)
+                    edge_label, edge_error = self.in_label(
+                        G, edge, qrecs, parent=parent,
+                        from_node=not isinstance(edge.from_node, FusionInputParameters),
+                        to_node=not isinstance(edge.to_node, FusionOutputParameters))
                     dot.edge(
                         from_node_id,
                         to_node_id,
@@ -227,7 +270,8 @@ class DrawGraphReporter():
                     fake_idx += 1
                     dot.node(fake_name, shape='point', fillcolor='black')
                     to_node_id = self.get_to_id(all_ports, edge, in_port)
-                    edge_label, edge_error = self.in_label(G, edge, quant_labels)
+                    edge_label, edge_error = self.in_label(
+                        G, edge, qrecs, parent=parent)
                     dot.edge(
                         fake_name,
                         to_node_id,
@@ -245,13 +289,33 @@ class DrawGraphReporter():
                 dot.node(fake_name, shape='plaintext',
                          label=' ', fillcolor='black')
                 from_node_id = self.get_from_id(all_ports, edge, out_port)
-                edge_label, edge_error = self.out_label(G, edge, quant_labels)
+                edge_label, edge_error = self.out_label(
+                    G, edge, qrecs, parent=parent,
+                    from_node=not isinstance(edge.from_node, FusionInputParameters),
+                    to_node=not isinstance(edge.to_node, FusionOutputParameters))
                 dot.edge(
                     from_node_id,
                     fake_name,
                     xlabel=edge_label,
                     color="red" if edge_error else "black")
-                x=0
+
+    def report(self, G: NNGraph, nodes=None, graph_format='PDF', all_dims=False,
+               filename=None, view=True, anonymise=False, expressions=False, quant_labels=False, fusions=False):
+
+        if quant_labels:
+            if G.quantization is None:
+                raise ValueError("graph is not quantizated")
+            qrecs = G.quantization
+        else:
+            qrecs = None
+        self.init_name_cache()
+        all_ports = {}
+        graph_name = G.graphname if hasattr(G, 'graphname') else 'graph'
+        dot = Digraph(comment=graph_name, format=graph_format, node_attr={
+                      'height': '.1'}, edge_attr={'fontsize': '10.0'})
+        fake_idx = 0
+        self.report_graph(G, dot, all_ports, fake_idx, nodes=nodes, all_dims=all_dims,
+                          anonymise=anonymise, expressions=expressions, qrecs=qrecs, fusions=fusions)
 
         # dot = dot.unflatten(stagger=2)
         if filename:
@@ -301,6 +365,32 @@ class DrawGraphReporter():
                     sub.edge(node_id, var.name, xlabel=f'{str_shape(shape)}')
 
         return [node.input_symbols, node.output_symbols]
+
+    def report_fusion(self, dot: Digraph, G: NNGraph,
+                      node: FusionBase, all_ports, fake_idx, nodes=None, all_dims=False,
+                      anonymise=False, expressions=False, qrecs=None):
+
+        inputs_by_idx = sorted(node.subgraph.nodes(
+            node_classes=FusionInputParameters), key=lambda x: x.idx)
+        outputs_by_idx = sorted(node.subgraph.nodes(
+            node_classes=FusionOutputParameters), key=lambda x: x.idx)
+
+        input_symbols = []
+        output_symbols = []
+        for input_node in inputs_by_idx:
+            dot.node(input_node.name, nohtml(input_node.name),
+                     shape='plaintext', fontsize='10.0')
+            all_ports[input_node] = [[input_node.name], [input_node.name]]
+            input_symbols.append(input_node.name)
+        for output_node in outputs_by_idx:
+            dot.node(output_node.name, nohtml(output_node.name),
+                     shape='plaintext', fontsize='10.0')
+            all_ports[output_node] = [[output_node.name], [output_node.name]]
+            output_symbols.append(output_node.name)
+        with dot.subgraph(name=f'cluster{node.name}', node_attr={'style': 'solid(dashed)'}) as sub:
+            self.report_graph(node.subgraph, dot, all_ports, fake_idx, all_dims=all_dims,
+                              anonymise=anonymise, expressions=expressions, qrecs=qrecs, parent=node)
+        return [input_symbols, output_symbols]
 
     def report_symbol(self, dot, symbol, intermediates, anonymise=False):
         if isinstance(symbol, Variable):

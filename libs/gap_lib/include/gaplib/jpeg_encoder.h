@@ -20,7 +20,8 @@
 #include <bsp/buffer.h>
 
 typedef enum {
-  JPEG_ENCODER_FLAGS_CLUSTER_OFFLOAD = 1 << 0
+  JPEG_ENCODER_FLAGS_CLUSTER_OFFLOAD = 1 << 0,
+  JPEG_ENCODER_FLAGS_COLOR = 1 << 1
 } jpeg_encoder_flags_e;
 
 

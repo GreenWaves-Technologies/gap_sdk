@@ -113,17 +113,19 @@ class GenQuantizeParameters(GeneratorBase):
             return True
         elif qrec.cache['kernel_type'] == 'KOP_CONVERT_FP_FP_SCALE':
             scale = in_q.scale / out_q.scale
+            in_abs_zp = in_q.zero_point.astype(np.int32)
+            out_abs_zp = out_q.zero_point.astype(np.int32)
             if out_q.bits > in_q.bits:
-                zero_adjust = np.round(-in_q.zero_point * scale + out_q.zero_point).astype(np.int32)
+                zero_adjust = (np.round(-in_abs_zp * scale) + out_abs_zp).astype(np.int32)
             else:
-                zero_adjust = np.round(-in_q.zero_point + out_q.zero_point * 1/scale).astype(np.int32)
+                zero_adjust = (-in_abs_zp + np.round(out_abs_zp * 1/scale)).astype(np.int32)
 
             zero_adjust = list(zero_adjust.tobytes())
 
             if len(scale) > 1:
                 raise NotImplementedError('multiscale conversion not supported')
             scale = scale[0]
-            if in_q.bits == 8 and out_q.bits == 16:
+            if in_q.dtype_bits == 8 and out_q.dtype_bits == 16:
                 # scale Q16 * Q8 OK
                 scale_adjust = MultMulBiasScaleQType(scale=scale, dtype=np.int16, available_bits=16)
             else:
@@ -134,11 +136,11 @@ class GenQuantizeParameters(GeneratorBase):
             contents = np.array(zero_adjust + qbias + qnorm, dtype=np.int8)
         elif qrec.cache['kernel_type'] == 'KOP_CONVERT_FL_FP':
             qbias = list((1/out_q.scale).astype(in_q.dtype).tobytes())
-            zero_adjust = list((out_q.zero_point * out_q.scale).astype(in_q.dtype).tobytes())
+            zero_adjust = list((out_q.zero_point.astype(np.int32) * out_q.scale).astype(in_q.dtype).tobytes())
             contents = np.array(zero_adjust + [0, 0] + qbias + [0], dtype=np.int8)
         elif qrec.cache['kernel_type'] == 'KOP_CONVERT_FP_FL':
             qbias = list((in_q.scale).astype(out_q.dtype).tobytes())
-            zero_adjust = list((-in_q.zero_point).astype(out_q.dtype).tobytes())
+            zero_adjust = list((-in_q.zero_point.astype(np.int32)).astype(out_q.dtype).tobytes())
             contents = np.array(zero_adjust + [0, 0] + qbias + [0], dtype=np.int8)
         else:
             raise ValueError(f"strange dtype change in {pnode.name}")

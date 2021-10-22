@@ -19,7 +19,7 @@ from generation.at_types.at_params import NO_ACTIVATION, gen_active_at_params
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
 from generation.generator_decorators import QREC_FLOAT, generation_function
-from graph.types import ActivationFusion, MatrixMulParameters
+from graph.types import ActivationFusionBase, MatrixMulParameters
 
 from ..autotiler_kernel import AutotilerKernel
 
@@ -38,10 +38,10 @@ def validate_kernel(node):
         return 1
     return None
 
-@generation_function("kernels", (MatrixMulParameters, ActivationFusion), qrec_types=(QREC_FLOAT, ))
+@generation_function("kernels", (MatrixMulParameters, ActivationFusionBase), qrec_types=(QREC_FLOAT, ))
 def mat_vect_mult_kernel_generator_fp16(gen, node, qrec, in_eparams, out_eparams, cname):
     del in_eparams, out_eparams, qrec
-    if isinstance(node, ActivationFusion):
+    if isinstance(node, ActivationFusionBase):
         cnodes = node.contained_nodes()
         if isinstance(cnodes[0], MatrixMulParameters) and validate_kernel(cnodes[0]) is not None:
             gen.kernels.append(MatVectMulKernel(node.name, cname, cnodes[0], cnodes[1],

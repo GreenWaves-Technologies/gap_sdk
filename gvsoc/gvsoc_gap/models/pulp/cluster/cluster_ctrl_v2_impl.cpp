@@ -5,17 +5,17 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
@@ -91,7 +91,7 @@ vp::io_req_status_e cluster_ctrl::req(void *__this, vp::io_req *req)
   {
     _this->trace.warning("Only 32 bits accesses are allowed\n");
     return vp::IO_REQ_INVALID;
-  } 
+  }
 
   if (offset == ARCHI_CLUSTER_CTRL_FETCH_EN)
   {
@@ -258,7 +258,7 @@ int cluster_ctrl::build()
   in.set_req_meth(&cluster_ctrl::req);
   new_slave_port("input", &in);
 
-  for (int i; i<nb_core; i++)
+  for (int i = 0; i<nb_core; i++)
   {
     cores[i].bootaddr = 0x57575757;
 

@@ -22,16 +22,15 @@ from interpreter.nntool_shell_base import (NNToolShellBase,
 from interpreter.shell_utils import glob_input_files, input_options
 from quantization.handlers_helpers import (add_options_to_parser,
                                            get_options_from_args)
-from quantization.unified_quantizer import UnifiedQuantizer
+from quantization.quantizer.new_quantizer import NewQuantizer
 from utils.data_importer import import_data
 from utils.stats_funcs import STATS_BITS
 
-from graph.matches.matchers.remove_unnecessary_quantize_operators import RemoveUnnecessaryQuantizeOperators
 from stats.activation_ranges_collector import ActivationRangesCollector
 
 LOG = logging.getLogger('nntool.'+__name__)
 
-QUANTIZATION_SCHEMES = ['SQ8', 'POW2']
+QUANTIZATION_SCHEMES = ['SQ8', 'POW2', 'FLOAT']
 
 
 class AquantCommand(NNToolShellBase):
@@ -77,12 +76,11 @@ Attempt to calculate quantization for graph using one or more sample input files
         if args.force_width:
             opts['bits'] = args.force_width
 
-        quantizer = UnifiedQuantizer(args.scheme, astats,
-                                     **opts)
-        # clear the existing quantization
-        self.G.quantization = None
-        qrecs = quantizer.quantize(self.G)
-        self.G.quantization = qrecs
-        RemoveUnnecessaryQuantizeOperators().match(self.G)
+        quantizer = NewQuantizer(self.G, reset_all=True)
+        quantizer.options = opts
+        quantizer.schemes.append(args.scheme)
+        quantizer.set_stats(astats)
+        quantizer.quantize()
+
         self.G.add_dimensions()
         LOG.info("Quantization set. Use qshow command to see it.")

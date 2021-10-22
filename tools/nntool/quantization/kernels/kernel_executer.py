@@ -17,8 +17,7 @@ import logging
 from typing import Sequence
 
 import numpy as np
-from graph.types import Parameters
-from graph.types.base import Transposable
+from graph.types import Parameters, TransposeParameters
 from quantization.handlers_helpers import get_all_subclasses
 from quantization.new_qrec import AllFloatQRec, QRec
 
@@ -64,15 +63,8 @@ class KernelExecuter():
             raise ValueError(
                 f"no handlers found for {params.__class__.__name__} quantization {qrec.ktype}")
 
-        if isinstance(params, Transposable) and params.transpose_in:
-            input_tensors = [(np.transpose(in_tensor, params.transpose_in[idx]) if params.transpose_in[idx] else in_tensor)
-                             for idx, in_tensor in enumerate(input_tensors)]
-
         output_tensors = handler.execute(params, input_tensors,
                                          qrec, details=details,
                                          qname=qrec.ktype)
 
-        if isinstance(params, Transposable) and params.transpose_out:
-            output_tensors = [(np.transpose(out_tensor, params.transpose_out[idx]) if params.transpose_out[idx] else out_tensor)
-                              for idx, out_tensor in enumerate(output_tensors)]
         return output_tensors

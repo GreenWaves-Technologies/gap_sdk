@@ -2,7 +2,7 @@
 #------------------------------------
 
 APP              = test
-APP_SRCS        += test_hyper_flash_multi_thread.c
+APP_SRCS        += hyper_flash_multi_thread.c
 APP_INC         +=
 APP_CFLAGS      +=
 
@@ -13,4 +13,4 @@ ifeq ($(ASYNC), 1)
 APP_CFLAGS      += -DASYNC=1
 endif
 
-include $(GAP_SDK_HOME)/tools/rules/pmsis_rules.mk
+include $(GAP_SDK_HOME)/utils/rules/pmsis_rules.mk

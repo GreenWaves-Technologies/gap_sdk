@@ -30,6 +30,10 @@ class SplitMixin(object):
         opts = kwargs['opts']
         input_idx = kwargs.get('input_idx', 0)
         num_splits = kwargs.get('num_splits')
+        # eliminates a silly split / unpack that does dothing - seen in dtln1.tflite
+        if splits is None and num_splits == 1 and len(node.output) == 1:
+            all_nodes[node.output[0]] = all_nodes[node.input[0]]
+            return None
 
         inputs = [all_nodes[inp] for inp in node.input]
         x = inputs[input_idx]

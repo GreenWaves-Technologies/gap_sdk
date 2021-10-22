@@ -1,4 +1,5 @@
-Input file: docs/IP_REFERENCES/SOC_EVENT_GENERATOR_reference.md
+.. 
+   Input file: docs/IP_REFERENCES/SOC_EVENT_GENERATOR_reference.md
 
 Register map
 ^^^^^^^^^^^^
@@ -44,13 +45,13 @@ Overview
     +------------------------------------------+------+-----+-------------------------------------------------------------------------------+
     |:ref:`CL_MASK_6<soc_eu_CL_MASK_6>`        |    60|     |Cluster event dispatch mask configuration register for events 192 to 223.      |
     +------------------------------------------+------+-----+-------------------------------------------------------------------------------+
-    |:ref:`CL_MASK_7<soc_eu_CL_MASK_7>`        |    48|     |Cluster event dispatch mask configuration register for events 224 to 255.      |
+    |:ref:`CL_MASK_7<soc_eu_CL_MASK_7>`        |    64|     |Cluster event dispatch mask configuration register for events 224 to 255.      |
     +------------------------------------------+------+-----+-------------------------------------------------------------------------------+
-    |:ref:`PR_MASK_0<soc_eu_PR_MASK_0>`        |    52|     |uDMA event dispatch mask configuration registerfor events 0 to 31.             |
+    |:ref:`PR_MASK_0<soc_eu_PR_MASK_0>`        |    68|     |uDMA event dispatch mask configuration registerfor events 0 to 31.             |
     +------------------------------------------+------+-----+-------------------------------------------------------------------------------+
-    |:ref:`PR_MASK_1<soc_eu_PR_MASK_1>`        |    56|     |uDMA event dispatch mask configuration registerfor events 32 to 63.            |
+    |:ref:`PR_MASK_1<soc_eu_PR_MASK_1>`        |    72|     |uDMA event dispatch mask configuration registerfor events 32 to 63.            |
     +------------------------------------------+------+-----+-------------------------------------------------------------------------------+
-    |:ref:`PR_MASK_2<soc_eu_PR_MASK_2>`        |    60|     |uDMA event dispatch mask configuration registerfor events 64 to 95.            |
+    |:ref:`PR_MASK_2<soc_eu_PR_MASK_2>`        |    76|     |uDMA event dispatch mask configuration registerfor events 64 to 95.            |
     +------------------------------------------+------+-----+-------------------------------------------------------------------------------+
     |:ref:`PR_MASK_3<soc_eu_PR_MASK_3>`        |    80|     |uDMA event dispatch mask configuration registerfor events 96 to 127.           |
     +------------------------------------------+------+-----+-------------------------------------------------------------------------------+
@@ -595,10 +596,13 @@ FC High Timer1 source event configuration register.
 
 .. table:: 
 
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
+    +-----+---+----+---------------------------------------------------------------------------------------------------+
+    |Bit #|R/W|Name|                                            Description                                            |
+    +=====+===+====+===================================================================================================+
+    |7:0  |R/W|EVT |Configure which SoC event generator input event is propagated to FC Timer High trigger event input.|
+    +-----+---+----+---------------------------------------------------------------------------------------------------+
+    |31   |R/W|ENA |Enable SoC event generator event propagation to FC Timer High trigger event input.                 |
+    +-----+---+----+---------------------------------------------------------------------------------------------------+
 
 .. _soc_eu_TIMER1_SEL_LO:
 
@@ -609,10 +613,13 @@ FC Low Timer1 source event configuration register.
 
 .. table:: 
 
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
+    +-----+---+----+---------------------------------------------------------------------------------------------------+
+    |Bit #|R/W|Name|                                            Description                                            |
+    +=====+===+====+===================================================================================================+
+    |7:0  |R/W|EVT |Configure which SoC event generator input event is propagated to FC Timer High trigger event input.|
+    +-----+---+----+---------------------------------------------------------------------------------------------------+
+    |31   |R/W|ENA |Enable SoC event generator event propagation to FC Timer High trigger event input.                 |
+    +-----+---+----+---------------------------------------------------------------------------------------------------+
 
 .. _soc_eu_TIMER2_SEL_HI:
 
@@ -623,10 +630,13 @@ FC High Timer2 source event configuration register.
 
 .. table:: 
 
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
+    +-----+---+----+---------------------------------------------------------------------------------------------------+
+    |Bit #|R/W|Name|                                            Description                                            |
+    +=====+===+====+===================================================================================================+
+    |7:0  |R/W|EVT |Configure which SoC event generator input event is propagated to FC Timer High trigger event input.|
+    +-----+---+----+---------------------------------------------------------------------------------------------------+
+    |31   |R/W|ENA |Enable SoC event generator event propagation to FC Timer High trigger event input.                 |
+    +-----+---+----+---------------------------------------------------------------------------------------------------+
 
 .. _soc_eu_TIMER2_SEL_LO:
 
@@ -637,10 +647,13 @@ FC Low Timer2 source event configuration register.
 
 .. table:: 
 
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
+    +-----+---+----+---------------------------------------------------------------------------------------------------+
+    |Bit #|R/W|Name|                                            Description                                            |
+    +=====+===+====+===================================================================================================+
+    |7:0  |R/W|EVT |Configure which SoC event generator input event is propagated to FC Timer High trigger event input.|
+    +-----+---+----+---------------------------------------------------------------------------------------------------+
+    |31   |R/W|ENA |Enable SoC event generator event propagation to FC Timer High trigger event input.                 |
+    +-----+---+----+---------------------------------------------------------------------------------------------------+
 
 .. _soc_eu_FC_MASK_SET:
 

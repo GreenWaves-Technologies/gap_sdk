@@ -2,3 +2,4 @@
 BUILD*
 results.txt
 mfcc_emul
+ground_truth.h

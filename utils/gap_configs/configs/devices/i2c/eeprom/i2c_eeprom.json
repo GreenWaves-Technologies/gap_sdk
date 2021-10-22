@@ -1,0 +1,27 @@
+{
+    "vp_comps": [
+        "i2c_eeprom", "clock"
+    ],
+
+    "vp_ports": [
+        "i2c"
+    ],
+
+    "vp_bindings": [
+        ["i2c_eeprom->i2c", "self->i2c"],
+        ["clock->out", "i2c_eeprom->clock"],
+        ["i2c_eeprom->clock_cfg", "clock->clock_in"]
+    ],
+
+    "clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "10000000"
+    },
+
+    "i2c_eeprom": {
+        "vp_component": "devices.i2c.eeprom.i2c_eeprom",
+        "address": 80,
+        "page_size": 16,
+        "number_of_pages": 256
+    }
+}

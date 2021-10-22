@@ -16,13 +16,15 @@
  */
 
 #include "../../udma_impl.hpp"
+#include "udma_uart_rx.hpp"
+#include "udma_uart.hpp"
 #include "archi/utils.h"
 #include "vp/itf/uart.hpp"
 
 using namespace std::placeholders;
 
 
-Uart_rx_fsm::Uart_rx_fsm(udma* top, Uart_periph* periph)
+Uart_rx_fsm::Uart_rx_fsm(udma* top, Uart_periph* periph, std::string itf_name)
     : top(top), periph(periph),
     state(UART_RX_STATE_WAIT_START),
     bit(1),
@@ -31,7 +33,7 @@ Uart_rx_fsm::Uart_rx_fsm(udma* top, Uart_periph* periph)
     sampling(false),
     pending_rx_byte(0),
     nb_received_bits(0),
-    fifo_receive(8)
+    fifo_receive(top, itf_name + "/rx_fifo", 8)
 {
     this->sampling_event = top->event_new(this, Uart_rx_fsm::sampling_handler);
     this->push_event = top->event_new(this, Uart_rx_fsm::push_handler);
@@ -180,13 +182,18 @@ void Uart_rx_fsm::push_in_fifo(int word)
 
 void Uart_rx_fsm::push_in_channel(void)
 {
-    if (this->periph->rx_channel->is_ready()
-            && this->periph->rx_channel->is_active()
-            && !this->fifo_receive.is_empty())
+    if (!this->fifo_receive.is_empty())
     {
-        uint8_t byte = this->fifo_receive.pop();
-        this->periph->rx_channel->push_data(&byte, 1);
-        this->update_rts();
+        if (!this->periph->rx_channel->is_active())
+        {
+            this->periph->rx_channel->wait_active();
+        }
+        else
+        {
+            uint8_t byte = this->fifo_receive.pop();
+            this->periph->rx_channel->push_data(&byte, 1);
+            this->update_rts();
+        }
     }
     this->check_push();
 }

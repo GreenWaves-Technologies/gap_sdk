@@ -298,7 +298,7 @@ static pixart_reg_init_t __pixart_reg_init[] =
 
 static inline int is_spi_active(void)
 {
-#if defined(ARCHI_PLATFORM_RTL)
+#if (defined(__PLATFORM__) && (__PLATFORM__ == ARCHI_PLATFORM_RTL)) || defined(__PLATFORM_RTL__)
 
   // SPI driver is not yet working on some chips, at least this works on gvsoc.
   // Also there is noSPI connection to camera model on RTL

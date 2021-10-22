@@ -1,4 +1,0 @@
-{
-    "@includes@" : ["ips/riscv/ri5ky_v2_6_sfloat_single_regfile.json"],
-    "isa"           : "rv32imfcXpulpv2Xf8Xf16XfvecXfauxXf16altXgap9Xint64"
-  }

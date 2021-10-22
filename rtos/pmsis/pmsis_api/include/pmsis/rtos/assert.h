@@ -20,6 +20,10 @@
 #include "stdio.h"
 #include "pmsis/rtos/os_frontend_api/os.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define pi_assert(test)                                                 \
     if (!(test))                                                        \
     {                                                                   \
@@ -28,4 +32,7 @@
         pmsis_exit(-1);                                                 \
     }
 
+#ifdef __cplusplus
+}
+#endif
 #endif

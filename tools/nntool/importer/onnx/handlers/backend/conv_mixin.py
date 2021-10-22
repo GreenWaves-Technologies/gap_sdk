@@ -14,6 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from copy import deepcopy
+
 import numpy as np
 from graph.dim import Conv2DFilterDim, DilationDim, Dim, StrideDim
 from graph.types.base import NNEdge
@@ -23,6 +25,7 @@ from graph.types.others import ReshapeParameters
 from importer.common.broadcast_mixin import BroadcastMixin
 from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
+from importer.onnx.common import logger
 
 from ..handler import partial_support, ps_description
 from .pad_mixin import PadMixin
@@ -43,6 +46,16 @@ class ConvMixin(BroadcastMixin, PadMixin, ConstantMixin):
         x = inputs[0]
         x_rank = len(x[2].shape)
         x_shape = x[2].shape
+        if x_shape[0] is not None and x_shape[0] > 1:
+            batch = x_shape[0]
+            logger.warning(f"{valid_name} has a non 1 batch dimension of {batch} - this is not supported by nntool or autotiler kernels")
+        else:
+            batch = None
+        real_in_shape = deepcopy(x_shape)
+        #conv_shape = [x if idx > 0 and x is not None else 1 for idx, x in enumerate(x_shape)]
+        conv_shape = x_shape
+        if None in x_shape:
+            real_in_shape.remove(None)
         spatial_size = x_rank - 2
         assert spatial_size == 2 or spatial_size == 1, "only 1D and 2D convolutions supported"
 
@@ -52,7 +65,7 @@ class ConvMixin(BroadcastMixin, PadMixin, ConstantMixin):
         weights = cls.get_constant(inputs[1])
         out_c = weights.shape[0]
         group = node.attrs.get("group", 1)
-        in_c = x_shape[1]
+        in_c = conv_shape[-spatial_size-1] if conv_shape[-spatial_size-1] is not None else 1
         filt_in_c = in_c // group
         if in_c != weights.shape[1] * group:
             raise ValueError(f'node {valid_name} has incorrect input channel '
@@ -69,8 +82,8 @@ class ConvMixin(BroadcastMixin, PadMixin, ConstantMixin):
         else:
             filt_h = weights.shape[-2]
             filt_w = weights.shape[-1]
-        h = 1 if spatial_size == 1 else x_shape[-2]
-        w = x_shape[-1]
+        h = 1 if spatial_size == 1 else (conv_shape[-2] if conv_shape[-2] is not None else 1)
+        w = conv_shape[-1] if conv_shape[-1] is not None else 1
 
         filt_dim = Conv2DFilterDim(filt_h, filt_w,
                                    out_c, in_c=filt_in_c)
@@ -90,21 +103,41 @@ class ConvMixin(BroadcastMixin, PadMixin, ConstantMixin):
         strides = cls.pad_start_with(node.attrs.get("strides", []), [1], 2)
         pad_dim = cls.calc_pad_dim(node, 4)
 
+        if batch is not None:
+            in_hint = ['n', 'c', 'h', 'w']
+            out_hint = ['n', 'c', 'h', 'w']
+            in_dim = Dim.named_ordered(n=batch, c=in_c, h=h, w=w)
+            ker_in_order = [
+                ['n', 'c', 'h', 'w'],
+                ['out_c', 'in_c', 'h', 'w'],
+                ['out_c']]
+            ker_out_order = [['n', 'c', 'h', 'w']]
+        else:
+            in_hint = ['c', 'h', 'w']
+            out_hint = ['c', 'h', 'w']
+            in_dim = Dim.named_ordered(c=in_c, h=h, w=w)
+            ker_in_order = [
+                ['c', 'h', 'w'],
+                ['out_c', 'in_c', 'h', 'w'],
+                ['out_c']]
+            ker_out_order = [['c', 'h', 'w']]
         params = Conv2DParameters(valid_name,
                                   filt=filt_dim,
                                   stride=StrideDim(strides[0],
                                                    strides[1]),
                                   dilation=DilationDim(dilations[0],
                                                        dilations[1]),
+                                  batch=batch,
                                   groups=group,
                                   padding=pad_dim,
+                                  ker_in_order=ker_in_order,
+                                  ker_out_order=ker_out_order,
                                   has_bias=True,
-                                  in_dims_hint=[['c', 'h', 'w'],
+                                  in_dims_hint=[in_hint,
                                                 cls.ONNX_FILTER_ORDER, ['c']],
-                                  out_dims_hint=[['c', 'h', 'w']],
+                                  out_dims_hint=[out_hint],
                                   constant_store=G.constant_store)
 
-        in_dim = Dim.named_ordered(c=in_c, h=h, w=w)
         w_dim = Dim.named_ordered(
             out_c=out_c, in_c=filt_in_c, h=filt_h, w=filt_w)
         b_dim = Dim.named_ordered(c=out_c)
@@ -113,10 +146,30 @@ class ConvMixin(BroadcastMixin, PadMixin, ConstantMixin):
                           to_node=params, from_idx=0, to_idx=1))
         G.add_edge(NNEdge(from_node=biases_node,
                           to_node=params, from_idx=0, to_idx=2))
+        if conv_shape != real_in_shape:
+            # insert reshape from [xx,None,xx,xx] -> [None, xx, xx, xx]
+            rbatch_params = ReshapeParameters(f'{valid_name}_reshape_batchdim',
+                                          old_shape=Dim.unnamed(conv_shape),
+                                          shape=Dim.unnamed(real_in_shape))
+            G.add_edge(
+                NNEdge(from_node=x[0], to_node=rbatch_params, from_idx=x[1], to_idx=0))
+            prev_node = rbatch_params
+            prev_idx = 0
+        else:
+            prev_node = x[0]
+            prev_idx = x[1]
+
         if spatial_size == 1:
-            oned_in_shape = [in_c, w]
-            twod_in_shape = [in_c, 1, w]
-            oned_out_shape = [out_dims[0].c, out_dims[0].w]
+            if batch is not None:
+                oned_in_shape = [batch, in_c, w]
+                twod_in_shape = [batch, in_c, 1, w]
+                oned_out_shape = [batch, out_dims[0].c, out_dims[0].w]
+                pout_dims = ProvisionalDim(oned_out_shape)
+            else:
+                oned_in_shape = [in_c, w]
+                twod_in_shape = [in_c, 1, w]
+                oned_out_shape = [out_dims[0].c, out_dims[0].w]
+                pout_dims = ProvisionalDim([conv_shape[0]] + oned_out_shape)
             r1_params = ReshapeParameters(f'{valid_name}_reshape2d',
                                           old_shape=Dim.unnamed(oned_in_shape),
                                           shape=Dim.unnamed(twod_in_shape))
@@ -124,17 +177,16 @@ class ConvMixin(BroadcastMixin, PadMixin, ConstantMixin):
                                           old_shape=out_dims[0],
                                           shape=Dim.unnamed(oned_out_shape))
             G.add_edge(
-                NNEdge(from_node=x[0], to_node=r1_params, from_idx=x[1], to_idx=0))
+                NNEdge(from_node=prev_node, to_node=r1_params, from_idx=prev_idx, to_idx=0))
             G.add_edge(NNEdge(from_node=r1_params,
                               to_node=params, from_idx=0, to_idx=0))
             G.add_edge(NNEdge(from_node=params,
                               to_node=r2_params, from_idx=0, to_idx=0))
-            pout_dims = ProvisionalDim([x_shape[0]] + oned_out_shape)
             all_nodes[node.output[0]] = (r2_params, 0, pout_dims)
             return r2_params
         else:
-            pout_dims = ProvisionalDim([x_shape[0]] + out_dims[0].shape)
+            pout_dims = ProvisionalDim([conv_shape[0]] + out_dims[0].shape)
             G.add_edge(
-                NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
+                NNEdge(from_node=prev_node, to_node=params, from_idx=prev_idx, to_idx=0))
             all_nodes[node.output[0]] = (params, 0, pout_dims)
             return params

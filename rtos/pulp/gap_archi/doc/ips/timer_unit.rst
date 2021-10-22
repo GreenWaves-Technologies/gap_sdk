@@ -1,4 +1,5 @@
-Input file: fe/ips/timer_unit/doc/TIMER_UNIT_reference.md
+.. 
+   Input file: fe/ips/timer_unit/doc/TIMER_UNIT_reference.md
 
 Register map
 ^^^^^^^^^^^^
@@ -59,7 +60,7 @@ Timer Low Configuration register.
     +-----+---+------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |    6|R/W|PEN   |Timer low prescaler enable configuration bitfield:- 1'b0: disabled - 1'b1: enabled                                                                                                                                                          |
     +-----+---+------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |    7|R/W|CCFG  |Timer low clock source configuration bitfield: - 1'b0: FLL or FLL+Prescaler - 1'b1: Reference clock at 32kHz                                                                                                                                |
+    |    7|R/W|CLKCFG|Timer low clock source configuration bitfield: - 1'b0: FLL or FLL+Prescaler - 1'b1: Reference clock at 32kHz                                                                                                                                |
     +-----+---+------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |15:8 |R/W|PVAL  |Timer low prescaler value bitfield. Ftimer = Fclk / (1 + PRESC_VAL)                                                                                                                                                                         |
     +-----+---+------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -86,13 +87,15 @@ Timer High Configuration register.
     +-----+---+------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |    3|R/W|IEM   |Timer high input event mask configuration bitfield: - 1'b0: disabled - 1'b1: enabled                                                                                                                                                           |
     +-----+---+------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |    4|R/W|MODE  |Timer high continuous mode configuration bitfield: - 1'b0: Continue mode - continue incrementing Timer high counter when compare match with CMP_LO occurs. - 1'b1: Cycle mode - reset Timer high counter when compare match with CMP_LO occurs.|
+    |    4|R/W|MODE  |Timer high continuous mode configuration bitfield: - 1'b0: Continue mode - continue incrementing Timer high counter when compare match with CMP_LO occurs. - 1'b1: Cycle mode - reset Timer high counter when compare match with CMP_HI occurs.|
     +-----+---+------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |    5|R/W|ONE_S |Timer high one shot configuration bitfield: - 1'b0: let Timer high enabled counting when compare match with CMP_LO occurs. - 1'b1: disable Timer high when compare match with CMP_LO occurs.                                                   |
+    |    5|R/W|ONE_S |Timer high one shot configuration bitfield: - 1'b0: let Timer high enabled counting when compare match with CMP_HI occurs. - 1'b1: disable Timer high when compare match with CMP_HI occurs.                                                   |
     +-----+---+------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |    6|R/W|PEN   |Timer high prescaler enable configuration bitfield: - 1'b0: disabled - 1'b1: enabled                                                                                                                                                           |
     +-----+---+------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |    7|R/W|CLKCFG|Timer high clock source configuration bitfield: - 1'b0: FLL or FLL+Prescaler - 1'b1: Reference clock at 32kHz                                                                                                                                  |
+    +-----+---+------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |15:8 |R/W|PVAL  |Timer high prescaler value bitfield. Ftimer = Fclk / (1 + PRESC_VAL)                                                                                                                                                                           |
     +-----+---+------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 .. _timer_unit_CNT_LO:

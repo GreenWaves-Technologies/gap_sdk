@@ -20,6 +20,7 @@ from graph.types import ConcatParameters
 from quantization.qtype_constraint import MatchAll
 from quantization.quantizers.concat_mixin import ConcatMixin
 from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       needs_stats,
                                                        out_qs_constraint,
                                                        params_type)
 
@@ -31,6 +32,7 @@ LOG = logging.getLogger('nntool.' + __name__)
 @params_type(ConcatParameters)
 @in_qs_constraint(MatchAll({'dtype': set([np.int8, np.uint8])}))
 @out_qs_constraint({'dtype': set([np.int8, np.uint8])})
+@needs_stats(False)
 class ConcatMult(MultQuantizionHandler, ConcatMixin):
 
     KTYPE = 'scaled'

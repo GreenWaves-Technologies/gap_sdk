@@ -621,11 +621,9 @@ class IsaDecodeTree(object):
 
 class Resource(object):
 
-    def __init__(self, name, instances=1, latency=1, bandwidth=1):
+    def __init__(self, name, instances=1):
         self.name = name
         self.instances = instances
-        self.latency = latency
-        self.bandwidth = bandwidth
 
 
 class Isa(object):
@@ -648,8 +646,8 @@ class Isa(object):
 
         return -1
 
-    def add_resource(self, name, instances=1, latency=1, bandwidth=1):
-        self.resources.append(Resource(name, instances, latency, bandwidth))
+    def add_resource(self, name, instances=1):
+        self.resources.append(Resource(name, instances))
 
 
     def get_insns(self):
@@ -685,7 +683,7 @@ class Isa(object):
         self.dump('static iss_resource_t __iss_resources[]\n')
         self.dump('{\n')
         for resource in self.resources:
-            self.dump('  {"%s", %d, %d, %d},\n' % (resource.name, resource.instances, resource.latency, resource.bandwidth))
+            self.dump('  {"%s", %d},\n' % (resource.name, resource.instances))
         self.dump('};\n')
         self.dump('\n')
 
@@ -947,7 +945,10 @@ class Instr(object):
         self.isa_tags = isa_tags
         self.out_reg_latencies = []
         self.latency = 0
+        self.power_group = 0
         self.resource = None
+        self.resource_latency = 0
+        self.resource_bandwidth = 0
         nb_insn += 1
 
         encoding = encoding[::-1].replace(' ', '')
@@ -988,11 +989,16 @@ class Instr(object):
         
         self.id = instrLabels[self.traceLabel]
 
-    def attach_resource(self, name):
+    def attach_resource(self, name, latency, bandwidth):
         self.resource = name
+        self.resource_latency = latency
+        self.resource_bandwidth = bandwidth
 
     def set_latency(self, latency):
         self.latency = latency
+
+    def set_power_group(self, power_group):
+        self.power_group = power_group
 
     def get_out_reg(self, reg):
         index = 0
@@ -1057,6 +1063,9 @@ class Instr(object):
                 arg.gen(isaFile, indent=8)
         self.dump(isaFile, '      },\n')
         self.dump(isaFile, '      .resource_id=%d,\n' % (-1 if self.resource is None else isa.get_resource_index(self.resource)))
+        self.dump(isaFile, '      .resource_latency=%d,\n' % self.resource_latency)
+        self.dump(isaFile, '      .resource_bandwidth=%d,\n' % self.resource_bandwidth)
+        self.dump(isaFile, '      .power_group=%d,\n' % (self.power_group))
         self.dump(isaFile, '    }\n')
         self.dump(isaFile, '  }\n')
         self.dump(isaFile, '};\n')

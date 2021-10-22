@@ -20,6 +20,10 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @ingroup groupDrivers
  */
@@ -110,4 +114,7 @@ int32_t pi_udma_timeout_ioctl(int32_t timeout_id, uint32_t cmd, void *arg);
  * @}
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_DRIVERS_UDMA_TIMEOUT_H__ */

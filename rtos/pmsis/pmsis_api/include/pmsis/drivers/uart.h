@@ -20,6 +20,10 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @ingroup groupDrivers
  */
@@ -546,4 +550,7 @@ static inline void pi_cl_uart_read_wait(pi_cl_uart_req_t *req);
  * @}
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_DRIVERS_UART_H__ */

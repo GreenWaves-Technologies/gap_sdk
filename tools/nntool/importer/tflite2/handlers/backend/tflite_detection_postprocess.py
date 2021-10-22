@@ -37,10 +37,14 @@ class TFLiteDetectionPostProcess(BackendHandler):
         opts = kwargs['opts']
         all_nodes = kwargs['all_nodes']
         importer = kwargs['importer']
+        graph_outputs = kwargs['outputs']
 
+        if len(node.output) > 3 and node.output[3] in graph_outputs:
+            G.remove(graph_outputs[node.output[3]][0])
+            del graph_outputs[node.output[3]]
         inputs = [all_nodes[t] for t in node.input]
         outputs = [all_nodes.get(node.output[idx]) if idx < len(node.output) else None
-                   for idx in range(4)]
+                   for idx in range(3)]
         # inp_shapes = [input[2].shape for input in inputs]
 
         if 'max_bb_before_nms' not in custom_opts:
@@ -69,7 +73,7 @@ class TFLiteDetectionPostProcess(BackendHandler):
 
         if opts.get('load_quantization'):
             in_qtypes = [QType.from_min_max_sq(tensor.qtype.min_val, tensor.qtype.max_val)
-                         if (tensor.qtype.is_asymmetric or not tensor.qtype.signed) else tensor.qtype
+                         if (tensor.qtype.asymmetric or not tensor.qtype.signed) else tensor.qtype
                          for tensor in node.input]
             o_boxes_qtype = QType(min_val=-2, max_val=2,
                                   dtype=np.int16, scale=2**(-14))
@@ -77,7 +81,7 @@ class TFLiteDetectionPostProcess(BackendHandler):
             o_class_qtype = QType(scale=1, dtype=np.int8)
             qrec = QRec.scaled(in_qs=in_qtypes,
                                out_qs=[o_boxes_qtype, o_class_qtype,
-                                       o_scores_qtype, o_class_qtype])
+                                       o_scores_qtype])
             G.quantization[NodeId(params)] = qrec
 
         return params

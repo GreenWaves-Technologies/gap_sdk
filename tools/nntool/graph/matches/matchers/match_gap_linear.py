@@ -15,11 +15,10 @@
 
 import logging
 
-from graph.types import (ConvFusionParameters, FcParameters,
-                         HSigmoidActivationParameters,
+from graph.types import (FcParameters, HSigmoidActivationParameters,
                          HSwishActivationParameters, LeakyActivationParameters,
-                         NNEdge, ReluActivationParameters,
-                         SigmoidActivationParameters, Transposable)
+                         LinearFusionParameters, NNEdge,
+                         ReluActivationParameters, SigmoidActivationParameters)
 from quantization.new_qrec import QRec
 from utils.graph import GraphView
 from utils.node_id import NodeId
@@ -52,8 +51,6 @@ class FusionMatch():
         self.order = []
 
     def add_node(self, params):
-        if isinstance(params, Transposable) and (params.transpose_in or params.transpose_out):
-            return None
         if isinstance(params, FcParameters):
             if self.linear:
                 return None
@@ -113,7 +110,7 @@ class MatchGapLinear(Matcher):
                 last_node = node
             input_mapping = [[(node_list.linear, idx)] for idx in range(3)]
             output_mapping = [(last_node, 0)]
-            pnode = ConvFusionParameters(
+            pnode = LinearFusionParameters(
                 node_list.linear.name + '_fusion',
                 fusion_type=node_list.fusion_type,
                 subgraph=subgraph,

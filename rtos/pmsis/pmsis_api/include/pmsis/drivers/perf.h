@@ -17,6 +17,10 @@
 #ifndef __DRIVERS_PERF_H__
 #define __DRIVERS_PERF_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**        
  * @ingroup groupDrivers       
  */
@@ -98,4 +102,7 @@ static inline unsigned int pi_perf_read(int id);
 
 //!@}
 
+#ifdef __cplusplus
+}
+#endif
 #endif

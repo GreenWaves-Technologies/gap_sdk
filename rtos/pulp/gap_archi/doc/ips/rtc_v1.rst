@@ -1,4 +1,5 @@
-Input file: fe/ips/rtc_dolphin/docs/RTC_reference.md
+.. 
+   Input file: fe/ips/rtc_dolphin/docs/RTC_reference.md
 
 Register map
 ^^^^^^^^^^^^

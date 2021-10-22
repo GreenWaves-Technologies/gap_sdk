@@ -22,6 +22,8 @@
 #ifndef __CPU_ISS_ISS_INSN_PERF_HPP
 #define __CPU_ISS_ISS_INSN_PERF_HPP
 
+#define CSR_PCER_MISALIGNED    29
+#define CSR_PCER_INSN_CONT     30
 
 static inline void iss_pccr_account_event(iss_t *iss, unsigned int event, int incr)
 {

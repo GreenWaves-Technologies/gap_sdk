@@ -19,12 +19,12 @@ import os
 def write_constants(global_recs, tensor_directory=None):
     if tensor_directory is None:
         tensor_directory = "."
-    else:
+    elif tensor_directory != ".":
         os.makedirs(tensor_directory, mode=0o750, exist_ok=True)
     for global_rec in global_recs:
         if global_rec.const_info is None:
             continue
         const_info = global_rec.const_info
-        with open(const_info.file_name, 'wb') as t_fp:
+        with open(os.path.join(tensor_directory, const_info.file_name), 'wb') as t_fp:
             const_info.contents.astype(const_info.qtype.dtype, order='C', casting='unsafe', copy=True)\
                 .tofile(t_fp)

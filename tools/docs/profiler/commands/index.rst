@@ -1,4 +1,4 @@
-.. _commands:
+.. _profiler_commands:
 
 Timeline window Commands
 ========================

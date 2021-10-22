@@ -22,11 +22,11 @@ from .math_mixin import BasicMathMixin
 
 
 @onnx_op("LeakyRelu")
-class Atan(BasicMathMixin, BackendHandler):
+class LeakyRelu(BasicMathMixin, BackendHandler):
     @classmethod
     def _common(cls, node, **kwargs):
         alpha = node.attrs.get('alpha', 0.01)
-        return super(Atan, cls)._common(node,
+        return super(LeakyRelu, cls)._common(node,
                                         params_class=LeakyActivationParameters,
                                         params_args={
                                             'leak_factor': alpha
@@ -39,5 +39,5 @@ class Atan(BasicMathMixin, BackendHandler):
         return cls._common(node, **kwargs)
 
     @classmethod
-    def version_7(cls, node, **kwargs):
+    def version_6(cls, node, **kwargs):
         return cls._common(node, **kwargs)

@@ -1,7 +1,7 @@
 DEFAULT_EXCLUDES=--exclude=".git*" --exclude="BUILD*" --exclude="build*" --exclude="_build*" --exclude="__pycache__/" --exclude=junit-reports
 
 pulp_configs:
-	make -C $(GAP_SDK_HOME)/tools/pulp_tools/pulp-configs all_scons INSTALL_DIR=$(INSTALL_DIR) TARGET_INSTALL_DIR=$(TARGET_INSTALL_DIR)
+	$(MAKE) -C $(GAP_SDK_HOME)/utils/gap_configs all_scons INSTALL_DIR=$(INSTALL_DIR) TARGET_INSTALL_DIR=$(TARGET_INSTALL_DIR)
 
 do.archi: pulp_configs
 	if [ -e archi_pulp ]; then \
@@ -33,7 +33,7 @@ build.gap_archi:
 ifeq '$(TARGET_CHIP)' 'GAP9_V2'
 	cd $(GAP_SDK_HOME)/rtos/pulp/gap_archi && make build
 endif
-	
+
 artifact.hal: do.hal
 	mkdir -p $(ARTIFACT_PATH)/rtos/pulp/hal
 	rsync -avR $(DEFAULT_EXCLUDES) hal $(ARTIFACT_PATH)/rtos/pulp
@@ -44,7 +44,7 @@ artifact.pulpos:
 
 artifact: artifact.archi artifact.hal artifact.pulpos
 
-build.pulprt:
+build.pulprt: build.archi
 ifneq '$(TARGET_CHIP)' 'GAP9_V2'
 	$(MAKE) -C pulp-os -f gap_sdk.mk $(TARGET_NAME)
 endif

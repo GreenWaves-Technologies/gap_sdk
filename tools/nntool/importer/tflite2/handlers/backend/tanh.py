@@ -28,9 +28,9 @@ class Tanh(BasicMathMixin, BackendHandler):
 
     @classmethod
     def _common(cls, node, **kwargs):
-        if kwargs['opts'].get('load_quantization') and kwargs['opts'].get('use_lut_tanh'):
+        if kwargs['opts'].get('load_quantization') and not kwargs['opts'].get('use_hard_tanh'):
             kwargs['in_qs'] = [QType.from_min_max_sq(-8, 8, dtype=np.int8)]
-        params_class = TanHActivationParameters if kwargs['opts'].get('use_lut_tanh') else HTanHActivationParameters
+        params_class = TanHActivationParameters if not kwargs['opts'].get('use_hard_tanh') else HTanHActivationParameters
         return super(Tanh, cls)._common(
             node,
             params_class=params_class,

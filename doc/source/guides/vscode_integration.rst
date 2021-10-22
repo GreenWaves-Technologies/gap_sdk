@@ -38,7 +38,7 @@ the absolute path to the files and add any needed option:
 
 .. code-block:: none
 
-    "command": "<OCD install path>/openocd.exe -f <OCD install path>/scripts/tcl/interface/ftdi/olimex-arm-usb-ocd-h.cfg -f <SDK install path>/tools/gap8-openocd-tools/tcl/gap9revb.tcl"
+    "command": "<OCD install path>/openocd.exe -f <OCD install path>/scripts/tcl/interface/ftdi/olimex-arm-usb-ocd-h.cfg -f <SDK install path>/tools/openocd_tools/tcl/gap9revb.tcl"
 
 And finally modify :file:`.vscode/launch.json` and modify the gdb command to
 match your IP address and openocd gdb port:

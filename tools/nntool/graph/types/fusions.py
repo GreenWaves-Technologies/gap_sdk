@@ -13,13 +13,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.pooling import PoolingParameters
-from graph.types.others import PadParameters
 import logging
+
+from graph.types.others import PadParameters
+from graph.types.pooling import PoolingParameters
+from graph.types.tensor_arithmetic import Broadcastable
 
 from ..dim import Dim
 from .base import (FilterParameters, NNEdge, NodeOptions, Parameters,
-                   SensitiveToOrder, SingleInputAndOutput, Transposable, cls_op_name)
+                   SensitiveToOrder, SingleInputAndOutput, cls_op_name)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -219,6 +221,7 @@ class FusionBase(Parameters):
     def __str__(self):
         return "{}".format(", ".join([str(node).strip() for node in self.contained_nodes()]))
 
+
 @cls_op_name('matrix_scale')
 class MatScaleFusionParameters(FusionBase, SensitiveToOrder):
     fusion_op_name = "matscale"
@@ -231,12 +234,7 @@ class MatScaleFusionParameters(FusionBase, SensitiveToOrder):
         return [Dim.broadcast(in_dims)]
 
 
-@cls_op_name('conv_fusion')
-class ConvFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrder, Transposable):
-    '''Fusion of operators. At present restricted to single input and output but
-    this could be removed perhaps'''
-
-    fusion_op_name = "conv_fusion"
+class FilterFusionBase(FusionBase, SingleInputAndOutput):
 
     def _init_at_options(self):
         if self._at_options is None:
@@ -263,7 +261,9 @@ class ConvFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrder, T
         for node in self.contained_nodes():
             inner_label = node.graph_label[1::]
             if isinstance(node, PoolingParameters):
-                inner_label = [f'Pool {label}' for label in inner_label]
+                inner_label = [f'{node.pool_type} pool {node.filter}']
+            else:
+                inner_label = node.graph_label[1::]
             label.extend(inner_label)
         return label
 
@@ -276,6 +276,24 @@ class ConvFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrder, T
     def compute_load(self):
         return sum([load if load else 0 for load in [node.compute_load()
                                                      for node in self.contained_nodes()]])
+
+
+@cls_op_name('conv_fusion')
+class ConvFusionParameters(FilterFusionBase, SensitiveToOrder):
+
+    fusion_op_name = "conv_fusion"
+
+
+@cls_op_name('conv_batchnorm_fusion')
+class ConvBatchNormFusionParameters(FilterFusionBase, SensitiveToOrder):
+
+    fusion_op_name = "conv_batchnorm_fusion"
+
+
+@cls_op_name('linear_fusion')
+class LinearFusionParameters(FilterFusionBase):
+
+    fusion_op_name = "linear_fusion"
 
 
 @cls_op_name('padded_add_fusion')
@@ -299,7 +317,8 @@ class PaddedAddFusionParameters(FusionBase, SensitiveToOrder):
         self._at_options = val
 
     def padding_dim(self):
-        pad_node = [node for node in self.contained_nodes() if isinstance(node, PadParameters)]
+        pad_node = [node for node in self.contained_nodes(
+        ) if isinstance(node, PadParameters)]
         return pad_node[0].padding
 
     def get_parameter_size(self):
@@ -314,7 +333,7 @@ class PaddedAddFusionParameters(FusionBase, SensitiveToOrder):
 
 
 @cls_op_name('matmulop_fusion')
-class MatMulOpFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrder, Transposable):
+class MatMulOpFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrder):
     '''Fusion of operators. At present restricted to single input and output but
     this could be removed perhaps'''
 
@@ -327,9 +346,8 @@ class MatMulOpFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrde
             *[node.at_options for node in self.contained_nodes()])
 
     def get_output_size(self, in_dims):
-        in_dims = self.apply_transposes('in', in_dims)
-        out_dims = super(MatMulOpFusionParameters, self).get_output_size(in_dims)
-        out_dims = self.apply_transposes('out', out_dims)
+        out_dims = super(MatMulOpFusionParameters,
+                         self).get_output_size(in_dims)
         return out_dims
 
     @property
@@ -364,9 +382,7 @@ class MatMulOpFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrde
                                                      for node in self.contained_nodes()]])
 
 
-@cls_op_name('activation_fusion')
-class ActivationFusion(FusionBase):
-    fusion_op_name = "activation_fusion"
+class ActivationFusionBase(FusionBase):
 
     @property
     def graph_label(self):
@@ -375,5 +391,16 @@ class ActivationFusion(FusionBase):
             inner_label = node.graph_label[1::]
             label.extend(inner_label)
         return label
+
+
+@cls_op_name('activation_fusion')
+class ActivationFusion(ActivationFusionBase, SensitiveToOrder):
+    fusion_op_name = "activation_fusion"
+
+
+@cls_op_name('broadcastable_activation_fusion')
+class BroadcastableActivationFusion(ActivationFusionBase, Broadcastable):
+    fusion_op_name = "broadcastable_activation_fusion"
+
 
 dont_quantize_internals = FusionBase.dont_quantize_internals

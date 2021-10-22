@@ -319,7 +319,8 @@ UserSymbol_T *US_Float(
 	);
 
 UserSymbol_T *US_Type(
-	char *Name	/**< Name of the user defined symbol */
+	char *Name,	/**< Name of the user defined symbol */
+	char *String	/**< String associated to Name */
 	);
 
 /**
@@ -719,6 +720,10 @@ ArgBindingDescr_T *BindKExpr(
 	char *Expr
 	);
 
+ArgBindingDescr_T *BindKGExpr(
+	char *Expr
+	);
+
 /**
 @brief Binds argument to a user kernel argument (a tiled argument).
 
@@ -946,6 +951,23 @@ Object_T *KerArgP(
 	char *CArgName				/**< To which user kernel C argument this kernel argument is related to */
 	);
 
+Object_T *KerArgPV(
+	char *KerArgName,			/**< Kernel argument name */
+	KernelArgDimDescrT *KerArgSpace,	/**< Kernel argument space descriptor */
+	Object_Type_T ObjType,			/**< Kernel argument type: logical OR of types (O_xxx) or pre defined types */
+	unsigned int W,				/**< Kernel argument Data plane width */
+	unsigned int H,				/**< Kernel argument Data plane height */
+	unsigned int UsedW,			/**< Used tile width after padding and striding */
+	unsigned int UsedH,			/**< Used tile height after padding and striding */
+	v4s PadTile,				/**< Left, Right, Top, Bottom amount of pad, for dimension ratio evaluation, may be > Pad Exec if several kernels are cascaded */
+	v4s PadExec,				/**< Left, Right, Top, Bottom amount of pad, actual pad to be used at kernel exec time */
+	int PadValue,
+	unsigned int ItemSize,			/**< Data plane basic data type size in bytes */
+        int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles, applies to tiled 2D space if present, if not to most inner dim of this argument */
+	KernelArgConstraints_T Constraint,	/**< Kernel argument constraints */
+        unsigned int PreferedTileSize,		/**< Tile variable dimension must be a multiple of PreferedTileSize if not 0 */
+	char *CArgName				/**< To which user kernel C argument this kernel argument is related to */
+	);
 
 /**
 @brief Creates one user kernel argument with padding on the boundaries. Kernel argument Space is explicitely described. Top/Bottom extra space controllable.
@@ -1844,7 +1866,7 @@ extern void DecodeCNNOper(
 
 #define MAX_KERNEL              10000
 #define MAX_KERNEL_LIB_TEMPL    500
-#define MAX_KERNEL_LIB          1000
+#define MAX_KERNEL_LIB          2000
 #define MAX_KERNEL_GROUP        1000
 #define MAX_KERNEL_ARG          50
 

@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2018 GreenWaves Technologies
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpointer-sign"
@@ -151,6 +167,117 @@ void KerSetBiasB8_SQ8(KerSetBias_SQ8_T *Arg)
 			Out[W*H*f + First + 2*i] = B; Out[W*H*f + First + 2*i+1] = B;
 		}
 		if (Iter&0x1) Out[W*H*f + First + Iter-1] = B;
+	}
+	gap_waitbarrier(0);
+}
+
+
+/* Set Bias, all outputs evalauted in parallel */
+void KerParSetBiasB32_HWC_SQ8(KerSetBias_SQ8_T *Arg)
+
+{
+	int * __restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W, H = Arg->H, Feat = Arg->Feat;
+	int * __restrict__ Bias = Arg->Bias;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (unsigned int i=0; i<(W*H); i++) {
+		for (unsigned int of=First; of<Last; of++) {
+			int B = AT_LSHIFT(Bias[of], NormBias);
+			Out[i*Feat+of] = B;
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParSetBiasB16_HWC_SQ8(KerSetBias_SQ8_T *Arg)
+
+{
+	int * __restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W, H = Arg->H, Feat = Arg->Feat;
+	short int * __restrict__ Bias = Arg->Bias;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (unsigned int i=0; i<(W*H); i++) {
+		for (unsigned int of=First; of<Last; of++) {
+			int B = AT_LSHIFT(Bias[of], NormBias);
+			Out[i*Feat+of] = B;
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParSetBiasB8_HWC_SQ8(KerSetBias_SQ8_T *Arg)
+
+{
+	int * __restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W, H = Arg->H, Feat = Arg->Feat;
+	signed char * __restrict__ Bias = Arg->Bias;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (unsigned int i=0; i<(W*H); i++) {
+		for (unsigned int of=First; of<Last; of++) {
+			int B = AT_LSHIFT(Bias[of], NormBias);
+			Out[i*Feat+of] = B;
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+/* Set bias, one output evaluated in parallel */
+void KerSetBiasB32_HWC_SQ8(KerSetBias_SQ8_T *Arg)
+
+{
+	int * __restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W, H = Arg->H, Feat = Arg->Feat;
+	int * __restrict__ Bias = (int * __restrict__) Arg->Bias;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(W*H), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, W*H), Iter = Max(0, Last-First);
+
+	for (unsigned int i=First; i<Last; i++) {
+		for (unsigned int of=0; of<Feat; of++) {
+			int B = AT_LSHIFT(Bias[of], NormBias);
+			Out[i*Feat+of] = B;
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+void KerSetBiasB16_HWC_SQ8(KerSetBias_SQ8_T *Arg)
+
+{
+	int * __restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W, H = Arg->H, Feat = Arg->Feat;
+	short int * __restrict__ Bias = Arg->Bias;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(W*H), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, W*H), Iter = Max(0, Last-First);
+
+	for (unsigned int i=First; i<Last; i++) {
+		for (unsigned int of=0; of<Feat; of++) {
+			int B = AT_LSHIFT(Bias[of], NormBias);
+			Out[i*Feat+of] = B;
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+void KerSetBiasB8_HWC_SQ8(KerSetBias_SQ8_T *Arg)
+
+{
+	int * __restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W, H = Arg->H, Feat = Arg->Feat;
+	signed char * __restrict__ Bias = Arg->Bias;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(W*H), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, W*H), Iter = Max(0, Last-First);
+
+	for (unsigned int i=First; i<Last; i++) {
+		for (unsigned int of=0; of<Feat; of++) {
+			int B = AT_LSHIFT(Bias[of], NormBias);
+			Out[i*Feat+of] = B;
+		}
 	}
 	gap_waitbarrier(0);
 }

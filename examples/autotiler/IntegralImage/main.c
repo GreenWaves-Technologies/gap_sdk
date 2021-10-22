@@ -54,7 +54,7 @@ static void cluster_main(ArgCluster_T *ArgC)
 	if (II_L1_Memory == 0) {
 		printf("Failed to allocate %d bytes for L1_memory\n", _II_L1_Memory_SIZE); return ;
 	}
-	
+
 	pi_perf_start();
 
 	BodyIntegralImage(ArgC->ImageIn,ArgC->IntegralImg);
@@ -106,6 +106,7 @@ void integral_image(int argc, char *argv[])
 	/* Configure And open cluster. */
     struct pi_device cluster_dev;
     struct pi_cluster_conf cl_conf;
+    pi_cluster_conf_init(&cl_conf);
     cl_conf.id = 0;
     pi_open_from_conf(&cluster_dev, (void *) &cl_conf);
     if (pi_cluster_open(&cluster_dev))
@@ -122,10 +123,8 @@ void integral_image(int argc, char *argv[])
 
 
     struct pi_cluster_task *task = pmsis_l2_malloc(sizeof(struct pi_cluster_task));
-    memset(task, 0, sizeof(struct pi_cluster_task));
-    task->entry = (void *)cluster_main;
-    task->arg = (void *) &ClusterCall;
-    task->stack_size = (uint32_t) STACK_SIZE;
+
+	pi_cluster_task(task, (void (*)(void *))cluster_main, (void *) &ClusterCall);
 
     pi_cluster_send_task_to_cl(&cluster_dev, task);
 

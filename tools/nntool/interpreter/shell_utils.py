@@ -24,7 +24,6 @@ from itertools import zip_longest
 import numpy as np
 from cmd2 import Cmd, ansi
 
-from graph.types import FilterParameters, ConvFusionParameters
 from utils.data_importer import MODES
 from utils.tabular import CSVRenderer, ExcelRenderer, TextTableRenderer
 from utils.node_id import NodeId
@@ -71,7 +70,7 @@ def input_options(parser):
                         type=int, default=None,
                         help="adjust image width this value")
     parser.add_argument('-T', '--transpose',
-                        action="store_true", help='Swap W and H')
+                        action="store_true", help='Used only on images, it swap the channels position (from CHW to HWC or viceversa)')
     parser.add_argument('-F', '--nptype',
                         choices=np.sctypeDict.keys(), default=None,
                         help='interpret pixels as this numpy type')

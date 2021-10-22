@@ -14,10 +14,10 @@ import logging
 
 from expressions.symbolic.symbol import Symbol, SymbolStats
 from graph.types import ConstantInputParameters, ExpressionFusionParameters
-from graph.types.base import CanFuseToExpression, NNEdge, Transposable
+from graph.types.base import CanFuseToExpression, NNEdge
 from graph.types.others import QuantizeParameters
 from quantization.new_qrec import QRec
-from quantization.unified_quantizer import UnifiedQuantizer
+from quantization.quantizer.new_quantizer import NewQuantizer
 from utils.graph import GraphView
 from utils.node_id import NodeId
 
@@ -224,8 +224,7 @@ def find_connected_groups(G):
         whose input is the result of a node in the graph
         finally verify that all the nodes want to stay in each subgraph
     """
-    candidates = set([node for node in G.nodes(node_classes=CanFuseToExpression)
-                      if (not isinstance(node, Transposable) or not node.has_transpose)])
+    candidates = set(G.nodes(node_classes=CanFuseToExpression))
     subgraphs = []
     while candidates:
         node = candidates.pop()
@@ -325,7 +324,7 @@ class ExpressionMatcher(Matcher):
                 out_edges = G.out_edges(expr.name)
                 for edge in out_edges:
                     if isinstance(edge.to_node, QuantizeParameters):
-                        G.remove_and_reconnect(edge.to_node)
+                        G.remove_and_reconnect(edge.to_node, edge_class=NNEdge)
                         if NodeId(edge.to_node) in G.quantization:
                             del G.quantization[NodeId(edge.to_node)]
                 to_quantize.append(expr)
@@ -333,8 +332,8 @@ class ExpressionMatcher(Matcher):
             self._expr_num += 1
 
         if to_quantize:
-            quantizer = UnifiedQuantizer.from_quantized_graph(G)
-            G.quantization = quantizer.quantize(G, start_nodes=to_quantize)
+            quantizer = NewQuantizer.from_quantized_graph(G)
+            quantizer.quantize()
 
         if set_identity:
             self.set_identity(G)

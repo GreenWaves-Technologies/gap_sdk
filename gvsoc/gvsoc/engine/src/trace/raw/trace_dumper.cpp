@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
@@ -39,7 +39,7 @@ void trace_dumper_trace::dump(int64_t timestamp, uint8_t *value, int width)
 trace_dumper_client::trace_dumper_client(std::string file)
 : filepath(file), current_timestamp(-1)
 {
-}    
+}
 
 
 int trace_dumper_client::open(ed_conf_timescale_e timescale)
@@ -120,7 +120,9 @@ int trace_dumper_client::dump_trace(int64_t timestamp, int id, int id_size, ed_t
     {
         if (width == 1)
         {
-            ed_header_t header = { .type = *value == 0 ? ED_TYPE_TRACE_SET_0 : ED_TYPE_TRACE_SET_1 };
+            ed_header_t header = { .type =
+                static_cast<uint8_t>(*value == 0 ? ED_TYPE_TRACE_SET_0 : ED_TYPE_TRACE_SET_1)
+            };
 
             this->file.write((char *)&header, sizeof(header));
             if (this->file.fail())
@@ -195,7 +197,7 @@ int trace_dumper_client::dump_trace(int64_t timestamp, int id, int id_size, ed_t
 trace_dumper_server::trace_dumper_server(std::string file)
 : filepath(file), timestamp(0)
 {
-}    
+}
 
 
 int trace_dumper_server::open()
@@ -236,7 +238,7 @@ int trace_dumper_server::get_packet(trace_packet *packet)
         this->traces[packet->reg_trace.id] = new Trace(path, packet->reg_trace.id, packet->reg_trace.type, packet->reg_trace.width);
         packet->trace = this->traces[packet->reg_trace.id];
     }
-    else if (packet->header.type == ED_TYPE_TIMESTAMP8 || 
+    else if (packet->header.type == ED_TYPE_TIMESTAMP8 ||
              packet->header.type == ED_TYPE_TIMESTAMP16 ||
              packet->header.type == ED_TYPE_TIMESTAMP32 ||
              packet->header.type == ED_TYPE_TIMESTAMP64)
@@ -252,7 +254,7 @@ int trace_dumper_server::get_packet(trace_packet *packet)
         packet->timestamp = this->timestamp;
     }
     else if (packet->header.type == ED_TYPE_TRACE ||
-             packet->header.type == ED_TYPE_TRACE_SET_0 || 
+             packet->header.type == ED_TYPE_TRACE_SET_0 ||
              packet->header.type == ED_TYPE_TRACE_SET_1)
     {
         uint32_t id = decode_id(&this->file, NULL);
@@ -329,14 +331,14 @@ void trace_packet::dump()
     {
         printf("Trace registration (id: %d, type: %s, width: %d, path: %s)\n", this->trace->id, this->trace->type == ED_TRACE_BITFIELD ? "bitfield" : this->trace->type == ED_TRACE_REAL ? "real" : "varlen", this->trace->width, this->trace->path.c_str());
     }
-    else if (this->header.type == ED_TYPE_TIMESTAMP8 || 
-             this->header.type == ED_TYPE_TIMESTAMP16 || 
-             this->header.type == ED_TYPE_TIMESTAMP32 || 
+    else if (this->header.type == ED_TYPE_TIMESTAMP8 ||
+             this->header.type == ED_TYPE_TIMESTAMP16 ||
+             this->header.type == ED_TYPE_TIMESTAMP32 ||
              this->header.type == ED_TYPE_TIMESTAMP64)
     {
     }
-    else if (this->header.type == ED_TYPE_TRACE || 
-             this->header.type == ED_TYPE_TRACE_SET_0 || 
+    else if (this->header.type == ED_TYPE_TRACE ||
+             this->header.type == ED_TYPE_TRACE_SET_0 ||
              this->header.type == ED_TYPE_TRACE_SET_1)
     {
         if (this->trace->type == ED_TRACE_REAL)

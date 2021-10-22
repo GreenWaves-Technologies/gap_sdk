@@ -28,9 +28,9 @@ import os
 
 class Runner(gv.gvsoc.Runner, runner.chips.pulp.Runner):
 
-    def __init__(self, args, config):
-        gv.gvsoc.Runner.__init__(self, args, config)
-        runner.chips.pulp.Runner.__init__(self, args, config)
+    def __init__(self, args, config, system):
+        gv.gvsoc.Runner.__init__(self, args, config, system)
+        runner.chips.pulp.Runner.__init__(self, args, config, system)
 
     def gen_stimuli(self):
         gv.gvsoc.Runner.gen_stimuli(self)

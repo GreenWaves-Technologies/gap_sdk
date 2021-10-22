@@ -22,6 +22,7 @@ from graph.types import RNNParameters
 from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
+from quantization.quantizer_options import *
 from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        option_constraint,
                                                        options,
@@ -37,31 +38,14 @@ LOG = logging.getLogger('nntool.' + __name__)
 
 @params_type(RNNParameters)
 @options(
-    {
-        'name': 'weight_bits',
-        'type': int,
-        'help': 'how many bits to use in weights',
-        'choices' : list(range(2, 9)),
-        'default': 8
-    },
-    {
-        'name': 'force_external_size',
-        'type': str,
-        'help': 'bits to use for features and state',
-        'choices': [8, 16],
-        'default': 8
-    },
-    {
-        'name': 'narrow_weights',
-        'shortcut': 'n',
-        'type': bool,
-        'help': 'scales filter weights with a representation of both 1 and -1 (i.e. -127 - 127 in 8 bits)',
-        'default': True
-    },
+    NE16_WEIGHT_BITS_OPTION,
+    FORCE_EXTERNAL_SIZE_OPTION,
+    NARROW_WEIGHTS_OPTION,
+    USE_NE16_OPTION
 )
 @in_qs_constraint({'dtype': np.int16})
 @out_qs_constraint({'dtype': np.int16})
-@option_constraint(force_external_size=16)
+@option_constraint(force_external_size=16, use_ne16={False, None})
 class RNNMultMult16x8(RescaleConstantMixin, MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
@@ -89,12 +73,20 @@ class RNNMultMult16x8(RescaleConstantMixin, MultQuantizionHandler):
             params.rnn_same_inout_scale = True
             G.node_options[NodeId(params)] = params.at_options
 
-        for weight_name in ['i_2_i_w', 'r_2_i_w']:
-            w_q = in_qs[names[weight_name]]
-            in_qs[names[weight_name]] = QType.from_min_max_sq(
-                w_q.min_val, w_q.max_val,
-                dtype=np.int16, bits=opts['weight_bits'],
-                narrow_range=opts.get('narrow_weights', True))
+        edges = G.indexed_in_edges(params.name)
+        w_q = in_qs[names['i_2_i_w']]
+        in_qs[names['i_2_i_w']] = QType.from_min_max_sq(
+            w_q.min_val, w_q.max_val,
+            dtype=np.int8, bits=opts['weight_bits'],
+            narrow_range=opts.get('narrow_weights', True),
+            dont_generate_value=True)
+
+        w_q = in_qs[names['r_2_i_w']]
+        in_qs[names['r_2_i_w']] = QType.from_min_max_sq(
+            w_q.min_val, w_q.max_val,
+            dtype=np.int8, bits=opts['weight_bits'],
+            narrow_range=opts.get('narrow_weights', True),
+            concatenated_nodes=[edges[names['i_2_i_w']].from_node.name])
 
         act_input_scale = math.pow(2, -12)
 
@@ -112,7 +104,7 @@ class RNNMultMult16x8(RescaleConstantMixin, MultQuantizionHandler):
             out_qs=[o_q],
             s_2_s_q=s_2_s_q,
             i_2_a_q=i_2_a_q,
-            scales = {
+            scales={
                 'int_scale': act_output_scale,
                 'out_scale': o_q.scale
             }

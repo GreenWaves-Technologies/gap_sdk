@@ -1,4 +1,4 @@
-DOC_IP ?= rtc soc_eu efuse udma gpio adv_timer fc_mpu fc_icache_ctrl cluster_ctrl_unit apb_soc_ctrl cl_dma timer_unit ne16 i3c cluster_icache_ctrl fc_itc power_manager secured_riscv_debug non_secured_riscv_debug xip sfu fll riscv_dbg rom
+DOC_IP ?= rtc soc_eu efuse udma gpio adv_timer fc_mpu fc_icache_ctrl cluster_ctrl_unit apb_soc_ctrl cl_dma timer_unit ne16 i3c cluster_icache_ctrl fc_itc power_manager secured_riscv_debug non_secured_riscv_debug xip csi2 sfu fll riscv_dbg rom
 
 #TODO this doc has been removed: quiddikey
 #TODO add back udma AES when markdown is added
@@ -9,6 +9,22 @@ xip:
 		--input-md=$(GAP9_V2_HOME)/fe/ips/XIP/README.md \
 		--header=include/archi/chips/gap9_v2/xip/xip \
 		--rst=doc/ips/xip.rst
+csi2:
+	./regmap/bin/regmap --name=udma_csi2 --pretty-name='CSI2 UDMA interface' \
+		--input=fe/ips/lnt_csi2_rx/README.md \
+		--input-md=$(GAP9_V2_HOME)/fe/ips/lnt_csi2_rx/README.md \
+		--header=include/archi/chips/gap9_v2/csi2/csi2 \
+		--rst=doc/ips/udma_csi2.rst
+	./regmap/bin/regmap --name=csi2_phy --pretty-name='MIPI Digital PHY' \
+		--input=fe/ips/lnt_csi2_rx/README_PHY.md \
+		--input-md=$(GAP9_V2_HOME)/fe/ips/lnt_csi2_rx/README_PHY.md \
+		--header=include/archi/chips/gap9_v2/csi2/csi2 \
+		--rst=doc/ips/csi2_phy.rst
+	./regmap/bin/regmap --name=csi2_ctrl --pretty-name='MIPI CSI2 Controller' \
+		--input=fe/ips/lnt_csi2_rx/README_CTRL.md \
+		--input-md=$(GAP9_V2_HOME)/fe/ips/lnt_csi2_rx/README_CTRL.md \
+		--header=include/archi/chips/gap9_v2/csi2/csi2 \
+		--rst=doc/ips/csi2_ctrl.rst
 
 rtc:
 	./regmap/bin/regmap --name=rtc \

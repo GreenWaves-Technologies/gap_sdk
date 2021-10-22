@@ -16,16 +16,17 @@
 import logging
 
 import numpy as np
-from graph.types import (HSigmoidActivationParameters, MatMulOpParameters,
-                         ReluActivationParameters, SigmoidActivationParameters)
+from graph.types import (ConstantInputParameters, HSigmoidActivationParameters,
+                         MatMulOpParameters, ReluActivationParameters,
+                         SigmoidActivationParameters, TransposeParameters)
 from graph.types.base import NNEdge
-from graph.types.input_output import ConstantInputParameters
 from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
 from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        out_qs_constraint,
                                                        params_type)
+from utils.graph import GraphView
 from utils.node_id import NodeId
 
 from ..mult_quantization_handler import MultQuantizionHandler
@@ -38,7 +39,7 @@ LOG = logging.getLogger('nntool.' + __name__)
 @out_qs_constraint({'dtype': set([np.int8])})
 class MatMultMult(MultQuantizionHandler):
     @classmethod
-    def move_constant(cls, G, params, in_qs):
+    def move_constant(cls, G: GraphView, params, in_qs):
         # looks for a constant on one of the inputs
         # if there is one we can scale by the first dimension of the first
         # tensor. If the constant is on the second tensor then move to the first
@@ -55,8 +56,6 @@ class MatMultMult(MultQuantizionHandler):
                 # it must have a length equal to the first tensors first dimension after transpose
                 bias_size = params.in_dims[2].size()
                 in2_shape = params.in_dims[1].shape
-                if params.transpose_in and params.transpose_in[1]:
-                    in2_shape = [in2_shape[idx] for idx in params.transpose_in[1]]
                 if in2_shape[1] != bias_size:
                     return None, in_qs
             for edge in in_edges[:2:]:
@@ -69,9 +68,12 @@ class MatMultMult(MultQuantizionHandler):
                 G.add_edge(new_edge)
                 to_idx = 1 - to_idx
             # use A.B = (BT.AT)T identity
-            params.transpose_in = [(1, 0), (1, 0)] + \
-                ([None] if len(in_qs) == 3 else [])
-            params.transpose_out = [(1, 0)]
+            tin1 = TransposeParameters(G.unique_name(f'{params.name}_tin1'), transpose=(1, 0))
+            tin2 = TransposeParameters(G.unique_name(f'{params.name}_tin2'), transpose=(1, 0))
+            tout = TransposeParameters(G.unique_name(f'{params.name}_tout'), transpose=(1, 0))
+            G.insert_node_before(tin1, params)
+            G.insert_node_before(tin2, params, to_idx=1)
+            G.insert_node_after(params, tout)
             LOG.warning(
                 'transposes inserted on %s - rerun adjust', params.name)
             return in2_node, [in_qs[1], in_qs[0]] + in_qs[2::]
@@ -115,11 +117,11 @@ class MatMultMult(MultQuantizionHandler):
         if force_out_q:
             o_q = force_out_q
             # can't be forced to something not np.int8
-            if o_q.dtype != np.int8 or o_q.is_asymmetric:
+            if o_q.dtype != np.int8 or o_q.asymmetric:
                 return None
             LOG.warning('node %s output forced to range %s/%s - actual range %s/%s %s',
                         params.name, o_q.min, o_q.max, min_val, max_val,
-                        "asymmetric" if o_q.is_asymmetric else "symmetric")
+                        "asymmetric" if o_q.asymmetric else "symmetric")
         else:
             o_q = QType.from_min_max_sq(min_val=min_val,
                                         max_val=max_val,

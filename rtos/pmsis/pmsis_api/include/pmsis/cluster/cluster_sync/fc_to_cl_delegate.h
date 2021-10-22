@@ -20,6 +20,10 @@
 #include "pmsis/pmsis_types.h"
 #include "pmsis/cluster/cl_pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @ingroup groupDrivers
  */
@@ -282,4 +286,7 @@ static inline struct pi_cluster_task *pi_cluster_task(struct pi_cluster_task *ta
 
 /// @endcond
 
+#ifdef __cplusplus
+}
+#endif
 #endif

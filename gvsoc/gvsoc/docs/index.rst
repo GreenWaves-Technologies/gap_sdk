@@ -18,4 +18,5 @@ GVSOC
    power_models
    devices/index.rst
    commands
+   remote_control
 

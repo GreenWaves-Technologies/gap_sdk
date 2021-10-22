@@ -95,7 +95,7 @@ class PoolReluKernel(AutotilerKernel):
                 at_pad_ctrl = next(i for i, v in enumerate(reduction) if v)
                 self.gen_ctrl.PadType = at_pad_ctrl
 
-        if in_q.bits != out_q.bits:
+        if in_q.dtype_bits != out_q.dtype_bits:
             raise NotImplementedError("only homogenious operations are supported at present")
         if at_pool_params == NO_POOL:
             raise NotImplementedError(

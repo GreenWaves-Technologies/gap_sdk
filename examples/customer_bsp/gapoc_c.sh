@@ -1,5 +1,3 @@
-#! /bin/bash
-
 export CUSTOM_BSP_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # For JLINK Debugger

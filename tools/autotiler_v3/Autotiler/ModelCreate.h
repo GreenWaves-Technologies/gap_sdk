@@ -41,6 +41,10 @@ extern CKernel_Arg_T *KernelCArgLookup(
 		Kernel_T *Ker,
 		NameT *CArgName);
 
+extern int KernelCGroupArgIndexLookup(
+		Kernel_T *Ker,
+		NameT *CArgName);
+
 
 extern KernelLib_T *KerLibLookup(
 		NameT *KerName);

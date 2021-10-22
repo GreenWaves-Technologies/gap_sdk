@@ -19,6 +19,12 @@
 
 #include "pmsis/rtos/malloc/malloc_internal.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+
 /**
  * @addtogroup MemAlloc
  * @{
@@ -110,4 +116,7 @@ void pi_l2_malloc_init(void *heapstart, uint32_t size);
 
 #endif  /* __L2_MALLOC_NATIVE__ */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_RTOS_MALLOC_L2_MALLOC_H__ */

@@ -1,0 +1,5 @@
+twisted
+prettytable
+psutil
+openpyxl
+xlsxwriter

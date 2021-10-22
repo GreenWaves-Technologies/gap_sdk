@@ -61,6 +61,7 @@ def main():
     with open("MfccConfig.json", "r") as f:
         config = json.load(f)
 
+    print(config)
     dtype = config.get('dtype', "int")
     frame_size = config['frame_size']
     frame_step = config['frame_step']
@@ -94,8 +95,12 @@ def main():
         GAP_Shift           = {"Matcher": re.compile(r"Shift\s=\s(?P<value_list>[-0-9]+)")                  , "values": []}
         GAP_out_preemph     = {"Matcher": re.compile(r"out_preemph_c = \[\t*(?P<value_list>[^\)\]]+)]\)")   , "values": []}
         GAP_out_window      = {"Matcher": re.compile(r"out_window_c = \[\t*(?P<value_list>[^\)\]]+)]\)")    , "values": []}
-        GAP_out_fft         = {"Matcher": re.compile(r"out_rfft = \[\t*(?P<value_list>[^\)\]]+)]\)") , "values": []}
-        GAP_out_fft_shift   = {"Matcher": re.compile(r"out_fft_shift = \[\t*(?P<value_list>[^\)\]]+)]\)"), "values": []}
+        if dtype == 'fix32_scal':
+            GAP_out_fft         = {"Matcher": re.compile(r"out_swapped_fft = \[\t*(?P<value_list>[^\)\]]+)]\)") , "values": []}
+            GAP_out_fft_shift   = {"Matcher": re.compile(r"out_fft_shift = \[\t*(?P<value_list>[^\)\]]+)]\)"), "values": []}    
+        else:
+            GAP_out_fft         = {"Matcher": re.compile(r"out_rfft = \[\t*(?P<value_list>[^\)\]]+)]\)") , "values": []}
+            GAP_out_fft_shift   = {"Matcher": re.compile(r"out_fft_shift = \[\t*(?P<value_list>[^\)\]]+)]\)"), "values": []}
         if not use_power:
             GAP_out_spect   = {"Matcher": re.compile(r"out_mag = \[\t*(?P<value_list>[^\)\]]+)]\)") , "values": []}
         else:
@@ -147,17 +152,22 @@ def main():
             QIN = 15
             QWin = QIN + Shift
             if not high_prec:
-                if rad4:
-                    QFFT = QIN + Shift - int(np.log2(n_fft)) + 4
-                else:
-                    QFFT = QIN + Shift - int(np.log2(n_fft)) + 3
+                QFFT = QIN + Shift - (int(np.log2(n_fft//2)) - 1)
             else:
                 QFFT = (QIN + Shift[:,np.newaxis] + fft_shift_buff)[:,:n_fft//2+1]
-            QSPECT = 15
-            if not high_prec:
-                QMEL = QSPECT + 15 - melspect_shift_buff
+            
+            if use_power:
+                QSPECT = QFFT * 2
             else:
-                QMEL = 15 - 2 + 2*Shift[:,np.newaxis] - melspect_shift_buff
+                QSPECT = 15 * np.ones(QFFT.shape)
+
+            if not high_prec:
+                QMEL = QSPECT[:,np.newaxis] + 15 - melspect_shift_buff
+            else:
+                if use_power:
+                    QMEL = 15 - 2 + 2*Shift[:,np.newaxis] - melspect_shift_buff
+                else:
+                    QMEL = 30 - melspect_shift_buff
 
             #QLOG = 15
             QLOG_NORM = 15 - Norm
@@ -165,7 +175,7 @@ def main():
 
             for i in range(gap_windows.shape[0]):
                 fft_qsnrs.append(qsnr(np.abs(stft.T[i]), np.abs(gap_fft[i])[:n_fft//2+1] * 2.0**(-QFFT[i])))
-                spect_qsnrs.append(qsnr(spect.T[i], gap_spect[i] * 2.0**(-QSPECT)))    
+                spect_qsnrs.append(qsnr(spect.T[i], gap_spect[i] * 2.0**(-QSPECT[i])))    
                 melspect_qsnrs.append(qsnr(mel_spect.T[i], gap_melspect[i] * 2.0**(-QMEL[i])))
                 logmel_qsnrs.append(qsnr(logmel.T[i], gap_log[i] * 2.0**(-QLOG_NORM[i])))
                 if ndct > 0:

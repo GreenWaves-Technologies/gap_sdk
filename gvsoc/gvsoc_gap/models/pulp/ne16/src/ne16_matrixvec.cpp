@@ -162,15 +162,18 @@ void Ne16::__weightoffs(
     auto scale = this->Wmin;
 
     xt::xarray<int32_t> block_enable_linear = xt::ones<int32_t>({this->NR_COLUMN, this->COLUMN_SIZE});
-    if(this->mode16 && this->mode_linear) {
-      for(auto rr=0; rr<this->NR_COLUMN; rr++) {
-        for(auto cc=0; cc<this->COLUMN_SIZE; cc++) {
-          auto i_kin_16bit = (cc<8 && rr<4) ? rr*8 + cc :-1;
-          auto k_in_lim = this->load_k_in_lim;
-          xt::view(block_enable_linear, rr, cc) = ((i_kin_16bit != -1 && i_kin_16bit < k_in_lim) ? 1 : 0);
+    if (this->mode16 && this->mode_linear)
+    {
+      for (auto rr = 0; rr < this->NR_COLUMN; rr++)
+      {
+        for (auto cc = 0; cc < this->COLUMN_SIZE; cc++)
+        {
+          auto i_kin_16bit = (cc < 8 && rr < 4) ? rr * 8 + cc : -1;
+          auto load_fbuf_lim = this->load_fbuf_lim;
+          xt::view(block_enable_linear, rr, cc) = ((i_kin_16bit != -1 && i_kin_16bit < load_fbuf_lim) ? 1 : 0);
         }
       }
-      std::cout << "block_enable_linear=" << block_enable_linear << "\n";
+      // std::cout << "block_enable_linear=" << block_enable_linear << "\n";
     }
 
     this->__BinConvArray(weight, scale, this->depthwise ? dw_iter : 0, block_enable_linear, row_enable, mac_enable, !this->depthwise, false, false, this->mode16, this->mode_linear);
@@ -285,12 +288,15 @@ int Ne16::matrixvec_cycle() {
   space = xt::reshape_view(space, {8, 1});
 
   xt::xarray<int32_t> block_enable_linear = xt::ones<int32_t>({NR_COLUMN, COLUMN_SIZE});
-  if(this->mode16 && this->mode_linear) {
-    for(auto rr=0; rr<this->NR_COLUMN; rr++) {
-      for(auto cc=0; cc<this->COLUMN_SIZE; cc++) {
-        auto i_kin_16bit = (cc<8 && rr<4) ? rr*8 + cc :-1;
-        auto k_in_lim = this->load_k_in_lim;
-        xt::view(block_enable_linear, rr, cc) = ((i_kin_16bit != -1 && i_kin_16bit < k_in_lim) ? 1 : 0);
+  if (this->mode16 && this->mode_linear)
+  {
+    for (auto rr = 0; rr < this->NR_COLUMN; rr++)
+    {
+      for (auto cc = 0; cc < this->COLUMN_SIZE; cc++)
+      {
+        auto i_kin_16bit = (cc < 8 && rr < 4) ? rr * 8 + cc : -1;
+        auto load_fbuf_lim = this->load_fbuf_lim;
+        xt::view(block_enable_linear, rr, cc) = ((i_kin_16bit != -1 && i_kin_16bit < load_fbuf_lim) ? 1 : 0);
       }
     }
   }

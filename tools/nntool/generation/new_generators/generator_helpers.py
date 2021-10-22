@@ -18,6 +18,9 @@ from generation.new_generators.generator_base import GeneratorBase
 from utils.subclasses import get_all_subclasses
 # pylint: disable=wildcard-import,unused-wildcard-import
 from .general import *
+from .ne16 import *
+from .float import *
+from .mult8 import *
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -41,7 +44,7 @@ class NewGenerator():
                             handlers[ktype] = gen_class
                     else:
                         handlers[None] = gen_class
-        for params, handlers in self._generators.items():
+        for params, handlers in list(self._generators.items()):
             for params_subclass in get_all_subclasses(params):
                 if params_subclass not in self._generators:
                     self._generators[params_subclass] = handlers
@@ -58,6 +61,9 @@ class NewGenerator():
             else:
                 gen_class = None
             if gen_class:
+                if gen_class.QREC_OPTIONS is not None:
+                    if not all(qrec.cache.get(k) == v for k, v in gen_class.QREC_OPTIONS.items()):
+                        return res
                 LOG.debug("gen phase %s: matched generator class %s",
                             phase_name,
                             gen_class.__name__)

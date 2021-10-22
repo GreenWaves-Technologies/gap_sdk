@@ -943,6 +943,7 @@ static inline unsigned int lib_VEC_PACK_SC_16(iss_cpu_state_t *s, unsigned int a
   return ((a & 0xffff) << 16) | (b & 0xffff);
 }
 
+
 static inline unsigned int lib_VEC_PACKHI_SC_8(iss_cpu_state_t *s, unsigned int a, unsigned int b, unsigned c) {
   return ((a & 0xff) << 24) | ((b & 0xff) << 16) | (c & 0xffff);
 }
@@ -958,8 +959,9 @@ static inline typeOut lib_VEC_##operName##_##elemSize(iss_cpu_state_t *s, typeA 
   elemTypeB *tmp_b = (elemTypeB*)&b;                                                \
   typeOut out = 0;                                                                       \
   int i;                                                                          \
-  for (i = 0; i < num_elem; i++)                                                  \
+  for (i = 0; i < num_elem; i++)     {                                              \
     out += tmp_a[i] oper tmp_b[i];                                          \
+  }\
   return out;                                                                     \
 }                                                                                 \
                                                                                   \
@@ -989,6 +991,7 @@ static inline typeOut lib_VEC_##operName##_##elemSize(iss_cpu_state_t *s, typeOu
   elemTypeA *tmp_a = (elemTypeA*)&a;                                                \
   elemTypeB *tmp_b = (elemTypeB*)&b;                                                \
   int i;                                                                          \
+  __asm__ __volatile__ ("" : : : "memory"); \
   for (i = 0; i < num_elem; i++)                                                  \
     out += tmp_a[i] oper tmp_b[i];                                          \
   return out;                                                                     \
@@ -998,6 +1001,7 @@ static inline typeOut lib_VEC_##operName##_SC_##elemSize(iss_cpu_state_t *s, typ
   elemTypeA *tmp_a = (elemTypeA*)&a;                                                      \
   elemTypeB *tmp_b = (elemTypeB*)&b;                                                \
   int i;                                                                                \
+  __asm__ __volatile__ ("" : : : "memory"); \
   for (i = 0; i < num_elem; i++)                                                        \
     out += tmp_a[i] oper tmp_b[0];                                                       \
   return out;                                                                           \

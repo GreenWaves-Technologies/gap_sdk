@@ -493,6 +493,7 @@ typedef void (*AT_FORK_FUN_TYPE)(void *);
 typedef void *AT_FORK_ARG_TYPE;
 
 #define AT_FORK(nb_cores,entry,arg) pi_cl_team_fork((nb_cores),(AT_FORK_FUN_TYPE)(entry),(AT_FORK_ARG_TYPE)(arg))
+#define AT_FORK_CC(nb_cores,entry,arg) pi_cl_team_fork_cc((nb_cores),(AT_FORK_FUN_TYPE)(entry),(AT_FORK_ARG_TYPE)(arg))
 #define AT_FORK_WAIT()              pi_cl_team_barrier()
 
 #endif

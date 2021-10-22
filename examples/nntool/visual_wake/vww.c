@@ -39,30 +39,32 @@ PI_L2 unsigned char Input_1[AT_INPUT_SIZE];
 
 static void RunNetwork()
 {
-	//printf("Running on cluster\n");
 #ifdef PERF
-	//printf("Start timer\n");
 	gap_cl_starttimer();
 	gap_cl_resethwtimer();
 #endif
 	__PREFIX(CNN)(Input_1, Output_1);
-	//printf("Runner completed\n");
-
-	//printf("\n");
 }
 
-int start()
+void start()
 {
 	char *ImageName = __XSTR(AT_IMAGE);
 	struct pi_device cluster_dev;
 	struct pi_cluster_task *task;
 	struct pi_cluster_conf conf;
-	//  gv_vcd_configure(0, NULL);
-
 	//Input image size
 
 	printf("Entering main controller\n");
-    
+
+	printf("Reading image\n");
+	//Reading Image from Bridge
+	if (ReadImageFromFile(ImageName, AT_INPUT_WIDTH, AT_INPUT_HEIGHT, AT_INPUT_COLORS,
+			      		  Input_1, AT_INPUT_SIZE*sizeof(IMAGE_IN_T), IMGIO_OUTPUT_CHAR, 0)) {
+		printf("Failed to load image %s\n", ImageName);
+		pmsis_exit(-2);
+	}
+	printf("Finished reading image\n");
+
 
 	pi_cluster_conf_init(&conf);
 	pi_open_from_conf(&cluster_dev, (void *)&conf);
@@ -87,24 +89,15 @@ int start()
 	if (__PREFIX(CNN_Construct)())
 	{
 		printf("Graph constructor exited with an error\n");
-		return 1;
+		pmsis_exit(-1);
 	}
-
-	printf("Reading image\n");
-	//Reading Image from Bridge
-	if (ReadImageFromFile(ImageName, AT_INPUT_WIDTH, AT_INPUT_HEIGHT, AT_INPUT_COLORS,
-			      		  Input_1, AT_INPUT_SIZE*sizeof(IMAGE_IN_T), IMGIO_OUTPUT_CHAR, 0)) {
-		printf("Failed to load image %s\n", ImageName);
-		return 1;
-	}
-	printf("Finished reading image\n");
 
 	printf("Call cluster\n");
 	
 	// Execute the function "RunNetwork" on the cluster.
 #ifdef __GAP8__
 	pi_pad_set_function(PI_PAD_33_B12_TIMER0_CH2, PI_PAD_33_B12_GPIO_A19_FUNC1);
-    pi_gpio_pin_configure(NULL, LED, PI_GPIO_OUTPUT);
+	pi_gpio_pin_configure(NULL, LED, PI_GPIO_OUTPUT);
 	pi_gpio_pin_write(NULL, LED, 1);
 #endif
 	pi_cluster_send_task_to_cl(&cluster_dev, task);
@@ -140,7 +133,6 @@ int start()
 
 	printf("Ended\n");
 	pmsis_exit(0);
-	return 0;
 }
 
 int main(void)

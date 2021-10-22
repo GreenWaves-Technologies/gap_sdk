@@ -9,12 +9,12 @@ import sys
 
 import numpy as np
 
-from .base import InsensitiveToQuantization, Transposable, cls_op_name
+from .base import InsensitiveToQuantization, NNNodeRef, Parameters, cls_op_name, not_generated
 
 LOG = logging.getLogger("nntool." + __name__)
 
-
-class InputOutputParameters(Transposable):
+@not_generated
+class InputOutputParameters(Parameters):
 
     def __init__(self, *args, dims=None, fixed_order=False, short_name=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -28,7 +28,14 @@ class InputOutputParameters(Transposable):
 
     @property
     def graph_anon_label(self):
-        return [self.name]
+        return self.graph_label
+
+    @property
+    def graph_label(self):
+        shape = self.out_dims[0] if self.out_dims and self.out_dims[0] else "No Shape!"
+        if self.fixed_order:
+            return [self.name, f'{shape}', "Frozen Order"]
+        return [self.name, f'{shape}']
 
     @property
     def short_name(self):
@@ -86,16 +93,13 @@ class InputBaseParameters(InputOutputParameters):
         pass
 
     def __str__(self):
-        return "I {} {} {}".format(
+        return "I {} {}".format(
             self.dims,
-            Transposable.__str__(self),
             self.at_options
         )
 
     def get_output_size(self, _):
         out_dim = self.dims.clone()
-        if self.transpose_out:
-            out_dim.transpose(self.transpose_out[0])
         if self.out_dims_hint:
             out_dim.apply_naming_hints(self.out_dims_hint[0])
         return [out_dim]
@@ -107,6 +111,12 @@ class InputParameters(InputBaseParameters, InsensitiveToQuantization):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.at_options.valid_options['EXTERN_INPUT_POINTER'] = int
+
+    def __call__(self, graph):
+        if graph.__class__.__name__ != 'NNGraph':
+            raise ValueError('expecting NNGraph as parameter')
+        return NNNodeRef(self, 0, graph)
+
 
     def verify(self, G):
         problems = []
@@ -140,17 +150,20 @@ class ConstantInputParameters(InputBaseParameters):
         self.value = value
         del self.at_options.valid_options['FIXED_ORDER']
         self.at_options.valid_options['RESET_NAME'] = str
-        self.at_options.valid_options['GENERATE_VALUE'] = bool
         self._adjust_transpose = adjust_transpose
         self._is_mutated = is_mutated
         self._is_intermediate = is_intermediate
-        self._concated_nodes = []
-        self.generate_value = True
         self._is_constant = True
         self._is_global = True
         self._always_copy = always_copy
         self._use_compressed = False
         self._qtype = qtype
+
+    def __call__(self, graph):
+        if graph.__class__.__name__ != 'NNGraph':
+            raise ValueError('expecting NNGraph as parameter')
+        return NNNodeRef(self, 0, graph)
+
 
     def verify(self, G):
         problems = []
@@ -223,10 +236,6 @@ class ConstantInputParameters(InputBaseParameters):
         return qtype.quantize(self.dqvalue) if qtype else self.dqvalue
 
     @property
-    def concated_nodes(self):
-        return self._concated_nodes
-
-    @property
     def always_copy(self):
         return self._always_copy
 
@@ -241,14 +250,6 @@ class ConstantInputParameters(InputBaseParameters):
     @reset_name.setter
     def reset_name(self, val):
         self.at_options.reset_name = val
-
-    @property
-    def generate_value(self):
-        return self.at_options.generate_value
-
-    @generate_value.setter
-    def generate_value(self, val):
-        self.at_options.generate_value = val
 
     @property
     def adjust_transpose(self):
@@ -316,10 +317,9 @@ class ConstantInputParameters(InputBaseParameters):
     def __str__(self):
         props = [param for param in ["is_mutated", "is_intermediate",
                                      "is_compressed"] if getattr(self, param)]
-        return "Const {} {} {} {}".format(
+        return "Const {} {} {}".format(
             self.dims,
             " ".join(props),
-            Transposable.__str__(self),
             self.at_options
         )
 
@@ -344,8 +344,6 @@ class OutputParameters(InputOutputParameters, InsensitiveToQuantization):
 
     def get_output_size(self, in_dims):
         out_dim = in_dims[0].clone()
-        if self.transpose_in:
-            out_dim.transpose(self.transpose_in[0])
         return [out_dim]
 
     @property
@@ -357,8 +355,7 @@ class OutputParameters(InputOutputParameters, InsensitiveToQuantization):
         self.dims = val[0]
 
     def __str__(self):
-        return "O {} {} {}".format(
+        return "O {} {}".format(
             self.dims,
-            Transposable.__str__(self),
             self.at_options
         )

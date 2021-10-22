@@ -19,6 +19,7 @@ from abc import ABC
 class GeneratorBase(ABC):
     PARAMS = None
     KTYPES = None
+    QREC_OPTIONS = None
 
     @classmethod
     def bindings_generator(cls, gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
@@ -41,6 +42,10 @@ class GeneratorBase(ABC):
         return GeneratorBase.property_register("KTYPES", ktypes)
 
     @staticmethod
+    def qrec_options(**opts):
+        return GeneratorBase.property_register("QREC_OPTIONS", opts)
+
+    @staticmethod
     def property_register(name, value):
 
         def deco(cls):
@@ -51,3 +56,4 @@ class GeneratorBase(ABC):
 
 paramstype = GeneratorBase.paramstype
 ktype = GeneratorBase.ktype
+qrec_options = GeneratorBase.qrec_options

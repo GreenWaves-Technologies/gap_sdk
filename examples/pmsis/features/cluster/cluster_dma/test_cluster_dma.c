@@ -2,18 +2,26 @@
 #include "pmsis.h"
 
 /* Variables used. */
-#ifdef __GAP9__
-#define BUFFER_SIZE      ( 256 * (ARCHI_CLUSTER_NB_PE+1))
-#else
-#define BUFFER_SIZE      ( 256 * ARCHI_CLUSTER_NB_PE )
-#endif
+#define BUFFER_SIZE_PER_CORE ( 256 )
 
-static uint8_t l2_in[BUFFER_SIZE], l2_out[BUFFER_SIZE];
+struct cl_args_s
+{
+    uint32_t size;
+    uint8_t *l1_buffer;
+    uint8_t *l2_in;
+    uint8_t *l2_out;
+};
+
+PI_L2 static struct cl_args_s cl_arg = {0};
 
 /* Task executed by cluster cores. */
 void cluster_dma(void *arg)
 {
-    uint8_t *l1_buffer = (uint8_t *) arg;
+    struct cl_args_s *dma_args = (struct cl_args_s *) arg;
+    uint8_t *l1_buffer = dma_args->l1_buffer;
+    uint8_t *l2_in = dma_args->l2_in;
+    uint8_t *l2_out = dma_args->l2_out;
+    uint32_t buffer_size = dma_args->size;
     uint32_t coreid = pi_core_id(), start = 0, end = 0;
 
     /* Core 0 of cluster initiates DMA transfer from L2 to L1. */
@@ -23,7 +31,7 @@ void cluster_dma(void *arg)
         pi_cl_dma_copy_t copy;
         copy.dir = PI_CL_DMA_DIR_EXT2LOC;
         copy.merge = 0;
-        copy.size = (uint16_t) BUFFER_SIZE;
+        copy.size = buffer_size;
         copy.id = 0;
         copy.ext = (uint32_t) l2_in;
         copy.loc = (uint32_t) l1_buffer;
@@ -33,8 +41,8 @@ void cluster_dma(void *arg)
         printf("Core %d : Transfer done.\n", coreid);
     }
 
-    start = (coreid * ((uint32_t) BUFFER_SIZE / pi_cl_cluster_nb_cores()));
-    end = (start - 1 + ((uint32_t) BUFFER_SIZE / pi_cl_cluster_nb_cores()));
+    start = (coreid * (buffer_size / pi_cl_cluster_nb_pe_cores()));
+    end = (start - 1 + (buffer_size / pi_cl_cluster_nb_pe_cores()));
 
     /* Barrier synchronisation before starting to compute. */
     pi_cl_team_barrier(0);
@@ -43,8 +51,7 @@ void cluster_dma(void *arg)
     {
         l1_buffer[i] = (l1_buffer[i] * 3);
     }
-
-    /* Barrier synchronisation to wait all cores. */
+    /* Barrier synchronisation to wait for all cores. */
     pi_cl_team_barrier(0);
 
     /* Core 0 of cluster initiates DMA transfer from L1 to L2. */
@@ -54,10 +61,10 @@ void cluster_dma(void *arg)
         pi_cl_dma_copy_t copy;
         copy.dir = PI_CL_DMA_DIR_LOC2EXT;
         copy.merge = 0;
-        copy.size = (uint16_t) BUFFER_SIZE;
+        copy.size = buffer_size;
         copy.id = 0;
-        copy.ext = (uint32_t)l2_out;
-        copy.loc = (uint32_t)l1_buffer;
+        copy.ext = (uint32_t) l2_out;
+        copy.loc = (uint32_t) l1_buffer;
 
         pi_cl_dma_memcpy(&copy);
         pi_cl_dma_wait(&copy);
@@ -70,7 +77,7 @@ void master_entry(void *arg)
 {
     printf("Cluster master core entry\n");
     /* Task dispatch to cluster cores. */
-    pi_cl_team_fork(pi_cl_cluster_nb_cores(), cluster_dma, arg);
+    pi_cl_team_fork(pi_cl_cluster_nb_pe_cores(), cluster_dma, arg);
     printf("Cluster master core exit\n");
 }
 
@@ -81,8 +88,24 @@ void test_cluster_dma(void)
     struct pi_device cluster_dev;
     struct pi_cluster_conf conf;
 
+    uint32_t nb_cl_pe_cores = pi_cl_cluster_nb_pe_cores();
+    uint32_t buffer_size = nb_cl_pe_cores * (uint32_t) BUFFER_SIZE_PER_CORE;
+    uint8_t *l2_in = pi_l2_malloc(buffer_size);
+    if (l2_in == NULL)
+    {
+        printf("l2_in buffer alloc failed !\n");
+        pmsis_exit(-1);
+    }
+
+    uint8_t *l2_out = pi_l2_malloc(buffer_size);
+    if (l2_out == NULL)
+    {
+        printf("l2_out buffer alloc failed !\n");
+        pmsis_exit(-2);
+    }
+
     /* L2 Array Init. */
-    for (uint32_t i=0; i<(uint32_t) BUFFER_SIZE; i++)
+    for (uint32_t i=0; i<buffer_size; i++)
     {
         l2_in[i] = i;
         l2_out[i] = 0;
@@ -96,27 +119,34 @@ void test_cluster_dma(void)
     if (pi_cluster_open(&cluster_dev))
     {
         printf("Cluster open failed !\n");
-        pmsis_exit(-1);
+        pmsis_exit(-3);
     }
 
-    uint8_t *l1_buffer = (uint8_t *) pmsis_l1_malloc((uint32_t) BUFFER_SIZE);
+    uint8_t *l1_buffer = pi_cl_l1_malloc(&cluster_dev, buffer_size);
     if (l1_buffer == NULL)
     {
         printf("l1_buffer alloc failed !\n");
-        pmsis_exit(-2);
+        pi_cluster_close(&cluster_dev);
+        pmsis_exit(-4);
     }
 
+    /* Init arg struct. */
+    cl_arg.size = buffer_size;
+    cl_arg.l1_buffer = l1_buffer;
+    cl_arg.l2_in = l2_in;
+    cl_arg.l2_out = l2_out;
+
     /* Prepare cluster task and send it to cluster. */
-    struct pi_cluster_task *task = (struct pi_cluster_task *) pmsis_l2_malloc(sizeof(struct pi_cluster_task));
+    struct pi_cluster_task *task = pi_l2_malloc(sizeof(struct pi_cluster_task));
     if (task == NULL)
     {
         printf("Cluster task alloc failed !\n");
-        pmsis_l1_malloc_free(l1_buffer, (uint32_t) BUFFER_SIZE);
-        pmsis_exit(-3);
+        pi_cluster_close(&cluster_dev);
+        pmsis_exit(-5);
     }
     memset(task, 0, sizeof(struct pi_cluster_task));
     task->entry = master_entry;
-    task->arg = l1_buffer;
+    task->arg = &cl_arg;
 
     printf("Sending task.\n");
     #if defined(ASYNC)
@@ -129,14 +159,15 @@ void test_cluster_dma(void)
     #else
     pi_cluster_send_task_to_cl(&cluster_dev, task);
     #endif  /* ASYNC */
-    pmsis_l2_malloc_free(task, sizeof(struct pi_cluster_task));
-    pmsis_l1_malloc_free(l1_buffer, (uint32_t) BUFFER_SIZE);
+
+    pi_l2_free(task, sizeof(struct pi_cluster_task));
+    pi_cl_l1_free(&cluster_dev, l1_buffer, buffer_size);
 
     printf("Close cluster after end of computation.\n");
     pi_cluster_close(&cluster_dev);
 
     /* Verification. */
-    for (uint32_t i=0; i<(uint32_t) BUFFER_SIZE; i++)
+    for (uint32_t i=0; i<buffer_size; i++)
     {
         if (l2_out[i] != (uint8_t) (l2_in[i] * 3))
         {
@@ -145,8 +176,10 @@ void test_cluster_dma(void)
         }
     }
 
-    printf("\nCluster callback done with %d error(s) !\n", errors);
-    printf("Test %s with %d error(s) !\n", (errors) ? "failed" : "success", errors);
+    pi_l2_free(l2_out, buffer_size);
+    pi_l2_free(l2_in, buffer_size);
+
+    printf("\nCluster DMA done with %d error(s) !\n", errors);
 
     pmsis_exit(errors);
 }

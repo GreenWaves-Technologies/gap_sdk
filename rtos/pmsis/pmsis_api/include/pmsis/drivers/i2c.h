@@ -19,6 +19,10 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
 * @ingroup groupDrivers
 */
@@ -424,5 +428,7 @@ int pi_i2c_detect(struct pi_device *device, struct pi_i2c_conf *conf, uint8_t *r
 
 
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PI_DRIVERS_I2C_H__ */

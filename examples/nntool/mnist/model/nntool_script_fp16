@@ -1,0 +1,13 @@
+set input_norm_func "x: x/128-1"
+# The quantization does't matter since we want to use float eventually
+fquant
+qtune * float bfloat16
+adjust
+fusions --scale8
+# set graph_dump_tensor 4
+# set graph_checksum 1
+set graph_reorder_constant_in true
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+save_state

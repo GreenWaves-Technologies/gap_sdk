@@ -24,7 +24,10 @@ void Ne16::streamout_setup() {
 
   auto tp = this->depthwise ? this->TP_IN : this->TP_OUT;
 
-  auto base_addr_y = this->outfeat_ptr + (this->i_major*this->FILTER_SIZE*this->w_out*this->k_out + this->j_major*this->FILTER_SIZE*this->k_out + this->k_out_major*tp) * this->quantization_bits/8;
+  auto outfeat_hom_iter = this->FILTER_SIZE * this->outfeat_d2_stride;
+  auto outfeat_wom_iter = this->FILTER_SIZE * this->outfeat_d1_stride;
+ 
+  auto base_addr_y = this->outfeat_ptr + this->i_major*outfeat_hom_iter + this->j_major*outfeat_wom_iter + this->k_out_major*tp*this->quantization_bits/8;
 
   auto streamout_k_out_lim = !this->depthwise ? this->mv_k_out_lim : (this->k_out_major == this->subtile_nb_ko-1 && this->subtile_rem_ko != this->TP_IN && this->subtile_rem_ko != 0) ? this->subtile_rem_ko : this->TP_IN;
 ;

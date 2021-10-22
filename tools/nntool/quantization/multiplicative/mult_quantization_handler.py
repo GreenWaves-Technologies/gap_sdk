@@ -13,22 +13,17 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from generation.generator_decorators import GeneratorMatcher
 import numpy as np
 from quantization.qtype import QType
+from quantization.quantizer_options import SQBITS_OPTION_DEFAULT_8
 
 from ..unified_quantization_handler import QuantizionHandler, options, scheme
 
 
 #pylint: disable=abstract-method
 @options(
-    {
-        'name': 'sq_bits',
-        'type': int,
-        'choices': [8],
-        'help': 'bits for inputs and outputs of scaled kernels',
-        'default': 8
-    })
+    SQBITS_OPTION_DEFAULT_8
+)
 @scheme('SQ8')
 class MultQuantizionHandler(QuantizionHandler):
     BITS_TO_DTYPE = {
@@ -51,7 +46,7 @@ class MultQuantizionHandler(QuantizionHandler):
                 res_qs.append(in_q)
                 continue
             update = False
-            if in_q.is_asymmetric:
+            if in_q.asymmetric:
                 # you need to change scale to change zero point
                 if in_q.forced_zero_point or in_q.forced_scale:
                     return None

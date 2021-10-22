@@ -1,4 +1,5 @@
-Input file: docs/IP_REFERENCES/RISCV_DBG_DM_reference.md
+.. 
+   Input file: docs/IP_REFERENCES/RISCV_DBG_DM_reference.md
 
 Register map
 ^^^^^^^^^^^^

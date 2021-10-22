@@ -28,6 +28,10 @@
 
 #include "pmsis.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Log level
  *
@@ -422,4 +426,7 @@ static inline int pi_log_default_vprintf(const char *format, va_list list)
 
 #endif
 
+#ifdef __cplusplus
+}
+#endif
 #endif //PI_LOG_H

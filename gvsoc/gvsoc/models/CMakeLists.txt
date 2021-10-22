@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.10)
+project(gvsoc-models)
+
+add_subdirectory(board)
+add_subdirectory(cache)
+add_subdirectory(cpu)
+add_subdirectory(devices)
+add_subdirectory(gdbserver)
+add_subdirectory(interco)
+add_subdirectory(memory)
+add_subdirectory(utils)

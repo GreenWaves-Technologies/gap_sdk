@@ -231,7 +231,7 @@ CNN_PoolReLU("{cname}", {gen_ctrl},
             })
 
         if at_conv_params == NO_CONV:
-            if in_q.bits != out_q.bits:
+            if in_q.dtype_bits != out_q.dtype_bits:
                 raise NotImplementedError(
                     "only homogenious operations are supported at present")
             LOG.debug("%s: pool relu inq %s outq %s control block",

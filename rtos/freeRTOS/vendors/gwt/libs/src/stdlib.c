@@ -39,12 +39,7 @@
 #endif
 #endif  /* __GAP8__ */
 
-int32_t abs(int32_t x)
-{
-    return ((x < 0) ? -(x) : x);
-}
-
-void exit(int32_t status)
+void exit(int status)
 {
     system_exit(status);
     /* Wait forever... */

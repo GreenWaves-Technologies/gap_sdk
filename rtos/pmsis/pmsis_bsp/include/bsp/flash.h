@@ -66,6 +66,7 @@ typedef enum {
   PI_FLASH_IOCTL_INFO,   /*!< Command for getting flash information. The argument
     must be a pointer to a variable of type struct pi_flash_info so that the
     call is returning information there. */
+  PI_FLASH_IOCTL_SET_BAUDRATE,   /*!< Command for setting baudrate. */
   PI_FLASH_IOCTL_AES_ENABLE   /*!< Command for setting aes enable state*/
 } pi_flash_ioctl_e;
 

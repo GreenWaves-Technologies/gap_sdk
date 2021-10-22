@@ -17,7 +17,7 @@ import logging
 from quantization.new_qrec import QRec
 
 from graph.dim import Dim
-from graph.types.base import NNEdge, cls_op_name
+from graph.types.base import NNEdge, cls_op_name, nargs
 
 from utils.node_id import NodeId
 
@@ -25,37 +25,40 @@ from .rnn import RNNBaseParameters
 
 LOG = logging.getLogger("nntool." + __name__)
 
+INPUT_NAMES = [
+    "input",
+    "i_2_i_w",
+    "i_2_f_w",
+    "i_2_c_w",
+    "i_2_o_w",
+    "r_2_i_w",
+    "r_2_f_w",
+    "r_2_c_w",
+    "r_2_o_w",
+    "c_2_i_w",
+    "c_2_f_w",
+    "c_2_o_w",
+    "i_b",
+    "f_b",
+    "c_b",
+    "o_b",
+    "proj_w",
+    "proj_b",
+    "i_state",
+    "c_state",
+    "i_norm",
+    "f_norm",
+    "c_norm",
+    "o_norm"
+]
+
 @cls_op_name('lstm')
+@nargs(INPUT_NAMES)
 class LSTMParameters(RNNBaseParameters):
     """LSTM Node type
 """
 
-    INPUT_NAMES = [
-        "input",
-        "i_2_i_w",
-        "i_2_f_w",
-        "i_2_c_w",
-        "i_2_o_w",
-        "r_2_i_w",
-        "r_2_f_w",
-        "r_2_c_w",
-        "r_2_o_w",
-        "c_2_i_w",
-        "c_2_f_w",
-        "c_2_o_w",
-        "i_b",
-        "f_b",
-        "c_b",
-        "o_b",
-        "proj_w",
-        "proj_b",
-        "i_state",
-        "c_state",
-        "i_norm",
-        "f_norm",
-        "c_norm",
-        "o_norm"
-    ]
+    INPUT_NAMES = INPUT_NAMES
 
     STATE_PARAMETERS = ["i_state", "c_state"]
 

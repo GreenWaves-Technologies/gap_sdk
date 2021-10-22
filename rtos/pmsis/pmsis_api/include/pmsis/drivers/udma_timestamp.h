@@ -20,6 +20,10 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @ingroup groupDrivers
  */
@@ -101,4 +105,7 @@ int32_t pi_udma_timestamp_ioctl( struct pi_device * timestamp, uint32_t cmd, voi
  * @}
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_DRIVERS_UDMA_TIMESTAMP_H__ */

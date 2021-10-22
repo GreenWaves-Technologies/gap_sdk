@@ -14,14 +14,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from abc import ABC, abstractmethod
+from graph.types.input_output import InputParameters, OutputParameters
 import hashlib
 
-from graph.types import (ActivationFusion, ActivationParameters,
+from graph.types import (ActivationFusionBase, ActivationParameters,
                          ConcatParameters, ConstantInputParameters,
                          Conv2DParameters, ConvFusionParameters, FcParameters,
                          GlobalPoolingParameters, MatrixAddParameters,
                          MatrixMulParameters, PoolingParameters,
                          SoftMaxParameters)
+from utils.slugify import variablize
 
 
 class NamingConvension(ABC):
@@ -60,12 +62,14 @@ class DefaultNamingConvension(NamingConvension):
         return f'S{step_idx}_{name}'
 
     def get_project_name(self):
-        return self.G.name
+        return variablize(self.G.name)
 
     def get_global_name(self, name, step_idx, params, gtype):
         return self._get_step_name(gtype.capitalize(), step_idx)
 
     def get_node_name(self, node_name, step_idx, params):
+        if isinstance(params, (InputParameters, OutputParameters)):
+            return f"{node_name.capitalize()}"
         return self._get_step_name(self.__get_node_name(node_name, params), step_idx)
 
 # pylint: disable=too-many-return-statements
@@ -102,7 +106,7 @@ class DefaultNamingConvension(NamingConvension):
             if params.short_name:
                 return params.short_name
             return f"Op_{node_name}"
-        if isinstance(params, ActivationFusion):
+        if isinstance(params, ActivationFusionBase):
             nodes = params.contained_nodes()
             if isinstance(nodes[0], MatrixAddParameters):
                 return f"MatAdd_{nodes[0].out_dims[0]}_{nodes[1].activation.capitalize()}"

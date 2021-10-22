@@ -46,7 +46,7 @@ namespace vp {
 
     void set_power(double quantum, bool is_leakage);
 
-    inline void incr(double quantum, bool is_leakage=false);
+    void incr(double quantum, bool is_leakage=false);
 
     inline double get_value();
 

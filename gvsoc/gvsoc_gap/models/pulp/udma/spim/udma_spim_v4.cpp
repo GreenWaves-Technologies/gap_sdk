@@ -5,21 +5,22 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
 #include "../udma_v4_impl.hpp"
+#include "udma_spim_v4.hpp"
 #include "udma_spim/udma_spim_regs.h"
 #include "udma_spim/udma_spim_regfields.h"
 #include "archi/udma/spim/spim_v4.h"
@@ -72,7 +73,7 @@ void Spim_periph_v4::reset(bool active)
   }
 }
 
-  
+
 void Spim_periph_v4::slave_sync(void *__this, int sck, int data_0, int data_1, int data_2, int data_3, int mask)
 {
   Spim_periph_v4 *_this = (Spim_periph_v4 *)__this;
@@ -281,7 +282,7 @@ void Spim_periph_v4::handle_spi_pending_word(void *__this, vp::clock_event *even
         _this->top->get_trace()->msg(vp::trace::LEVEL_TRACE, "End of word transfer, pushing word (value: 0x%x)\n", _this->rx_pending_word);
 
         (static_cast<Spim_v4_rx_channel *>(_this->channel0))->push_data((uint8_t *)&_this->rx_pending_word, 4);
-        
+
         _this->rx_counter_transf = 0;
         _this->rx_bit_offset = 0;
         _this->nb_received_bits = 0;

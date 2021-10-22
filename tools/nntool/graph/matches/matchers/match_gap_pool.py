@@ -14,11 +14,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+from copy import deepcopy
 
-from graph.types import (ConvFusionParameters, HSigmoidActivationParameters,
+import numpy as np
+from graph.types import (HSigmoidActivationParameters,
                          HSwishActivationParameters, LeakyActivationParameters,
                          NNEdge, PoolingParameters, ReluActivationParameters,
-                         SigmoidActivationParameters, Transposable)
+                         SigmoidActivationParameters)
+from graph.types.fusions import ActivationFusion
+from graph.types.global_pooling import GlobalPoolingParameters
 from quantization.new_qrec import QRec
 from utils.graph import GraphView
 from utils.node_id import NodeId
@@ -60,9 +64,7 @@ class FusionMatch():
         self.order = []
 
     def add_node(self, params):
-        if isinstance(params, Transposable) and (params.transpose_in or params.transpose_out):
-            return None
-        if isinstance(params, PoolingParameters):
+        if isinstance(params, (PoolingParameters, GlobalPoolingParameters)):
             if self.pool:
                 return None
             self.order.append(params)
@@ -79,7 +81,7 @@ class FusionMatch():
 
     @property
     def fusion_type(self):
-        return '_'.join(['pool' if isinstance(params, PoolingParameters)
+        return '_'.join(['pool' if isinstance(params, (PoolingParameters, GlobalPoolingParameters))
                          else 'active' for params in self.order])
 
 
@@ -108,7 +110,7 @@ class MatchGapPool(Matcher):
         else:
             valid_activations = VALID_ACTIVATIONS_SQ8
             valid_activations_wo_pool = VALID_ACTIVATIONS_SQ8_WO_POOL
-        for pool_node in G.nodes(node_classes=PoolingParameters):
+        for pool_node in G.nodes(node_classes=(PoolingParameters, GlobalPoolingParameters)):
             node_list = self.get_node_list(
                 G, pool_node, valid_activations, valid_activations_wo_pool)
             if node_list is None or len(node_list.order) < 2:
@@ -125,7 +127,7 @@ class MatchGapPool(Matcher):
                 last_node = node
             input_mapping = [[(node_list.pool, 0)]]
             output_mapping = [(last_node, 0)]
-            pnode = ConvFusionParameters(
+            pnode = ActivationFusion(
                 node_list.pool.name + '_fusion',
                 fusion_type=node_list.fusion_type,
                 subgraph=subgraph,
@@ -140,6 +142,12 @@ class MatchGapPool(Matcher):
                         qrecs[0], in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
                     for node in pnode.contained_nodes():
                         G.quantization.move_to_fusion(node, pnode)
+                        if isinstance(node, GlobalPoolingParameters):
+                            # Global pooling fused with activations need to have only the activation scale
+                            G.quantization[NodeId(pnode, node)].out_qs[0] = deepcopy(
+                                G.quantization[NodeId(pnode, node)].in_qs[0])
+                            G.quantization[NodeId(
+                                pnode, node)].out_qs[0].dtype = np.int32
                     G.quantization[NodeId(pnode)] = prec
             in_edges = G.in_edges(node_list.pool.name)
             out_edges = G.out_edges(last_node.name)

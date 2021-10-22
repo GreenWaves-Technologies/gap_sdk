@@ -20,8 +20,10 @@
 #define __CNN_BASIC_KERNELS_H__
 #include "Gap.h"
 #include "CNN_Defines.h"
-#include "CNN_CopyBasicKernels.h"
+#include "CNN_Copy.h"
 #include "../CNN_Libraries_SQ8/CNN_AT_Misc.h"
+#include "../CNN_Libraries/CNN_Copy.h"
+
 
 #define MAXDPPREC
 #ifdef MAXDPPREC
@@ -30,7 +32,10 @@
 #define DP_fps_T short int
 #endif
 
+#ifndef Prec
 #define Prec 	(10)
+#endif
+
 /******************************************************************************************************************************/
 /******************* Autotiler Internal calls *********************************************************************************/
 /******************************************************************************************************************************/
@@ -1306,7 +1311,7 @@ extern void KerReLU_fps(KerReLUPool_fps_T *Arg);
 /******************************************************************************************************************************/
 
 #define LEAK_CONSTANT_FORMAT    12
-#define LEAK_CONSTANT   FP2FIX(0.1, LEAK_CONSTANT_FORMAT)
+#define LEAK_CONSTANT_FIX   FP2FIX(0.1, LEAK_CONSTANT_FORMAT)
 
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output are disjoints */
 extern void KerDP_fp(KerDP_fp_T *Arg);

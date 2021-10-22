@@ -19,6 +19,10 @@
 
 #include "pmsis/cluster/cl_pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * \ingroup clusterDriver
  *
@@ -326,4 +330,7 @@ static inline void cl_sync_spinlock_release(spinlock_t *spinlock)
 
 /// @endcond
 
+#ifdef __cplusplus
+}
+#endif
 #endif

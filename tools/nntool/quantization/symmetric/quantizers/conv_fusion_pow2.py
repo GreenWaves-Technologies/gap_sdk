@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from graph.types import ConvFusionParameters
+from graph.types import ConvFusionParameters, LinearFusionParameters
 from quantization.new_qrec import QRec
 from quantization.unified_quantization_handler import (fusion_handler,
                                                        in_qs_constraint,
@@ -24,7 +24,7 @@ from quantization.unified_quantization_handler import (fusion_handler,
 from ..pow2_quantization_handler import Pow2QuantizionHandler
 
 
-@params_type(ConvFusionParameters)
+@params_type(ConvFusionParameters, LinearFusionParameters)
 # only constain input. The others are constant so will always be changeable
 @in_qs_constraint({'dtype': set([np.int8, np.int16])})
 @out_qs_constraint({'dtype': set([np.int8, np.int16])})

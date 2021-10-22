@@ -26,9 +26,9 @@ import os.path
 
 class Runner(gv.gvsoc.Runner, runner.chips.gap8.Runner):
 
-    def __init__(self, args, config):
-        gv.gvsoc.Runner.__init__(self, args, config)
-        runner.chips.gap8.Runner.__init__(self, args, config)
+    def __init__(self, args, config, system):
+        gv.gvsoc.Runner.__init__(self, args, config, system)
+        runner.chips.gap8.Runner.__init__(self, args, config, system)
 
 
     def gen_stimuli(self):

@@ -1,3 +1,0 @@
-libexec/gcc/riscv32-unknown-elf/7.1.1/cc1 filter=lfs diff=lfs merge=lfs -text
-libexec/gcc/riscv32-unknown-elf/7.1.1/cc1plus filter=lfs diff=lfs merge=lfs -text
-libexec/gcc/riscv32-unknown-elf/7.1.1/lto1 filter=lfs diff=lfs merge=lfs -text

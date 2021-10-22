@@ -14,20 +14,20 @@
 
 from generation.generator_decorators import QREC_MULT8, generation_function
 from generation.helpers.gen_scales import gen_scales
-from graph.types import ConvFusionParameters, FilterParameters
+from graph.types import ConvFusionParameters, FilterParameters, LinearFusionParameters
 from utils.node_id import NodeId
 
 # pylint: disable=wildcard-import, unused-wildcard-import
 from .global_names import *
 
 
-@generation_function("globals", (FilterParameters, ConvFusionParameters), qrec_types=(QREC_MULT8,))
+@generation_function("globals", (FilterParameters, ConvFusionParameters, LinearFusionParameters), qrec_types=(QREC_MULT8,))
 def mult8_filter_globals_generator(gen, node, qrec, pnode, fnode) -> bool:
     if fnode is not None:
         return False
     if isinstance(pnode, FilterParameters):
         gen_scales(gen, pnode, pnode, qrec)
-    elif isinstance(pnode, ConvFusionParameters):
+    elif isinstance(pnode, (ConvFusionParameters, LinearFusionParameters)):
         cnodes = node.contained_nodes()
         quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
         if node.fusion_type in ("conv_active_pool", "conv_active", "linear_active", "conv_pool_active", "conv_pool"):

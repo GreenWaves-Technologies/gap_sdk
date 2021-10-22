@@ -54,8 +54,8 @@ class Unsqueeze(ConstantMixin, BackendHandler):
 
         pshape = ProvisionalDim(new_shape)
         if cls.is_constant(x):
-            logger.info("reducing %s to a constant", valid_name)
             x_val = cls.get_constant(x)
+            logger.info(f"reducing {valid_name} to a constant {cls.print_small(x_val)}")
             params = ConstantInputParameters(valid_name, value=x_val.reshape(new_shape),
                                              constant_store=G.constant_store)
         else:

@@ -1,0 +1,97 @@
+{
+  "@includes@": [ "ips/udma/udma_v4.json"],
+
+  "vp_impl": "pulp.udma.udma_v4_gap9_v2_impl",
+  "vp_component": "pulp.udma.udma_v4_gap9_v2_impl",
+
+  "nb_periphs": 32,
+
+  "nb_addrgen_linear": 64,
+  "nb_addrgen_2d": 8,
+  "nb_udma_stream_in": 16,
+  "nb_udma_stream_out": 16,
+
+  "properties": {
+    "l2_read_fifo_size": 8
+  },
+
+  "interfaces" : ["hyper", "aes", "sfu", "ffc", "i2s", "uart", "i2c"],
+
+  "spim": {
+    "version"      : 4,
+    "nb_channels"  : 4,
+    "ids"          : [0, 1, 2, 3],
+    "offsets"      : ["0x000", "0x080", "0x100", "0x180"],
+    "is_master"    : true,
+    "eot_events"   : [ 80, 81, 82, 83 ]
+  },
+
+  "hyper": {
+    "version"      : 3,
+    "nb_channels"  : 2,
+    "ids"          : [13, 14],
+    "offsets"      : ["0x680", "0x700"],
+    "is_master"    : true,
+    "eot_events"   : [ 111, 112 ]
+  },
+
+  "uart": {
+    "version"      : 2,
+    "nb_channels"  : 5,
+    "ids"          : [4, 5, 6, 7, 8],
+    "offsets"      : ["0x200", "0x280", "0x300", "0x380", "0x400"],
+    "is_master"    : true,
+    "err_events"   : [ 86, 89, 92, 95, 98 ],
+    "tx_events"    : [ 85, 88, 91, 94, 97 ],
+    "rx_events"    : [ 84, 87, 90, 93, 96 ]
+  },
+
+  "i2s": {
+    "version"      : 3,
+    "nb_channels"  : 3,
+    "ids"          : [16, 17, 18],
+    "offsets"      : ["0x800", "0x880", "0x900"],
+    "is_slave"     : true
+  },
+
+  "i2c": {
+    "version"         : 4,
+    "nb_channels"     : 4,
+    "ids"             : [9, 10, 11, 12],
+    "offsets"         : ["0x480", "0x500", "0x580", "0x600"],
+    "is_slave"        : false,
+    "is_master"        : true,
+    "leader_events"   : [99, 102, 105, 108],
+    "follower_events" : [100, 103, 106, 109]
+  },
+
+  "cpi": {
+    "version"      : 2,
+    "nb_channels"  : 1,
+    "ids"          : [19],
+    "offsets"      : ["0x980"],
+    "is_slave"     : true
+  },
+
+  "aes": {
+    "version"      : 1,
+    "nb_channels"  : 1,
+    "ids"          : [25],
+    "offsets"      : ["0xd00"]
+  },
+
+  "sfu": {
+    "version"      : 1,
+    "nb_channels"  : 1,
+    "ids"          : [26],
+    "offsets"      : ["0xd80"]
+  },
+
+  "ffc": {
+    "version"      : 1,
+    "nb_channels"  : 4,
+    "ids"          : [27, 28, 29, 30],
+    "offsets"      : ["0xe00", "0xe80", "0xf00", "0xf80"]
+  }
+
+}

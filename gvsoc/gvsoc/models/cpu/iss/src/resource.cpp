@@ -29,8 +29,6 @@ void iss_resource_init(iss_t *iss)
         for (int j=0; j<resource->nb_instances; j++)
         {
             iss_resource_instance_t *instance = new iss_resource_instance_t;
-            instance->latency = resource->latency;
-            instance->bandwidth = resource->bandwidth;
             instance->cycles = 0;
             resource->instances.push_back(instance);
         }
@@ -52,17 +50,19 @@ iss_insn_t *iss_resource_offload(iss_t *iss, iss_insn_t *insn)
     {
         // If not, account the number of cycles until the instance becomes available
         cycles = instance->cycles - iss->get_cycles();
-        // And account the access on the instance. The time taken by the access is indicated by the resource bandwidth
-        instance->cycles += instance->bandwidth;
+        iss_pccr_account_event(iss, CSR_PCER_INSN_CONT, cycles);
+
+        // And account the access on the instance. The time taken by the access is indicated by the instruction bandwidth
+        instance->cycles += insn->resource_bandwidth;
     }
     else
     {
-        // The instance is available, just account the time taken by the access, indicated by the resource bandwidth
-        instance->cycles = iss->get_cycles() + instance->bandwidth;
+        // The instance is available, just account the time taken by the access, indicated by the instruction bandwidth
+        instance->cycles = iss->get_cycles() + insn->resource_bandwidth;
     }
 
-    // Account the latency of the resource on the core, as the result is available after the resource latency
-    iss->cpu.state.insn_cycles += cycles + instance->latency - 1;  
+    // Account the latency of the resource on the core, as the result is available after the instruction latency
+    iss->cpu.state.insn_cycles += cycles + insn->resource_latency - 1;
 
     // Now that timing is modeled, execute the instruction
     return insn->resource_handler(iss, insn);

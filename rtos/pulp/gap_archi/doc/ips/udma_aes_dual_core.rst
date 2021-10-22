@@ -1,4 +1,5 @@
-Input file: fe/ips/udma/udma_aes/README_dual_core.md
+.. 
+   Input file: fe/ips/udma/udma_aes/README_dual_core.md
 
 Register map
 ^^^^^^^^^^^^

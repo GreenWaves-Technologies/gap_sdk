@@ -66,7 +66,7 @@ class MoveNodeUpMatcher(Matcher):
             yield edge
         else:
 
-            raise LocationNotFoundError()
+            raise LocationNotFoundError() # @IgnoreException
 
     @staticmethod
     def move_node(G, node, edges):

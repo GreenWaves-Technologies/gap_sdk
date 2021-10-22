@@ -1,4 +1,5 @@
-Input file: fe/ips/udma/fe/ips/udma/udma_timestamp/README.md
+.. 
+   Input file: fe/ips/udma/fe/ips/udma/udma_timestamp/README.md
 
 Register map
 ^^^^^^^^^^^^

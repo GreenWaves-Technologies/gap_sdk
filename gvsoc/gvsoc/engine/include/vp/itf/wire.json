@@ -1,0 +1,38 @@
+{
+    "master": {
+        "template": "<class T>",
+        "template_instance": "<T>",
+        "methods": {
+            "sync": {
+                "args": [
+                    {
+                        "name": "value",
+                        "type": "T"
+                    }
+                ]
+            },
+            "sync_back": {
+                "args": [
+                    {
+                        "name": "value",
+                        "type": "T *"
+                    }
+                ]
+            }
+        }
+    },
+    "slave": {
+        "template": "<class T>",
+        "template_instance": "<T>",
+        "methods": {
+            "sync": {
+                "args": [
+                    {
+                        "name": "value",
+                        "type": "T"
+                    }
+                ]
+            }
+        }
+    }
+}

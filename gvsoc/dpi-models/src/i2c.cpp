@@ -39,5 +39,5 @@ void *dpi_i2c_bind(void *comp_handle, const char *name, int handle)
 
 void I2c_itf::rx_edge(int sda)
 {
-  dpi_i2c_rx_edge((int)(long)sv_handle, sda);
+  dpi_i2c_rx_edge((int)(long)sv_handle, 0, sda);
 }

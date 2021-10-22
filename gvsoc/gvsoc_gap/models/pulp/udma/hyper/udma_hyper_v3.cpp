@@ -43,13 +43,18 @@ Hyper_periph::Hyper_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
     this->refill_itf.set_sync_meth(&Hyper_periph::refill_req);
     top->new_slave_port(this, "refill_" + itf_name, &this->refill_itf);
   
+    this->top->new_reg(itf_name + "/state", &this->state, 32);
+    this->top->new_reg(itf_name + "/active", &this->active, 8);
+
     this->pending_word_event = top->event_new(this, Hyper_periph::handle_pending_word);
     this->check_state_event = top->event_new(this, Hyper_periph::handle_check_state);
     this->pending_channel_event = top->event_new(this, Hyper_periph::handle_pending_channel);
+    this->push_data_event = top->event_new(this, Hyper_periph::handle_push_data);
 
     this->pending_bytes = 0;
     this->next_bit_cycle = -1;
-    this->state = HYPER_STATE_IDLE;
+    this->state.set(HYPER_STATE_IDLE);
+    this->active.release();
     this->channel_state = HYPER_CHANNEL_STATE_IDLE;
 
     this->rx_channel = static_cast<Hyper_rx_channel *>(this->channel0);
@@ -68,7 +73,8 @@ Hyper_periph::Hyper_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
     this->regmap.trans_cfg.register_callback(std::bind(&Hyper_periph::trans_cfg_req, this, _1, _2, _3, _4));
 
     // HW is having 4 entries for outstanding requests and 8 entries for dc fifo, just model it as 12 entries
-    int fifo_size = 12;
+    // however timing model gives better result with only 8
+    int fifo_size = 8;
     this->read_req_free = new Udma_queue<Hyper_read_request>(fifo_size);
     for (int i=0; i<fifo_size; i++)
     {
@@ -76,6 +82,7 @@ Hyper_periph::Hyper_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
     }
     this->read_req_waiting = new Udma_queue<Hyper_read_request>(-1);
     this->read_req_ready = new Udma_queue<Hyper_read_request>(-1);
+
 }
 
 
@@ -99,6 +106,7 @@ void Hyper_periph::enqueue_transfer(uint32_t ext_addr, uint32_t l2_addr, uint32_
     this->pending_is_write = is_write;
     this->transfer_size = transfer_size;
     this->address_space = address_space;
+    this->iter_2d = false;
     if (!this->pending_is_write)
     {
         this->pending_bytes = this->transfer_size;
@@ -194,7 +202,8 @@ void Hyper_periph::reset(bool active)
         this->pending_refill_req = NULL;
         this->is_refill_req = false;
         this->pending_bytes = 0;
-        this->state = HYPER_STATE_IDLE;
+        this->state.set(HYPER_STATE_IDLE);
+        this->active.release();
         this->pending_is_write = false;
     }
 }
@@ -295,6 +304,7 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
     uint32_t addr = _this->pending_ext_addr;
     int cs;
 
+        _this->top->get_trace()->msg(vp::trace::LEVEL_INFO, "Handle pending word (state: %d)\n", _this->state.get());
     if (mba1 >= mba0)
     {
         if (addr >= mba1)
@@ -320,12 +330,20 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
         }
     }
 
-    if (_this->state == HYPER_STATE_IDLE)
+    if (_this->state.get() == HYPER_STATE_IDLE)
     {
         if (_this->pending_bytes > 0)
         {
-            _this->state = HYPER_STATE_DELAY;
-            _this->delay = 72;
+            _this->state.set(HYPER_STATE_DELAY);
+            _this->active.set(1);
+            if (_this->iter_2d)
+            {
+                _this->delay = 24;
+            }
+            else
+            {
+                _this->delay = 8;
+            }
             _this->ca_count = 6;
 
             _this->ca.low_addr = ARCHI_REG_FIELD_GET(addr, 0, 3);
@@ -347,19 +365,19 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
             }
         }
     }
-    else if (_this->state == HYPER_STATE_DELAY)
+    else if (_this->state.get() == HYPER_STATE_DELAY)
     {
         _this->delay--;
         if (_this->delay == 0)
-            _this->state = HYPER_STATE_CS;
+            _this->state.set(HYPER_STATE_CS);
     }
-    else if (_this->state == HYPER_STATE_CS)
+    else if (_this->state.get() == HYPER_STATE_CS)
     {
-        _this->state = HYPER_STATE_CA;
+        _this->state.set(HYPER_STATE_CA);
         send_cs = true;
         cs_value = 1;
     }
-    else if (_this->state == HYPER_STATE_CA)
+    else if (_this->state.get() == HYPER_STATE_CA)
     {
         send_byte = true;
         _this->ca_count--;
@@ -367,10 +385,10 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
 
         if (_this->ca_count == 0)
         {
-            _this->state = HYPER_STATE_DATA;
+            _this->state.set(HYPER_STATE_DATA);
         }
     }
-    else if (_this->state == HYPER_STATE_DATA && _this->pending_bytes > 0)
+    else if (_this->state.get() == HYPER_STATE_DATA && _this->pending_bytes > 0)
     {
         send_byte = true;
         if (_this->pending_is_write)
@@ -385,10 +403,12 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
         _this->pending_bytes--;
         _this->transfer_size--;
 
+        _this->check_read_req_ready();
+
         if (_this->transfer_size == 0)
         {
             _this->pending_bytes = 0;
-            _this->state = HYPER_STATE_CS_OFF;
+            _this->state.set(HYPER_STATE_CS_OFF);
         }
         else
         {
@@ -400,11 +420,12 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
                     _this->ext_addr += _this->stride;
                     _this->pending_ext_addr = _this->ext_addr;
                     _this->pending_length = _this->length;
-                    _this->state = HYPER_STATE_CS_OFF;
+                    _this->state.set(HYPER_STATE_CS_OFF);
+                    _this->iter_2d = true;
                 }
             }
 
-            if (_this->state != HYPER_STATE_CS_OFF)
+            if (_this->state.get() != HYPER_STATE_CS_OFF)
             {
                 if (_this->pending_burst > 0)
                 {
@@ -413,7 +434,7 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
                     {
                         _this->pending_ext_addr += _this->regmap.timing_cfg.cs_max_get();
                         _this->pending_burst = _this->regmap.timing_cfg.cs_max_get();
-                        _this->state = HYPER_STATE_CS_OFF;
+                        _this->state.set(HYPER_STATE_CS_OFF);
                     }
                 }
             }
@@ -424,9 +445,10 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
             end = true;
         }
     }
-    else if (_this->state == HYPER_STATE_CS_OFF)
+    else if (_this->state.get() == HYPER_STATE_CS_OFF)
     {
-        _this->state = HYPER_STATE_IDLE;
+        _this->state.set(HYPER_STATE_IDLE);
+        _this->active.release();
         send_cs = true;
         cs_value = 0;
 
@@ -466,7 +488,7 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
             _this->next_bit_cycle = _this->top->get_periph_clock()->get_cycles() + div;
             if (send_byte)
             {
-                _this->top->get_trace()->msg("Sending byte (value: 0x%x)\n", byte);
+                _this->top->get_trace()->msg(vp::trace::LEVEL_INFO, "Sending byte (value: 0x%x)\n", byte);
                 _this->hyper_itf.sync_cycle(byte);
             }
             else
@@ -491,6 +513,18 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
 }
 
 
+void Hyper_periph::check_read_req_ready()
+{
+    if (this->pending_is_write && this->pending_bytes == 0 && !this->read_req_ready->is_empty())
+    {
+        Hyper_read_request *req = this->read_req_ready->pop();
+        this->pending_word = req->data;
+        this->pending_bytes = req->size;
+        this->read_req_free->push(req);
+    }
+}
+
+
 void Hyper_periph::handle_check_state(void *__this, vp::clock_event *event)
 {
     Hyper_periph *_this = (Hyper_periph *)__this;
@@ -498,13 +532,7 @@ void Hyper_periph::handle_check_state(void *__this, vp::clock_event *event)
     if (_this->channel_state != HYPER_CHANNEL_STATE_IDLE)
         return;
 
-    if (_this->pending_is_write && _this->pending_bytes == 0 && !_this->read_req_ready->is_empty())
-    {
-        Hyper_read_request *req = _this->read_req_ready->pop();
-        _this->pending_word = req->data;
-        _this->pending_bytes = req->size;
-        _this->read_req_free->push(req);
-    }
+    _this->check_read_req_ready();
 
     if (!_this->pending_is_write && _this->pending_word_ready)
     {
@@ -529,7 +557,7 @@ void Hyper_periph::handle_check_state(void *__this, vp::clock_event *event)
 
 void Hyper_periph::check_state()
 {
-    if ((this->pending_bytes > 0 && (this->pending_is_write || !this->pending_is_write && !this->pending_word_ready)) || this->state == HYPER_STATE_CS_OFF)
+    if (this->channel_state == HYPER_CHANNEL_STATE_IDLE && ((this->pending_bytes > 0 && (this->pending_is_write || !this->pending_is_write && !this->pending_word_ready)) || this->state.get() == HYPER_STATE_CS_OFF))
     {
         if (!this->pending_word_event->is_enqueued())
         {
@@ -537,13 +565,11 @@ void Hyper_periph::check_state()
             int64_t cycles = this->top->get_periph_clock()->get_cycles();
             if (this->next_bit_cycle > cycles)
                 latency = this->next_bit_cycle - cycles;
-
             this->top->get_periph_clock()->enqueue_ext(this->pending_word_event, latency);
         }
     }
 
-
-    if (this->pending_bytes > 0 && !this->pending_is_write && this->pending_word_ready || this->nb_bytes_to_read > 0 && !this->read_req_free->is_empty() || this->pending_is_write && this->pending_bytes == 0 && !this->read_req_ready->is_empty())
+    if (!this->pending_is_write && this->pending_word_ready || this->nb_bytes_to_read > 0 && !this->read_req_free->is_empty() || this->pending_is_write && this->pending_bytes == 0 && !this->read_req_ready->is_empty())
     {
         if (!this->check_state_event->is_enqueued())
         {
@@ -566,20 +592,59 @@ void Hyper_periph::check_state()
 
 void Hyper_periph::push_data(uint8_t *data, int size)
 {
-    while (size)
+    // TX transfers do not have full bandwidth when soc frequency is low because of this sequence
+    //   Cycle 0: hyper request data
+    //   Cycle 2: udma core requests data to L2
+    //   Cycle 3: udma core receives response from L2
+    //   Cycle 4: hyper receives response
+    //   Cycle 6: hyper request new data
+    // Hyper can do 4 outstanding requests so there is a hole of 2 cycles.
+    // To model that, just delay a bit the incoming data
+    int delay = 4;
+    this->push_data_fifo_data.push(*(uint32_t *)data);
+    this->push_data_fifo_size.push(size);
+    this->push_data_fifo_cycles.push(this->top->get_cycles() + delay);
+
+    if (!this->push_data_event->is_enqueued())
     {
-        Hyper_read_request *req = this->read_req_waiting->get_first();
-        int iter_size = size > req->requested_size ? req->requested_size : size;
-        req->data |= (*(uint32_t *)data) <<  (req->size * 8);
-        req->size += iter_size;
-        req->requested_size -= iter_size;
-        size -= iter_size;
-        if (req->requested_size == 0)
+        this->top->event_enqueue(this->push_data_event, delay);
+    }
+}
+
+
+void Hyper_periph::handle_push_data(void *__this, vp::clock_event *event)
+{
+    Hyper_periph *_this = (Hyper_periph *)__this;
+
+    while(!_this->push_data_fifo_cycles.empty() && _this->push_data_fifo_cycles.front() <= _this->top->get_cycles())
+    {
+        uint32_t data = _this->push_data_fifo_data.front();
+        int size = _this->push_data_fifo_size.front();
+
+        _this->push_data_fifo_data.pop();
+        _this->push_data_fifo_size.pop();
+        _this->push_data_fifo_cycles.pop();
+
+        while (size)
         {
-            this->read_req_waiting->pop();
-            this->read_req_ready->push(req);
-            this->check_state();
+            Hyper_read_request *req = _this->read_req_waiting->get_first();
+            int iter_size = size > req->requested_size ? req->requested_size : size;
+            req->data |= (data) <<  (req->size * 8);
+            req->size += iter_size;
+            req->requested_size -= iter_size;
+            size -= iter_size;
+            if (req->requested_size == 0)
+            {
+                _this->read_req_waiting->pop();
+                _this->read_req_ready->push(req);
+                _this->check_state();
+            }
         }
+    }
+
+    if (!_this->push_data_fifo_cycles.empty())
+    {
+        _this->top->event_enqueue(_this->push_data_event, _this->push_data_fifo_cycles.front() -  _this->top->get_cycles());
     }
 }
 

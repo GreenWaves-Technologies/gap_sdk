@@ -38,7 +38,6 @@ class Cast(ConstantMixin, BackendHandler):
         x = inputs[0]
         x_shape = x[2].shape
         to_dtype = node.attrs['to']
-        logger.error('has_cast!!!!!!!!')
         if cls.is_constant(x):
             x_val = cls.get_constant(x)
             x_val = x_val.astype(to_dtype)

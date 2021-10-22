@@ -19,9 +19,11 @@ from copy import deepcopy
 
 import numpy as np
 from graph.types import LSTMParameters
+from numpy.core.shape_base import _concatenate_shapes
 from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
+from quantization.quantizer_options import *
 from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        option_constraint,
                                                        options,
@@ -37,32 +39,15 @@ LOG = logging.getLogger('nntool.' + __name__)
 
 
 @options(
-    {
-        'name': 'weight_bits',
-        'type': int,
-        'help': 'how many bits to use in weights',
-        'choices': list(range(2, 9)),
-        'default': 8
-    },
-    {
-        'name': 'force_external_size',
-        'type': str,
-        'help': 'bits to use for features and state',
-        'choices': [8, 16],
-        'default': 8
-    },
-    {
-        'name': 'narrow_weights',
-        'shortcut': 'n',
-        'type': bool,
-        'help': 'scales filter weights with a representation of both 1 and -1 (i.e. -127 - 127 in 8 bits)',
-        'default': True
-    },
+    NE16_WEIGHT_BITS_OPTION,
+    FORCE_EXTERNAL_SIZE_OPTION,
+    NARROW_WEIGHTS_OPTION,
+    USE_NE16_OPTION
 )
 @params_type(LSTMParameters)
 @in_qs_constraint({'dtype': np.int8})
 @out_qs_constraint({'dtype': np.int8})
-@option_constraint(force_external_size={8, None})
+@option_constraint(force_external_size={8, None}, use_ne16={None, False})
 class LSTMMultMult8x8(RescaleConstantMixin, MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
@@ -88,9 +73,12 @@ class LSTMMultMult8x8(RescaleConstantMixin, MultQuantizionHandler):
             LSTMParameters.INPUT_NAMES)}
         cell_range = stats.get('range_cell')
         if cell_range is None:
-            ValueError(f'cell range not present in stats for {params.name}')
-        cell_stat = max(abs(cell_range[var])
-                        for var in ['min', 'max'])
+            LOG.warning(
+                f'cell range not present in stats for {params.name} - using cell clip {params.cell_clip}')
+            cell_stat = params.cell_clip
+        else:
+            cell_stat = max(abs(cell_range[var])
+                            for var in ['min', 'max'])
         if params.cell_clip and not params.quant_c_state_with_stat:
             cell_max = params.cell_clip
             ratio_c = cell_max / cell_stat
@@ -123,16 +111,26 @@ class LSTMMultMult8x8(RescaleConstantMixin, MultQuantizionHandler):
             out_tanh_sig_scale = math.pow(2, -15)
         int_scale = math.pow(2, -int_q)
 
+        edges = G.indexed_in_edges(params.name)
         scale_pairs = {chan: ('i_2_%s_w' % chan, 'r_2_%s_w' % chan)
                        for chan in ['i', 'o', 'c', 'f']}
-        for weight_name in [weight_name for scale_pair in scale_pairs.values() for weight_name in scale_pair]:
-            in_q = in_qs[names[weight_name]]
-            in_qs[names[weight_name]] = QType.from_min_max_sq(
+        for scale_pair in scale_pairs.values():
+            in_q = in_qs[names[scale_pair[0]]]
+            in_qs[names[scale_pair[0]]] = QType.from_min_max_sq(
                 in_q.min_val,
                 in_q.max_val,
                 dtype=np.int8,
-                narrow_range=opts.get('narrow_weights'))
-            in_qs[names[weight_name]].bits = opts['weight_bits']
+                narrow_range=opts.get('narrow_weights'),
+                dont_generate_value=True)
+            in_qs[names[scale_pair[0]]].bits = opts['weight_bits']
+            in_q = in_qs[names[scale_pair[1]]]
+            in_qs[names[scale_pair[1]]] = QType.from_min_max_sq(
+                in_q.min_val,
+                in_q.max_val,
+                dtype=np.int8,
+                narrow_range=opts.get('narrow_weights'),
+                concatenated_nodes=[edges[names[scale_pair[0]]].from_node.name])
+            in_qs[names[scale_pair[1]]].bits = opts['weight_bits']
 
         w_scales = [(in_qs[names[namei]].scale, in_qs[names[namer]].scale)
                     for k, (namei, namer) in scale_pairs.items()]
@@ -187,7 +185,8 @@ class LSTMMultMult8x8(RescaleConstantMixin, MultQuantizionHandler):
 
         if params.hard_act:
             # int_scale/int_scale because scaled after multiplied by forget
-            cell_in_scale = (in_qs[names['c_state']].scale * int_scale)/int2_scale
+            cell_in_scale = (
+                in_qs[names['c_state']].scale * int_scale)/int2_scale
             cell_out_scale = int2_scale/in_qs[names['c_state']].scale
             state_out_scale = int3_scale/i_state_scale
             r_pscales['act_out_scale'] = int_scale

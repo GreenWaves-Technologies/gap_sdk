@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
@@ -29,9 +29,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "vp/itf/hyper.hpp"
-#include "vp/itf/wire.hpp"
-#include "archi/utils.h"
+#include <vp/itf/hyper.hpp>
+#include <vp/itf/wire.hpp>
 
 #define REGS_AREA_SIZE 1024
 
@@ -179,7 +178,7 @@ int Hyperram::build()
   this->reg_data = new uint8_t[REGS_AREA_SIZE];
   memset(this->reg_data, 0x57, REGS_AREA_SIZE);
   ((uint16_t *)this->reg_data)[0] = 0x8F1F;
-  
+
   return 0;
 }
 

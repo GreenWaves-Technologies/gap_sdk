@@ -50,7 +50,7 @@ class Slice(ConstantMixin, BackendHandler):
                     p_slices.append(None)
                     p_shape.append(None)
                 else:
-                    slice_idx = axes.index(idx)
+                    slice_idx = axes.index(idx)  # @IgnoreException
                     begin, end, step = slices[slice_idx]
                     begin = max(min(begin if begin >= 0 else dim + begin, dim), 0)
                     end = max(min(end if end >= 0 else dim + end, dim), -1)

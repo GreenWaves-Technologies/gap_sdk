@@ -21,13 +21,12 @@ from cmd2 import Cmd2ArgumentParser, with_argparser
 from interpreter.nntool_shell_base import NNToolShellBase
 from quantization.handlers_helpers import (add_options_to_parser,
                                            get_options_from_args)
-from quantization.unified_quantizer import UnifiedQuantizer
+from quantization.quantizer.new_quantizer import NewQuantizer
 
-from graph.matches.matchers.remove_unnecessary_quantize_operators import \
-    RemoveUnnecessaryQuantizeOperators
+
 from stats.activation_ranges_collector import ActivationRangesCollector
 
-QUANTIZATION_SCHEMES = ['SQ8', 'POW2']
+QUANTIZATION_SCHEMES = ['SQ8', 'POW2', 'FLOAT']
 from utils.stats_funcs import STATS_BITS
 
 LOG = logging.getLogger('nntool.'+__name__)
@@ -85,13 +84,9 @@ weights and input data are avalaible."""
         if args.force_width:
             opts['bits'] = args.force_width
 
-        quantizer = UnifiedQuantizer(args.scheme, astats,
-                                     **opts)
-
-        # clear the existing quantization
-        self.G.quantization = None
-        qrecs = quantizer.quantize(self.G)
-        self.G.quantization = qrecs
-        RemoveUnnecessaryQuantizeOperators().match(self.G)
-        self.G.add_dimensions()
+        quantizer = NewQuantizer(self.G, reset_all=True)
+        quantizer.options = opts
+        quantizer.schemes.append(args.scheme)
+        quantizer.set_stats(astats)
+        quantizer.quantize()
         LOG.info("Quantization set. Use qshow command to see it.")

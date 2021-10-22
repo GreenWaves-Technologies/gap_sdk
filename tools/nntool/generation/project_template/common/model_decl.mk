@@ -10,7 +10,6 @@ MODEL_PREFIX?=
 
 MODEL_PYTHON=python3
 
-MODEL_PATH = $(MODEL_BUILD)/$(MODEL_PREFIX)$(suffix $(TRAINED_MODEL))
 MODEL_COMMON ?= common
 MODEL_COMMON_INC ?= $(GAP_SDK_HOME)/libs/gap_lib/include
 MODEL_COMMON_SRC ?= $(GAP_SDK_HOME)/libs/gap_lib/img_io
@@ -22,7 +21,14 @@ TENSORS_DIR = $(MODEL_BUILD)/tensors
 MODEL_TENSORS = $(MODEL_BUILD)/$(MODEL_PREFIX)_L3_Flash_Const.dat
 
 MODEL_STATE = $(MODEL_BUILD)/$(MODEL_PREFIX).json
-MODEL_SRC = $(MODEL_PREFIX)Model.c
+# if AT_MODEL_PATH is already set then don't run the nntool steps
+ifdef AT_MODEL_PATH
+  MODEL_AT_ONLY = 1
+else
+  MODEL_PATH = $(MODEL_BUILD)/$(MODEL_PREFIX)$(suffix $(TRAINED_MODEL))
+  MODEL_SRC = $(MODEL_PREFIX)Model.c
+  AT_MODEL_PATH = $(MODEL_BUILD)/$(MODEL_SRC)
+endif
 MODEL_HEADER = $(MODEL_PREFIX)Info.h
 MODEL_GEN = $(MODEL_BUILD)/$(MODEL_PREFIX)Kernels 
 MODEL_GEN_C = $(addsuffix .c, $(MODEL_GEN)) $(MODEL_EXPRESSIONS)

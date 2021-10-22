@@ -86,6 +86,8 @@ protected:
 
 private:
 
+    static void commit_sync(void *__this, bool value);
+    void handle_sdo(bool no_restart);
     static void clk_in_sync(void *__this, int value);
     static void ws_in_sync(void *__this, int value);
     void handle_clk_edge();
@@ -126,6 +128,8 @@ private:
     void handle_clk_ws_update();
     void start_frame();
 
+    vp::wire_slave<bool> commit_slave_itf;
+    vp::wire_master<bool> commit_master_itf[32];
     vp::trace trace;
     vp::wire_master<int> clk_out_itf;
     vp::wire_slave<int> clk_in_itf;
@@ -137,10 +141,20 @@ private:
     vp::i2s_slave i2s_itf;
     vp::clock_event *clk_event;
     vp::clock_event *rx_fifo_event;
+    bool commit_block;
     int clk_value;
     int ws_value;
     int ws_count;
+    int ws_state_count;
+    int slot_width;
+    int slot_width_sync;
+    int frame_length;
+    int frame_length_sync;
+    int full_duplex;
+    int full_duplex_sync;
     int ws_delay;
+    int ws_delay_sync;
+    bool frame_active;
     uint32_t rx_pending_value;
     uint32_t rx_sync_value;
     int rx_pending_bits;
@@ -151,7 +165,7 @@ private:
     int active_channel;
     Udma_fifo<uint32_t> *rx_fifo;
     Udma_fifo<uint32_t> *rx_fifo_slot_id;
-    std::queue<uint32_t> tx_fifo;
+    std::queue<uint32_t> tx_fifo[16];
     std::queue<int> tx_fifo_slot_id;
     uint32_t slot_en;
     uint32_t slot_en_sync;

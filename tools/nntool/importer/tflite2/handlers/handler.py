@@ -21,8 +21,10 @@ from .. import common
 
 @handler_option('remove_quantize_ops', val_type=bool, default=True, desc="remove cast and quantization operations on non-constant tensors")
 @handler_option('load_quantization', val_type=bool, default=False, desc="load TFLITE tensor quantization", shortcut='q')
-@handler_option('use_lut_sigmoid', val_type=bool, default=False, desc="Map logistic node from tflite onto LUT based sigmoid operation (supported only with sq8 quantization)")
-@handler_option('use_lut_tanh', val_type=bool, default=False, desc="Map TANH node from tflite onto LUT based tanh operation (supported only with sq8 quantization)")
+@handler_option('use_lut_sigmoid', val_type=bool, default=False, desc="DEPRECATED: Use --use_hard_tanh to map the SIGMOID/LOGISTIC into HARD version, otherwise they will be mapped to lut version")
+@handler_option('use_lut_tanh', val_type=bool, default=False, desc="DEPRECATED: Use --use_hard_tanh to map the TANH into HARD version, otherwise they will be mapped to lut version")
+@handler_option('use_hard_sigmoid', val_type=bool, default=False, desc="Map logistic node from tflite onto HardSigmoid operation")
+@handler_option('use_hard_tanh', val_type=bool, default=False, desc="Map TANH node from tflite onto HardTanh operation")
 # @handler_option('insert_relus', val_type=bool, default=False, desc="Insert RELUs if quantization scaling implies that they may be necessary to ensure float calculation")
 class Handler(HandlerOptions):
     """ This class is base handler class.

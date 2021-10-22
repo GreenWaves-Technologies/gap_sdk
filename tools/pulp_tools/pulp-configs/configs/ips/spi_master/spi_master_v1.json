@@ -1,5 +1,0 @@
-{
-  "version": 1,
-  "hal_files" : [ "hal/periph/spi_v1.h" ],
-  "archi_files" : [ "archi/spim/spi_v1.h" ]
-}

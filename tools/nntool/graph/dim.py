@@ -148,6 +148,11 @@ class Dim():
         object.__setattr__(self, '_is_unknown', any(elem is None for elem in self._shape))
 
     @property
+    def rank(self):
+        self._verify_is_known()
+        return len(self._shape)
+
+    @property
     def shape(self) -> list:
         '''returns the shape of the dim'''
         self._verify_is_known()
@@ -275,16 +280,30 @@ class Dim():
         object.__setattr__(self, '_is_ordered', True)
         return self
 
-    def insert_axis(self, axis):
+    def insert_axis(self, axis, new_name=None):
         self._verify_is_ordered()
         assert axis <= len(self._shape)
         self._shape.insert(axis, 1)
         if self.is_named:
-            new_name = 0
-            while str(new_name) in self._names:
-                new_name += 1
-            self._names.insert(axis, str(new_name))
+            if new_name is None:
+                new_name = 0
+                while str(new_name) in self._names:
+                    new_name += 1
+                new_name = str(new_name)
+            self._names.insert(axis, new_name)
         return self
+
+    def remove_axis(self, axis):
+        self._verify_is_ordered()
+        if isinstance(axis, str):
+            self._verify_is_named()
+            idx = self._names.index(axis)
+            self._names.remove(axis)
+            return self._shape.pop(idx)
+        else:
+            if self.is_named:
+                self._names.pop(axis)
+            return self._shape.pop(axis)
 
     def transpose_from_order(self, current) -> list:
         '''returns a transform order from current -> dim'''
@@ -354,23 +373,7 @@ class Dim():
     @classmethod
     def broadcast(cls, dims):
         shapes = [dim.shape for dim in dims]
-        out_shape = cls.npbroadcast(shapes)
-        out_keys = [None] * len(out_shape)
-        for dim in dims:
-            if not dim.is_named:
-                continue
-            keys = [None] * (len(out_shape) - len(dim.keys)) + dim.keys
-            for idx, key in enumerate(keys):
-                if key is None:
-                    continue
-                if out_keys[idx] is None:
-                    out_keys[idx] = key
-                else:
-                    assert out_keys[idx] == key, "dimension label mismatch in broadcast"
-        res = cls.unnamed(out_shape)
-        if all(key is not None for key in out_keys):
-            res.apply_naming_hints(out_keys)
-        return res
+        return cls.unnamed(cls.npbroadcast(shapes))
 
     @staticmethod
     def combine(dims: Iterable, axis) -> 'Dim':
@@ -456,7 +459,7 @@ class Dim():
 
     def __getattr__(self, name):
         if name.startswith('_'):
-            return super().__getattribute__(name)
+            return super().__getattribute__(name)  # @IgnoreException
         self._verify_is_named()
         try:
             idx = self._names.index(name)

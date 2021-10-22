@@ -8,19 +8,6 @@ MODEL_SUFFIX?=
 
 MODEL_PREFIX?=
 
-# The training of the model is slightly different depending on
-# the quantization. This is because in 8 bit mode we used signed
-# 8 bit so the input to the model needs to be shifted 1 bit
-ifeq ($(QUANT_BITS),8)
-  TRAIN_SUFFIX=_8BIT
-else
-  ifeq ($(QUANT_BITS),16)
-    TRAIN_SUFFIX=_16BIT
-  else
-    $(error Dont know how to build with this bit width)
-  endif
-endif
-
 MODEL_PYTHON=python3
 
 ifeq ($(ONNX), 1)

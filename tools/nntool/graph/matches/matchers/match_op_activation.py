@@ -17,13 +17,13 @@ import logging
 from abc import abstractproperty
 
 from graph.types import (ActivationFusion, ActivationParameters,
+                         BroadcastableActivationFusion,
                          GlobalPoolingParameters, HSigmoidActivationParameters,
                          HSwishActivationParameters, LeakyActivationParameters,
                          MatMulOpFusionParameters, MatMulOpParameters,
-                         MatrixAddParameters, MatrixMulParameters, NNEdge,
+                         MatrixAddParameters, NNEdge,
                          PoolingParameters, ReluActivationParameters,
                          SigmoidActivationParameters)
-from graph.types.base import Transposable
 from quantization.new_qrec import QRec
 from utils.graph import GraphView
 from utils.node_id import NodeId
@@ -53,7 +53,13 @@ VALID_MATMUL_ACTIVATIONS_POW2 = (
     SigmoidActivationParameters
 )
 
-VALID_GEN_ACTIVATIONS_FLOAT = ()
+VALID_GEN_ACTIVATIONS_FLOAT = (
+    ReluActivationParameters,
+    LeakyActivationParameters,
+    HSigmoidActivationParameters,
+    HSwishActivationParameters,
+    SigmoidActivationParameters
+)
 
 VALID_FUSIONS = {
     PoolingParameters: {
@@ -67,14 +73,9 @@ VALID_FUSIONS = {
         'float': (VALID_GEN_ACTIVATIONS_FLOAT, ActivationFusion),
     },
     MatrixAddParameters: {
-        'scaled': (VALID_GEN_ACTIVATIONS_SQ8, ActivationFusion),
-        'symmetric': (VALID_GEN_ACTIVATIONS_POW2, ActivationFusion),
-        'float': (VALID_GEN_ACTIVATIONS_FLOAT, ActivationFusion),
-    },
-    MatrixMulParameters: {
-        'scaled': (VALID_GEN_ACTIVATIONS_SQ8, ActivationFusion),
-        'symmetric': (VALID_GEN_ACTIVATIONS_POW2, ActivationFusion),
-        'float': (VALID_GEN_ACTIVATIONS_FLOAT, ActivationFusion),
+        'scaled': (VALID_GEN_ACTIVATIONS_SQ8, BroadcastableActivationFusion),
+        'symmetric': (VALID_GEN_ACTIVATIONS_POW2, BroadcastableActivationFusion),
+        'float': (VALID_GEN_ACTIVATIONS_FLOAT, BroadcastableActivationFusion),
     },
     MatMulOpParameters: {
         'scaled': (VALID_GEN_ACTIVATIONS_SQ8, MatMulOpFusionParameters),
@@ -94,8 +95,6 @@ class FusionMatch():
         self.order = []
 
     def add_node(self, G, params):
-        if isinstance(params, Transposable) and params.has_transpose:
-            return None
         if self.node is None:
             if params.__class__ in VALID_FUSIONS:
                 self.node = params

@@ -15,11 +15,13 @@
 
 
 from copy import deepcopy
+
 import numpy as np
 from graph.types import SoftMaxParameters
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
 from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       needs_stats,
                                                        out_qs_constraint,
                                                        params_type)
 
@@ -29,6 +31,7 @@ from ..pow2_quantization_handler import Pow2QuantizionHandler
 @params_type(SoftMaxParameters)
 @in_qs_constraint({'dtype': set([np.int8, np.int16])})
 @out_qs_constraint({'dtype': np.int16})
+@needs_stats(False)
 class SoftmaxPow2(Pow2QuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):

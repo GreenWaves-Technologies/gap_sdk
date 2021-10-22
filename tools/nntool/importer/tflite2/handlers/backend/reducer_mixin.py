@@ -51,7 +51,12 @@ class ReducerMixin(object):
             params = NoOPParameters(node.name)
             pout_shape = x_shape.copy()
         else:
-            pout_shape = [1 if idx in axes and dim is not None else dim for idx, dim in enumerate(x_shape)]
+            if node_opts.KeepDims():
+                # TODO - Might be safer here to insert a reshape before if the reduction axes contains
+                # an unspecified dimension to reshape that dimension to 1
+                pout_shape = [1 if idx in axes and dim is not None else dim for idx, dim in enumerate(x_shape)]
+            else:
+                pout_shape = [dim for idx, dim in enumerate(x_shape) if idx not in axes]
             # subtract 1 from axis for all None's preceeding it and remove
             # axes that are not defined
             axes = [ax - sum([1 if dim is None else 0 for dim in x_shape[:ax:]])

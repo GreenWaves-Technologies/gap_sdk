@@ -885,3 +885,8 @@ unsigned int __rt_fll_set_freq(int fll, unsigned int frequency)
 {
   return SetFllFrequency(fll, frequency, 0);
 }
+
+int pi_pmu_voltage_set(pi_pmu_domain_e domain, uint32_t voltage)
+{
+    return PMU_set_voltage(voltage, 0);
+}

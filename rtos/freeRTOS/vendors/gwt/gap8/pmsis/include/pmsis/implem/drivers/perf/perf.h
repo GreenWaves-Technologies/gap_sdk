@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, GreenWaves Technologies, Inc.
+ * Copyright (c) 2021, GreenWaves Technologies, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -28,14 +28,22 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PI_PERF_H__
-#define __PI_PERF_H__
+#pragma once
 
-#include "pmsis/implem/drivers/perf/perf_internal.h"
+#include "pmsis/drivers/perf.h"
+#include "pmsis/chips/gap8/perf.h"
+#include "pmsis/implem/drivers/timer/timer.h"
 
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
+
+#define CSR_PCMR_DISABLE    ( 0x0 ) /* Disable Performance counters. */
+#define CSR_PCMR_ENABLE     ( 0x1 ) /* Enable Performance counters. */
+#define CSR_PCMR_SATURATE   ( 0x2 ) /* Activate counter saturation. */
+
+#define PERF_TIMER_FC       ( FC_TIMER_1 ) /* FC Timer for perf counter. */
+#define PERF_TIMER_CL       ( CL_TIMER_0 ) /* CL Timer for perf counter. */
 
 /*******************************************************************************
  * Driver data
@@ -45,115 +53,189 @@
  * Function declaration
  ******************************************************************************/
 
-static inline void pi_perf_conf(unsigned events)
+static inline void __pi_perf_mask_events_set(uint32_t mask)
 {
-    #if (FEATURE_CLUSTER == 1)
-    if (!pi_is_fc())
+    __PCER_Set(mask);
+}
+
+static inline void __pi_perf_counters_reset()
+{
+    __PCCR31_Set(0);
+}
+
+static inline void __pi_perf_counter_enable(uint32_t mask)
+{
+    __PCMR_Set(mask);
+}
+
+static inline uint32_t __pi_perf_counter_get(uint32_t event)
+{
+    return __PCCRs_Get(event);
+}
+
+static inline void pi_perf_fc_reset()
+{
+    /* Reset Timer counter. */
+    pi_timer_reset(PERF_TIMER_FC);
+
+    /* Reset all Performace Counter Counter Register(PCCR) to 0. */
+    __pi_perf_counters_reset();
+}
+
+static inline void pi_perf_fc_start()
+{
+    /* Start timer if used. */
+    pi_timer_start(PERF_TIMER_FC);
+
+    /* Enable performance counters. */
+    __pi_perf_counter_enable(CSR_PCMR_ENABLE | CSR_PCMR_SATURATE);
+}
+
+static inline void pi_perf_fc_stop()
+{
+    /* Disable performance counters. */
+    __pi_perf_counter_enable(CSR_PCMR_DISABLE);
+
+    /* Disable timer if used. */
+    pi_timer_stop(PERF_TIMER_FC);
+}
+
+static inline uint32_t pi_perf_fc_read(uint32_t event)
+{
+    uint32_t val = 0;
+    if (event == PI_PERF_CYCLES)
     {
-        __pi_perf_cl_conf(events);
+        val = pi_timer_value_read(PERF_TIMER_FC);
     }
     else
-    #endif  /* FEATURE_CLUSTER */
     {
-        __pi_perf_fc_conf(events);
+        val = __pi_perf_counter_get(event);
     }
+    return val;
+}
+
+#if defined(FEATURE_CLUSTER)
+static inline void pi_perf_cl_reset()
+{
+    uint8_t cid = pi_core_id();
+
+    /* Reset Timer counter. */
+    if (cid == (uint8_t) ARCHI_CLUSTER_MASTER_CORE)
+    {
+        pi_timer_reset(PERF_TIMER_CL);
+    }
+    /* Reset all Performace COunter Counter Register(PCCR) to 0. */
+    __pi_perf_counters_reset();
+}
+
+static inline void pi_perf_cl_start()
+{
+    uint8_t cid = pi_core_id();
+
+    /* Start timer if used. */
+    if (cid == (uint8_t) ARCHI_CLUSTER_MASTER_CORE)
+    {
+        pi_timer_start(PERF_TIMER_CL);
+    }
+
+    /* Enable performance counters. */
+    __pi_perf_counter_enable(CSR_PCMR_ENABLE | CSR_PCMR_SATURATE);
+}
+
+static inline void pi_perf_cl_stop()
+{
+    uint8_t cid = pi_core_id();
+
+    /* Disable performance counters. */
+    __pi_perf_counter_enable(CSR_PCMR_DISABLE);
+
+    /* Disable timer if used. */
+    if (cid == (uint8_t) ARCHI_CLUSTER_MASTER_CORE)
+    {
+        pi_timer_stop(PERF_TIMER_CL);
+    }
+}
+
+static inline uint32_t pi_perf_cl_read(uint32_t event)
+{
+    uint32_t val = 0;
+    if (event == PI_PERF_CYCLES)
+    {
+        val = pi_timer_value_read(PERF_TIMER_CL);
+    }
+    else
+    {
+        val = __pi_perf_counter_get(event);
+    }
+    return val;
+}
+#endif  /* FEATURE_CLUSTER */
+
+/*******************************************************************************
+ * API implementation
+ ******************************************************************************/
+
+static inline void pi_perf_conf(unsigned events)
+{
+    /* Set Performance Counter Event Register(PCER) with given events mask. */
+    __pi_perf_mask_events_set(events & ~(1 << PI_PERF_CYCLES));
 }
 
 static inline void pi_perf_reset()
 {
     /* Reset all performance counters to 0. */
-    #if (FEATURE_CLUSTER == 1)
+    #if defined(FEATURE_CLUSTER)
     if (!pi_is_fc())
     {
-        __pi_perf_cl_reset();
+        pi_perf_cl_reset();
     }
     else
     #endif  /* FEATURE_CLUSTER */
     {
-        __pi_perf_fc_reset();
+        pi_perf_fc_reset();
     }
-}
-
-static inline void pi_perf_fc_reset()
-{
-    __pi_perf_fc_reset();
-}
-
-static inline void pi_perf_cl_reset()
-{
-    /* Reset all performance counters to 0. */
-    #if (FEATURE_CLUSTER == 1)
-    __pi_perf_cl_reset();
-    #endif  /* FEATURE_CLUSTER */
 }
 
 static inline void pi_perf_start()
 {
     /* Initialize timer if needed and start counters. */
-    #if (FEATURE_CLUSTER == 1)
+    #if defined(FEATURE_CLUSTER)
     if (!pi_is_fc())
     {
-        __pi_perf_cl_start();
+        pi_perf_cl_start();
     }
     else
     #endif  /* FEATURE_CLUSTER */
     {
-        __pi_perf_fc_start();
+        pi_perf_fc_start();
     }
-}
-
-static inline void pi_perf_fc_start()
-{
-    __pi_perf_fc_start();
-}
-
-static inline void pi_perf_cl_start()
-{
-    /* Initialize timer if needed and start counters. */
-    #if (FEATURE_CLUSTER == 1)
-    __pi_perf_cl_start();
-    #endif  /* FEATURE_CLUSTER */
 }
 
 static inline void pi_perf_stop()
 {
     /* Stop counters and timers, and save values. */
-    #if (FEATURE_CLUSTER == 1)
+    #if defined(FEATURE_CLUSTER)
     if (!pi_is_fc())
     {
-        __pi_perf_cl_stop();
+        pi_perf_cl_stop();
     }
     else
     #endif  /* FEATURE_CLUSTER */
     {
-        __pi_perf_fc_stop();
+        pi_perf_fc_stop();
     }
 }
 
 static inline unsigned int pi_perf_read(int id)
 {
-    #if (FEATURE_CLUSTER == 1)
+    #if defined(FEATURE_CLUSTER)
     if (!pi_is_fc())
     {
-        return __pi_perf_cl_read(id);
+        return pi_perf_cl_read(id);
     }
     else
     #endif  /* FEATURE_CLUSTER */
     {
-        return __pi_perf_fc_read(id);
+        return pi_perf_fc_read(id);
     }
 }
-
-static inline unsigned int pi_perf_fc_read(int id)
-{
-    return __pi_perf_fc_read(id);
-}
-
-static inline unsigned int pi_perf_cl_read(int id)
-{
-    #if (FEATURE_CLUSTER == 1)
-    return __pi_perf_cl_read(id);
-    #endif  /* FEATURE_CLUSTER */
-}
-
-#endif  /* __PI_PERF_H__ */

@@ -13,14 +13,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+from utils.node_id import NodeId
 
 from generation.at_types.at_params import (NO_ACTIVATION, gen_active_at_params,
                                            gen_pool_at_params)
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
 from generation.generator_decorators import (QREC_FLOAT, QREC_MULT8,
-                                                        generation_function)
-from graph.types import ActivationFusion, PoolingParameters
+                                             generation_function)
+from graph.types import ActivationFusionBase, PoolingParameters
 from graph.types.pooling import AveragePoolParameters, MaxPoolParameters
 
 from ..autotiler_kernel import AutotilerKernel
@@ -28,22 +29,24 @@ from ..autotiler_kernel import AutotilerKernel
 LOG = logging.getLogger("nntool." + __name__)
 
 
-@generation_function("kernels", (MaxPoolParameters, AveragePoolParameters, ActivationFusion), qrec_types=(QREC_FLOAT, ))
+@generation_function("kernels", (MaxPoolParameters, AveragePoolParameters, ActivationFusionBase), qrec_types=(QREC_FLOAT, ))
 def pool_act_kernels_generator_fp16(gen, node, qrec, in_eparams, out_eparams, cname):
     del in_eparams, out_eparams, qrec
-    if isinstance(node, ActivationFusion):
+    if isinstance(node, ActivationFusionBase):
         cnodes = node.contained_nodes()
         if isinstance(cnodes[0], PoolingParameters):
             gen.kernels.append(PoolKernel(node.name, cname, cnodes[0], cnodes[1],
                                           at_ver=gen.opts['at_ver'], force_relu=gen.force_relu))
             return True
         return False
-    gen.kernels.append(PoolKernel(node.name, cname, node, None, at_ver=gen.opts['at_ver'], force_relu=gen.force_relu))
+    gen.kernels.append(PoolKernel(node.name, cname, node, None,
+                                  at_ver=gen.opts['at_ver'], force_relu=gen.force_relu))
     return True
 
 
 def gen_cnn_pool_act_sq8(code_block, cname, ctrl, feat, width, height, at_pool_params, actoper):
-    code_block.write('CNN_PoolAct_fp16("{}", {}, {}, {}, {}, {},'.format(cname, ctrl, feat, feat, width, height))
+    code_block.write('CNN_PoolAct_fp16("{}", {}, {}, {}, {}, {},'.format(
+        cname, ctrl, feat, feat, width, height))
     code_block.indent()
     code_block.write('{}, {}, {}, {}, {}, {}, {}, {}, {});'.format(at_pool_params.PoolOper,
                                                                    at_pool_params.Fpx,
@@ -71,7 +74,8 @@ class PoolKernel(AutotilerKernel):
             self.at_act_params = NO_ACTIVATION
 
         pad_compatibilities = []
-        self.at_pool_params = gen_pool_at_params(pool_params, pad_compatibilities)
+        self.at_pool_params = gen_pool_at_params(
+            pool_params, pad_compatibilities)
         self.in_dim = pool_params.in_dims[0]
         self.out_dim = pool_params.out_dims[0]
         self.cname = cname

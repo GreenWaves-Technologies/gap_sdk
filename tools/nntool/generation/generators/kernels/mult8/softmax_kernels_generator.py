@@ -61,8 +61,8 @@ class SoftmaxKernel(AutotilerKernel):
         else:
             gen_ctrl.cname = cname
             self.gen_ctrl = gen_ctrl
-        if (not qrec.out_qs[0].bits == 16) or (not qrec.out_qs[0].signed):
-            self.gen_ctrl.output_datasize = qrec.out_qs[0].bits//8 if qrec.out_qs[0].signed else -qrec.out_qs[0].bits//8
+        if (not qrec.out_qs[0].dtype_bits == 16) or (not qrec.out_qs[0].signed):
+            self.gen_ctrl.output_datasize = qrec.out_qs[0].dtype_bits//8 if qrec.out_qs[0].signed else -qrec.out_qs[0].dtype_bits//8
 
         self.at_softmax_params = gen_softmax_at_params(params)
         self.in_dim = params.in_dims[0]

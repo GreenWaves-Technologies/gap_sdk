@@ -297,7 +297,7 @@ void vp::power_trace::dump(FILE *file)
   this->get(&dynamic, &leakage);
   double total = dynamic + leakage;
 
-  fprintf(file, "%s; %.12f; %.12f; %.12f; 1.0\n", this->trace.get_name().c_str(), dynamic, leakage, total);
+  fprintf(file, "%s; %.12f; %.12f; %.12f; 1.0\n", this->trace.get_full_path().c_str(), dynamic, leakage, total);
 
   if (this->child_traces.size())
   {
@@ -305,11 +305,35 @@ void vp::power_trace::dump(FILE *file)
     {
       x->get(&dynamic, &leakage);
 
-      fprintf(file, "%s; %.12f; %.12f; %.12f; %.6f\n", x->trace.get_name().c_str(), dynamic, leakage, dynamic + leakage, (dynamic + leakage) / total);
+      fprintf(file, "%s; %.12f; %.12f; %.12f; %.6f\n", x->trace.get_full_path().c_str(), dynamic, leakage, dynamic + leakage, (dynamic + leakage) / total);
     }
   }
   fprintf(file, "\n");
 
+}
+
+void vp::power_trace::incr(double quantum, bool is_leakage)
+{
+  this->get_value();
+
+  if (is_leakage)
+  {
+    this->total_leakage += quantum;
+  }
+  else
+  {
+    this->value += quantum;
+    this->total += quantum;
+  }
+
+  if (this->top_trace)
+    this->top_trace->incr(quantum, is_leakage);
+
+  if (this->top->get_clock())
+  {
+    if (!is_leakage)
+      this->trace.event_real_pulse(this->top->get_period(), this->value, 0);
+  }
 }
 
 
@@ -333,8 +357,11 @@ void vp::power_trace::account_power()
   if (diff > 0)
   {
     double energy = this->current_power * diff;
+
     if (this->top_trace)
+    {
       this->top_trace->incr(energy);
+    }
     this->total += energy;
     this->current_power_timestamp = this->top->get_time();
   }
@@ -477,4 +504,15 @@ void vp::component_power::reg_top_trace(vp::power_trace *trace)
     x->power.reg_top_trace(trace);
   }
 
+}
+
+
+void vp::component::dump_traces_recursive(FILE *file)
+{
+    this->dump_traces(file);
+
+    for (auto& x: this->get_childs())
+    {
+        x->dump_traces_recursive(file);
+    }
 }

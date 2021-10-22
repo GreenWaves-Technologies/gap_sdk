@@ -47,6 +47,9 @@
 /* GPIO. */
 #include "gpio/gpio.h"
 
+/* TIMER. */
+#include "timer/timer.h"
+
 /* PWM */
 #include "pwm/pwm.h"
 #include "pwm/pwm_ctrl.h"

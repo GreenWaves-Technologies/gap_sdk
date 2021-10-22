@@ -19,6 +19,9 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
 * @ingroup groupDrivers
@@ -263,4 +266,7 @@ static inline void pi_cpi_set_sync_polarity(struct pi_device *device, uint8_t vs
  * @}
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PI_DRIVERS_CPI_H__ */

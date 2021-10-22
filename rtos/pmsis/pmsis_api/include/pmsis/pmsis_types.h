@@ -20,6 +20,10 @@
 #include "inttypes.h"
 #include "sys/types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @defgroup groupDrivers Drivers
  */
@@ -147,6 +151,7 @@ struct pmsis_event_kernel_wrap {
 enum pi_task_id {
     PI_TASK_CALLBACK_ID,
     PI_TASK_NONE_ID,
+    PI_TASK_IRQ_ID,
 };
 
 typedef struct pi_callback_s
@@ -156,7 +161,8 @@ typedef struct pi_callback_s
     void *arg;
 } pi_callback_t;
 
-
-
+#ifdef __cplusplus
+}
+#endif
 /// @endcond
 #endif

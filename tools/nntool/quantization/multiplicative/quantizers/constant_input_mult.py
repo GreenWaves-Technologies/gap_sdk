@@ -39,4 +39,4 @@ class ConstantInputMult(MultQuantizionHandler):
         else:
             o_q = QType.from_array_sq(params.value, dtype=out_dtype)
         o_q.is_constant = True
-        return QRec.scaled(out_qs=[o_q])
+        return QRec.scaled(in_qs=[o_q], out_qs=[o_q])

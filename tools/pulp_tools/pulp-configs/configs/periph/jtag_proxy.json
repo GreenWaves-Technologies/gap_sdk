@@ -1,7 +1,0 @@
-{
-  "type": "dpi",
-  "active": false,
-  "module": "jtag_proxy.so",
-  "verbose": false,
-  "port": 37539
-}

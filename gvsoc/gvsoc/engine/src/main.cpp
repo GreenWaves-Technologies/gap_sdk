@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 
     int retval = gv_run(instance);
 
-    gv_stop(instance);
+    gv_stop(instance, retval);
 
     return retval;
 }

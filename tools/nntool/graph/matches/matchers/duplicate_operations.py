@@ -62,7 +62,7 @@ class MatchDuplicateOperations(Matcher):
                 while same_source_edge:
                     first = same_source_edge.pop(0)
 
-                    others = list(filter(partial(lambda x, y: y.to_node.is_same_operation_as(
+                    others = list(filter(partial(lambda x, y: y.to_node.is_same_operation_as(G,
                         x.to_node), first), same_source_edge))
                     if others:
                         same_dest_edges.append(tuple([first] + others))
@@ -79,23 +79,46 @@ class MatchDuplicateOperations(Matcher):
                             same_source_edge.remove(other)
 
             # all are multiple edges that go to something comparable
-
-            for edge_set in same_dest_edges:
-                modified_graph = True
-                found_more = True
-                first = edge_set[0]
-                first_node = first.to_node
-                dup_nodes = []
-                for other in edge_set[1::]:
-                    dest_node = other.to_node
-                    dup_nodes.append(dest_node.name)
-                    out_edges = G.out_edges(dest_node.name)
-                    G.remove(dest_node)
-                    for out_edge in out_edges:
-                        G.add_edge(NNEdge(from_node=first_node, to_node=out_edge.to_node,
-                                          from_idx=out_edge.from_idx, to_idx=out_edge.to_idx))
+            while same_dest_edges:
+                edge_set = same_dest_edges.pop(0)
+                keep_node = edge_set[0].to_node
+                other_edge_sets = [edges for edges in same_dest_edges if any(edge.to_node == keep_node for edge in edges)]
+                for other_edge_set in other_edge_sets:
+                    same_dest_edges.remove(other_edge_set)
+                
+                nodes_to_delete = set()
+                for edge_set in [edge_set] + other_edge_sets:
+                    for edge in edge_set:
+                        other_node = edge.to_node
+                        if other_node == keep_node or other_node in nodes_to_delete:
+                            continue
+                        nodes_to_delete.add(other_node)
+                        for out_edge in G.out_edges(other_node):
+                            G.add_edge(NNEdge(from_node=keep_node, to_node=out_edge.to_node, to_idx=out_edge.to_idx))
                 LOG.info(
-                    f'removed duplicates {",".join(dup_nodes)} to {first_node.name}')
+                    f'removed duplicates {",".join(node.name for node in nodes_to_delete)} to {keep_node.name}')
+                for node in nodes_to_delete:
+                    G.remove(node)
+                        
+            
+            # # all are multiple edges that go to something comparable
+
+            # for edge_set in same_dest_edges:
+            #     modified_graph = True
+            #     found_more = True
+            #     first = edge_set[0]
+            #     first_node = first.to_node
+            #     dup_nodes = []
+            #     for other in edge_set[1::]:
+            #         dest_node = other.to_node
+            #         dup_nodes.append(dest_node.name)
+            #         out_edges = G.out_edges(dest_node.name)
+            #         G.remove(dest_node)
+            #         for out_edge in out_edges:
+            #             G.add_edge(NNEdge(from_node=first_node, to_node=out_edge.to_node,
+            #                               from_idx=out_edge.from_idx, to_idx=out_edge.to_idx))
+            #     LOG.info(
+            #         f'removed duplicates {",".join(dup_nodes)} to {first_node.name}')
 
             for edge_set in same_dest_group_edges:
                 modified_graph = True
@@ -146,7 +169,6 @@ class MatchDuplicateOperations(Matcher):
                     G.remove(biases_other)
                     for edge in out_edges:
                         G.add_edge(NNEdge(from_node=split1, from_idx=out_num, to_node=edge.to_node, to_idx=edge.to_idx))
-                    # TODO - handle quantization
                 LOG.info(
                     f'merged convolutions {",".join(dup_nodes)} into {first_node.name}')
             if not found_more:

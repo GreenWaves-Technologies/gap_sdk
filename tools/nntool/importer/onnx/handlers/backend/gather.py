@@ -41,8 +41,8 @@ class Gather(ConstantMixin, BackendHandler):
 
         pshape = ProvisionalDim(x_shape[:axis:] + list(indices.shape) + x_shape[axis + 1:])
         if cls.is_constant(x):
-            logger.info("reducing %s to a constant", valid_name)
             x_val = cls.get_constant(x)
+            logger.info(f"reducing {valid_name} to a constant {cls.print_small(x_val)}")
             params = ConstantInputParameters(valid_name, value=np.take(x_val, indices, axis=axis),
                                              constant_store=G.constant_store)
         else:

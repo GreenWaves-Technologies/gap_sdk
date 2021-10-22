@@ -17,7 +17,6 @@ import copy
 from collections import OrderedDict
 
 from graph.nngraph import NNGraph
-from graph.types import FilterParameters, ConvFusionParameters
 from utils.stats_funcs import STATS_BITS, astats, calculate_qsnrs
 from utils.tabular import Tabular, TabularColumn
 from utils.node_id import NodeId

@@ -43,10 +43,13 @@ void Gdb_interface::setup_gdb_child(std::string elf_file){
   int inpipefd[2];
   int outpipefd[2];
 
-  if (pipe(inpipefd) || pipe(outpipefd)){
+  if ((0 != pipe(inpipefd)) || (0 != pipe(outpipefd)))
+  {
     printf("[-] Error: impossible to open pipes to communicate with gdb: %s\n",
           strerror(errno));
+    exit(1);
   }
+
   pid = fork();
   if (pid == 0)
   {

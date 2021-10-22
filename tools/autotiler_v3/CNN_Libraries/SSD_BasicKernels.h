@@ -35,8 +35,8 @@ typedef struct{
 	int16_t y;
 	int16_t w;
 	int16_t h;
-	int16_t  score;
-	uint16_t class;
+	int8_t  score;
+	uint8_t class;
 	uint8_t  alive;
 }bbox_t;
 
@@ -59,7 +59,7 @@ typedef struct {
     int16_t H;
     uint8_t* in_scales;
     uint8_t* in_norms;
-    int8_t * infos;
+    int ScoreThr;
     int16_t n_max_bb;
     int16_t *bbox_idx;
 } Ker_SSD_Decoder_ArgT;
@@ -68,8 +68,11 @@ void Ker_SSD_Decoder(Ker_SSD_Decoder_ArgT *Arg);
 
 typedef struct {
     bbox_t * bbox_buf;
-    bbox_t * bbox_out;
-    int8_t * infos;
+    int16_t n_out_box;
+    int16_t * bbox_out;
+    int8_t * class_out;
+    int8_t * scores_out;
+    int NMSThr;
     int16_t n_max_bb;
     int16_t *bbox_idx;
 } Ker_SSD_NMS_ArgT;

@@ -1,4 +1,5 @@
-Input file: fe/ips/lnt_i3c_master/docs/I3C_reference.md
+.. 
+   Input file: fe/ips/lnt_i3c_master/docs/I3C_reference.md
 
 Register map
 ^^^^^^^^^^^^

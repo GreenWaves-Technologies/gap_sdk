@@ -23,7 +23,7 @@ from ..quantization_base import QRecBase
 
 class Q15ScaleQRec(QRecBase):
     def __init__(self, dtype: np.dtype, scale: float, q: int, min_val=None, max_val=None) -> None:
-        self._dtype = dtype
+        super(Q15ScaleQRec, self).__init__(dtype)
         self._scale = scale
         self._q = q
         self._min_val = min_val
@@ -77,18 +77,6 @@ class Q15ScaleQRec(QRecBase):
     @property
     def max_val(self):
         return self._max_val
-
-    @property
-    def dtype(self):
-        return self._dtype
-
-    @property
-    def ctype(self):
-        return self.DTYPE_TO_CTYPE[self.dtype]
-
-    @dtype.setter
-    def dtype(self, val):
-        self._dtype = val
 
     @property
     def scale(self):

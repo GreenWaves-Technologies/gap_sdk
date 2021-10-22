@@ -21,6 +21,7 @@ from graph.types import PoolingParameters
 from graph.types.pooling import MaxPoolParameters
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
+from quantization.quantizer_options import HWC_OPTION
 from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        options,
                                                        out_qs_constraint,
@@ -30,15 +31,12 @@ from ..mult_quantization_handler import MultQuantizionHandler
 
 LOG = logging.getLogger('nntool.' + __name__)
 
-AT_SW_KER_IN_ORDER = [['c', 'h', 'w']]
-AT_SW_KER_OUT_ORDER = [['c', 'h', 'w']]
-AT_NE16_KER_IN_ORDER = [['h', 'w', 'c']]
-AT_NE16_KER_OUT_ORDER = [['h', 'w', 'c']]
-
-
+@options(
+    HWC_OPTION
+)
 @params_type(PoolingParameters)
-@in_qs_constraint({'dtype': set([np.int8])})
-@out_qs_constraint({'dtype': set([np.int8])})
+@in_qs_constraint({'dtype': {np.int16, np.int8}})
+@out_qs_constraint({'dtype': {np.int16, np.int8}})
 class PoolingMult(MultQuantizionHandler):
 
     @classmethod
@@ -47,12 +45,12 @@ class PoolingMult(MultQuantizionHandler):
         in_qs = in_qs.copy()
         opts = kwargs['opts']
 
-        force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
+        force_out_qs, _ = cls.get_mult_opts(**kwargs)
         force_out_q = force_out_qs and force_out_qs[0]
         G = kwargs['G']
         in_q = in_qs[0]
 
-        if (in_q.is_asymmetric and isinstance(params, PoolingParameters) and params.padding.has_padding):
+        if (in_q.asymmetric and isinstance(params, PoolingParameters) and params.padding.has_padding):
             in_qs = cls.force_symmetric(in_qs)
             if in_qs is None:
                 return None
@@ -63,8 +61,10 @@ class PoolingMult(MultQuantizionHandler):
         max_val = stats['range_in'][0]['max']
 
         if force_out_q:
-            if force_out_q.is_asymmetric and not opts.get('allow_asymmetric'):
+            if force_out_q.asymmetric and not opts.get('allow_asymmetric'):
                 LOG.warning('%s could be asymmetricaly quantized but allow_asymmetric option not selected', params.name)
+                return None
+            if force_out_q.dtype != in_q.dtype:
                 return None
             o_q = force_out_q
             in_q = deepcopy(force_out_q)
@@ -72,11 +72,15 @@ class PoolingMult(MultQuantizionHandler):
                 if in_q.forced and force_out_q.zero_point != 0:
                     return None
             LOG.warning('node %s output forced to range %s/%s  %s - actual range %s/%s',
-                        params.name, o_q.min, o_q.max, "asymmetric" if o_q.is_asymmetric else "symmetric",
+                        params.name, o_q.min, o_q.max, "asymmetric" if o_q.asymmetric else "symmetric",
                         min_val, max_val)
         else:
             o_q = deepcopy(in_q)
-        cls.check_order(params, AT_SW_KER_IN_ORDER, AT_SW_KER_OUT_ORDER)
+
+        if opts['hwc']:
+            cls.check_order(params, [['h', 'w', 'c']], [['h', 'w', 'c']])
+        else:
+            cls.check_order(params, [['c', 'h', 'w']], [['c', 'h', 'w']])
         return QRec.scaled(in_qs=[in_q],
                            out_qs=[o_q])
 
@@ -89,7 +93,7 @@ class PoolingMult(MultQuantizionHandler):
         return [QType.from_min_max_sq(stats['range_in'][idx]['min'],
                                       stats['range_in'][idx]['max'],
                                       dtype=np.int8,
-                                      asymmetric=cls.can_handle_asymmetric_input(params, **kwargs) and in_qs[idx].is_asymmetric)
+                                      asymmetric=cls.can_handle_asymmetric_input(params, **kwargs) and in_qs[idx].asymmetric)
                 if dim is not None else None
                 for idx, dim in enumerate(params.in_dims)]
 
@@ -109,8 +113,8 @@ class PoolingMult(MultQuantizionHandler):
     }
 )
 @params_type(PoolingParameters)
-@in_qs_constraint({'dtype': set([np.uint8])})
-@out_qs_constraint({'dtype': set([np.uint8])})
+@in_qs_constraint({'dtype': set([np.uint8, np.int16, np.uint16])})
+@out_qs_constraint({'dtype': set([np.uint8, np.int16, np.uint16])})
 @priority(2)
 class NE16PoolingMult(MultQuantizionHandler):
 
@@ -141,11 +145,11 @@ class NE16PoolingMult(MultQuantizionHandler):
 
             LOG.warning('node %s output forced to range %s/%s - actual range %s/%s %s',
                         params.name, o_q.min, o_q.max, min_val, max_val,
-                        "asymmetric" if o_q.is_asymmetric else "symmetric")
+                        "asymmetric" if o_q.asymmetric else "symmetric")
         else:
             o_q = deepcopy(in_q)
         o_q.attr.ne16 = True
-        cls.check_order(params, AT_NE16_KER_IN_ORDER, AT_NE16_KER_OUT_ORDER)
+        cls.check_order(params, [['h', 'w', 'c']], [['h', 'w', 'c']])
         return QRec.scaled(in_qs=[in_q],
                            out_qs=[o_q],
                            ne16=True)
@@ -155,7 +159,7 @@ class NE16PoolingMult(MultQuantizionHandler):
         return [QType.from_min_max_sq(stats['range_in'][idx]['min'],
                                       stats['range_in'][idx]['max'],
                                       dtype=np.uint8,
-                                      asymmetric=cls.can_handle_asymmetric_input(params, **kwargs) and in_qs[idx].is_asymmetric)
+                                      asymmetric=cls.can_handle_asymmetric_input(params, **kwargs) and in_qs[idx].asymmetric)
                 if dim is not None else None
                 for idx, dim in enumerate(params.in_dims)]
 

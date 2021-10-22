@@ -213,14 +213,13 @@ class FuseMatScalePair(Matcher):
             fnode.in_dims_hint = [None] * 3
 
             for idx, edge in enumerate(match_edges):
-                edge.to_idx = list(input_mapping[edge.to_node].keys())[0]
-                edge.to_node = fnode
-                if edge.from_node.out_dims_hint:
-                    fnode.in_dims_hint[idx] = edge.from_node.out_dims_hint[edge.from_idx]
-                G.add_edge(edge)
+                new_edge = edge.clone(to_node=fnode, to_idx=list(input_mapping[edge.to_node].keys())[0])
+                if new_edge.from_node.out_dims_hint:
+                    fnode.in_dims_hint[idx] = new_edge.from_node.out_dims_hint[edge.from_idx]
+                G.add_edge(new_edge)
             for edge in out_edges:
-                edge.from_node = fnode
-                G.add_edge(edge)
+                new_edge = edge.clone(from_node=fnode)
+                G.add_edge(new_edge)
 
         if set_identity:
             self.set_identity(G)
@@ -251,12 +250,11 @@ class FuseMatScale(Matcher):
                 input_mapping=[[(matched_node, 0)], [(matched_node, 1)]])
             G.add_node(fnode)
             for idx, edge in enumerate(match_edges):
-                edge.to_node = fnode
-                edge.to_idx = idx
-                G.add_edge(edge)
+                new_edge = edge.clone(to_node = fnode, to_idx = idx)
+                G.add_edge(new_edge)
             for edge in out_edges:
-                edge.from_node = fnode
-                G.add_edge(edge)
+                new_edge = edge.clone(from_node = fnode)
+                G.add_edge(new_edge)
 
         if set_identity:
             self.set_identity(G)

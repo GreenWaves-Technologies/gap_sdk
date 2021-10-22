@@ -1,7 +1,0 @@
-{
-    "version": 4,
-    "nb_domains": 2,
-  
-    "vp_class": "pulp/pmu/pmu_v4",
-    "vp_component": "pulp.pmu.pmu_v4_impl"
-}

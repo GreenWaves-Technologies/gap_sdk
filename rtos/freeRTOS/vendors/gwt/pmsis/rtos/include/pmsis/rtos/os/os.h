@@ -202,6 +202,32 @@ static inline int pmsis_mutex_deinit(pmsis_mutex_t *mutex)
 #endif
 }
 
+
+static inline int pi_sync_obj_init(void *sync_obj)
+{
+    hal_compiler_barrier();
+    return __os_native_api_sync_obj_init(sync_obj);
+}
+
+static inline int pi_sync_obj_deinit(void *sync_obj)
+{
+    hal_compiler_barrier();
+    return __os_native_api_sync_obj_deinit(sync_obj);
+}
+
+static inline void pi_sync_obj_take(void *sync_obj)
+{
+    hal_compiler_barrier();
+    __os_native_api_sync_obj_take(sync_obj);
+}
+
+static inline void pi_sync_obj_release(void *sync_obj)
+{
+    hal_compiler_barrier();
+    __os_native_api_sync_obj_release(sync_obj);
+}
+
+
 static inline void pmsis_spinlock_init(pmsis_spinlock_t *spinlock)
 {
     hal_compiler_barrier();
@@ -226,7 +252,7 @@ static inline void pmsis_spinlock_release(pmsis_spinlock_t *spinlock)
     restore_irq(irq_enabled);
 }
 
-#if !defined(__GAP8__) && !defined(__VEGA__)
+#if !defined(__GAP8__)// && !defined(__VEGA__)
 static inline void pi_irq_handler_set(int irq, void (*handler)())
 {
     // use a wrapper to create C context
@@ -255,10 +281,12 @@ static inline void pi_irq_mask_disable(int irq)
     __os_native_irq_mask(irq);
 }
 
+#if !defined(__VEGA__)
 static inline void pi_os_reboot(void)
 {
     hal_soc_ctrl_sw_reset();
 }
+#endif  /* __VEGA__ */
 
 #endif  /* __GAP8__ */
 

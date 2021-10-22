@@ -22,13 +22,13 @@
 
 int Ne16::regfile_rd(int addr) {
   if(addr == NE16_SPECIAL_TRACE_REG) {
-    if(this->trace_level == L0_JOB_START_END) {
+    if(this->trace_level == L0_CONFIG) {
       return 0;
     }
-    else if(this->trace_level == L1_CONFIG) {
+    else if(this->trace_level == L1_ACTIV_INOUT) {
       return 1;
     }
-    else if(this->trace_level == L2_ACTIV_INOUT) {
+    else if(this->trace_level == L2_DEBUG) {
       return 2;
     }
     else {
@@ -54,17 +54,20 @@ int Ne16::regfile_rd(int addr) {
 void Ne16::regfile_wr(int addr, int value) {
   if(addr == NE16_SPECIAL_TRACE_REG) {
     if(value == 0) {
-      this->trace_level = L0_JOB_START_END;
+      this->trace_level = L0_CONFIG;
     }
     else if(value == 1) {
-      this->trace_level = L1_CONFIG;
+      this->trace_level = L1_ACTIV_INOUT;
     }
     else if(value == 2) {
-      this->trace_level = L2_ACTIV_INOUT;
+      this->trace_level = L2_DEBUG;
     }
     else {
       this->trace_level = L3_ALL;
     }
+  }
+  else if (addr == NE16_SPECIAL_FORMAT_TRACE_REG) {
+    this->trace_format = value;
   }
   else if(addr < NE16_NB_REG) {
     if (this->cxt_cfg_ptr == 0) {
@@ -317,16 +320,19 @@ void Ne16::printout() {
 }
 
 void Ne16::commit() {
+  this->trace.msg(vp::trace::LEVEL_DEBUG, "JOB COMMITTED: job_state=%d job_pending=%d job_running=%d\n", this->job_state, this->job_pending, this->job_running);
   this->job_pending++;
   this->job_state = 0;
   this->cxt_cfg_ptr = 1-this->cxt_cfg_ptr;
 }
 
 int Ne16::acquire() {
+  this->trace.msg(vp::trace::LEVEL_DEBUG, "JOB ACQUIRED: job_state=%d job_pending=%d job_running=%d\n", this->job_state, this->job_pending, this->job_running);
   if(this->job_state == 0 & this->job_pending < 2) {
-    this->job_id++;
+    int job_id = (int) this->job_id++;
+    this->cxt_job_id[this->cxt_cfg_ptr] = job_id;
     this->job_state = -2;
-    return 0;
+    return job_id;
   }
   else if(this->job_pending == 2) {
     return -1;

@@ -13,11 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from quantization.qtype import QType
 import numpy as np
 from bfloat16 import bfloat16
+from quantization.qtype import QType
 
-from ..unified_quantization_handler import QuantizionHandler, options, scheme
+from ..unified_quantization_handler import (QuantizionHandler, needs_stats,
+                                            options, scheme)
 
 FLOAT_DTYPES = {
     'bfloat16': bfloat16,
@@ -37,7 +38,8 @@ FLOAT_DTYPES = {
         'default': 'float32'
     }
 )
-@scheme('float')
+@scheme('FLOAT')
+@needs_stats(False)
 class FloatQuantizionHandler(QuantizionHandler):
     @classmethod
     def get_float_opts(cls, **kwargs):
@@ -54,7 +56,10 @@ class FloatQuantizionHandler(QuantizionHandler):
         dtype = FLOAT_DTYPES.get(float_type)
         if dtype is None:
             raise ValueError(f'invalid float_type {float_type}')
-        return [QType(min_val=stats['range_in'][idx]['min'],
-                      max_val=stats['range_in'][idx]['max'],
-                      dtype=dtype) if dim is not None else None
+        if stats:
+            return [QType(min_val=stats['range_in'][idx]['min'],
+                        max_val=stats['range_in'][idx]['max'],
+                        dtype=dtype) if dim is not None else None
+                    for idx, dim in enumerate(params.in_dims)]
+        return [QType(dtype=dtype) if dim is not None else None
                 for idx, dim in enumerate(params.in_dims)]

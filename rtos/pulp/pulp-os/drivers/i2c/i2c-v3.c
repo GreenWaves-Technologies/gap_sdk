@@ -51,7 +51,6 @@ void pos_i2c_handle_copy(int event, void *arg)
   pi_task_t *task = i2c->pending_copy;
   i2c->pending_copy = NULL;
 
-  printf("HANDLE EVENT %d arg %p\n", event, arg);
   __rt_event_handle_end_of_task(task);
 }
 
@@ -191,7 +190,6 @@ void pi_i2c_write_read_async(struct pi_device *device, void *tx_buffer, void *rx
 
   __rt_task_init(task);
 
-  printf("WRITE SIZE %ld, READ SIZE %ld\n", tx_size, rx_size);
 
   pi_i2c_t *i2c = (pi_i2c_t *)device->data;
 
@@ -247,11 +245,7 @@ end:
 
 void pi_i2c_write_async(struct pi_device *device, uint8_t *data, int length, pi_i2c_xfer_flags_e flags, pi_task_t *task)
 {
-  printf("%s %d\n", __FILE__, __LINE__);
   int irq = rt_irq_disable();
-
-  int start = (flags & PI_I2C_XFER_NO_START) == 0;
-  int xfer_pending = flags & PI_I2C_XFER_NO_STOP;
 
   __rt_task_init(task);
 
@@ -277,38 +271,22 @@ void pi_i2c_write_async(struct pi_device *device, uint8_t *data, int length, pi_
   i2c->pending_copy = task;
 
   int seq_index = 0;
-  i2c->pending_step = (uint32_t)__rt_i2c_step1;
 
-  // Compute the next step. If we have to generate a stop bit we must go through an
-  // additional copy.
-  if (xfer_pending)
-    i2c->pending_next_step = (uint32_t)__rt_i2c_step3;
-  else
-    i2c->pending_next_step = (uint32_t)__rt_i2c_step2;
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_START();
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_SETUP_WRA(i2c->cs, 0);
 
-  i2c->udma_cmd[seq_index++] = I2C_CMD_CFG;
-  i2c->udma_cmd[seq_index++] = (i2c->div >> 8) & 0xFF;
-  i2c->udma_cmd[seq_index++] = (i2c->div & 0xFF);
-  if (start)
-  {
-    i2c->udma_cmd[seq_index++] = I2C_CMD_START;
-    i2c->udma_cmd[seq_index++] = I2C_CMD_WR;
-    i2c->udma_cmd[seq_index++] = i2c->cs;
-  }
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_RPT(length);
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_WR();
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_SETUP_UCA(1, ((uint32_t)data) & 0x1FFFFF);
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_SETUP_UCS(1, ((uint32_t)length) & 0x1FFFFF);
 
-  if (length > 1){
-    i2c->udma_cmd[seq_index++] = I2C_CMD_RPT;
-    i2c->udma_cmd[seq_index++] = length;
-  }
-  i2c->udma_cmd[seq_index++] = I2C_CMD_WR;
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_STOP();
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_WAIT(0x5UL);
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_EOT();
 
-  unsigned int base = hal_udma_channel_base(i2c->channel + 1);
+  unsigned int base = hal_udma_periph_base(i2c->channel) + UDMA_CHANNEL_OFFSET(2);
 
-  i2c->pending_base = base;
-  i2c->pending_data = (unsigned int)data;
-  i2c->pending_length = length;
-
-  plp_udma_enqueue(base, (unsigned int)i2c->udma_cmd, seq_index, UDMA_CHANNEL_CFG_EN);
+  plp_udma_enqueue(base, (unsigned int)i2c->udma_cmd, seq_index*4, UDMA_CHANNEL_CFG_EN);
 
 end:
   rt_irq_restore(irq);
@@ -316,7 +294,6 @@ end:
 
 int pi_i2c_write(struct pi_device *device, uint8_t *data, int length, pi_i2c_xfer_flags_e flags)
 {
-  printf("%s %d\n", __FILE__, __LINE__);
   struct pi_task task;
   pi_i2c_write_async(device, data, length, flags, pi_task_block(&task));
   pi_task_wait_on(&task);
@@ -325,42 +302,50 @@ int pi_i2c_write(struct pi_device *device, uint8_t *data, int length, pi_i2c_xfe
 
 void pi_i2c_read_async(struct pi_device *device, uint8_t *rx_buff, int length, pi_i2c_xfer_flags_e flags, pi_task_t *task)
 {
-  printf("%s %d\n", __FILE__, __LINE__);
   int irq = rt_irq_disable();
-
-  int xfer_pending = flags & PI_I2C_XFER_NO_STOP;
 
   __rt_task_init(task);
 
   pi_i2c_t *i2c = (pi_i2c_t *)device->data;
 
+  if (i2c->pending_copy)
+  {
+    task->implem.data[0] = (unsigned int)rx_buff;
+    task->implem.data[1] = (unsigned int)length;
+    task->implem.data[2] = (unsigned int)flags;
+
+    if (i2c->waiting_first)
+      i2c->waiting_last->implem.next = task;
+    else
+      i2c->waiting_first = task;
+
+    i2c->waiting_last = task;
+    task->implem.next = NULL;
+
+    goto end;
+  }
+
   i2c->pending_copy = task;
 
   int seq_index = 0;
-  //i2c->pending_step = (uint32_t)udma_event_handler_end;
 
-  i2c->udma_cmd[seq_index++] = I2C_CMD_CFG;
-  i2c->udma_cmd[seq_index++] = (i2c->div >> 8) & 0xFF;
-  i2c->udma_cmd[seq_index++] = (i2c->div & 0xFF);
-  i2c->udma_cmd[seq_index++] = I2C_CMD_START;
-  i2c->udma_cmd[seq_index++] = I2C_CMD_WR;
-  i2c->udma_cmd[seq_index++] = i2c->cs | 0x1;
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_START();
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_SETUP_WRA(i2c->cs, 1);
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_RPT(length-1);
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_SETUP_UCA(0, ((uint32_t)rx_buff) & 0x1FFFFF);
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_SETUP_UCS(0, ((uint32_t)length) & 0x1FFFFF);
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_RD_ACK();
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_RD_NACK();
 
-  if (length > 1){
-    i2c->udma_cmd[seq_index++] = I2C_CMD_RPT;
-    i2c->udma_cmd[seq_index++] = length - 1;
-    i2c->udma_cmd[seq_index++] = I2C_CMD_RD_ACK;
-  }
-  i2c->udma_cmd[seq_index++] = I2C_CMD_RD_NACK;
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_STOP();
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_WAIT(0x5UL);
+  i2c->udma_cmd[seq_index++] = NEW_I2C_CMD_EOT();
 
-  if (!xfer_pending)
-    i2c->udma_cmd[seq_index++] = I2C_CMD_STOP;
+  unsigned int base = hal_udma_periph_base(i2c->channel) + UDMA_CHANNEL_OFFSET(2);
 
-  unsigned int base = hal_udma_channel_base(i2c->channel);
+  plp_udma_enqueue(base, (unsigned int)i2c->udma_cmd, seq_index*4, UDMA_CHANNEL_CFG_EN);
 
-  plp_udma_enqueue(base + UDMA_CHANNEL_RX_OFFSET, (unsigned int)rx_buff, length, UDMA_CHANNEL_CFG_EN);
-  plp_udma_enqueue(base + UDMA_CHANNEL_TX_OFFSET, (unsigned int)i2c->udma_cmd, seq_index, UDMA_CHANNEL_CFG_EN);
-
+end:
   rt_irq_restore(irq);
 }
 

@@ -17,13 +17,18 @@ from functools import reduce
 
 import numpy as np
 
+
 class ProvisionalDim():
     def __init__(self, shape) -> None:
         self.shape = list(shape)
 
     @classmethod
-    def from_onnx_shape(cls, onnx_shape, check_for_batch=None):
-        shape = [d.dim_value if (d.dim_value > 0 and d.dim_param == "") else None for d in onnx_shape.dim]
+    def from_onnx_shape(cls, onnx_shape, check_for_batch=None, substitutions=None):
+        if substitutions is None:
+            substitutions = {}
+        shape = [d.dim_value if (d.dim_value > 0 and d.dim_param == "") else
+                 (substitutions[d.dim_param] if d.dim_param in substitutions else None)
+                 for d in onnx_shape.dim]
         if check_for_batch is not None and shape[check_for_batch] == 1 and len(shape) > 1:
             shape[0] = None
         return cls(shape)
@@ -42,7 +47,8 @@ class ProvisionalDim():
     @property
     def flatten(self):
         return reduce(
-            lambda x, y: x + [y] if x is None or not y else y[:-1:] + [y[-1] * x],
+            lambda x, y: x +
+            [y] if x is None or not y else y[:-1:] + [y[-1] * x],
             self.shape,
             [])
 
@@ -51,7 +57,8 @@ class ProvisionalDim():
         return self
 
     def infer_mapping(self, shape, allow_bad_length=False):
-        assert allow_bad_length or len(shape) == len(self.known_shape), "shape cannot be inferred"
+        assert allow_bad_length or len(shape) == len(
+            self.known_shape), "shape cannot be inferred"
         new_shape = []
         idx = 0
         for elem in self.shape:

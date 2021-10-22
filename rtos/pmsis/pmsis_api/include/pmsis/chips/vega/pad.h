@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 GreenWaves Technologies
+ * Copyright (C) 2020 GreenWaves Technologies
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,27 +14,31 @@
  * limitations under the License.
  */
 
-#ifndef __PMSIS_CHIPS_VEGA_PAD_H__
-#define __PMSIS_CHIPS_VEGA_PAD_H__
+#ifndef __PMSIS_CHIPS_GAP9_PAD_H__
+#define __PMSIS_CHIPS_GAP9_PAD_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * \ingroup groupChips
  */
 
 /**
- * \addtogroup VEGA
+ * \addtogroup GAP9
  * @{
  */
 
 
 /**
- * \defgroup VEGA_Padframe VEGA Padframe
+ * \defgroup GAP9_Padframe GAP9 Padframe
  *
- * This part enumerates VEGA padframe.
- * There are 48 configurable pads.
+ * This part enumerates GAP9 padframe.
+ * There are 96 configurable pads.
  *
- * \addtogroup VEGA_Padframe
- * \{
+ * \addtogroup GAP9_Padframe
+ * @{
  */
 
 /**
@@ -45,198 +49,119 @@
  */
 typedef enum
 {
-    PI_PAD_8_A4_RF_SPIM1_MISO        = 0,
-    PI_PAD_9_B3_RF_SPIM1_MOSI        = 1,
-    PI_PAD_10_A5_RF_SPIM1_CSN        = 2,
-    PI_PAD_11_B4_RF_SPIM1_SCK        = 3,
-    PI_PAD_12_A3_RF_PACTRL0          = 4,
-    PI_PAD_13_B2_RF_PACTRL1          = 5,
-    PI_PAD_14_A2_RF_PACTRL2          = 6,
-    PI_PAD_15_B1_RF_PACTRL3          = 7,
-    PI_PAD_16_A44_RF_PACTRL4         = 8,
-    PI_PAD_17_B40_RF_PACTRL5         = 9,
-    PI_PAD_18_A43_CAM_PCLK           = 10,
-    PI_PAD_19_A37_CAM_HSYNC          = 11,
-    PI_PAD_20_B39_CAM_DATA0          = 12,
-    PI_PAD_21_A42_CAM_DATA1          = 13,
-    PI_PAD_22_B38_CAM_DATA2          = 14,
-    PI_PAD_23_A41_CAM_DATA3          = 15,
-    PI_PAD_24_B37_CAM_DATA4          = 16,
-    PI_PAD_25_A40_CAM_DATA5          = 17,
-    PI_PAD_26_B36_CAM_DATA6          = 18,
-    PI_PAD_27_A38_CAM_DATA7          = 19,
-    PI_PAD_28_A36_CAM_VSYNC          = 20,
-    PI_PAD_29_B34_CAM_SDA            = 21,
-    PI_PAD_30_D1_CAM_SCL             = 22,
-    PI_PAD_31_B11_TIMER0_CH0         = 23,
-    PI_PAD_32_A13_TIMER0_CH1         = 24,
-    PI_PAD_33_B12_TIMER0_CH2         = 25,
-    PI_PAD_34_A14_TIMER0_CH3         = 26,
-    PI_PAD_35_B13_I2S1_SCK           = 27,
-    PI_PAD_36_A15_I2S1_WS            = 28,
-    PI_PAD_37_B14_I2S1_SDI           = 29,
-    PI_PAD_38_B6_UART_RX             = 30,
-    PI_PAD_39_A7_UART_TX             = 31,
-    PI_PAD_40_D2_SPIM0_SDIO0         = 32,
-    PI_PAD_41_A11_SPIM0_SDIO1        = 33,
-    PI_PAD_42_B10_SPIM0_SDIO2        = 34,
-    PI_PAD_43_A10_SPIM0_SDIO3        = 35,
-    PI_PAD_44_B8_SPIM0_CSN0          = 36,
-    PI_PAD_45_A8_SPIM0_CSN1          = 37,
-    PI_PAD_46_B7_SPIM0_SCK           = 38,
-    PI_PAD_47_A9_SPIS0_CSN           = 39,
-    PI_PAD_48_B15_SPIS0_MISO         = 40,
-    PI_PAD_49_A16_SPIS0_MOSI         = 41,
-    PI_PAD_50_B9_SPIS0_SCK           = 42,
-    PI_PAD_53_B22_I2C0_SDA           = 43,
-    PI_PAD_54_A25_I2C0_SCL           = 44,
-    PI_PAD_55_A24_I2S0_SCK           = 45,
-    PI_PAD_56_A26_I2S0_WS            = 46,
-    PI_PAD_57_B23_I2S0_SDI           = 47
+    PI_PAD_000 = 0,
+    PI_PAD_001 = 1,
+    PI_PAD_002 = 2,
+    PI_PAD_003 = 3,
+    PI_PAD_004 = 4,
+    PI_PAD_005 = 5,
+    PI_PAD_006 = 6,
+    PI_PAD_007 = 7,
+    PI_PAD_008 = 8,
+    PI_PAD_009 = 9,
+    PI_PAD_010 = 10,
+    PI_PAD_011 = 11,
+    PI_PAD_012 = 12,
+    PI_PAD_013 = 13,
+    PI_PAD_014 = 14,
+    PI_PAD_015 = 15,
+    PI_PAD_016 = 16,
+    PI_PAD_017 = 17,
+    PI_PAD_018 = 18,
+    PI_PAD_019 = 19,
+    PI_PAD_020 = 20,
+    PI_PAD_021 = 21,
+    PI_PAD_022 = 22,
+    PI_PAD_023 = 23,
+    PI_PAD_024 = 24,
+    PI_PAD_025 = 25,
+    PI_PAD_026 = 26,
+    PI_PAD_027 = 27,
+    PI_PAD_028 = 28,
+    PI_PAD_029 = 29,
+    PI_PAD_030 = 30,
+    PI_PAD_031 = 31,
+    PI_PAD_032 = 32,
+    PI_PAD_033 = 33,
+    PI_PAD_034 = 34,
+    PI_PAD_035 = 35,
+    PI_PAD_036 = 36,
+    PI_PAD_037 = 37,
+    PI_PAD_038 = 38,
+    PI_PAD_039 = 39,
+    PI_PAD_040 = 40,
+    PI_PAD_041 = 41,
+    PI_PAD_042 = 42,
+    PI_PAD_043 = 43,
+    PI_PAD_044 = 44,
+    PI_PAD_045 = 45,
+    PI_PAD_046 = 46,
+    PI_PAD_047 = 47,
+    PI_PAD_048 = 48,
+    PI_PAD_049 = 49,
+    PI_PAD_050 = 50,
+    PI_PAD_051 = 51,
+    PI_PAD_052 = 52,
+    PI_PAD_053 = 53,
+    PI_PAD_054 = 54,
+    PI_PAD_055 = 55,
+    PI_PAD_056 = 56,
+    PI_PAD_057 = 57,
+    PI_PAD_058 = 58,
+    PI_PAD_059 = 59,
+    PI_PAD_060 = 60,
+    PI_PAD_061 = 61,
+    PI_PAD_062 = 62,
+    PI_PAD_063 = 63,
+    PI_PAD_064 = 64,
+    PI_PAD_065 = 65,
+    PI_PAD_066 = 66,
+    PI_PAD_067 = 67,
+    PI_PAD_068 = 68,
+    PI_PAD_069 = 69,
+    PI_PAD_070 = 70,
+    PI_PAD_071 = 71,
+    PI_PAD_072 = 72,
+    PI_PAD_073 = 73,
+    PI_PAD_074 = 74,
+    PI_PAD_075 = 75,
+    PI_PAD_076 = 76,
+    PI_PAD_077 = 77,
+    PI_PAD_078 = 78,
+    PI_PAD_079 = 79,
+    PI_PAD_080 = 80,
+    PI_PAD_081 = 81,
+    PI_PAD_082 = 82,
+    PI_PAD_083 = 83,
+    PI_PAD_084 = 84,
+    PI_PAD_085 = 85,
+    PI_PAD_086 = 86,
+    PI_PAD_087 = 87,
+    PI_PAD_088 = 88,
+    PI_PAD_089 = 89,
+    PI_PAD_090 = 90,
+    PI_PAD_091 = 91,
+    PI_PAD_092 = 92,
+    PI_PAD_093 = 93,
+    PI_PAD_094 = 94,
+    PI_PAD_095 = 95,
+    PI_PAD_096 = 96,
+    PI_PAD_097 = 97,
+    PI_PAD_098 = 98,
+    PI_PAD_099 = 99,
+    PI_PAD_100 = 100
 } pi_pad_e;
 
 /**
  * \cond IMPLEM
  */
-/* Default pad function, alternate 0. */
-#define PI_PAD_8_A4_RF_SPIM1_MISO_FUNC0  ( 0 )
-#define PI_PAD_9_B3_RF_SPIM1_MOSI_FUNC0  ( 0 )
-#define PI_PAD_10_A5_RF_SPIM1_CSN_FUNC0  ( 0 )
-#define PI_PAD_11_B4_RF_SPIM1_SCK_FUNC0  ( 0 )
-#define PI_PAD_12_A3_RF_PACTRL0_FUNC0    ( 0 )
-#define PI_PAD_13_B2_RF_PACTRL1_FUNC0    ( 0 )
-#define PI_PAD_14_A2_RF_PACTRL2_FUNC0    ( 0 )
-#define PI_PAD_15_B1_RF_PACTRL3_FUNC0    ( 0 )
-#define PI_PAD_16_A44_RF_PACTRL4_FUNC0   ( 0 )
-#define PI_PAD_17_B40_RF_PACTRL5_FUNC0   ( 0 )
-#define PI_PAD_18_A43_CAM_PCLK_FUNC0     ( 0 )
-#define PI_PAD_19_A37_CAM_HSYNC_FUNC0    ( 0 )
-#define PI_PAD_20_B39_CAM_DATA0_FUNC0    ( 0 )
-#define PI_PAD_21_A42_CAM_DATA1_FUNC0    ( 0 )
-#define PI_PAD_22_B38_CAM_DATA2_FUNC0    ( 0 )
-#define PI_PAD_23_A41_CAM_DATA3_FUNC0    ( 0 )
-#define PI_PAD_24_B37_CAM_DATA4_FUNC0    ( 0 )
-#define PI_PAD_25_A40_CAM_DATA5_FUNC0    ( 0 )
-#define PI_PAD_26_B36_CAM_DATA6_FUNC0    ( 0 )
-#define PI_PAD_27_A38_CAM_DATA7_FUNC0    ( 0 )
-#define PI_PAD_28_A36_CAM_VSYNC_FUNC0    ( 0 )
-#define PI_PAD_29_B34_CAM_SDA_FUNC0      ( 0 )
-#define PI_PAD_30_D1_CAM_SCL_FUNC0       ( 0 )
-#define PI_PAD_31_B11_TIMER0_CH0_FUNC0   ( 0 )
-#define PI_PAD_32_A13_TIMER0_CH1_FUNC0   ( 0 )
-#define PI_PAD_33_B12_TIMER0_CH2_FUNC0   ( 0 )
-#define PI_PAD_34_A14_TIMER0_CH3_FUNC0   ( 0 )
-#define PI_PAD_35_B13_I2S1_SCK_FUNC0     ( 0 )
-#define PI_PAD_36_A15_I2S1_WS_FUNC0      ( 0 )
-#define PI_PAD_37_B14_I2S1_SDI_FUNC0     ( 0 )
-#define PI_PAD_38_B6_UART_RX_FUNC0       ( 0 )
-#define PI_PAD_39_A7_UART_TX_FUNC0       ( 0 )
-#define PI_PAD_40_D2_SPIM0_SDIO0_FUNC0   ( 0 )
-#define PI_PAD_41_A11_SPIM0_SDIO1_FUNC0  ( 0 )
-#define PI_PAD_42_B10_SPIM0_SDIO2_FUNC0  ( 0 )
-#define PI_PAD_43_A10_SPIM0_SDIO3_FUNC0  ( 0 )
-#define PI_PAD_44_B8_SPIM0_CSN0_FUNC0    ( 0 )
-#define PI_PAD_45_A8_SPIM0_CSN1_FUNC0    ( 0 )
-#define PI_PAD_46_B7_SPIM0_SCK_FUNC0     ( 0 )
-#define PI_PAD_47_A9_SPIS0_CSN_FUNC0     ( 0 )
-#define PI_PAD_48_B15_SPIS0_MISO_FUNC0   ( 0 )
-#define PI_PAD_49_A16_SPIS0_MOSI_FUNC0   ( 0 )
-#define PI_PAD_50_B9_SPIS0_SCK_FUNC0     ( 0 )
-#define PI_PAD_53_B22_I2C0_SDA_FUNC0     ( 0 )
-#define PI_PAD_54_A25_I2C0_SCL_FUNC0     ( 0 )
-#define PI_PAD_55_A24_I2S0_SCK_FUNC0     ( 0 )
-#define PI_PAD_56_A26_I2S0_WS_FUNC0      ( 0 )
-#define PI_PAD_57_B23_I2S0_SDI_FUNC0     ( 0 )
-
-/* Alternate 1, pads as GPIOs. */
-#define PI_PAD_8_A4_GPIO_A0_FUNC1        ( 1 )
-#define PI_PAD_9_B3_GPIO_A1_FUNC1        ( 1 )
-#define PI_PAD_10_A5_GPIO_A2_FUNC1       ( 1 )
-#define PI_PAD_11_B4_GPIO_A3_FUNC1       ( 1 )
-#define PI_PAD_12_A3_GPIO_A0_FUNC1       ( 1 )
-#define PI_PAD_13_B2_GPIO_A1_FUNC1       ( 1 )
-#define PI_PAD_14_A2_GPIO_A2_FUNC1       ( 1 )
-#define PI_PAD_15_B1_GPIO_A3_FUNC1       ( 1 )
-#define PI_PAD_16_A44_GPIO_A4_FUNC1      ( 1 )
-#define PI_PAD_17_B40_GPIO_A5_FUNC1      ( 1 )
-#define PI_PAD_18_A43_GPIO_A4_FUNC1      ( 1 )
-#define PI_PAD_19_A37_GPIO_A5_FUNC1      ( 1 )
-#define PI_PAD_20_B39_GPIO_A6_FUNC1      ( 1 )
-#define PI_PAD_21_A42_GPIO_A7_FUNC1      ( 1 )
-#define PI_PAD_22_B38_GPIO_A8_FUNC1      ( 1 )
-#define PI_PAD_23_A41_GPIO_A9_FUNC1      ( 1 )
-#define PI_PAD_24_B37_GPIO_A10_FUNC1     ( 1 )
-#define PI_PAD_25_A40_GPIO_A11_FUNC1     ( 1 )
-#define PI_PAD_26_B36_GPIO_A12_FUNC1     ( 1 )
-#define PI_PAD_27_A38_GPIO_A13_FUNC1     ( 1 )
-#define PI_PAD_28_A36_GPIO_A14_FUNC1     ( 1 )
-#define PI_PAD_29_B34_GPIO_A15_FUNC1     ( 1 )
-#define PI_PAD_30_D1_GPIO_A16_FUNC1      ( 1 )
-#define PI_PAD_31_B11_GPIO_A17_FUNC1     ( 1 )
-#define PI_PAD_32_A13_GPIO_A18_FUNC1     ( 1 )
-#define PI_PAD_33_B12_GPIO_A19_FUNC1     ( 1 )
-#define PI_PAD_34_A14_GPIO_A20_FUNC1     ( 1 )
-#define PI_PAD_35_B13_GPIO_A21_FUNC1     ( 1 )
-#define PI_PAD_36_A15_GPIO_A22_FUNC1     ( 1 )
-#define PI_PAD_37_B14_GPIO_A23_FUNC1     ( 1 )
-#define PI_PAD_38_B6_GPIO_A24_FUNC1      ( 1 )
-#define PI_PAD_39_A7_GPIO_A25_FUNC1      ( 1 )
-#define PI_PAD_42_B10_GPIO_A26_FUNC1     ( 1 )
-#define PI_PAD_43_A10_GPIO_A27_FUNC1     ( 1 )
-#define PI_PAD_45_A8_GPIO_A28_FUNC1      ( 1 )
-#define PI_PAD_47_A9_GPIO_A29_FUNC1      ( 1 )
-#define PI_PAD_48_B15_GPIO_A30_FUNC1     ( 1 )
-#define PI_PAD_49_A16_GPIO_A31_FUNC1     ( 1 )
-
-/* Alternate 2. */
-#define PI_PAD_10_A5_I2C1_SDA_FUNC2      ( 2 )
-#define PI_PAD_11_B4_I2C1_SCL_FUNC2      ( 2 )
-#define PI_PAD_12_A3_SPIM1_CS0_FUNC2     ( 2 )
-#define PI_PAD_13_B2_SPIM1_CS1_FUNC2     ( 2 )
-#define PI_PAD_16_A44_SPIS0_SDIO0_FUNC2  ( 2 )
-#define PI_PAD_17_B40_SPIS0_SDIO1_FUNC2  ( 2 )
-#define PI_PAD_18_A43_TIMER1_CH0_FUNC2   ( 2 )
-#define PI_PAD_19_A37_TIMER1_CH1_FUNC2   ( 2 )
-#define PI_PAD_20_B39_TIMER1_CH2_FUNC2   ( 2 )
-#define PI_PAD_21_A42_TIMER1_CH3_FUNC2   ( 2 )
-#define PI_PAD_22_B38_TIMER2_CH0_FUNC2   ( 2 )
-#define PI_PAD_23_A41_TIMER2_CH1_FUNC2   ( 2 )
-#define PI_PAD_24_B37_TIMER2_CH2_FUNC2   ( 2 )
-#define PI_PAD_25_A40_TIMER2_CH3_FUNC2   ( 2 )
-#define PI_PAD_26_B36_TIMER3_CH0_FUNC2   ( 2 )
-#define PI_PAD_27_A38_TIMER3_CH1_FUNC2   ( 2 )
-#define PI_PAD_28_A36_TIMER3_CH2_FUNC2   ( 2 )
-#define PI_PAD_29_B34_TIMER3_CH3_FUNC2   ( 2 )
-#define PI_PAD_30_D1_ORCA_CLK_FUNC2      ( 2 )
-#define PI_PAD_32_A13_TIMER1_CH0_FUNC2   ( 2 )
-#define PI_PAD_33_B12_TIMER2_CH0_FUNC2   ( 2 )
-#define PI_PAD_34_A14_TIMER3_CH0_FUNC2   ( 2 )
-#define PI_PAD_35_B13_SPIS0_SCK_FUNC2    ( 2 )
-#define PI_PAD_36_A15_SPIS0_CS_FUNC2     ( 2 )
-#define PI_PAD_37_B14_SPIS0_SDIO2_FUNC2  ( 2 )
-#define PI_PAD_42_B10_I2C1_SDA_FUNC2     ( 2 )
-#define PI_PAD_43_A10_I2C1_SCL_FUNC2     ( 2 )
-#define PI_PAD_45_A8_SPIS0_SDIO3_FUNC2   ( 2 )
-#define PI_PAD_47_A9_SPIM1_CS0_FUNC2     ( 2 )
-#define PI_PAD_48_B15_SPIM1_CS1_FUNC2    ( 2 )
-
-/* Alternate 3. */
-#define PI_PAD_16_A44_SPIS0_SDIO2_FUNC3  ( 3 )
-#define PI_PAD_17_B40_SPIS0_SDIO3_FUNC3  ( 3 )
-#define PI_PAD_35_B13_I2S1_SDI_FUNC3     ( 3 )
-#define PI_PAD_36_A15_HYPER_CKN_FUNC3    ( 3 )
-#define PI_PAD_37_B14_HYPER_CK_FUNC3     ( 3 )
-#define PI_PAD_40_D2_HYPER_DQ0_FUNC3     ( 3 )
-#define PI_PAD_41_A11_HYPER_DQ1_FUNC3    ( 3 )
-#define PI_PAD_42_B10_HYPER_DQ2_FUNC3    ( 3 )
-#define PI_PAD_43_A10_HYPER_DQ3_FUNC3    ( 3 )
-#define PI_PAD_44_B8_HYPER_DQ4_FUNC3     ( 3 )
-#define PI_PAD_45_A8_HYPER_DQ5_FUNC3     ( 3 )
-#define PI_PAD_46_B7_HYPER_DQ6_FUNC3     ( 3 )
-#define PI_PAD_47_A9_HYPER_DQ7_FUNC3     ( 3 )
-#define PI_PAD_48_B15_HYPER_CSN0_FUNC3   ( 3 )
-#define PI_PAD_49_A16_HYPER_CSN1_FUNC3   ( 3 )
-#define PI_PAD_50_B9_HYPER_RWDS_FUNC3    ( 3 )
+/* Default pad function, alternate 2. */
+#define PI_PAD_036_UART3_CTS_FUNC2  ( 2 )
+#define PI_PAD_037_UART3_RTS_FUNC2  ( 2 )
+#define PI_PAD_082_UART4_RX_FUNC2  ( 2 )
+#define PI_PAD_083_UART4_TX_FUNC2  ( 2 )
+#define PI_PAD_084_UART4_CTS_FUNC2  ( 2 )
+#define PI_PAD_085_UART4_RTS_FUNC2  ( 2 )
 
 /**
  * \endcond IMPLEM
@@ -244,11 +169,114 @@ typedef enum
 
 
 /**
- * \}
+ * \enum pi_pad_mux_group_sel_e
+ * \brief Pad mux groups values.
+ *
+ * This is used to configure the mux group for customizable pads.
  */
+typedef enum
+{
+    PI_PAD_MUX_GROUP_SPI0_CS0  = 0x00,
+    PI_PAD_MUX_GROUP_SPI0_CS1  = 0x01,
+    PI_PAD_MUX_GROUP_SPI0_CS2  = 0x02,
+    PI_PAD_MUX_GROUP_SPI0_CS3  = 0x03,
+    PI_PAD_MUX_GROUP_SPI1_CS0  = 0x04,
+    PI_PAD_MUX_GROUP_UART3_TX  = 0x05,
+    PI_PAD_MUX_GROUP_SPI1_CS1  = 0x06,
+    PI_PAD_MUX_GROUP_UART3_RX  = 0x07,
+    PI_PAD_MUX_GROUP_I2C0_SDA  = 0x08,
+    PI_PAD_MUX_GROUP_I2C0_SCL  = 0x09,
+    PI_PAD_MUX_GROUP_I2C1_SDA  = 0x0A,
+    PI_PAD_MUX_GROUP_CSI2_SDA  = 0x0B,
+    PI_PAD_MUX_GROUP_I2C1_SCL  = 0x0C,
+    PI_PAD_MUX_GROUP_CSI2_SCL  = 0x0D,
+    PI_PAD_MUX_GROUP_I2C2_SDA  = 0x0E,
+    PI_PAD_MUX_GROUP_UART2_CTS = 0x0F,
+    PI_PAD_MUX_GROUP_I2C2_SCL  = 0x10,
+    PI_PAD_MUX_GROUP_UART2_RTS = 0x11,
+    PI_PAD_MUX_GROUP_UART0_RX  = 0x12,
+    PI_PAD_MUX_GROUP_UART0_TX  = 0x13,
+    PI_PAD_MUX_GROUP_UART0_CTS = 0x14,
+    PI_PAD_MUX_GROUP_UART2_RX  = 0x15,
+    PI_PAD_MUX_GROUP_UART0_RTS = 0x16,
+    PI_PAD_MUX_GROUP_UART2_TX  = 0x17,
+    PI_PAD_MUX_GROUP_UART1_RX  = 0x18,
+    PI_PAD_MUX_GROUP_PWM2      = 0x19,
+    PI_PAD_MUX_GROUP_PWM4      = 0x1A,
+    PI_PAD_MUX_GROUP_UART1_TX  = 0x1B,
+    PI_PAD_MUX_GROUP_PWM3      = 0x1C,
+    PI_PAD_MUX_GROUP_PWM5      = 0x1D,
+    PI_PAD_MUX_GROUP_PWM0      = 0x1E,
+    PI_PAD_MUX_GROUP_UART1_CTS = 0x1F,
+    PI_PAD_MUX_GROUP_PWM6      = 0x20,
+    PI_PAD_MUX_GROUP_PWM1      = 0x21,
+    PI_PAD_MUX_GROUP_UART1_RTS = 0x22,
+    PI_PAD_MUX_GROUP_PWM7      = 0x23,
+} pi_pad_mux_group_sel_e;
+
 
 /**
- * \}
+ * \brief Set the mux group of one pad.
+ *
+ * This function can be used to configure the mux group of the specified pad
+ * in the case that it supports several mux groups.
+ *
+ * \param pad  Pad number.
+ * \param function Pad mux group.
+ */
+void pi_pad_set_mux_group(pi_pad_e pad, pi_pad_mux_group_sel_e group_value);
+
+
+
+/**
+ * \enum pi_pad_sleep_e
+ * \brief Pad identifiers for configuring sleep configuration.
+ *
+ * This is used to configure the pads in sleep mode.
+ */
+typedef enum
+{
+    PI_PAD_SLEEP_CFG_PULL_DOWN          = (1 << 0),
+    PI_PAD_SLEEP_CFG_PULL_UP            = (1 << 1),
+    PI_PAD_SLEEP_CFG_DRIVER_STRENGTH_0  = (0 << 2),
+    PI_PAD_SLEEP_CFG_DRIVER_STRENGTH_1  = (1 << 2),
+    PI_PAD_SLEEP_CFG_DRIVER_STRENGTH_2  = (2 << 2),
+    PI_PAD_SLEEP_CFG_DRIVER_STRENGTH_3  = (3 << 2),
+    PI_PAD_SLEEP_CFG_OUTPUT_VALUE_0     = (0 << 4),
+    PI_PAD_SLEEP_CFG_OUTPUT_VALUE_1     = (1 << 4),
+    PI_PAD_SLEEP_CFG_OUTPUT_DISABLED    = (1 << 5),
+    PI_PAD_SLEEP_CFG_OUTPUT_ENABLED     = (0 << 5),
+} pi_pad_sleep_cfg_e;
+
+
+/**
+ * \brief Set a pad configuration in deep sleep mode.
+ *
+ * This function can be used to configure the pad
+ * when the chip is in deep sleep mode.
+ *
+ * \param pad  Pad number.
+ * \param cfg  Pad config.
+ */
+void pi_pad_set_sleep_cfg(pi_pad_e pad, pi_pad_sleep_cfg_e cfg);
+
+
+/**
+ * \brief Force the pads deep sleep mode configuration also in normal mode
+ *
+ * This function can be used to keep the pads sleep configuration also applied
+ * when the chip is not in deep sleep mode. This allows keeping the settings
+ * until the pads are configured again after wakeup.
+ *
+ * \param enabled  Force deep sleep configuration if it is 1
+ */
+void pi_pad_sleep_cfg_force(int enabled);
+
+/**
+ * @}
  */
 
-#endif  /* __PMSIS_CHIPS_VEGA_PAD_H__ */
+#ifdef __cplusplus
+}
+#endif
+#endif  /* __PMSIS_CHIPS_GAP9_PAD_H__ */

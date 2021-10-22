@@ -26,6 +26,7 @@ from .clip_norm import Clip
 from .q15_scale_q_rec import Q15ScaleQRec
 from .scale_quantized import ScaleQuantized
 
+
 @handles_scheme('Q15Scale')
 class Q15ScaledQuantization(QuantizationHandlerBase):
     MAXQ_FROM_DTYPE = {
@@ -33,6 +34,7 @@ class Q15ScaledQuantization(QuantizationHandlerBase):
         np.int16: 15,
         np.int8: 7,
     }
+
     @classmethod
     def get_maxq_from_dtype(cls, dtype: np.dtype):
         return cls.MAXQ_FROM_DTYPE[dtype]
@@ -73,7 +75,8 @@ class Q15ScaledQuantization(QuantizationHandlerBase):
         qtypes = kwargs.get('qtypes', {})
         # first see if this has already been quantized by nntool
         # note that the qtype will be stored against the name of the output symbol
-        max_val, out_dtype, out_q = cls._get_scale_dtype_from_qtypes(osym, qtypes)
+        max_val, out_dtype, out_q = cls._get_scale_dtype_from_qtypes(
+            osym, qtypes)
         if max_val is None:
             max_val = sym_ctrl.get_max(sym)
             out_dtype = np.int8
@@ -82,13 +85,15 @@ class Q15ScaledQuantization(QuantizationHandlerBase):
         qrec_scale = Q15ScaleQRec(np.int32, max_val, out_q)
         qrec_out = Q15ScaleQRec(out_dtype, max_val, out_q)
         # scale clip and cast to output type
-        return (Cast(
-            Clip(
-                ScaleQuantized(qsym,
-                               from_qrec=from_qrec,
-                               to_qrec=qrec_scale),
-                clip_dtype=out_dtype),
-            dtype=out_dtype), qrec_out)
+        return (
+            Cast(
+                Clip(
+                    ScaleQuantized(qsym,
+                                   from_qrec=from_qrec,
+                                   to_qrec=qrec_scale),
+                    clip_dtype=out_dtype,
+                    dtype=qrec_scale.dtype),
+                dtype=qrec.dtype), qrec_out)
 
     @classmethod
     def _get_scale_dtype_from_qtypes(cls, sym, qtypes):

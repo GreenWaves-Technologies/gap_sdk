@@ -18,6 +18,7 @@ from graph.types import SoftMaxParameters
 from graph.types.activations import HTanHActivationParameters
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
+from quantization.quantizer_options import SOFTMAX_OUT_8BITS_OPTION
 from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        out_qs_constraint,
                                                        params_type, options)
@@ -29,12 +30,7 @@ from ..mult_quantization_handler import MultQuantizionHandler
 @in_qs_constraint({'dtype': set([np.int8, np.int16])})
 @out_qs_constraint({'dtype': set([np.int8, np.int16])})
 @options(
-    {
-        'name': 'softmax_out_8bits',
-        'type': bool,
-        'help': 'make the output scale8 8 bits',
-        'default': False
-    }
+    SOFTMAX_OUT_8BITS_OPTION
 )
 class SoftmaxMult(MultQuantizionHandler):
     @classmethod

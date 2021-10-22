@@ -1,0 +1,475 @@
+#!/usr/bin/env python3
+
+
+#
+# Copyright (C) 2018 ETH Zurich and University of Bologna
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+import argparse
+import json
+import os.path
+
+parser = argparse.ArgumentParser(description='Generate an interface')
+
+
+parser.add_argument("--input", dest="input", default=None, help="specify the input file")
+parser.add_argument("--output", dest="output", default=None, help="specify the output file")
+parser.add_argument("--name", dest="name", default=None, help="specify the interface name")
+
+args = parser.parse_args()
+
+
+
+class C_gen(object):
+
+    class C_field(object):
+        def __init__(self, content, private=False, description=None):
+            self.content = content
+            self.description = description
+            self.private = private
+
+        def gen(self, fd, indent=''):
+            if self.description is not None:
+                fd.write('%s%s\n' % (indent, self.description))
+            fd.write('%s%s\n' % (indent, self.content))
+            fd.write('\n')
+
+    class C_meth(object):
+        def __init__(self, name, return_type='void', args=[], inline_implem=';', prefix='', private=False, description=None):
+            self.name = name
+            self.return_type = return_type
+            self.args = args
+            self.inline_implem = inline_implem
+            self.prefix = prefix
+            self.private = private
+            self.implem = []
+            self.description = description
+
+        def gen_decl(self, fd, indent=''):
+            if self.description is not None:
+                fd.write('%s%s\n' % (indent, self.description))
+            fd.write('%s%s%s %s(%s)%s\n' % (indent, self.prefix, self.return_type, self.name, ', '.join(self.args), self.inline_implem))
+            fd.write('\n')
+
+        def gen_implem(self, fd):
+            if len(self.implem) != 0:
+                if self.parent.template is not None:
+                    fd.write('template %s\n' % self.parent.template)
+                fd.write('inline %s %s::%s(%s)\n' % (self.return_type, self.parent.instance_name, self.name, ', '.join(self.args)))
+                fd.write('{\n')
+                for implem in self.implem:
+                    fd.write('    ' + implem)
+                fd.write('}\n')
+                fd.write('\n')
+
+        def add_implem(self, implem):
+            self.implem.append(implem)
+
+
+    class C_class(object):
+
+        def __init__(self, name, constructor=False, template=None, template_instance=None, parents=[], friends=[]):
+            self.name = name
+            self.template = template
+            self.template_instance = template_instance
+            self.parents = parents
+            self.friends = friends
+            self.constructor = constructor
+            self.meths = {}
+            self.fields = []
+            self.private_meths = {}
+            self.private_fields = []
+            self.constructor_implem = []
+            self.instance_name = self.name
+            if self.template_instance is not None:
+                self.instance_name += self.template_instance
+
+        def add_constructor_implem(self, implem):
+            self.constructor_implem.append(implem)
+
+        def gen_decl(self, fd):
+            if self.template is not None:
+                fd.write('template %s\n' % self.template)
+            fd.write('class %s;\n' % (self.name))
+
+        def gen_class(self, fd):
+            if self.template is not None:
+                fd.write('template %s\n' % self.template)
+            fd.write('class %s : %s\n' % (self.name, ', '.join(self.parents)))
+            fd.write('{\n')
+            fd.write('\n')
+
+            for friend in self.friends:
+                fd.write('    friend class %s;\n' % friend)
+                fd.write('\n')
+
+            fd.write('public:\n')
+            if self.constructor:
+                fd.write('    %s();\n' % self.name)
+                fd.write('\n')
+
+            for name, meth in self.meths.items():
+                meth.gen_decl(fd, indent='    ')
+
+            for field in self.fields:
+                field.gen(fd, indent='    ')
+
+            fd.write('private:\n')
+            for name, meth in self.private_meths.items():
+                meth.gen_decl(fd, indent='    ')
+
+            for field in self.private_fields:
+                field.gen(fd, indent='    ')
+
+            fd.write('};\n')
+            fd.write('\n')
+
+        def gen_implem(self, fd):
+
+            if self.constructor:
+                if self.template is not None:
+                    fd.write('template %s\n' % self.template)
+                fd.write('%s::%s()\n' % (self.instance_name, self.name))
+                fd.write('{\n')
+                for implem in self.constructor_implem:
+                    fd.write('    ' + implem)
+                fd.write('}\n')
+                fd.write('\n')
+
+            for name, meth in self.meths.items():
+                meth.gen_implem(fd)
+
+            for name, meth in self.private_meths.items():
+                meth.gen_implem(fd)
+
+        def add_meth(self, meth):
+            meths_dict = self.private_meths if meth.private else self.meths
+            meths_dict[meth.name] = meth
+            meth.parent = self
+            return meth
+
+        def add_parent(self, parent):
+            self.parents.append(parent)
+
+        def add_field(self, field):
+            if field.private:
+                self.private_fields.append(field)
+            else:
+                self.fields.append(field)
+
+        def add_friend(self, friend):
+            self.friends.append(friend)
+
+
+    def __init__(self, name, header_fd, class_fd, implem_fd):
+        self.header_fd = header_fd
+        self.class_fd = class_fd
+        self.implem_fd = implem_fd
+        self.classes = {}
+        self.name = name
+
+    def new_class(self, c_class):
+        self.classes[c_class.name] = c_class
+        return c_class
+
+    def gen(self):
+        self.header_fd.write('// !!! WARNING !!! AUTO-GENERATED FILE!\n')
+        self.header_fd.write('// PLEASE DO NOT MODIFY IT\n')
+        self.header_fd.write('\n')
+        self.header_fd.write('#ifndef __VP_ITF_%s_HPP__\n' % self.name.upper())
+        self.header_fd.write('#define __VP_ITF_%s_HPP__\n' % self.name.upper())
+        self.header_fd.write('\n')
+        self.header_fd.write('#include "vp/itf/implem/wire_class.hpp"\n')
+        self.header_fd.write('#include "vp/itf/implem/wire.hpp"\n')
+        self.header_fd.write('\n')
+        self.header_fd.write('#endif\n')
+
+
+        self.class_fd.write('// !!! WARNING !!! AUTO-GENERATED FILE!\n')
+        self.class_fd.write('// PLEASE DO NOT MODIFY IT\n')
+        self.class_fd.write('\n')
+        self.class_fd.write('#ifndef __VP_ITF_IMPLEM_%s_CLASS_HPP__\n' % self.name.upper())
+        self.class_fd.write('#define __VP_ITF_IMPLEM_%s_CLASS_HPP__\n' % self.name.upper())
+        self.class_fd.write('\n')
+        self.class_fd.write('namespace vp {\n')
+        self.class_fd.write('\n')
+
+        for c_class in self.classes.values():
+            c_class.gen_decl(self.class_fd)
+
+        for c_class in self.classes.values():
+            c_class.gen_class(self.class_fd)
+
+        self.class_fd.write('};\n')
+        self.class_fd.write('\n')
+        self.class_fd.write('#endif\n')
+
+
+        self.implem_fd.write('// !!! WARNING !!! AUTO-GENERATED FILE!\n')
+        self.implem_fd.write('// PLEASE DO NOT MODIFY IT\n')
+        self.implem_fd.write('\n')
+        self.implem_fd.write('#ifndef __VP_ITF_IMPLEM_%s_HPP__\n' % self.name.upper())
+        self.implem_fd.write('#define __VP_ITF_IMPLEM_%s_HPP__\n' % self.name.upper())
+        self.implem_fd.write('\n')
+        self.implem_fd.write('namespace vp {\n')
+        self.implem_fd.write('\n')
+
+        for c_class in self.classes.values():
+            c_class.gen_implem(self.implem_fd)
+
+        self.implem_fd.write('};\n')
+        self.implem_fd.write('\n')
+        self.implem_fd.write('#endif\n')
+
+def get_return_decl(conf):
+    return_conf = conf.get('return')
+    if return_conf is None:
+        return 'void'
+    else:
+        return return_conf
+
+def get_arg_decl(conf):
+    return '%s %s' % (arg.get('type'), arg.get('name'))
+
+        
+def get_args_decl(conf):
+    result = []
+
+    if conf.get('args') is not None:
+        for arg in conf.get('args'):
+            result.append('%s %s' % (arg.get('type'), arg.get('name')))
+
+    return ', '.join(result)
+         
+def get_args_decl2(conf):
+    result = []
+
+    if conf.get('args') is not None:
+        for arg in conf.get('args'):
+            result.append('%s %s' % (arg.get('type'), arg.get('name')))
+
+    return result
+        
+def get_args_call(conf):
+    result = []
+
+    if conf.get('args') is not None:
+        for arg in conf.get('args'):
+            result.append('%s' % (arg.get('name')))
+
+    return ', '.join(result)
+        
+def get_template_instance(config):
+    if config.get('template_instance') is None:
+        return ''
+    else:
+        return config.get('template_instance')
+
+
+class Itf_gen(object):
+
+    def add_callback_setters(self, c_class, name, conf, is_master):
+        rev_itf_dir = 'slave' if is_master else 'master'
+        c_class.add_meth(C_gen.C_meth('set_%s_meth' % (name), args=['void (*)(void *_this, %s)' % get_args_decl(conf)], description='// Method for setting callback of %s interface method "%s"' % (rev_itf_dir, name)))
+        c_class.add_meth(C_gen.C_meth('set_%s_meth_muxed' % (name), args=['void (*)(void *_this, %s, int)' % get_args_decl(conf), 'int id'], description='// Method for setting multiplexed callback of %s interface method "%s"' % (rev_itf_dir, name)))
+
+    def add_itf_method(self, c_class, name, conf, is_master):
+        itf_dir = 'Master' if is_master else 'Slave'
+        meth = c_class.add_meth(C_gen.C_meth(name, get_return_decl(conf), get_args_decl2(conf), prefix='inline ', description='// %s interface method "%s"' % (itf_dir, name)))
+        meth.add_implem('if (next) next->%s(%s);\n' % (name, get_args_call(conf)))
+        meth.add_implem('this->remote_%s_meth(this->get_remote_context(), %s);\n' % (name, get_args_call(conf)))
+
+    def add_mux_stubs(self, c_class, remote_c_class, name, conf, is_master):
+        itf_dir = 'master' if is_master else 'slave'
+        meth = c_class.add_meth(C_gen.C_meth('%s_muxed_stub' % name, args=['%s *_this' % c_class.name] + get_args_decl2(conf), return_type=get_return_decl(conf), prefix='static inline ', private=True, description='// Stub for multiplexing %s interface method "%s"' % (itf_dir, name)))
+        meth.add_implem('return _this->remote_%s_meth_mux(_this->remote_comp_mux, value, _this->%s_remote_mux_id);\n' % (name, name))
+        remote_c_class.add_field(C_gen.C_field('%s (*%s_meth_mux)(void *, %s, int id);' % (get_return_decl(conf), name, get_args_decl(conf)), private=True, description='// Temporary variable stub for multiplexing %s interface method "%s", used to store the real callback.' % (itf_dir, name)))
+        c_class.add_field(C_gen.C_field('%s (*remote_%s_meth_mux)(void *comp, %s, int id);\n' % (get_return_decl(conf), name, get_args_decl(conf)), private=True, description=''))
+        remote_c_class.add_field(C_gen.C_field('int %s_mux_id;' % (name), private=True, description='// Multiplexed identifier set by the user, that the remote port should use when calling interface method "%s"' % name))
+        c_class.add_field(C_gen.C_field('int %s_remote_mux_id;' % (name), private=True, description='// Multiplexed identifier copied from remote port that should be set when calling interface method "%s"' % name))
+
+    def add_frequency_cross_stubs(self, c_class, name, conf, is_master):
+        itf_dir = 'master' if is_master else 'slave'
+        meth = c_class.add_meth(C_gen.C_meth('%s_freq_cross_stub' % name, args=['%s *_this' % c_class.name] + get_args_decl2(conf), return_type=get_return_decl(conf), prefix='static inline ', private=True, description='// Stub for crossing frequency domains for %s interface method "%s"' % (itf_dir, name)))
+        meth.add_implem('if ( _this->remote_port->get_owner()->get_clock())\n')
+        meth.add_implem('    _this->remote_port->get_owner()->get_clock()->sync();\n')
+        meth.add_implem('return _this->%s_freq_cross(_this->context_for_freq_cross, value);\n' % (name))
+        c_class.add_field(C_gen.C_field('%s (*%s_freq_cross)(void *, %s);' % (get_return_decl(conf), name, get_args_decl(conf)), private=True, description='// Temporary variable for stub for crossing frequency domains for %s interface method "%s", used to store the real callback.' % (itf_dir, name)))
+
+    def add_interface_fields_for_method(self, c_class, name, conf):
+        c_class.add_field(C_gen.C_field('%s (*remote_%s_meth)(void *comp, %s);\n' % (get_return_decl(conf), name, get_args_decl(conf)), private=True, description='// Method copied from remote port when it was bounded that should be executed when the user is calling interface method"%s"' % name))
+
+    def add_interface_fields_for_remote_method(self, c_class, name, conf):
+        c_class.add_field(C_gen.C_field('%s (*%s_meth)(void *, %s);' % (get_return_decl(conf), name, get_args_decl(conf)), private=True, description='// Method set by the user for interface method "%s"' % name))
+        c_class.add_field(C_gen.C_field('static inline %s %s_default(void *, %s) {}\n' % (get_return_decl(conf), name, get_args_decl(conf)), private=True, description='// Default method for interface method "%s" when the user does not set it' % name))
+
+    def add_bindto(self, c_class, remote_c_class, conf, remote_conf):
+        meth = c_class.add_meth(C_gen.C_meth('bind_to', args=['vp::port *_port', 'vp::config *config']))
+        meth.add_implem('%s *port = (%s *)_port;\n' % (remote_c_class.instance_name, remote_c_class.instance_name))
+        meth.add_implem('\n')
+        meth.add_implem('if (this->remote_port != NULL)\n')
+        meth.add_implem('{\n')
+        meth.add_implem('    // In case the port is already bound, create a fake one to keep track of all bound ports for the broadcast\n')
+        meth.add_implem('    %s *new_port = new %s;\n' % (c_class.instance_name, c_class.instance_name))
+        meth.add_implem('    new_port->bind_to(_port, config);\n')
+        meth.add_implem('    new_port->next = this->next;\n')
+        meth.add_implem('    this->next = new_port;\n')
+        meth.add_implem('}\n')
+        meth.add_implem('else\n')
+        meth.add_implem('{\n')
+        meth.add_implem('    this->remote_port = port;\n')
+        meth.add_implem('    if (!port->is_muxed)\n')
+        meth.add_implem('    {\n')
+        for method_name, method_conf in conf.get('methods').items():
+            meth.add_implem('        this->remote_%s_meth = port->%s_meth;\n' % (method_name, method_name))
+        meth.add_implem('        set_remote_context(port->get_context());\n')
+        meth.add_implem('    }\n')
+        meth.add_implem('    else\n')
+        meth.add_implem('    {\n')
+        meth.add_implem('        set_remote_context(this);\n')
+        meth.add_implem('        this->remote_comp_mux = (vp::component *)port->get_context();\n')
+        for method_name, method_conf in conf.get('methods').items():
+            meth.add_implem('        this->remote_%s_meth = (void (*)(void *, %s))&%s::%s_muxed_stub;\n' % (method_name, get_args_decl(method_conf), c_class.name, method_name))
+            meth.add_implem('        this->remote_%s_meth_mux = port->%s_meth_mux;\n' % (method_name, method_name))
+            meth.add_implem('        this->%s_remote_mux_id = port->%s_mux_id;\n' % (method_name, method_name))
+        meth.add_implem('    }\n')
+        meth.add_implem('}\n')
+
+        meth = c_class.add_meth(C_gen.C_meth('finalize'))
+        meth.add_implem('if (this->get_owner()->get_clock() != this->remote_port->get_owner()->get_clock())\n')
+        meth.add_implem('{\n')
+        for method_name, method_conf in conf.get('methods').items():
+            meth.add_implem('    this->%s_freq_cross = this->remote_%s_meth;\n' % (method_name, method_name))
+            meth.add_implem('    this->remote_%s_meth = (void (*)(void *, %s))&%s::%s_freq_cross_stub;\n' % (method_name, get_args_decl(method_conf), c_class.instance_name, method_name))
+        meth.add_implem('    this->context_for_freq_cross = this->get_remote_context();\n')
+        meth.add_implem('    this->set_remote_context(this);\n')
+        meth.add_implem('}\n')
+
+        for method_name, method_conf in remote_conf.get('methods').items():
+            meth = c_class.add_meth(C_gen.C_meth('set_%s_meth' % method_name, args=['void (*meth)(void *, %s)' % get_args_decl(method_conf)]))
+            meth.add_implem('this->%s_meth = meth;\n' % (method_name))
+            meth.add_implem('this->%s_meth_mux = NULL;\n' % (method_name))
+            meth = c_class.add_meth(C_gen.C_meth('set_%s_meth_muxed' % method_name, args=['void (*meth)(void *, %s, int)' % get_args_decl(method_conf), 'int id']))
+            meth.add_implem('this->%s_meth = NULL;\n' % (method_name))
+            meth.add_implem('this->%s_meth_mux = meth;\n' % (method_name))
+            meth.add_implem('this->%s_mux_id = id;\n' % (method_name))
+            meth.add_implem('this->is_muxed = true;\n')
+
+        
+        c_class.add_field(C_gen.C_field('%s *next;' % (c_class.instance_name), private=True))
+        c_class.add_field(C_gen.C_field('bool is_muxed;', private=True))
+        c_class.add_field(C_gen.C_field('vp::component *remote_comp_mux;', private=True))
+
+
+        c_class.add_field(C_gen.C_field('void *context_for_freq_cross;', private=True))
+        
+
+
+    def add_interface_fields(self, master, slave, mconf, sconf):
+        self.add_bindto(master, slave, mconf, sconf)
+        self.add_bindto(slave, master, sconf, mconf)
+
+        for method_name, method_conf in mconf.get('methods').items():
+            self.add_interface_fields_for_method(master, method_name, method_conf)
+            self.add_interface_fields_for_remote_method(slave, method_name, method_conf)
+
+        for method_name, method_conf in sconf.get('methods').items():
+            self.add_interface_fields_for_method(slave, method_name, method_conf)
+            self.add_interface_fields_for_remote_method(master, method_name, method_conf)
+
+    def add_mux_fields(self, master, slave, mconf, sconf):
+        for method_name, method_conf in mconf.get('methods').items():
+            self.add_mux_stubs(master, slave, method_name, method_conf, is_master=True)
+
+        for method_name, method_conf in sconf.get('methods').items():
+            self.add_mux_stubs(slave, master, method_name, method_conf, is_master=False)
+            
+
+    def add_frequency_cross_fields(self, master, slave, mconf, sconf):
+        for method_name, method_conf in mconf.get('methods').items():
+            self.add_frequency_cross_stubs(master, method_name, method_conf, is_master=True)
+
+        for method_name, method_conf in sconf.get('methods').items():
+            self.add_frequency_cross_stubs(slave, method_name, method_conf, is_master=False)
+
+    def add_constructor(self, c_class, conf, remote_conf):
+        for method_name, method_conf in remote_conf.get('methods').items():
+            c_class.add_constructor_implem('this->%s_meth = &%s::%s_default;\n' % (method_name, c_class.instance_name, method_name))
+
+        c_class.add_constructor_implem('this->next = NULL;\n')
+        c_class.add_constructor_implem('this->is_muxed = false;\n')
+
+    def add_constructors(self, master, slave, mconf, sconf):
+        self.add_constructor(master, mconf, sconf)
+        self.add_constructor(slave, sconf, mconf)
+
+    def __init__(self, name, config, header_path, class_path, implem_path):
+
+        mconf = config.get('master')
+        sconf = config.get('slave')
+
+        c_gen = C_gen(name, header_path, class_path, implem_path)
+
+        # Master and slave classes
+        master = c_gen.new_class(c_gen.C_class('%s_master' % args.name, constructor=True, template=mconf.get('template'), template_instance=mconf.get('template_instance'), parents=['public master_port'], friends=['%s_slave%s' % (args.name, get_template_instance(sconf))]))
+        slave = c_gen.new_class(c_gen.C_class('%s_slave' % args.name, constructor=True, template=sconf.get('template'), template_instance=mconf.get('template_instance'), parents=['public slave_port'], friends=['%s_master%s' % (args.name, get_template_instance(mconf))]))
+
+        # Constructors
+        self.add_constructors(master, slave, mconf, sconf)
+
+        # Add interface methods from caller side
+        for method_name, method_conf in mconf.get('methods').items():
+            self.add_itf_method(master, method_name, method_conf, is_master=True)
+
+        for method_name, method_conf in sconf.get('methods').items():
+            self.add_itf_method(slave, method_name, method_conf, is_master=False)
+
+        # Add setters for all callbacks
+        for method_name, method_conf in sconf.get('methods').items():
+            self.add_callback_setters(master, method_name, method_conf, is_master=True)
+    
+        for method_name, method_conf in mconf.get('methods').items():
+            self.add_callback_setters(slave, method_name, method_conf, is_master=False)
+    
+        # Add utility functions
+        master.add_meth(C_gen.C_meth('is_bound', return_type='bool', inline_implem=' { return this->remote_port != NULL; }'))
+        master.add_meth(C_gen.C_meth('finalize'))
+
+        slave.add_meth(C_gen.C_meth('is_bound', return_type='bool', inline_implem=' { return this->remote_port != NULL; }'))
+
+        # Add all fields for interface
+        self.add_interface_fields(master, slave, mconf, sconf)
+
+        # Add all fields for multiplexed feature
+        self.add_mux_fields(master, slave, mconf, sconf)
+
+        # Add all fields for frequency crossing feature
+        self.add_frequency_cross_fields(master, slave, mconf, sconf)
+
+        c_gen.gen()
+
+
+
+with open(args.input, 'r') as fd_in:
+    config = json.load(fd_in)
+
+    header_path = os.path.join(args.output, 'wire.hpp')
+    class_path = os.path.join(args.output, 'implem/wire_class.hpp')
+    implem_path = os.path.join(args.output, 'implem/wire.hpp')
+
+    with open(header_path, 'w') as header_fd:
+        with open(class_path, 'w') as class_fd:
+            with open(implem_path, 'w') as implem_fd:
+                itf = Itf_gen(args.name, config, header_fd, class_fd, implem_fd)

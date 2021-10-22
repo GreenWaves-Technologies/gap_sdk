@@ -24,12 +24,11 @@ from quantization.float.float_quantization_handler import \
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
 from quantization.qtype_constraint import MatchAll
-from quantization.unified_quantization_handler import (fusion_handler,
-                                                       in_qs_constraint,
+from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        out_qs_constraint,
                                                        params_type)
 
-
+# Fusion handler attribute not set since expressions are handled only by this handler
 @params_type(ExpressionFusionParameters)
 @in_qs_constraint(MatchAll({'dtype': set([np.float32, np.float16, bfloat16])}))
 @out_qs_constraint(MatchAll({'dtype': set([np.float32, np.float16, bfloat16])}))

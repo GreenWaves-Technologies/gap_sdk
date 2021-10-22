@@ -1,12 +1,5 @@
 #include "Gap.h"
-#include "FFT_Library.h"
-
-#ifndef abs
-#define abs(a)  (((a)<0) ? (-(a)) : (a))
-#endif
-#ifndef Min
-#define Min(x, y)       (((x)<(y))?(x):(y))
-#endif
+#include "DSP_Lib.h"
 
 static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int X)
 
@@ -47,19 +40,22 @@ void FFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format)
 void RFFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format)
 {
     AT_L2_EVENT DmaR_Evt1, DmaR_Evt2, DmaR_Evt3;
-    int TwidSize, LUTSize;
+    int TwidSize, RTwidSize, LUTSize;
 
     if (Arg->Radix == 2) TwidSize = Arg->Nfft * sizeof(short);
     else TwidSize = 3 * Arg->Nfft * (sizeof(short)/2);
 
     // when floating 32, size is double
     if (format==1) TwidSize *=2;
-    LUTSize = Arg->Nfft*sizeof(short);
+    LUTSize = (Arg->Nfft>>1)*sizeof(short);
+
+    if (format==1) RTwidSize = Arg->Nfft * sizeof(float);
+    else           RTwidSize = Arg->Nfft * sizeof(short);
 
 
     AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->SwapLUT, (AT_L2_INT_ADDR_TYPE) Arg->L1_SwapLUT,  LUTSize,  0, &DmaR_Evt1);
     AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->Twiddles, (AT_L2_INT_ADDR_TYPE)Arg->L1_Twiddles, TwidSize, 0, &DmaR_Evt2);
-    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->RTwiddles, (AT_L2_INT_ADDR_TYPE)Arg->L1_RTwiddles, TwidSize*2, 0, &DmaR_Evt3);
+    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->RTwiddles, (AT_L2_INT_ADDR_TYPE)Arg->L1_RTwiddles, RTwidSize, 0, &DmaR_Evt3);
 
     AT_L2_WAIT(0, &DmaR_Evt1);
     AT_L2_WAIT(0, &DmaR_Evt2);
@@ -68,7 +64,7 @@ void RFFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format)
 
 /* ------------------------------------------- FFT Butterfly Kernels for Radix4 ------------------------------------------- */
 
-static void Radix4FFTKernel_Twiddle0(v2s *InOutA, v2s *InOutB, v2s *InOutC, v2s *InOutD, int Inverse)
+static inline void Radix4FFTKernel_Twiddle0(v2s *InOutA, v2s *InOutB, v2s *InOutC, v2s *InOutD, int Inverse)
 
 {
         v2s A = *InOutA;
@@ -76,17 +72,10 @@ static void Radix4FFTKernel_Twiddle0(v2s *InOutA, v2s *InOutB, v2s *InOutC, v2s 
         v2s C = *InOutC;
         v2s D = *InOutD;
 
-        if (Inverse) {
-                *InOutA = ((A + C) + (B  + D ));
-                *InOutB = ((A - C) - gap_sub2rotmj(B, D));
-                *InOutC = ((A + C) - (B  + D ));
-                *InOutD = ((A - C) + gap_sub2rotmj(B, D));
-        } else {
-                *InOutA = ((A + C) + (B  + D ));
-                *InOutB = ((A - C) + gap_sub2rotmj(B, D));
-                *InOutC = ((A + C) - (B  + D ));
-                *InOutD = ((A - C) - gap_sub2rotmj(B, D));
-        }
+        *InOutA = ((A + C) + (B  + D ));
+        *InOutB = ((A - C) + gap_sub2rotmj(B, D));
+        *InOutC = ((A + C) - (B  + D ));
+        *InOutD = ((A - C) - gap_sub2rotmj(B, D));
 
         A = *InOutA;
         B = *InOutB;
@@ -94,9 +83,12 @@ static void Radix4FFTKernel_Twiddle0(v2s *InOutA, v2s *InOutB, v2s *InOutC, v2s 
         D = *InOutD;
 }
 
-static void Radix4FFTKernel_Twiddle0_f32(float *InOutA, float *InOutB, float *InOutC, float *InOutD, unsigned int Inverse)
+static inline void Radix4FFTKernel_Twiddle0_f32(float *InOutA, float *InOutB, float *InOutC, float *InOutD, unsigned int Inverse)
 
 {
+        float B1r, D1r;
+        float B1i, D1i;
+
         float Ar = InOutA[0];
         float Ai = InOutA[1];
         float Br = InOutB[0];
@@ -106,57 +98,35 @@ static void Radix4FFTKernel_Twiddle0_f32(float *InOutA, float *InOutB, float *In
         float Dr = InOutD[0];
         float Di = InOutD[1];
 
-        float B1r, D1r;
-        float B1i, D1i;
-
         B1r = Bi; B1i = -Br;
         D1r = Di; D1i = -Dr;
 
-        if (Inverse) {
-                InOutA[0] = ((Ar + Cr) + (Br  + Dr ));
-                InOutA[1] = ((Ai + Ci) + (Bi  + Di ));
-                InOutB[0] = ((Ar - Cr) - (B1r - D1r));
-                InOutB[1] = ((Ai - Ci) - (B1i - D1i));
-                InOutC[0] = ((Ar + Cr) - (Br  + Dr ));
-                InOutC[1] = ((Ai + Ci) - (Bi  + Di ));
-                InOutD[0] = ((Ar - Cr) + (B1r - D1r));
-                InOutD[1] = ((Ai - Ci) + (B1i - D1i));
-        } else {
-                InOutA[0] = ((Ar + Cr) + (Br  + Dr ));
-                InOutA[1] = ((Ai + Ci) + (Bi  + Di ));
-                InOutB[0] = ((Ar - Cr) + (B1r - D1r));
-                InOutB[1] = ((Ai - Ci) + (B1i - D1i));
-                InOutC[0] = ((Ar + Cr) - (Br  + Dr ));
-                InOutC[1] = ((Ai + Ci) - (Bi  + Di ));
-                InOutD[0] = ((Ar - Cr) - (B1r - D1r));
-                InOutD[1] = ((Ai - Ci) - (B1i - D1i));
-        }
+        InOutA[0] = ((Ar + Cr) + (Br  + Dr ));
+        InOutA[1] = ((Ai + Ci) + (Bi  + Di ));
+        InOutB[0] = ((Ar - Cr) + (B1r - D1r));
+        InOutB[1] = ((Ai - Ci) + (B1i - D1i));
+        InOutC[0] = ((Ar + Cr) - (Br  + Dr ));
+        InOutC[1] = ((Ai + Ci) - (Bi  + Di ));
+        InOutD[0] = ((Ar - Cr) - (B1r - D1r));
+        InOutD[1] = ((Ai - Ci) - (B1i - D1i));
 }
 
-#ifdef __gap9__
-static void Radix4FFTKernel_Twiddle0_f16(v2h *InOutA, v2h *InOutB, v2h *InOutC, v2h *InOutD, int Inverse)
+static inline void Radix4FFTKernel_Twiddle0_f16(F16V_DSP *InOutA, F16V_DSP *InOutB, F16V_DSP *InOutC, F16V_DSP *InOutD, int Inverse)
 
 {
-        v2h A = *InOutA;
-        v2h B = *InOutB;
-        v2h C = *InOutC;
-        v2h D = *InOutD;
+        F16V_DSP A = *InOutA;
+        F16V_DSP B = *InOutB;
+        F16V_DSP C = *InOutC;
+        F16V_DSP D = *InOutD;
 
-        v2h rotmjB = B-D;
-        rotmjB = __builtin_shuffle(rotmjB, (v2s){1, 0});
-        rotmjB = rotmjB * (v2h){1.0, -1.0}; // --> rotmjB = {Bi - Di, -(Br - Dr)}
+        F16V_DSP rotmjB = B-D;
+        rotmjB = __builtin_shuffle(rotmjB, (V2S){1, 0});
+        rotmjB = rotmjB * (F16V_DSP){1.0, -1.0}; // --> rotmjB = {Bi - Di, -(Br - Dr)}
 
-        if (Inverse) {
-                *InOutA = ((A + C) + (B  + D ));
-                *InOutB = ((A - C) - rotmjB);
-                *InOutC = ((A + C) - (B  + D ));
-                *InOutD = ((A - C) + rotmjB);
-        } else {
-                *InOutA = ((A + C) + (B  + D ));
-                *InOutB = ((A - C) + rotmjB);
-                *InOutC = ((A + C) - (B  + D ));
-                *InOutD = ((A - C) - rotmjB);
-        }
+        *InOutA = ((A + C) + (B  + D ));
+        *InOutB = ((A - C) + rotmjB);
+        *InOutC = ((A + C) - (B  + D ));
+        *InOutD = ((A - C) - rotmjB);
 
         A = *InOutA;
         B = *InOutB;
@@ -164,68 +134,63 @@ static void Radix4FFTKernel_Twiddle0_f16(v2h *InOutA, v2h *InOutB, v2h *InOutC, 
         D = *InOutD;
 }
 
-static inline v2h CplxMult_f16(v2h A, v2h B)
+static inline F16V_DSP CplxMult_f16(F16V_DSP A, F16V_DSP B)
 
 {
-        v2h P0, P1, P2, P3;
+        F16V_DSP P0, P1, P2, P3;
 
         P0 = A*B;
-        B = __builtin_shuffle(B, (v2s){1,0});
+        B = __builtin_shuffle(B, (V2S){1,0});
         P1 = A*B;
-        P2 = __builtin_shuffle(P0, P1, (v2s){0,2});
-        P3 = __builtin_shuffle(P0, P1, (v2s){1,3});
-        P3 = P3 * (v2h) {-1.0, 1.0};
+        P2 = __builtin_shuffle(P0, P1, (V2S){0,2});
+        P3 = __builtin_shuffle(P0, P1, (V2S){1,3});
+        P3 = P3 * (F16V_DSP) {-1.0, 1.0};
         return P3+P2;
 }
 
-static inline v2h CplxMult_f16_Bis(v2h A, v2h B)
+static inline F16V_DSP CplxMult_f16_Bis(F16V_DSP A, F16V_DSP B)
 
 {
-        f16 Ar=A[0];
-        f16 Ai=A[1];
-        f16 Br=A[0];
-        f16 Bi=B[1];
+        F16_DSP Ar=A[0];
+        F16_DSP Ai=A[1];
+        F16_DSP Br=A[0];
+        F16_DSP Bi=B[1];
 
-        return (v2h){(Ar*Br-Ai*Bi), (Ar*Bi+Ai*Br)};
+        return (F16V_DSP){(Ar*Br-Ai*Bi), (Ar*Bi+Ai*Br)};
 }
 
-static void Radix4FFTKernelDIF_f16(v2h *InOutA, v2h *InOutB, v2h *InOutC, v2h *InOutD,
-                                   v2h W1, v2h W2, v2h W3, int Inverse)
+static inline void Radix4FFTKernelDIF_f16(F16V_DSP *InOutA, F16V_DSP *InOutB, F16V_DSP *InOutC, F16V_DSP *InOutD,
+                                   F16V_DSP W1, F16V_DSP W2, F16V_DSP W3, int Inverse)
 
 {
-        v2h A = *InOutA;
-        v2h B = *InOutB;
-        v2h C = *InOutC;
-        v2h D = *InOutD;
+        F16V_DSP A = *InOutA;
+        F16V_DSP B = *InOutB;
+        F16V_DSP C = *InOutC;
+        F16V_DSP D = *InOutD;
 
-        v2h A1, B1, C1, D1, B2, D2;
-        v2h rotmjB = B-D;
+        F16V_DSP A1, B1, C1, D1, B2, D2;
+        F16V_DSP rotmjB = B-D;
 
-        rotmjB = __builtin_shuffle(rotmjB, (v2s){1, 0});
-        rotmjB = rotmjB * (v2h){1.0, -1.0}; // --> rotmjB = {Bi - Di, -(Br - Dr)}
+        rotmjB = __builtin_shuffle(rotmjB, (V2S){1, 0});
+        rotmjB = rotmjB * (F16V_DSP){1.0, -1.0}; // --> rotmjB = {Bi - Di, -(Br - Dr)}
 
-        if (Inverse) {
-                A1 = ((A + C) + (B + D));
-                B1 = ((A - C) - rotmjB);
-                C1 = ((A + C) - (B + D));
-                D1 = ((A - C) + rotmjB);
-        } else {
-                A1 = ((A + C) + (B + D)); // A1 = {(Ar + Cr) + (Br + Dr), (Ai + Ci) + (Bi + Di)}
-                B1 = ((A - C) + rotmjB ); // B1 = {(Ar - Cr) + (Bi - Di), (Ai - Ci) - (Br - Dr)}
-                C1 = ((A + C) - (B + D)); // C1 = {(Ar + Cr) - (Br + Dr), (Ai + Ci) - (Bi + Di)}
-                D1 = ((A - C) - rotmjB ); // D1 = {(Ar - Cr) - (Bi - Di), (Ai - Ci) + (Br - Dr)}
-        }
+        A1 = ((A + C) + (B + D)); // A1 = {(Ar + Cr) + (Br + Dr), (Ai + Ci) + (Bi + Di)}
+        B1 = ((A - C) + rotmjB ); // B1 = {(Ar - Cr) + (Bi - Di), (Ai - Ci) - (Br - Dr)}
+        C1 = ((A + C) - (B + D)); // C1 = {(Ar + Cr) - (Br + Dr), (Ai + Ci) - (Bi + Di)}
+        D1 = ((A - C) - rotmjB ); // D1 = {(Ar - Cr) - (Bi - Di), (Ai - Ci) + (Br - Dr)}
 
         B1 = CplxMult_f16(B1, W1); C1 = CplxMult_f16(C1, W2); D1 = CplxMult_f16(D1, W3);
 
         *InOutA = A1; *InOutB = B1; *InOutC = C1; *InOutD = D1;
 }
-#endif
 
-static void Radix4FFTKernelDIF_f32(float *InOutA, float *InOutB, float *InOutC, float *InOutD,
+static inline void Radix4FFTKernelDIF_f32(float *InOutA, float *InOutB, float *InOutC, float *InOutD,
                                    float W1r, float W1i, float W2r, float W2i, float W3r, float W3i, unsigned int Inverse)
 
 {
+        float A1r, A1i, B1r, B1i, C1r, C1i, D1r, D1i;
+        float Tmp; //B2r, B2i, D2r, D2i,
+
         float Ar = InOutA[0];
         float Ai = InOutA[1];
         float Br = InOutB[0];
@@ -235,31 +200,14 @@ static void Radix4FFTKernelDIF_f32(float *InOutA, float *InOutB, float *InOutC, 
         float Dr = InOutD[0];
         float Di = InOutD[1];
 
-        float A1r, A1i, B1r, B1i, C1r, C1i, D1r, D1i;
-        float Tmp; //B2r, B2i, D2r, D2i,
-
-        // B2r = Bi; B2i = -Br;
-        // D2r = Di; D2i = -Dr;
-
-        if (Inverse) {
-                A1r = ((Ar + Cr) + (Br  +  Dr));
-                A1i = ((Ai + Ci) + (Bi  +  Di));
-                B1r = ((Ar - Cr) - (Bi  -  Di));
-                B1i = ((Ai - Ci) + (Br  -  Dr));
-                C1r = ((Ar + Cr) - (Br  +  Dr));
-                C1i = ((Ai + Ci) - (Bi  +  Di));
-                D1r = ((Ar - Cr) + (Bi  -  Di));
-                D1i = ((Ai - Ci) - (Br  -  Dr));
-        } else {
-                A1r = ((Ar + Cr) + (Br  +  Dr));
-                A1i = ((Ai + Ci) + (Bi  +  Di));
-                B1r = ((Ar - Cr) + (Bi  -  Di));
-                B1i = ((Ai - Ci) - (Br  -  Dr));
-                C1r = ((Ar + Cr) - (Br  +  Dr));
-                C1i = ((Ai + Ci) - (Bi  +  Di));
-                D1r = ((Ar - Cr) - (Bi  -  Di));
-                D1i = ((Ai - Ci) + (Br  -  Dr));
-        }
+        A1r = ((Ar + Cr) + (Br  +  Dr));
+        A1i = ((Ai + Ci) + (Bi  +  Di));
+        B1r = ((Ar - Cr) + (Bi  -  Di));
+        B1i = ((Ai - Ci) - (Br  -  Dr));
+        C1r = ((Ar + Cr) - (Br  +  Dr));
+        C1i = ((Ai + Ci) - (Bi  +  Di));
+        D1r = ((Ar - Cr) - (Bi  -  Di));
+        D1i = ((Ai - Ci) + (Br  -  Dr));
 
         Tmp = B1r; B1r = (B1r*W1r - B1i*W1i); B1i = (Tmp*W1i + B1i*W1r);
         Tmp = C1r; C1r = (C1r*W2r - C1i*W2i); C1i = (Tmp*W2i + C1i*W2r);
@@ -276,7 +224,7 @@ static void Radix4FFTKernelDIF_f32(float *InOutA, float *InOutB, float *InOutC, 
 
 }
 
-static void Radix4FFTKernelDIF(v2s *InOutA, v2s *InOutB, v2s *InOutC, v2s *InOutD,
+static inline void Radix4FFTKernelDIF(v2s *InOutA, v2s *InOutB, v2s *InOutC, v2s *InOutD,
                                v2s W1, v2s W2, v2s W3, int Inverse)
 
 {
@@ -288,47 +236,33 @@ static void Radix4FFTKernelDIF(v2s *InOutA, v2s *InOutB, v2s *InOutC, v2s *InOut
         int B1r, B1i, C1r, C1i, D1r, D1i;
         v2s A1, B1, C1, D1, B2, D2;
 
-        if (Inverse) {
-                A1 = ((A + C) + (B + D)) >> (v2s) {FFT4_SCALEDOWN, FFT4_SCALEDOWN};
-                B1 = ((A - C) - gap_sub2rotmj(B,  D));
-                C1 = ((A + C) - (B + D));
-                D1 = ((A - C) + gap_sub2rotmj(B,  D));
-        } else {
-                A1 = ((A + C) + (B + D)) >> (v2s) {FFT4_SCALEDOWN, FFT4_SCALEDOWN};
-                B1 = ((A - C) + gap_sub2rotmj(B,  D));
-                C1 = ((A + C) - (B + D));
-                D1 = ((A - C) - gap_sub2rotmj(B,  D));
-        }
+        A1 = ((A + C) + (B + D)) >> (v2s) {FFT4_SCALEDOWN, FFT4_SCALEDOWN};
+        B1 = ((A - C) + gap_sub2rotmj(B,  D));
+        C1 = ((A + C) - (B + D));
+        D1 = ((A - C) - gap_sub2rotmj(B,  D));
 
         B1 = gap_cplxmulsdiv4(B1, W1); C1 = gap_cplxmulsdiv4(C1, W2); D1 = gap_cplxmulsdiv4(D1, W3);
 
         *InOutA = A1; *InOutB = B1; *InOutC = C1; *InOutD = D1;
 }
 
-static void Radix4FFTKernelDIF_NoScale(v2s *InOutA, v2s *InOutB, v2s *InOutC, v2s *InOutD,
+static inline void Radix4FFTKernelDIF_NoScale(v2s *InOutA, v2s *InOutB, v2s *InOutC, v2s *InOutD,
                                        v2s W1, v2s W2, v2s W3, unsigned int Inverse)
 
 {
         v2s A1, B1, C1, D1;
         v2s A = *InOutA, B = *InOutB, C = *InOutC, D = *InOutD;
 
-        if (Inverse) {
-                A1 = ((A + C) +               (B + D));
-                B1 = ((A - C) - gap_sub2rotmj(B,  D));
-                C1 = ((A + C) -               (B + D));
-                D1 = ((A - C) + gap_sub2rotmj(B,  D));
-        } else {
-                A1 = ((A + C) +               (B + D));
-                B1 = ((A - C) + gap_sub2rotmj(B,  D));
-                C1 = ((A + C) -               (B + D));
-                D1 = ((A - C) - gap_sub2rotmj(B,  D));
-        }
+        A1 = ((A + C) +               (B + D));
+        B1 = ((A - C) + gap_sub2rotmj(B,  D));
+        C1 = ((A + C) -               (B + D));
+        D1 = ((A - C) - gap_sub2rotmj(B,  D));
 
         B1 = gap_cplxmuls(B1, W1); C1 = gap_cplxmuls(C1, W2); D1 = gap_cplxmuls(D1, W3);
         *InOutA = A1; *InOutB = B1; *InOutC = C1; *InOutD = D1;
 }
 
-static void Radix4FFTKernelDIF_Fix32(int *InOutA, int *InOutB, int *InOutC, int *InOutD,
+static inline void Radix4FFTKernelDIF_Fix32(int *InOutA, int *InOutB, int *InOutC, int *InOutD,
                                      short int W1r, short int W1i, short int W2r, short int W2i, short int W3r, short int W3i, unsigned int Inverse)
 
 {
@@ -344,28 +278,15 @@ static void Radix4FFTKernelDIF_Fix32(int *InOutA, int *InOutB, int *InOutC, int 
         int A1r, A1i, B1r, B1i, C1r, C1i, D1r, D1i;
         int Tmp; //B2r, B2i, D2r, D2i,
 
-        // B2r = Bi; B2i = -Br;
-        // D2r = Di; D2i = -Dr;
 
-        if (Inverse) {
-                A1r = ((Ar + Cr) + (Br  +  Dr));
-                A1i = ((Ai + Ci) + (Bi  +  Di));
-                B1r = ((Ar - Cr) - (Bi  -  Di));
-                B1i = ((Ai - Ci) + (Br  -  Dr));
-                C1r = ((Ar + Cr) - (Br  +  Dr));
-                C1i = ((Ai + Ci) - (Bi  +  Di));
-                D1r = ((Ar - Cr) + (Bi  -  Di));
-                D1i = ((Ai - Ci) - (Br  -  Dr));
-        } else {
-                A1r = ((Ar + Cr) + (Br  +  Dr));
-                A1i = ((Ai + Ci) + (Bi  +  Di));
-                B1r = ((Ar - Cr) + (Bi  -  Di));
-                B1i = ((Ai - Ci) - (Br  -  Dr));
-                C1r = ((Ar + Cr) - (Br  +  Dr));
-                C1i = ((Ai + Ci) - (Bi  +  Di));
-                D1r = ((Ar - Cr) - (Bi  -  Di));
-                D1i = ((Ai - Ci) + (Br  -  Dr));
-        }
+        A1r = ((Ar + Cr) + (Br  +  Dr));
+        A1i = ((Ai + Ci) + (Bi  +  Di));
+        B1r = ((Ar - Cr) + (Bi  -  Di));
+        B1i = ((Ai - Ci) - (Br  -  Dr));
+        C1r = ((Ar + Cr) - (Br  +  Dr));
+        C1i = ((Ai + Ci) - (Bi  +  Di));
+        D1r = ((Ar - Cr) - (Bi  -  Di));
+        D1i = ((Ai - Ci) + (Br  -  Dr));
 
         Tmp = B1r >> FFT4_SCALEDOWN; B1r = (((B1r*W1r)>>15) - ((B1i*W1i)>>15)) >> FFT4_SCALEDOWN; B1i = (((Tmp*W1i)>>15) + ((B1i*W1r)>>15)) >> FFT4_SCALEDOWN;
         Tmp = C1r >> FFT4_SCALEDOWN; C1r = (((C1r*W2r)>>15) - ((C1i*W2i)>>15)) >> FFT4_SCALEDOWN; C1i = (((Tmp*W2i)>>15) + ((C1i*W2r)>>15)) >> FFT4_SCALEDOWN;
@@ -381,7 +302,7 @@ static void Radix4FFTKernelDIF_Fix32(int *InOutA, int *InOutB, int *InOutC, int 
         InOutD[1] = D1i;
 
 }
-static void Radix4FFTKernelDIF_Fix32_NoScale(int *InOutA, int *InOutB, int *InOutC, int *InOutD,
+static inline void Radix4FFTKernelDIF_Fix32_NoScale(int *InOutA, int *InOutB, int *InOutC, int *InOutD,
                                              short int W1r, short int W1i, short int W2r, short int W2i, short int W3r, short int W3i, unsigned int Inverse)
 
 {
@@ -397,28 +318,14 @@ static void Radix4FFTKernelDIF_Fix32_NoScale(int *InOutA, int *InOutB, int *InOu
         int A1r, A1i, B1r, B1i, C1r, C1i, D1r, D1i;
         int Tmp; //B2r, B2i, D2r, D2i,
 
-        // B2r = Bi; B2i = -Br;
-        // D2r = Di; D2i = -Dr;
-
-        if (Inverse) {
-                A1r = ((Ar + Cr) + (Br  +  Dr));
-                A1i = ((Ai + Ci) + (Bi  +  Di));
-                B1r = ((Ar - Cr) - (Bi  -  Di));
-                B1i = ((Ai - Ci) + (Br  -  Dr));
-                C1r = ((Ar + Cr) - (Br  +  Dr));
-                C1i = ((Ai + Ci) - (Bi  +  Di));
-                D1r = ((Ar - Cr) + (Bi  -  Di));
-                D1i = ((Ai - Ci) - (Br  -  Dr));
-        } else {
-                A1r = ((Ar + Cr) + (Br  +  Dr));
-                A1i = ((Ai + Ci) + (Bi  +  Di));
-                B1r = ((Ar - Cr) + (Bi  -  Di));
-                B1i = ((Ai - Ci) - (Br  -  Dr));
-                C1r = ((Ar + Cr) - (Br  +  Dr));
-                C1i = ((Ai + Ci) - (Bi  +  Di));
-                D1r = ((Ar - Cr) - (Bi  -  Di));
-                D1i = ((Ai - Ci) + (Br  -  Dr));
-        }
+        A1r = ((Ar + Cr) + (Br  +  Dr));
+        A1i = ((Ai + Ci) + (Bi  +  Di));
+        B1r = ((Ar - Cr) + (Bi  -  Di));
+        B1i = ((Ai - Ci) - (Br  -  Dr));
+        C1r = ((Ar + Cr) - (Br  +  Dr));
+        C1i = ((Ai + Ci) - (Bi  +  Di));
+        D1r = ((Ar - Cr) - (Bi  -  Di));
+        D1i = ((Ai - Ci) + (Br  -  Dr));
 
         Tmp = B1r; B1r = (((B1r*W1r)>>15) - ((B1i*W1i)>>15)); B1i = (((Tmp*W1i)>>15) + ((B1i*W1r)>>15));
         Tmp = C1r; C1r = (((C1r*W2r)>>15) - ((C1i*W2i)>>15)); C1i = (((Tmp*W2i)>>15) + ((C1i*W2r)>>15));
@@ -433,7 +340,7 @@ static void Radix4FFTKernelDIF_Fix32_NoScale(int *InOutA, int *InOutB, int *InOu
         InOutD[0] = D1r;
         InOutD[1] = D1i;
 }
-static void Radix4FFTKernel_Twiddle0_Fix32(int *InOutA, int *InOutB, int *InOutC, int *InOutD, unsigned int Inverse)
+static inline void Radix4FFTKernel_Twiddle0_Fix32(int *InOutA, int *InOutB, int *InOutC, int *InOutD, unsigned int Inverse)
 
 {
         int Ar = InOutA[0];
@@ -451,29 +358,18 @@ static void Radix4FFTKernel_Twiddle0_Fix32(int *InOutA, int *InOutB, int *InOutC
         B1r = Bi; B1i = -Br;
         D1r = Di; D1i = -Dr;
 
-        if (Inverse) {
-                InOutA[0] = ((Ar + Cr) + (Br  + Dr ));
-                InOutA[1] = ((Ai + Ci) + (Bi  + Di ));
-                InOutB[0] = ((Ar - Cr) - (B1r - D1r));
-                InOutB[1] = ((Ai - Ci) - (B1i - D1i));
-                InOutC[0] = ((Ar + Cr) - (Br  + Dr ));
-                InOutC[1] = ((Ai + Ci) - (Bi  + Di ));
-                InOutD[0] = ((Ar - Cr) + (B1r - D1r));
-                InOutD[1] = ((Ai - Ci) + (B1i - D1i));
-        } else {
-                InOutA[0] = ((Ar + Cr) + (Br  + Dr ));
-                InOutA[1] = ((Ai + Ci) + (Bi  + Di ));
-                InOutB[0] = ((Ar - Cr) + (B1r - D1r));
-                InOutB[1] = ((Ai - Ci) + (B1i - D1i));
-                InOutC[0] = ((Ar + Cr) - (Br  + Dr ));
-                InOutC[1] = ((Ai + Ci) - (Bi  + Di ));
-                InOutD[0] = ((Ar - Cr) - (B1r - D1r));
-                InOutD[1] = ((Ai - Ci) - (B1i - D1i));
-        }
+        InOutA[0] = ((Ar + Cr) + (Br  + Dr ));
+        InOutA[1] = ((Ai + Ci) + (Bi  + Di ));
+        InOutB[0] = ((Ar - Cr) + (B1r - D1r));
+        InOutB[1] = ((Ai - Ci) + (B1i - D1i));
+        InOutC[0] = ((Ar + Cr) - (Br  + Dr ));
+        InOutC[1] = ((Ai + Ci) - (Bi  + Di ));
+        InOutD[0] = ((Ar - Cr) - (B1r - D1r));
+        InOutD[1] = ((Ai - Ci) - (B1i - D1i));
 }
 
 
-static void kernel_fftrad2_scal(cmplx *DataV, v2s W, signed char *shift_fft, int iA, int iB) {
+static inline void kernel_fftrad2_scal(cmplx *DataV, v2s W, signed char *shift_fft, int iA, int iB) {
         cmplx Tmp;
         int Dshift;
         int shift=0;
@@ -496,7 +392,7 @@ static void kernel_fftrad2_scal(cmplx *DataV, v2s W, signed char *shift_fft, int
         
         
         // normalize iB mantissa to Q29 before mult
-        int norm = (abs( Tmp[0]) + abs(Tmp[1])); 
+        int norm = (Abs( Tmp[0]) + Abs(Tmp[1])); 
         shift = __builtin_clz(norm) - 3;
         if (norm) {
                 if (shift > 0) { 
@@ -513,7 +409,7 @@ static void kernel_fftrad2_scal(cmplx *DataV, v2s W, signed char *shift_fft, int
         DataV[iB][1] = (Tmp[0] >> 15) * W[1] + (Tmp[1] >> 15) * W[0];
 
         // normalize iA mantissa to Q29 
-        norm = (abs(DataV[iA][0]) + abs(DataV[iA][1]));
+        norm = (Abs(DataV[iA][0]) + Abs(DataV[iA][1]));
         shift = __builtin_clz(norm) - 3;
         if (norm) {
                 if (shift > 0) { 
@@ -605,6 +501,13 @@ void Radix4FFT_DIF_Par_Fix16(FFT_Arg_T *Arg)
         int i;
 
         CoreId = gap_coreid();
+        if (Arg->Inverse) {
+                Chunk = (N_fft/gap_ncore()); First = CoreId*Chunk; Last = First+Chunk;
+                for (iCnt1=First; iCnt1<Last; iCnt1++){
+                        DataV[iCnt1][1] = -DataV[iCnt1][1];
+                }
+                gap_waitbarrier(0);
+        }
 
         // Layers 0,1, ... , (iLog4N-2)
         iM = N_fft >> 2; iL = 1;
@@ -635,9 +538,9 @@ void Radix4FFT_DIF_Par_Fix16(FFT_Arg_T *Arg)
                 First =  CoreId*Chunk; Last = First+Chunk;
                 iA = iCnt2 + Chunk*CoreId*4*iM;
                 for (iCnt3 = First; iCnt3 < Last; ++iCnt3) {
-                        Radix4FFTKernelDIF_NoScale((v2s *) (DataV + iA       ), (v2s *) (DataV + iA + iM), 
-                                                   (v2s *) (DataV + iA + 2*iM), (v2s *) (DataV + iA + 3*iM),
-                                                   W1, W2, W3, Inverse);
+                        Radix4FFTKernelDIF((v2s *) (DataV + iA       ), (v2s *) (DataV + iA + iM), 
+                                           (v2s *) (DataV + iA + 2*iM), (v2s *) (DataV + iA + 3*iM),
+                                           W1, W2, W3, Inverse);
                         iA = iA + 4 * iM;
                 }
                 iQ += iL;
@@ -657,6 +560,13 @@ void Radix4FFT_DIF_Par_Fix16(FFT_Arg_T *Arg)
         }
         // Synchronize all cores for last layer of the trellis
         gap_waitbarrier(0);
+        if (Arg->Inverse) {
+                Chunk = (N_fft/gap_ncore()); First = CoreId*Chunk; Last = First+Chunk;
+                for (iCnt1=First; iCnt1<Last; iCnt1++){
+                        DataV[iCnt1][1] = -DataV[iCnt1][1];
+                }
+                gap_waitbarrier(0);
+        }
 }
 
 void Radix4FFT_DIF_Par_Fix32(FFT_Arg_T *Arg)
@@ -735,12 +645,11 @@ void Radix4FFT_DIF_Par_Fix32(FFT_Arg_T *Arg)
         gap_waitbarrier(0);
 }
 
-#ifdef __gap9__
 void Radix4FFT_DIF_Par_f16(FFT_Arg_T *Arg)
 
 {
-        float16 *__restrict__ Data = (float16 *) Arg->Data;
-        float16 *__restrict__ Twiddles = (float16 *) Arg->Twiddles;
+        F16_DSP *__restrict__ Data = (F16_DSP *) Arg->Data;
+        F16_DSP *__restrict__ Twiddles = (F16_DSP *) Arg->Twiddles;
         unsigned int N_fft = Arg->N_fft;
         int Inverse = Arg->Inverse;
 
@@ -748,14 +657,21 @@ void Radix4FFT_DIF_Par_f16(FFT_Arg_T *Arg)
             iL,    iM,    iQ,
             iA,    iB,    iC,     iD;
         unsigned int iLog4N  = (gap_fl1(N_fft))>>1;
-        v2h *DataV  = (v2h *) Data;
-        v2h *CoeffV = (v2h *) Twiddles;
+        F16V_DSP *DataV  = (F16V_DSP *) Data;
+        F16V_DSP *CoeffV = (F16V_DSP *) Twiddles;
         unsigned int CoreId;
         int First, Last, Chunk;
 
         int i;
 
         CoreId = gap_coreid();
+        if (Arg->Inverse) {
+                Chunk = (N_fft/gap_ncore()); First = CoreId*Chunk; Last = First+Chunk;
+                for (iCnt1=First; iCnt1<Last; iCnt1++){
+                        DataV[iCnt1][1] = -DataV[iCnt1][1];
+                }
+                gap_waitbarrier(0);
+        }
 
         // Layers 0,1, ... , (iLog4N-2)
         iM = N_fft >> 2; iL = 1;
@@ -765,10 +681,10 @@ void Radix4FFT_DIF_Par_f16(FFT_Arg_T *Arg)
                 iQ    = First*iL;
                 for (iCnt2 = First; iCnt2 < Last; ++iCnt2) {
                         iA = iCnt2;
-                        v2h W1 = CoeffV[  iQ], W2 = CoeffV[2*iQ], W3 = CoeffV[3*iQ];
+                        F16V_DSP W1 = CoeffV[  iQ], W2 = CoeffV[2*iQ], W3 = CoeffV[3*iQ];
                         for (iCnt3 = 0; iCnt3 < iL; ++iCnt3) {
-                                Radix4FFTKernelDIF_f16((v2h *) (DataV + iA       ), (v2h *) (DataV + iA + iM), 
-                                                       (v2h *) (DataV + iA + 2*iM), (v2h *) (DataV + iA + 3*iM),
+                                Radix4FFTKernelDIF_f16((F16V_DSP *) (DataV + iA       ), (F16V_DSP *) (DataV + iA + iM), 
+                                                       (F16V_DSP *) (DataV + iA + 2*iM), (F16V_DSP *) (DataV + iA + 3*iM),
                                                        W1, W2, W3, Inverse);
                                 iA = iA + 4 * iM;
                         }
@@ -781,13 +697,13 @@ void Radix4FFT_DIF_Par_f16(FFT_Arg_T *Arg)
         // Layer iLog4N - 2
         iM = 4; iL = (N_fft>>(2+2)); iQ = 0;
         for (iCnt2 = 0; iCnt2 < iM; ++iCnt2) {
-                v2h W1 = CoeffV[  iQ], W2 = CoeffV[2*iQ], W3 = CoeffV[3*iQ];
+                F16V_DSP W1 = CoeffV[  iQ], W2 = CoeffV[2*iQ], W3 = CoeffV[3*iQ];
                 Chunk = (iL/gap_ncore());
                 First =  CoreId*Chunk; Last = First+Chunk;
                 iA = iCnt2 + Chunk*CoreId*4*iM;
                 for (iCnt3 = First; iCnt3 < Last; ++iCnt3) {
-                        Radix4FFTKernelDIF_f16((v2h *) (DataV + iA       ), (v2h *) (DataV + iA + iM), 
-                                               (v2h *) (DataV + iA + 2*iM), (v2h *) (DataV + iA + 3*iM),
+                        Radix4FFTKernelDIF_f16((F16V_DSP *) (DataV + iA       ), (F16V_DSP *) (DataV + iA + iM), 
+                                               (F16V_DSP *) (DataV + iA + 2*iM), (F16V_DSP *) (DataV + iA + 3*iM),
                                                W1, W2, W3, Inverse);
                         iA = iA + 4 * iM;
                 }
@@ -802,21 +718,22 @@ void Radix4FFT_DIF_Par_f16(FFT_Arg_T *Arg)
         First =  CoreId*Chunk; Last = First+Chunk;
         iA =  CoreId*Chunk*4*iM;
         for (iCnt3 = First; iCnt3 < Last; ++iCnt3) {
-                Radix4FFTKernel_Twiddle0_f16((v2h *) (DataV + iA       ), (v2h *) (DataV + iA +   iM),
-                                             (v2h *) (DataV + iA + 2*iM), (v2h *) (DataV + iA + 3*iM), Inverse);
+                Radix4FFTKernel_Twiddle0_f16((F16V_DSP *) (DataV + iA       ), (F16V_DSP *) (DataV + iA +   iM),
+                                             (F16V_DSP *) (DataV + iA + 2*iM), (F16V_DSP *) (DataV + iA + 3*iM), Inverse);
                 iA =  iA + 4 * iM;
         }
         // Synchronize all cores for last layer of the trellis
         gap_waitbarrier(0);
         if (Arg->Inverse) {
-                f16 invN = 1.0f / (f16) N_fft;
-                Chunk = 2*N_fft/gap_ncore();
-                First = CoreId*Chunk; Last = First+Chunk;
-                for (iCnt1=First; iCnt1<Last; iCnt1++) Data[i] *= invN;
+                F16_DSP invN = (F16_DSP) 1.0 / N_fft;
+                Chunk = (N_fft/gap_ncore()); First = CoreId*Chunk; Last = First+Chunk;
+                for (iCnt1=First; iCnt1<Last; iCnt1++){
+                        DataV[iCnt1][0] =  DataV[iCnt1][0]*invN;
+                        DataV[iCnt1][1] = -DataV[iCnt1][1]*invN;
+                }
                 gap_waitbarrier(0);
         }
 }
-#endif
 
 void Radix4FFT_DIF_Par_f32(FFT_Arg_T *Arg)
 
@@ -836,6 +753,13 @@ void Radix4FFT_DIF_Par_f32(FFT_Arg_T *Arg)
         int i;
 
         CoreId = gap_coreid();
+        if (Arg->Inverse) {
+                Chunk = (N_fft/gap_ncore()); First = CoreId*Chunk; Last = First+Chunk;
+                for (iCnt1=First; iCnt1<Last; iCnt1++){
+                        Data[2*iCnt1+1] = -Data[2*iCnt1+1];
+                }
+                gap_waitbarrier(0);
+        }
 
         // Layers 0,1, ... , (iLog4N-2)
         iM = N_fft >> 2; iL = 1;
@@ -851,7 +775,7 @@ void Radix4FFT_DIF_Par_f32(FFT_Arg_T *Arg)
                         for (iCnt3 = 0; iCnt3 < iL; ++iCnt3) {
                                 Radix4FFTKernelDIF_f32((Data + 2*(iA       )), (Data + 2*(iA +   iM)), 
                                                        (Data + 2*(iA + 2*iM)), (Data + 2*(iA + 3*iM)),
-                                                       W1r, W1i, W2r, W2i, W3r, W3i, Inverse);
+                                                       W1r, W1i, W2r, W2i, W3r, W3i, 0);
                                 iA = iA + 4 * iM;
                         }
                         iQ += iL;
@@ -872,7 +796,7 @@ void Radix4FFT_DIF_Par_f32(FFT_Arg_T *Arg)
                 for (iCnt3 = First; iCnt3 < Last; ++iCnt3) {
                         Radix4FFTKernelDIF_f32((Data + 2*(iA       )), (Data + 2*(iA +   iM)), 
                                                (Data + 2*(iA + 2*iM)), (Data + 2*(iA + 3*iM)),
-                                               W1r, W1i, W2r, W2i, W3r, W3i, Inverse);
+                                               W1r, W1i, W2r, W2i, W3r, W3i, 0);
                         iA = iA + 4 * iM;
                 }
                 iQ += iL;
@@ -887,17 +811,19 @@ void Radix4FFT_DIF_Par_f32(FFT_Arg_T *Arg)
         iA =  CoreId*Chunk*4*iM;
         for (iCnt3 = First; iCnt3 < Last; ++iCnt3) {
                 Radix4FFTKernel_Twiddle0_f32((Data + 2*(iA       )), (Data + 2*(iA +   iM)),
-                                             (Data + 2*(iA + 2*iM)), (Data + 2*(iA + 3*iM)), Inverse);
+                                             (Data + 2*(iA + 2*iM)), (Data + 2*(iA + 3*iM)), 0);
                 iA =  iA + 4 * iM;
         }
         // Synchronize all cores for last layer of the trellis
         gap_waitbarrier(0);
 
         if (Arg->Inverse) {
-                float invN = 1.0f / (float) N_fft;
-                Chunk = 2*N_fft/gap_ncore();
-                First = CoreId*Chunk; Last = First+Chunk;
-                for (iCnt1=First; iCnt1<Last; iCnt1++) Data[i] *= invN;
+                float invN = 1.0 / (float) N_fft;
+                Chunk = (N_fft/gap_ncore()); First = CoreId*Chunk; Last = First+Chunk;
+                for (iCnt1=First; iCnt1<Last; iCnt1++){
+                        Data[2*iCnt1]   =  Data[2*iCnt1]   * invN;
+                        Data[2*iCnt1+1] = -Data[2*iCnt1+1] * invN;
+                }
                 gap_waitbarrier(0);
         }
 }
@@ -1036,7 +962,7 @@ void Radix2FFT_DIF_Par_Fix16(FFT_Arg_T *Arg)
                                 v2s Tmp;
                                 iB = iA + iM;
                                 Tmp = DataV[iA] - DataV[iB];
-                                DataV[iA] = (DataV[iA] + DataV[iB]) >> (v2s) {FFT2_SCALEDOWN, FFT2_SCALEDOWN};
+                                DataV[iA] = (v2s) gap_add2div2(DataV[iA], DataV[iB]); // >> (v2s) {FFT2_SCALEDOWN, FFT2_SCALEDOWN};
                                 DataV[iB] = (v2s) gap_cplxmulsdiv2(Tmp, W) ;
                                 iA = iA + 2 * iM;
                         }
@@ -1059,8 +985,8 @@ void Radix2FFT_DIF_Par_Fix16(FFT_Arg_T *Arg)
                         iB = iA + iM;
                         //printf("core %d stage %d iL %d idx %d %d\n",CoreId,iCnt1,iL,iA,iB);
                         Tmp = (DataV[iA]) - (DataV[iB]);
-                        DataV[iA] = (DataV[iA] + DataV[iB]);
-                        DataV[iB] = (v2s) gap_cplxmuls(Tmp, W);
+                        DataV[iA] = (v2s) gap_add2div2(DataV[iA], DataV[iB]); // >> (v2s) {FFT2_SCALEDOWN, FFT2_SCALEDOWN};
+                        DataV[iB] = (v2s) gap_cplxmulsdiv2(Tmp, W) ;
                         iA = iA + 2 * iM;
                 }
                 iQ += iL;
@@ -1099,6 +1025,7 @@ void Radix2FFT_DIF_Par_Fix16(FFT_Arg_T *Arg)
                 DataV[iA+1] = A - B;
                 iA = iA + 2;
         }
+        gap_waitbarrier(0);
         if (Arg->Inverse) {
                 Chunk = (N_fft/gap_ncore()); First = CoreId*Chunk; Last = First+Chunk;
                 for (iCnt1=First; iCnt1<Last; iCnt1++){
@@ -1106,24 +1033,22 @@ void Radix2FFT_DIF_Par_Fix16(FFT_Arg_T *Arg)
                 }
                 gap_waitbarrier(0);
         }
-        gap_waitbarrier(0);
 }
 
 
-#ifdef __gap9__
 void Radix2FFT_DIF_Par_f16(FFT_Arg_T *Arg)
 
 {
-        float16 *__restrict__ Data = (float16 * __restrict__) Arg->Data;
-        float16 *__restrict__ Twiddles = (float16 * __restrict__) Arg->Twiddles;
+        F16_DSP *__restrict__ Data = (F16_DSP * __restrict__) Arg->Data;
+        F16_DSP *__restrict__ Twiddles = (F16_DSP * __restrict__) Arg->Twiddles;
         unsigned int N_fft = Arg->N_fft;
 
         int iLog2N  = gap_fl1(N_fft);
         int iCnt1, iCnt2, iCnt3,
             iQ,    iL,    iM,
             iA,    iB;
-        v2h *CoeffV = (v2h *) Twiddles;
-        v2h *DataV  = (v2h *) Data;
+        F16V_DSP *CoeffV = (F16V_DSP *) Twiddles;
+        F16V_DSP *DataV  = (F16V_DSP *) Data;
         unsigned int CoreId;
         int First, Last, Chunk;
 
@@ -1142,10 +1067,10 @@ void Radix2FFT_DIF_Par_f16(FFT_Arg_T *Arg)
                 Chunk = (iM/gap_ncore()); First = CoreId*Chunk; Last = First+Chunk;
                 iQ = First*iL;
                 for (iCnt2 = First; iCnt2 < Last; iCnt2++) {
-                        v2h W = CoeffV[iQ];
+                        F16V_DSP W = CoeffV[iQ];
                         iA = iCnt2;
                         for (iCnt3 = 0; iCnt3 < iL; iCnt3++) {
-                                v2h Tmp;
+                                F16V_DSP Tmp;
                                 iB = iA + iM;
                                 Tmp       = DataV[iA] - DataV[iB];
                                 DataV[iA] = DataV[iA] + DataV[iB];
@@ -1164,12 +1089,12 @@ void Radix2FFT_DIF_Par_f16(FFT_Arg_T *Arg)
         iL = N_fft >> 3;
         iQ = 0;
         for (iCnt2 = 0; iCnt2 < iM; iCnt2++) {
-                v2h W = CoeffV[iQ];
+                F16V_DSP W = CoeffV[iQ];
                 Chunk = (iL/gap_ncore()); First =  CoreId*Chunk; Last = First+Chunk;
                 iA = iCnt2 + Chunk*CoreId*2*iM;
 
                 for (iCnt3 = First; iCnt3 < Last; iCnt3++) {
-                        v2h Tmp;
+                        F16V_DSP Tmp;
                         iB = iA + iM;
                         Tmp       = (DataV[iA] - DataV[iB]);
                         DataV[iA] = (DataV[iA] + DataV[iB]);
@@ -1185,12 +1110,12 @@ void Radix2FFT_DIF_Par_f16(FFT_Arg_T *Arg)
         iL = N_fft >> 2;
         iQ = 0;
         for (iCnt2 = 0; iCnt2 < iM; iCnt2++) {
-                v2h W = CoeffV[iQ];
+                F16V_DSP W = CoeffV[iQ];
                 Chunk = (iL/gap_ncore()); First =  CoreId*Chunk; Last = First+Chunk;
                 iA = iCnt2 + Chunk*CoreId*2*iM;
 
                 for (iCnt3 = First; iCnt3 < Last; iCnt3++) {
-                        v2h Tmp;
+                        F16V_DSP Tmp;
                         iB = iA + iM;
                         Tmp       = (DataV[iA] - DataV[iB]);
                         DataV[iA] = (DataV[iA] + DataV[iB]);
@@ -1206,8 +1131,8 @@ void Radix2FFT_DIF_Par_f16(FFT_Arg_T *Arg)
         Chunk = ((N_fft>>1)/gap_ncore()); First =  CoreId*Chunk; Last = Min(First+Chunk, (N_fft>>1));
         iA = 2*Chunk*CoreId;
         for (iCnt3 = First; iCnt3 < Last; iCnt3++) {
-                v2h A = DataV[iA];
-                v2h B = DataV[iA+1];
+                F16V_DSP A = DataV[iA];
+                F16V_DSP B = DataV[iA+1];
                 DataV[iA  ] = A + B;
                 DataV[iA+1] = A - B;
                 iA = iA + 2;
@@ -1215,7 +1140,7 @@ void Radix2FFT_DIF_Par_f16(FFT_Arg_T *Arg)
         // Synchronize all cores for current layer of the trellis
         gap_waitbarrier(0);
         if (Arg->Inverse) {
-                f16 invN = (f16) 1.0 / N_fft;
+                F16_DSP invN = (F16_DSP) 1.0 / N_fft;
                 Chunk = (N_fft/gap_ncore()); First = CoreId*Chunk; Last = First+Chunk;
                 for (iCnt1=First; iCnt1<Last; iCnt1++){
                         DataV[iCnt1][0] =  DataV[iCnt1][0]*invN;
@@ -1224,7 +1149,6 @@ void Radix2FFT_DIF_Par_f16(FFT_Arg_T *Arg)
                 gap_waitbarrier(0);
         }
 }
-#endif
 
 
 void Radix2FFT_DIF_Par_f32(FFT_Arg_T *Arg)
@@ -1725,20 +1649,20 @@ void RFFT_DIF_Par_Fix16(RFFT_Arg_T *Arg){
         v2s xA, xB;                      /* temporary variables */
         v2s t1, t2, tw;                  /* temporary variables */
         signed short int p0, p1, p2, p3; /* temporary variables */
+        int xBR, xBI, xAR, xAI;
 
         k = (N_fft>>1) - 1;
         /* Pack first and last sample of the frequency domain together */
         if (CoreId == 0){
-                // U1 = XA(1) + XB(1); % It is real
-                short int t1a = (pB[0][0]>>2) + (pA[0][0]>>2);
-         
-                // U2 = XB(1) - XA(1); % It is imaginary
-                short int t1b = (pB[0][1]>>2) + (pA[0][1]>>2);
+                xBR = pB[0][0];
+                xBI = pB[0][1];
+                xAR = pA[0][0];
+                xAI = pA[0][1];
          
                 // real(tw * (xB - xA)) = twR * (xBR - xAR) - twI * (xBI - xAI);
                 // imag(tw * (xB - xA)) = twI * (xBR - xAR) + twR * (xBI - xAI);
-                RFFT_Out[0][0] = ( t1a + t1b );
-                RFFT_Out[0][1] = ( t1a - t1b );
+                RFFT_Out[0][0] = ( xBR + xAR + xBI + xAI ) >> 2;
+                RFFT_Out[0][1] = ( xAI - xBI + xBR - xAR ) >> 2;
                 // XA(1) = 1/2*( U1 - imag(U2) +  i*( U1 +imag(U2) ));
         }
         gap_waitbarrier(0);
@@ -1773,6 +1697,16 @@ void RFFT_DIF_Par_Fix16(RFFT_Arg_T *Arg){
                 t1 = gap_add2div4(-xA, gap_cplxconj(xB));
                 t2 = gap_add2div4( xA, gap_cplxconj(xB));
                 RFFT_Out[i] = gap_cplxmuls(tw, t1) + t2;
+        }
+        if (CoreId == 0){
+                xBR = pB[-(k-1)][0];
+                xBI = pB[-(k-1)][1];
+                xAR = pA[ (k-1)][0];
+                xAI = pA[ (k-1)][1];
+                RFFT_Out[k][0] = ( xBR + xAR - xBI - xAI ) >> 2;
+                // TODO - CHECK
+                // RFFT_Out[k][1] = ( xAI - xBI - xBR + xAR ) >> 2;
+                RFFT_Out[k][1] = 0;
         }
         gap_waitbarrier(0);
 #ifdef PRINTDEB
@@ -1810,7 +1744,7 @@ void RFFT_DIF_Par_Fix32_Scal(RFFT_scal_Arg_T *Arg){
 
         k = (N_fft>>1) - 1;
         /* Pack first and last sample of the frequency domain together */
-        if (CoreId == 0){
+        if (CoreId == 0){         
                 // U1 = XA(1) + XB(1); % It is real
                 int t1a = (pB[0][0]) + (pA[0][0]);
          
@@ -1885,12 +1819,11 @@ if (CoreId==0){
 #endif
 }
 
-#ifdef __gap9__
 void RFFT_DIF_Par_f16(RFFT_Arg_T *Arg){
-        v2h *__restrict__ Data = (v2h * __restrict__) Arg->Data;
-        v2h *__restrict__ RFFT_Out = (v2h * __restrict__) Arg->RFFT_Out;
-        v2h *__restrict__ Twiddles = (v2h * __restrict__) Arg->Twiddles;
-        v2h *__restrict__ RTwiddles = (v2h * __restrict__) Arg->RTwiddles;
+        F16V_DSP *__restrict__ Data = (F16V_DSP * __restrict__) Arg->Data;
+        F16V_DSP *__restrict__ RFFT_Out = (F16V_DSP * __restrict__) Arg->RFFT_Out;
+        F16V_DSP *__restrict__ Twiddles = (F16V_DSP * __restrict__) Arg->Twiddles;
+        F16V_DSP *__restrict__ RTwiddles = (F16V_DSP * __restrict__) Arg->RTwiddles;
         short *__restrict__ SwapTable = (short int *__restrict__) Arg->SwapTable;
         unsigned int N_fft = Arg->N_fft;
 
@@ -1908,27 +1841,26 @@ void RFFT_DIF_Par_f16(RFFT_Arg_T *Arg){
         CoreId = gap_coreid();
 
         int  k;                                 /* Loop Counter */
-        f16 twR, twI;                         /* RFFT Twiddle coefficients */
-        v2h *pA = (v2h *) Data;               /* increasing pointer */
-        v2h *pB = (v2h *) Data;               /* decreasing pointer */
-        f16 xAR, xAI, xBR, xBI;               /* temporary variables */
-        v2h xA, xB, t1, t2, tw;
-        f16 t1a, t1b;                         /* temporary variables */
-        f16 p0, p1, p2, p3;                   /* temporary variables */
+        F16_DSP twR, twI;                         /* RFFT Twiddle coefficients */
+        F16V_DSP *pA = (F16V_DSP *) Data;               /* increasing pointer */
+        F16V_DSP *pB = (F16V_DSP *) Data;               /* decreasing pointer */
+        F16_DSP xAR, xAI, xBR, xBI;               /* temporary variables */
+        F16V_DSP xA, xB, t1, t2, tw;
+        F16_DSP t1a, t1b;                         /* temporary variables */
+        F16_DSP p0, p1, p2, p3;                   /* temporary variables */
 
         k = (N_fft>>1) - 1;
         /* Pack first and last sample of the frequency domain together */
         if (CoreId == 0){
-                // U1 = XA(1) + XB(1); % It is real
-                t1a = pB[0][0] + pA[0][0];
-         
-                // U2 = XB(1) - XA(1); % It is imaginary
-                t1b = pB[0][1] + pA[0][1];
+                xBR = pB[0][0];
+                xBI = pB[0][1];
+                xAR = pA[0][0];
+                xAI = pA[0][1];
          
                 // real(tw * (xB - xA)) = twR * (xBR - xAR) - twI * (xBI - xAI);
                 // imag(tw * (xB - xA)) = twI * (xBR - xAR) + twR * (xBI - xAI);
-                RFFT_Out[0][0] = 0.5f * ( t1a + t1b );
-                RFFT_Out[0][1] = 0.5f * ( t1a - t1b );
+                RFFT_Out[0][0] = 0.5f * ( xBR + xAR + xBI + xAI );
+                RFFT_Out[0][1] = 0.5f * ( xAI - xBI + xBR - xAR );
                 // XA(1) = 1/2*( U1 - imag(U2) +  i*( U1 +imag(U2) ));
         }
         gap_waitbarrier(0);
@@ -1960,10 +1892,19 @@ void RFFT_DIF_Par_f16(RFFT_Arg_T *Arg){
                 tw = RTwiddles[i];
                 /* t1 = {xBR - xAR, xBI + xAI} */
                 /* t1 = {xBR + xAR,-xBI + xAI} */
-                t2 = xB * (v2h) {1.0, -1.0};
+                t2 = xB * (F16V_DSP) {1.0, -1.0};
                 t1 = t2 - xA;
                 t2 = t2 + xA;
-                RFFT_Out[i] = (CplxMult_f16(tw, t1) + t2) * (v2h) {0.5f, 0.5f};
+                RFFT_Out[i] = (CplxMult_f16(tw, t1) + t2) * (F16V_DSP) {0.5f, 0.5f};
+        }
+        if (CoreId == 0){
+                xBR = pB[-(k-1)][0];
+                xBI = pB[-(k-1)][1];
+                xAR = pA[(k-1)][0];
+                xAI = pA[(k-1)][1];
+                RFFT_Out[k][0] = 0.5f * ( xBR + xAR - xBI - xAI );
+                // RFFT_Out[k][1] = 0.5f * ( xAI - xBI - xBR + xAR );
+                RFFT_Out[k][1] = 0.0f;
         }
         gap_waitbarrier(0);
 #ifdef PRINTDEB
@@ -1972,7 +1913,6 @@ if (CoreId==0){
 }
 #endif
 }
-#endif
 
 void RFFT_DIF_Par_f32(RFFT_Arg_T *Arg){
         float *__restrict__ Data = (float * __restrict__) Arg->Data;
@@ -2009,22 +1949,8 @@ void RFFT_DIF_Par_f32(RFFT_Arg_T *Arg){
                 xBI = pB[1];
                 xAR = pA[0];
                 xAI = pA[1];
-         
-                twR = *RTwiddles;
-                twI = *RTwiddles;
-         
-         
-                // U1 = XA(1) + XB(1); % It is real
-                t1a = xBR + xAR  ;
-         
-                // U2 = XB(1) - XA(1); % It is imaginary
-                t1b = xBI + xAI  ;
-         
-                // real(tw * (xB - xA)) = twR * (xBR - xAR) - twI * (xBI - xAI);
-                // imag(tw * (xB - xA)) = twI * (xBR - xAR) + twR * (xBI - xAI);
-                RFFT_Out[0] = 0.5f * ( t1a + t1b );
-                RFFT_Out[1] = 0.5f * ( t1a - t1b );
-                // XA(1) = 1/2*( U1 - imag(U2) +  i*( U1 +imag(U2) ));
+                RFFT_Out[0] = 0.5f * ( xBR + xAR + xBI + xAI );
+                RFFT_Out[1] = 0.5f * ( xAI - xBI + xBR - xAR );
         }
         gap_waitbarrier(0);
 
@@ -2045,7 +1971,7 @@ void RFFT_DIF_Par_f32(RFFT_Arg_T *Arg){
                     XB = conj(XA([1 end:-1:2]));
                     TW = i*exp(-2*pi*i*[0:L/2-1]/L).';
                     for l = 2:L/2
-                    XA(l) = 1/2 * (XA(l) + XB(l) + TW(l) * (XB(l) - XA(l)));
+                        XA(l) = 1/2 * (XA(l) + XB(l) + TW(l) * (XB(l) - XA(l)));
                     end
                     XA(1) = 1/2* (XA(1) + XB(1) + TW(1) * (XB(1) - XA(1))) + i*( 1/2*( XA(1) + XB(1) + i*( XA(1) - XB(1))));
                     X = XA;
@@ -2074,10 +2000,20 @@ void RFFT_DIF_Par_f32(RFFT_Arg_T *Arg){
                 RFFT_Out[2*i+1] = 0.5f * (xAI - xBI + p1 - p2 ); //xAI
                 // printf("%d %f %f\n", i, RFFT_Out[2*i] ,RFFT_Out[2*i+1] );
         }
+        if (CoreId == 0){
+                xBR = pB[-2*(k-1)];
+                xBI = pB[-2*(k-1)+1];
+                xAR = pA[2*(k-1)];
+                xAI = pA[2*(k-1)+1];
+                RFFT_Out[2*k]   = 0.5f * ( xBR + xAR - xBI - xAI );
+                RFFT_Out[2*k+1] = 0.0f;
+                // RFFT_Out[2*k+1] = 0.5f * ( xAI - xBI - xBR + xAR );
+        }
         gap_waitbarrier(0);
 #ifdef PRINTDEB
 if (CoreId==0){
-        printf("\nout_rfft = np.array([\n\t"); for (int j=0; j<((N_fft>>1)+1); j++) printf("%f%+fj, ",  RFFT_Out[2*(j-1)], RFFT_Out[2*(j-1)+1]); printf("])\n");
+        RFFT_Out -= 2;
+        printf("\nout_rfft = np.array([\n\t"); for (int j=0; j<((N_fft>>1)+1); j++) printf("%f%+fj, ",  RFFT_Out[2*(j)], RFFT_Out[2*(j)+1]); printf("])\n");
 }
 #endif
 }
@@ -2133,7 +2069,7 @@ void IRFFT_DIF_Par_Fix16(RFFT_Arg_T *Arg){
         RFFT_Out -= 1;
 #ifdef PRINTDEB
 if (CoreId==0){
-        printf("\nin_ifft = np.array([\n\t"); for (int j=0; j<(N_fft>>1); j++) printf("%d%+d, ",  RFFT_Out[j][0], RFFT_Out[j][1]); printf("])\n");
+        printf("\nin_ifft = np.array([\n\t"); for (int j=0; j<(N_fft>>1); j++) printf("%d%+dj, ",  RFFT_Out[j][0], RFFT_Out[j][1]); printf("])\n");
 }
 #endif
         FFT_Arg_T FFTArg = (FFT_Arg_T){RFFT_Out, Twiddles, N_fft>>1, 1};
@@ -2151,12 +2087,11 @@ if (CoreId==0){
 #endif
 }
 
-#ifdef __gap9__
 void IRFFT_DIF_Par_f16(RFFT_Arg_T *Arg){
-        v2h *__restrict__ Data = (v2h * __restrict__) Arg->Data;
-        v2h *__restrict__ RFFT_Out = (v2h * __restrict__) Arg->RFFT_Out;
-        v2h *__restrict__ Twiddles = (v2h * __restrict__) Arg->Twiddles;
-        v2h *__restrict__ RTwiddles = (v2h * __restrict__) Arg->RTwiddles;
+        F16V_DSP *__restrict__ Data = (F16V_DSP * __restrict__) Arg->Data;
+        F16V_DSP *__restrict__ RFFT_Out = (F16V_DSP * __restrict__) Arg->RFFT_Out;
+        F16V_DSP *__restrict__ Twiddles = (F16V_DSP * __restrict__) Arg->Twiddles;
+        F16V_DSP *__restrict__ RTwiddles = (F16V_DSP * __restrict__) Arg->RTwiddles;
         short *__restrict__ SwapTable = (short int *__restrict__) Arg->SwapTable;
         unsigned int N_fft = Arg->N_fft;
 
@@ -2164,13 +2099,13 @@ void IRFFT_DIF_Par_f16(RFFT_Arg_T *Arg){
         CoreId = gap_coreid();
 
         int  k;                                 /* Loop Counter */
-        f16 twR, twI;                         /* RFFT Twiddle coefficients */
-        v2h *pA = (v2h *) Data;               /* increasing pointer */
-        v2h *pB = (v2h *) Data;               /* decreasing pointer */
-        f16 xAR, xAI, xBR, xBI;               /* temporary variables */
-        v2h xA, xB, xBconj, t1, t2, tw;
-        f16 t1a, t1b;                         /* temporary variables */
-        f16 p0, p1, p2, p3;                   /* temporary variables */
+        F16_DSP twR, twI;                         /* RFFT Twiddle coefficients */
+        F16V_DSP *pA = (F16V_DSP *) Data;               /* increasing pointer */
+        F16V_DSP *pB = (F16V_DSP *) Data;               /* decreasing pointer */
+        F16_DSP xAR, xAI, xBR, xBI;               /* temporary variables */
+        F16V_DSP xA, xB, xBconj, t1, t2, tw;
+        F16_DSP t1a, t1b;                         /* temporary variables */
+        F16_DSP p0, p1, p2, p3;                   /* temporary variables */
 
         k = (N_fft>>1) - 1;
         if (CoreId == 0){
@@ -2195,14 +2130,14 @@ void IRFFT_DIF_Par_f16(RFFT_Arg_T *Arg){
                 xA =  pA[ i];
 
                 tw = RTwiddles[i];
-                xBconj = xB * (v2h) {1.0, -1.0};
+                xBconj = xB * (F16V_DSP) {1.0, -1.0};
                 t1 = xA - xBconj;
                 t2 = xA + xBconj;
 
                 // xA + xB* - {t1R*twR + twI*t1I, -t1R*twI + t1I*twR} = 
                 // {xAR + xBR - t1R*twR - twI*t1I = xAR + xBR - r - s,
                 //  xAI - xBI + t1R*twI - twR*t1I = xAI - xBI + t - u}
-                RFFT_Out[i] = (t2 - CplxMult_f16(tw*(v2h){1.0, -1.0}, t1)) * (v2h) {0.5f, 0.5f};
+                RFFT_Out[i] = (t2 - CplxMult_f16(tw*(F16V_DSP){1.0, -1.0}, t1)) * (F16V_DSP) {0.5f, 0.5f};
         }
         gap_waitbarrier(0);
         RFFT_Out -= 1;
@@ -2227,7 +2162,6 @@ if (CoreId==0){
 }
 #endif
 }
-#endif
 
 void IRFFT_DIF_Par_f32(RFFT_Arg_T *Arg){
         float *__restrict__ Data = (float * __restrict__) Arg->Data;
@@ -2345,11 +2279,10 @@ void SwapSamples_Par(SwapSamples_Arg_T *Arg)
         #endif
 }
 
-#ifdef __gap9__
 void SwapSamples_Par_f16(SwapSamples_Arg_T *Arg)
 
 {
-        v2h *__restrict__ Data = (v2h *) Arg->Data;
+        F16V_DSP *__restrict__ Data = (F16V_DSP *) Arg->Data;
         short *__restrict__ SwapTable = Arg->SwapTable;
         int Ni = Arg->Ni;
         int i;
@@ -2363,7 +2296,7 @@ void SwapSamples_Par_f16(SwapSamples_Arg_T *Arg)
         for (i = First; i < Last; i++) {
                 int SwapIndex = SwapTable[i];
                 if (i < SwapIndex) {
-                        v2h S = Data[i];
+                        F16V_DSP S = Data[i];
                         Data[i] = Data[SwapIndex]; Data[SwapIndex] = S;
                 }
         }
@@ -2375,7 +2308,6 @@ void SwapSamples_Par_f16(SwapSamples_Arg_T *Arg)
         }
         #endif
 }
-#endif
 
 void SwapSamples_Par_f32(SwapSamples_Arg_T *Arg)
 

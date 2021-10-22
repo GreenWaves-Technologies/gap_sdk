@@ -17,12 +17,12 @@ import logging
 from copy import deepcopy
 
 from ..dim import Dim
-from .base import SingleInputAndOutput, Transposable, cls_op_name
+from .base import Parameters, SensitiveToOrder, SingleInputAndOutput, cls_op_name
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-class GlobalPoolingParameters(Transposable, SingleInputAndOutput):
+class GlobalPoolingParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
     POOL_TYPE = None
 
     def __new__(cls, *args, pool_type="max", axis=None, keep_dims=None, **kwargs):
@@ -75,16 +75,12 @@ class GlobalPoolingParameters(Transposable, SingleInputAndOutput):
 
     def get_output_size(self, in_dims):
         out_dim = in_dims[0].clone()
-        if self.transpose_in:
-            out_dim.transpose(self.transpose_in[0])
 
         if self.keep_dims:
             names = out_dim.keys if out_dim.is_named else None
             out_dim = Dim(shape=[1 if idx in self._axis else dim
                                  for idx, dim in enumerate(out_dim.shape)],
                           names=names, is_ordered=True)
-            if self.transpose_out:
-                out_dim.transpose(self.transpose_out[0])
         else:
             out_dim = Dim(shape=[dim for idx, dim in enumerate(out_dim.shape)
                                  if idx not in self._axis],
@@ -103,11 +99,10 @@ class GlobalPoolingParameters(Transposable, SingleInputAndOutput):
             return self.out_dims[0].size() + 1
 
     def __str__(self):
-        return "{} A {}{} {} {}".format(
+        return "{} A {}{} {}".format(
             self.pool_type,
             self._axis,
             " keep_dims " if self._keep_dims else "",
-            Transposable.__str__(self),
             self.at_options
         )
 

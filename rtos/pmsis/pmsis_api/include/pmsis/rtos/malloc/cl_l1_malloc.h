@@ -19,6 +19,12 @@
 
 #include "pmsis/rtos/malloc/malloc_internal.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+
 /**
  * @addtogroup MemAlloc
  * @{
@@ -123,4 +129,8 @@ malloc_t pi_cl_l1_malloc_struct_get(void);
  * @} MemAlloc
  */
 
+
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_RTOS_MALLOC_CL_L1_MALLOC_H__ */

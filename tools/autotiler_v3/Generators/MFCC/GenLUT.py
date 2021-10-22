@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import json
 import numpy as np
 import sys
@@ -151,7 +150,7 @@ def main():
 			Out_str += "\n\t"
 	Out_str += "\n}; \n"
 
-	# FFT 
+	# FFT
 	Out_str += "PI_L2 {} TwiddlesLUT[{}] = {{\n".format(data_type, 2*len(Twiddles_cos))
 	for i in range(len(Twiddles_cos)):
 		Out_str += "\t {}, {}, \n".format(Twiddles_cos[i], Twiddles_sin[i])
@@ -218,7 +217,7 @@ def main():
 			Out_str += "\t{{{:>4},{:>4},{:>4}}},\n".format(Start, Items, Base)
 			HeadCoeff += Items
 		Out_str += "};\n\n"
-		    
+
 		Out_str += "PI_L2 {} MFCC_Coeffs[{}] = {{\n\t".format(data_type, HeadCoeff+1)
 		for i, coeff in enumerate(MFCC_Coeff):
 			Out_str += "{:>5}".format(str(coeff)) + ", "
@@ -251,7 +250,7 @@ def main():
 				f.write("#define\t{:21}{:>10}\n".format("OUTPUT_MELSPECTROGRAM", 1 if out_melspectr else 0))
 				f.write("#define\t{:21}{:>10}\n".format("LIFTER_COEFF", lifter_coeff))
 				f.write("#define\t{:21}{:>10}\n".format("USE_DB", 1 if use_db else 0))
-			
+
 
 if __name__ == "__main__":
 	main()

@@ -17,8 +17,15 @@
 #ifndef __PMSIS_TIME_H__
 #define __PMSIS_TIME_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void pi_time_wait_us(int time_us);
 
 unsigned long long pi_time_get_us();
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_TIME_H__ */

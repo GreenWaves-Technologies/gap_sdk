@@ -19,6 +19,11 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /**
  * \ingroup groupDrivers
  *
@@ -147,4 +152,7 @@ void pi_pad_sleepcfg_set(uint32_t sleepcfg[], uint8_t sleep_ena);
  * \} end of Padframe
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_DRIVERS_PAD_H__ */
