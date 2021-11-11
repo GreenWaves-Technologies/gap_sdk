@@ -38,8 +38,9 @@ class InputSymmetric(KernelBase):
                 expected_shape = tuple(
                     dim for dim in params.dims.shape if dim > 1)
                 if in_shape != expected_shape:
-                    raise ValueError(
-                        f'{params.name} received input of shape {in_tensor.shape} but expecting {params.dims.shape}')
+                    in_tensor = np.transpose(in_tensor, (2,0,1)) #input rgb (h,w,c)=>(c,h,w)
+                    # raise ValueError(
+                    #     f'{params.name} received input of shape {in_tensor.shape} but expecting {params.dims.shape}')
             in_tensor = in_tensor.reshape(params.dims.shape)
         else:
             in_tensor = resize(in_tensor, params.dims.shape)
