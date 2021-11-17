@@ -23,7 +23,7 @@ from .pad_mixin import PadMixin
 
 @tflite_op("PADV2")
 class PadV2(PadMixin, BackendHandler):
-
+# xinglong debug use pad.py code here. can compile uint8 yolov3 tflite
     @classmethod
     def _common(cls, node: TFLiteNode, **kwargs):
 
@@ -31,9 +31,7 @@ class PadV2(PadMixin, BackendHandler):
         inputs = [all_nodes[t] for t in node.input]
         pads = list(cls._verify_constant(inputs[1]))
         node.input[1].used = True
-        pad_vals = list((v, v) for v in cls._verify_constant(inputs[2]))
-        node.input[2].used = True
-        return super(PadV2, cls)._common(node, pads=pads, pad_vals=pad_vals, **kwargs)
+        return super(PadV2, cls)._common(node, pads=pads, **kwargs)
 
     @classmethod
     def version_1(cls, node: TFLiteNode, **kwargs):
