@@ -253,8 +253,11 @@ void LoadCNNLibrary_fp16()
         LibKernel("KerParReLU_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerActivation_fp16_T",			CNN_Match(CNN_OperList(1, KOP_RELU), 0, -1, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
         LibKernel("KerParReLUN_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerActivation_fp16_T",			CNN_Match(CNN_OperList(1, KOP_RELUN), 0, -1, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
         LibKernel("KerParSwish_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerActivation_fp16_T",			CNN_Match(CNN_OperList(1, KOP_SWISH), 0, -1, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
+        LibKernel("KerParHSwish_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerActivation_fp16_T",                 CNN_Match(CNN_OperList(1, KOP_HSWISH), 0, -1, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
         LibKernel("KerParSigmoid_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerActivation_fp16_T",		CNN_Match(CNN_OperList(1, KOP_SIGMOID), 0, -1, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
+        LibKernel("KerParHSigmoid_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerActivation_fp16_T",               CNN_Match(CNN_OperList(1, KOP_HSIGMOID), 0, -1, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
         LibKernel("KerParTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerActivation_fp16_T",                   CNN_Match(CNN_OperList(1, KOP_TANH), 0, -1, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
+        LibKernel("KerParHTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerActivation_fp16_T",                  CNN_Match(CNN_OperList(1, KOP_HTANH), 0, -1, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
         LibKernel("KerParLeakyReLU_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerActivation_fp16_T",		CNN_Match(CNN_OperList(1, KOP_LEAKYRELU), 0, -1, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
 
 	/* Linear layer followed by an optional activation, don't use when partial evaluation of the output is needed */
@@ -266,9 +269,15 @@ void LoadCNNLibrary_fp16()
 													  		CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
 	LibKernel("KerParLinearLayerSwish_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerLinear_fp16_T", 		CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_SWISH), 1,
 													  		CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
+        LibKernel("KerParLinearLayerHSwish_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerLinear_fp16_T",          CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_HSWISH), 1,
+                                                                                                                        CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
 	LibKernel("KerParLinearLayerSigmoid_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerLinear_fp16_T", 	CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_SIGMOID), 1,
 													  		CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
+        LibKernel("KerParLinearLayerHSigmoid_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerLinear_fp16_T",        CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_HSIGMOID), 1,
+                                                                                                                        CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
         LibKernel("KerParLinearLayerTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerLinear_fp16_T",            CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_TANH), 1,
+                                                                                                                        CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
+        LibKernel("KerParLinearLayerHTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerLinear_fp16_T",           CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_HTANH), 1,
                                                                                                                         CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
 	LibKernel("KerParLinearLayerLeakyReLU_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerLinear_fp16_T", 	CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_LEAKYRELU), 1,
 													  		CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
@@ -284,12 +293,24 @@ void LoadCNNLibrary_fp16()
 	/* Matrix multiplication */
 	LibKernel("KerParMatMul_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",			CNN_Match(CNN_OperList(1, KOP_MATMUL), 0,
 													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulNoBias_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), 0,
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposed_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_TRANSPOSED), 0,
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedNoBias_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_TRANSPOSED), 0,
+													  		1, CNN_Type(2,2,0,0,2), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulSxSy_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",			CNN_Match(CNN_OperList(1, KOP_MATMUL), 0,
 													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulSmallFeat_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), 0, 1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
 
 	/* Matrix multiplication with ReLU reduction */
 	LibKernel("KerParMatMulReLU_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",			CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELU),
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulNoBiasReLU_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_RELU),
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedReLU_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_TRANSPOSED), CNN_OperList(1, KOP_RELU),
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedNoBiasReLU_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(1, KOP_RELU),
 													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulReLUSxSy_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELU),
 													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
@@ -299,21 +320,39 @@ void LoadCNNLibrary_fp16()
 	/* Matrix multiplication with ReLUN reduction */
 	LibKernel("KerParMatMulReLUN_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN),
 													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulNoBiasReLUN_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_RELUN),
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedReLUN_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_TRANSPOSED), CNN_OperList(1, KOP_RELUN),
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedNoBiasReLUN_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(1, KOP_RELUN),
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulReLUNSxSy_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN),
 													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulSmallFeatReLUN_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_RELUN),
 													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
 
-	/* Matrix multiplication with H Swish reduction */
+	/* Matrix multiplication with Swish reduction */
 	LibKernel("KerParMatMulSwish_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_SWISH),
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulNoBiasSwish_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_SWISH),
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedSwish_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_TRANSPOSED), CNN_OperList(1, KOP_SWISH),
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedNoBiasSwish_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(1, KOP_SWISH),
 													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulSwishSxSy_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_SWISH),
 													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulSmallFeatSwish_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_SWISH),
 													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
 
-	/* Matrix multiplication with H Sigmoid reduction */
+	/* Matrix multiplication with Sigmoid reduction */
 	LibKernel("KerParMatMulSigmoid_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_SIGMOID),
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulNoBiasSigmoid_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_SIGMOID),
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedSigmoid_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_TRANSPOSED), CNN_OperList(1, KOP_SIGMOID),
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedNoBiasSigmoid_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(1, KOP_SIGMOID),
 													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulSigmoidSxSy_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_SIGMOID),
 													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
@@ -321,15 +360,69 @@ void LoadCNNLibrary_fp16()
 													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
 
         /* Matrix multiplication with Tanh reduction */
-        LibKernel("KerParMatMulTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",              CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_TANH),
+        LibKernel("KerParMatMulTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",                 CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_TANH),
                                                                                                                         1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
-        LibKernel("KerParMatMulTanhSxSy_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",          CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_TANH),
+        LibKernel("KerParMatMulNoBiasTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",           CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_TANH),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+        LibKernel("KerParMatMulTransposedTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",       CNN_Match(CNN_OperList(1, KOP_MATMUL_TRANSPOSED), CNN_OperList(1, KOP_TANH),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+        LibKernel("KerParMatMulTransposedNoBiasTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T", CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(1, KOP_TANH),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+        LibKernel("KerParMatMulTanhSxSy_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",             CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_TANH),
                                                                                                                         1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
-        LibKernel("KerParMatMulSmallFeatTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",     CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_TANH),
+        LibKernel("KerParMatMulSmallFeatTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",        CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_TANH),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+
+        /* Matrix multiplication with H Swish reduction */
+        LibKernel("KerParMatMulHSwish_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",               CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HSWISH),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+        LibKernel("KerParMatMulNoBiasHSwish_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",         CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_HSWISH),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+        LibKernel("KerParMatMulTransposedHSwish_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",     CNN_Match(CNN_OperList(1, KOP_MATMUL_TRANSPOSED), CNN_OperList(1, KOP_HSWISH),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+        LibKernel("KerParMatMulTransposedNoBiasHSwish_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(1, KOP_HSWISH),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+        LibKernel("KerParMatMulHSwishSxSy_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",           CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HSWISH),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
+        LibKernel("KerParMatMulSmallFeatHSwish_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",      CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_HSWISH),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+
+        /* Matrix multiplication with H Sigmoid reduction */
+        LibKernel("KerParMatMulHSigmoid_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",             CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HSIGMOID),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+        LibKernel("KerParMatMulNoBiasHSigmoid_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",       CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_HSIGMOID),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+        LibKernel("KerParMatMulTransposedHSigmoid_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",   CNN_Match(CNN_OperList(1, KOP_MATMUL_TRANSPOSED), CNN_OperList(1, KOP_HSIGMOID),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+        LibKernel("KerParMatMulTransposedNoBiasHSigmoid_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(1, KOP_HSIGMOID),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+        LibKernel("KerParMatMulHSigmoidSxSy_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",         CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HSIGMOID),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
+        LibKernel("KerParMatMulSmallFeatHSigmoid_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",    CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_HSIGMOID),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+
+        /* Matrix multiplication with H Tanh reduction */
+        LibKernel("KerParMatMulHTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",              	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HTANH),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+        LibKernel("KerParMatMulNoBiasHTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",          CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_HTANH),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+        LibKernel("KerParMatMulTransposedHTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",      CNN_Match(CNN_OperList(1, KOP_MATMUL_TRANSPOSED), CNN_OperList(1, KOP_HTANH),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+        LibKernel("KerParMatMulTransposedNoBiasHTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(1, KOP_HTANH),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+        LibKernel("KerParMatMulHTanhSxSy_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",          	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HTANH),
+                                                                                                                        1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
+        LibKernel("KerParMatMulSmallFeatHTanh_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",     	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_HTANH),
                                                                                                                         1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
 
 	/* Matrix multiplication with Leaky ReLU reduction */
 	LibKernel("KerParMatMulLeakyrelu_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_LEAKYRELU),
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulNoBiasLeakyrelu_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_LEAKYRELU),
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedLeakyrelu_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_TRANSPOSED), CNN_OperList(1, KOP_LEAKYRELU),
+													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedNoBiasLeakyrelu_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(1, KOP_LEAKYRELU),
 													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulLeakyreluSxSy_fp16", CALL_PARALLEL|CALL_FLOAT_KER, 0, "KerMatMul_fp16_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_LEAKYRELU),
 													  		1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
@@ -543,8 +636,8 @@ int CNN_MM_ConvolutionPoolAct_fp16(
 	}
 
 	int ParFeat = 1, HWC = 0, ParFeatConv = 2;
-        float UB = 6.0;
-	Tile_Orientation_T TileOrientation = TILE_HOR;
+        float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
+	Tile_Orientation_T TileOrientation = Height>1?TILE_HOR:TILE_VER;
 	AT_PadType PadType = PAD_BALANCED_LEFT;
 	if (PoolOper==KOP_NONE) {
 		Fpx=1; Dpx=1; Spx=1; Fpy=1; Dpy=1; Spy=1;
@@ -579,8 +672,8 @@ int CNN_MM_ConvolutionPoolAct_fp16(
 		GenTilingError("CNN_MM_ConvolutionPoolAct_fp16 Kernel: %s, ConvOper, expecting KOP_CONV", Name);
 	if (!(PoolOper == KOP_NONE || PoolOper == KOP_MAXPOOL || PoolOper == KOP_AVGPOOL))
 		GenTilingError("CNN_MM_ConvolutionPoolAct_fp16 Kernel: %s, PoolOper, expecting KOP_NONE, KOP_MAXPOOL or KOP_AVGPOOL", Name);
-	if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_LEAKYRELU))
-		GenTilingError("CNN_MM_ConvolutionPoolAct_fp16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH or KOP_LEAKYRELU", Name);
+	if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+		GenTilingError("CNN_MM_ConvolutionPoolAct_fp16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
 
 	CNN_LayerOutputDim(Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad,
 			   &Wc, &Hc, &Wo, &Ho, &PadCw, &PadCh, &PadPw, &PadPh);
@@ -608,6 +701,7 @@ int CNN_MM_ConvolutionPoolAct_fp16(
 
 	int BuffS = ALIGN(InFeat*Fcx*Fcy, 2);
 	if (HWC) {
+		//if (Fcx==1&&Fcy==1&&Scx==1&&Scy==1) return CNN_MatMulAct_fp16(Name, 0, InFeat, Width*Height, OutFeat, InFeat, 0, 0, 1, 1, KOP_MATMUL_TRANSPOSED, ActOper); 
 		if (Fcx==1&&Fcy==1) BuffS = 1;
 		else if (ParFeatConv) BuffS = ALIGN(InFeat*Fcx*Fcy, 2);
 		else BuffS = 2 * InFeat*Fcx*Fcy*8;
@@ -671,7 +765,7 @@ int CNN_MM_ConvolutionPoolAct_fp16(
 		TileFirst?
 		KernelIterSpace(3, IterTiledSpace(T0), IterParSpace(D1, OutFeat, OutTileCons), IterParSpace(D0|SPACE_PROP_ONE_TILE, InFeat, InFeat)):
 		KernelIterSpace(3, IterParSpace(D1, OutFeat, OutTileCons), IterTiledSpace(T0), IterParSpace(D0|SPACE_PROP_ONE_TILE, InFeat, InFeat)),
-                TILE_HOR,
+                TileOrientation,
                 CArgs(4,
                       TCArg(CNN_ArgDataTypeF(2,1,1), "In"),
                       TCArg(CNN_ArgDataTypeF(2,1,1), "Filter"),
@@ -832,7 +926,7 @@ int CNN_HWC_DWConvolutionPoolAct_fp16(
 	}
 
 	int ParFeat = 1, HWC = 1;
-        float UB = 6.0;
+        float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
 	Tile_Orientation_T TileOrientation = TILE_HOR;
 	AT_PadType PadType = PAD_BALANCED_LEFT;
 	if (PoolOper==KOP_NONE) {
@@ -862,8 +956,8 @@ int CNN_HWC_DWConvolutionPoolAct_fp16(
 		GenTilingError("CNN_HWC_DWConvolutionPoolAct_fp16: %s, ConvOper, expecting KOP_CONV", Name);
 	if (!(PoolOper == KOP_NONE || PoolOper == KOP_MAXPOOL || PoolOper == KOP_AVGPOOL))
 		GenTilingError("CNN_HWC_DWConvolutionPoolAct_fp16: %s, PoolOper, expecting KOP_NONE, KOP_MAXPOOL or KOP_AVGPOOL", Name);
-	if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_LEAKYRELU))
-		GenTilingError("CNN_HWC_DWConvolutionPoolAct_fp16: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH or KOP_LEAKYRELU", Name);
+	if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+		GenTilingError("CNN_HWC_DWConvolutionPoolAct_fp16: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
         if (InFeat != OutFeat) GenTilingError("CNN_HWC_DWConvolutionPoolAct_fp16: %s, Depth wise convolution requested with InFeat:%d != OutFeat:%d", Name, InFeat, OutFeat);
 
 	CNN_LayerOutputDim(Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad,
@@ -1136,7 +1230,7 @@ int CNN_ConvolutionPoolAct_fp16(
 {
         int Log=1;
         int ParFeat = 1, HWC = 0;
-        float UB = 6.0;
+        float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
         Tile_Orientation_T TileOrientation = TILE_HOR;
         AT_PadType PadType = PAD_BALANCED_LEFT;
 
@@ -1181,7 +1275,7 @@ int CNN_ConvolutionPoolAct_fp16(
                                                         PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
                 AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
                 if (Ok) return Ok;
-                if (Log) printf("Mapping this convolution to imm2col scheme, reverting to standard implementation\n");
+                if (Log) printf("Mapping this convolution to im2col scheme failed, reverting to standard implementation\n");
         }
 
 
@@ -1208,8 +1302,8 @@ int CNN_ConvolutionPoolAct_fp16(
                 GenTilingError("CNN_ConvolutionPoolAct_fp16 Kernel: %s, ConvOper, expecting KOP_NONE, KOP_CONV or KOP_CONV_DW", Name);
         if (!(PoolOper == KOP_NONE || PoolOper == KOP_MAXPOOL || PoolOper == KOP_AVGPOOL))
                 GenTilingError("CNN_ConvolutionPoolAct_fp16 Kernel: %s, PoolOper, expecting KOP_NONE, KOP_MAXPOOL or KOP_AVGPOOL", Name);
-        if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_LEAKYRELU))
-                GenTilingError("CNN_ConvolutionPoolAct_fp16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH or KOP_LEAKYRELU", Name);
+        if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+                GenTilingError("CNN_ConvolutionPoolAct_fp16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
 
         if (DWConv && (InFeat != OutFeat)) GenTilingError("CNN_ConvolutionPoolAct_fp16 Kernel: %s, Depth wise convolution requested with InFeat:%d != OutFeat:%d", Name, InFeat, OutFeat);
 
@@ -1514,8 +1608,8 @@ int CNN_GroupedConvolutionPoolAct_fp16(
                 GenTilingError("CNN_GroupedConvolutionPoolAct_fp16: Kernel: %s, ConvOper, expecting KOP_NONE, KOP_CONV or KOP_CONV_DW", Name);
         if (!(PoolOper == KOP_NONE || PoolOper == KOP_MAXPOOL || PoolOper == KOP_AVGPOOL))
                 GenTilingError("CNN_GroupedConvolutionPoolAct_fp16: Kernel: %s, PoolOper, expecting KOP_NONE, KOP_MAXPOOL or KOP_AVGPOOL", Name);
-        if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_LEAKYRELU))
-                GenTilingError("CNN_GroupedConvolutionPoolAct_fp16: Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH or KOP_LEAKYRELU", Name);
+        if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+                GenTilingError("CNN_GroupedConvolutionPoolAct_fp16: Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
 
 	CNN_LayerOutputDim(Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad,
 		   		  PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad,
@@ -1625,7 +1719,7 @@ int CNN_PoolAct_fp16(
 
         Tile_Orientation_T TileOrientation = TILE_HOR;
         int ParFeat = 1, HWC = 0;
-        float UB = 6.0;
+        float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
         AT_PadType PadType = PAD_BALANCED_LEFT;
         if (Ctrl) {
                 if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
@@ -1650,8 +1744,8 @@ int CNN_PoolAct_fp16(
 
         if (!(PoolOper == KOP_MAXPOOL || PoolOper == KOP_AVGPOOL))
                 GenTilingError("CNN_Pool_fp16 Kernel: %s, PoolOper, expecting KOP_MAXPOOL or KOP_AVGPOOL", Name);
-        if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_LEAKYRELU))
-                GenTilingError("CNN_Pool_fp16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH or KOP_LEAKYRELU", Name);
+        if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+                GenTilingError("CNN_Pool_fp16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
 
         /* Set Kernel characteristics */
         CNN_LayerOutputDim(Width, Height, KOP_NONE, 1, 1, 1, 1, 1, 1, 1, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, 0, 0, &Wo, &Ho, 0, 0, &PadPw, &PadPh);
@@ -1827,7 +1921,7 @@ int CNN_GlobalPoolAct_fp16(
 	int F = O_FLOAT;
 	int Wo, Ho;
 	char *PoolKerName=0, *ActKerName=0;
-	float UB = 6.0;
+	float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
 	KernelOper_T KernelOper = CNN_CompositeKernel(PoolOper, KOP_NONE, KOP_NONE);
 	int StandAloneAct = (ActOper!=0);
 	unsigned long long int LayerOp = 0;
@@ -1848,8 +1942,8 @@ int CNN_GlobalPoolAct_fp16(
         else if (StandAloneAct) PoolKerName = CNN_FindMatchingKernelAttr(PoolOper, KOP_NONE, ParFeat, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         if (PoolKerName==0) GenTilingError("CNN_GlobalPoolAct_fp16 Kernel: %s, Can't find a matching Pooling basic kernel", Name);
 
-        if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_LEAKYRELU))
-                GenTilingError("CNN_GlobalPoolAct_fp16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH or KOP_LEAKYRELU", Name);
+        if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+                GenTilingError("CNN_GlobalPoolAct_fp16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
         if (StandAloneAct) {
                 ActKerName = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
                 if (ActKerName==0) GenTilingError("CNN_GlobalPoolAct_fp16 Kernel: %s, Can't find a matching Activation basic kernel", Name);
@@ -1961,7 +2055,7 @@ int CNN_Act_fp16(
 {
         Tile_Orientation_T TileOrientation = TILE_HOR;
         int ParFeat = 1;
-        float UB = 6.0;
+        float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
         if (Ctrl) {
                 if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
                 if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
@@ -1975,8 +2069,8 @@ int CNN_Act_fp16(
         int StandAloneAct = (ActOper!=KOP_NONE);
         int Log=1;
 
-        if (!(ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_LEAKYRELU))
-                GenTilingError("CNN_Act_fp16 Kernel: %s, ActOper, expecting KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH or KOP_LEAKYRELU", Name);
+        if (!(ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+                GenTilingError("CNN_Act_fp16 Kernel: %s, ActOper, expecting KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
 
         ActKerName = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
         if (ActKerName==0) GenTilingError("CNN_Act_fp16 Kernel: %s, Can't find a matching Activation basic kernel", Name);
@@ -2077,7 +2171,7 @@ int CNN_LinearAct_fp16(
 	int Iter;
 	Tile_Orientation_T TileOrientation = TILE_HOR;
 	int ParFeat = 1;
-	float UB = 6.0;
+	float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
 	if (Ctrl) {
 		if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
 		if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
@@ -2474,7 +2568,7 @@ int CNN_MatAddAct_fp16(
 	int F = O_FLOAT;
 	unsigned long long int LayerOp = 0;
 	unsigned long long int LayerBandwidth = 0;
-	float UB = 6.0;
+	float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
 	KernelOper_T KernelOper = CNN_CompositeKernel(AddMatOper, ActOper, KOP_NONE);
 
 	char *MatAddKerName = CNN_FindMatchingKernelAttr(AddMatOper, ActOper, ParFeat, CALL_FLOAT_KER, 2, 2, 0, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
@@ -2732,20 +2826,25 @@ int CNN_MatMulAct_fp16(
 	unsigned long long int LayerOp = 0;
 	unsigned long long int LayerBandwidth = 0;
         int LineO = LineM1, ColO = ColM2;
-	float UB = 6.0;
+	float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
 	int ConsT0 = Scx;
 	int Nbuff;
+	int NoBias = (MatMulOper == KOP_MATMUL_NOBIAS || MatMulOper == KOP_MATMUL_NOBIAS_TRANSPOSED);
+        int SAxis = (MatMulOper == KOP_MATMUL)?LineO:ColO;
+	int Transposed = (MatMulOper == KOP_MATMUL_TRANSPOSED);
+        int TA = (MatMulOper == KOP_MATMUL)?T0:T1;
+        int TB = (MatMulOper == KOP_MATMUL)?T1:T0;
 
 	if (Ctrl) {
 		if (Ctrl->ReluN != -1) UB = Ctrl->ReluN;
 	}
-	if (!(MatMulOper == KOP_MATMUL)) GenTilingError("CNN_MatMulAct_fp16 Kernel: %s, MatMulOper should be KOP_MATMUL", Name);
+	if (!(MatMulOper == KOP_MATMUL) && !(MatMulOper == KOP_MATMUL_TRANSPOSED) && !(MatMulOper == KOP_MATMUL_NOBIAS) && !(MatMulOper == KOP_MATMUL_NOBIAS_TRANSPOSED)) GenTilingError("CNN_MatMulAct_fp16 Kernel: %s, MatMulOper should be KOP_MATMUL or KOP_MATMUL_TRANSPOSED or KOP_MATMUL_NOBIAS or KOP_MATMUL_NOBIAS_TRANSPOSED", Name);
 
-	if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SWISH || ActOper == KOP_SIGMOID || ActOper == KOP_LEAKYRELU))
-		GenTilingError("CNN_MatMulAct_fp16 Kernel: %s, ActOper should be KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SWISH, KOP_SIGMOID or KOP_LEAKYRELU", Name);
+	if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+		GenTilingError("CNN_MatMulAct_fp16 Kernel: %s, ActOper should be KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
 
 	KernelOper_T KernelOper = CNN_CompositeKernel(MatMulOper, ActOper, KOP_NONE);
-	if (ColM1 != LineM2) GenTilingError("CNN_MatMulAct_fp16: %s, Incorrect input matrices dimensions for a matrix multiplication: [%d x %d]*[%d x %d] %s", Name, LineM1, ColM1, LineM2, ColM2);
+	if (ColM1 != LineM2) GenTilingError("CNN_MatMulAct_fp16: %s, Incorrect input matrices dimensions for a matrix multiplication: [%d x %d]*[%d x %d]", Name, LineM1, ColM1, LineM2, ColM2);
 	if (Width==0||Height==0) {
 		Width = ColM2; Height=1; Scx = 1; Scy = 1;
 	}
@@ -2762,7 +2861,7 @@ int CNN_MatMulAct_fp16(
 
 	int ColFirst = ((LineM1*ColM1)<(LineM2*ColM2));
 
-	Nbuff = 1;
+	Nbuff = 4;
 
 	ColO = ((Width+Scx-1)/Scx) * ((Height+Scy-1)/Scy);
 	LayerOp += ColM1*ColO*LineM1;
@@ -2783,6 +2882,10 @@ int CNN_MatMulAct_fp16(
 		// printf("Nb Oper : %lld\n", LayerOp);
 	}
 
+	int ObjCons = !Transposed?OBJ_CONSTRAINTS_TILE_VER:0;
+	if (Transposed) {
+		LineM2 = ColM2; ColM2 = ColM1;
+	}
         UserSymbols(1, US_Float("UB", UB));
 	Kernel_T *Kernel = UserKernel(Name,
 		KernelIterSpace(2, IterTiledSpace(T1), IterTiledSpace(T0)),
@@ -2790,18 +2893,18 @@ int CNN_MatMulAct_fp16(
                 CArgs(4,
                       TCArg(CNN_ArgDataTypeF(2,1,1),  "In2"),
                       TCArg(CNN_ArgDataTypeF(2,1,1),  "In1"),
-                      TCArg(CNN_ArgDataTypeF(2,1,1), "Bias"),
+                      !NoBias?TCArg(CNN_ArgDataTypeF(2,1,1), "Bias"):AT_NO_C_ARG,
                       TCArg(CNN_ArgDataTypeF(2,1,1),  "Out")
                 ),
 		Calls(2,
 			Call(MatMulKerName, LOC_LOOP,
 				Bindings(16,
 					K_Arg("In1",  KER_ARG_TILE), K_Arg("In1",  KER_ARG_TILE_W), K_Arg("In1",  KER_ARG_TILE_H),
-					K_Arg("In2",  KER_ARG_TILE), K_Arg("In2",  KER_ARG_TILE_W),
-					K_Arg("Bias", KER_ARG_TILE),
+					K_Arg("In2",  KER_ARG_TILE), Transposed?K_Arg("In2",  KER_ARG_TILE_H):K_Arg("In2",  KER_ARG_TILE_W),
+					!NoBias?K_Arg("Bias", KER_ARG_TILE):AT_IGNORE_ARG_BINDING,
 					K_Arg("Out",  KER_ARG_TILE),  K_Arg("Out", KER_ARG_TILE_W),
 					K_Arg(ColFirst?"In1":"In2",  KER_ARG_TILE_BASE),
-					K_Arg("KerBuff", KER_ARG_TILE),
+					!Transposed?K_Arg("KerBuff", KER_ARG_TILE):AT_IGNORE_ARG_BINDING,
 					Imm(ColFirst),
 					NeedScx?Imm(Scx):AT_IGNORE_ARG_BINDING,
 					NeedScy?Imm(Scy):AT_IGNORE_ARG_BINDING,
@@ -2815,7 +2918,7 @@ int CNN_MatMulAct_fp16(
                              	Bindings(6,
                                		K_Arg("Out", KER_ARG_TILE),                    	/* Input tile */
                                       	K_Arg("Out", KER_ARG_TILE),                    	/* Output tile */
-                                       	K_Arg("Bias", KER_ARG_TILE_H),                 	/* Number of features */
+                                       	K_Arg("Out", KER_ARG_TILE_H),                 	/* Number of features */
                                        	K_Arg("Out", KER_ARG_TILE_W),                  	/* Tile width */
 					Imm(1),						/* Tile height */
 					BindKExpr("UB")					/* Activation upper bound, if ReLUN */
@@ -2824,17 +2927,17 @@ int CNN_MatMulAct_fp16(
 		),
 		ColFirst?
 		KerArgs(5,
-			KerArg("KerBuff",KerArgSpace(1, T1), F|O_BUFF|O_NTILED,    Nbuff*ColM1,1,  2,  0, 0,                                                0, 0),
+	    !Transposed?KerArg("KerBuff",KerArgSpace(1, T1), F|O_BUFF|O_NTILED,    Nbuff*ColM1,1,  2,  0, 0,                                                0, 0):AT_NO_KER_ARG,
 			KerArg("In1",    KerArgSpace(1, T0), F|O_IN|O_DB|O_CONST,  ColM1,  LineM1, 2,  0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
-			KerArg("In2",    KerArgSpace(1, T1), F|O_IN|O_DB,          ColM2,  LineM2, 2,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
-			KerArg("Bias",   KerArgSpace(1, T0), F|O_IN|O_DB|O_CONST,      1,  LineO,  2,  0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"),
+			KerArg("In2",    KerArgSpace(1, T1), F|O_IN|O_DB,          ColM2,  LineM2, 2,  0, ObjCons|OBJ_CONSTRAINTS_PAD_REM,		    ConsT0, "In2"),
+		!NoBias?KerArg("Bias",   KerArgSpace(1, TA), F|O_IN|O_DB|O_CONST,      1,  SAxis,  2,  0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
 			KerArg("Out",    KerArgSpace(1, T1), F|O_OUT|O_DB,          ColO,  LineO,  2,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, 0, "Out")
 		):
 		KerArgs(5,
-			KerArg("KerBuff",KerArgSpace(1, T0), F|O_BUFF|O_NTILED,    Nbuff*ColM1,1,  2,  0, 0,                                                0, 0),
+	    !Transposed?KerArg("KerBuff",KerArgSpace(1, T0), F|O_BUFF|O_NTILED,    Nbuff*ColM1,1,  2,  0, 0,                                                0, 0):AT_NO_KER_ARG,
 			KerArg("In1",    KerArgSpace(1, T1), F|O_IN|O_DB|O_CONST,  ColM1,  LineM1, 2,  0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
-			KerArg("In2",    KerArgSpace(1, T0), F|O_IN|O_DB,          ColM2,  LineM2, 2,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
-			KerArg("Bias",   KerArgSpace(1, T1), F|O_IN|O_DB|O_CONST,      1,  LineO,  2,  0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"),
+			KerArg("In2",    KerArgSpace(1, T0), F|O_IN|O_DB,          ColM2,  LineM2, 2,  0, ObjCons|OBJ_CONSTRAINTS_PAD_REM, 	            ConsT0, "In2"),
+		!NoBias?KerArg("Bias",   KerArgSpace(1, TB), F|O_IN|O_DB|O_CONST,      1,  SAxis,  2,  0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
 			KerArg("Out",    KerArgSpace(1, T1), F|O_OUT|O_DB,          ColO,  LineO,  2,  0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Out")
 		)
 	);
@@ -2844,7 +2947,7 @@ int CNN_MatMulAct_fp16(
 
 		AddKernelFloatArgDim(Name, "In1", 3, LineM1, ColM1, 2);
 		AddKernelFloatArgDim(Name, "In2", 4, LineM2, Height, Width, 2);
-		AddKernelFloatArgDim(Name, "Bias", 2, LineO, 2);
+		if (!NoBias) AddKernelFloatArgDim(Name, "Bias", 2, SAxis, 2);
 		AddKernelFloatArgDim(Name, "Out", 3, LineO, ColO, 2);
 
 		AT_PrepareForTest(Name,
@@ -2918,7 +3021,7 @@ int CNN_MatMulSmallM1Act_fp16(
 	unsigned long long int LayerOp = 0;
 	unsigned long long int LayerBandwidth = 0;
         int LineO = LineM1, ColO = ColM2;
-	float UB = 6.0;
+	float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
 	int ConsT0 = Scx;
 	int TileCons = 8;
 	int F = O_FLOAT;
@@ -2928,8 +3031,8 @@ int CNN_MatMulSmallM1Act_fp16(
 	}
 	if (!(MatMulOper == KOP_MATMUL_SM1)) GenTilingError("CNN_MatMulSmallM1Act_fp16 Kernel: %s, MatMulOper should be KOP_MATMUL_SM1_fp16", Name);
 
-	if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SWISH || ActOper == KOP_SIGMOID || ActOper == KOP_LEAKYRELU))
-		GenTilingError("CNN_MatMulSmallM1Act_fp16 Kernel: %s, ActOper should be KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SWISH, KOP_SIGMOID or KOP_RELUN", Name);
+	if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+		GenTilingError("CNN_MatMulSmallM1Act_fp16 Kernel: %s, ActOper should be KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_RELUN", Name);
 
 	KernelOper_T KernelOper = CNN_CompositeKernel(MatMulOper, ActOper, KOP_NONE);
 	if (ColM1 != LineM2) GenTilingError("CNN_MatMulSmallM1Act_fp16: %s, Incorrect input matrices dimensions for a matrix multiplication: [%d x %d]*[%d x %d] %s", Name, LineM1, ColM1, LineM2, ColM2);

@@ -17,6 +17,7 @@ from typing import Union, Optional
 from graph.types import Parameters
 from utils.node_id import NodeId
 
+
 class QuantizationMode():
     def __init__(self, qlevel: str = "all", qstep: Optional[Union[int, NodeId]] = None, dequantize=False):
         self._qlevel = qlevel
@@ -57,6 +58,14 @@ class QuantizationMode():
         return step_idx == self._qstep
 
     @property
+    def qlevel(self):
+        return self._qlevel
+
+    @property
+    def qstep(self):
+        return self._qstep
+
+    @property
     def is_float_q_deq(self):
         return self._qlevel == "float_q_deq"
 
@@ -79,6 +88,12 @@ class QuantizationMode():
     @property
     def dequantize(self):
         return (self.is_step or self.is_all) and self._dequantize
+
+    def __eq__(self, o: object) -> bool:
+        if isinstance(o, QuantizationMode):
+            return (self.qlevel == o.qlevel and self.qstep == o.qstep and
+                    self.dequantize == o.dequantize)
+        return False
 
     def __str__(self):
         if self.is_none or self.is_all:

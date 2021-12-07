@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.tensor_arithmetic import MatMulTransposedParameters
 import logging
 
 from generation.at_generators.cnn_convolution_pool_relu import \
@@ -37,16 +38,18 @@ def matmul_relu_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cnam
         if isinstance(node, MatMulOpFusionParameters):
             cnodes = node.contained_nodes()
             quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
+            matmul_node = cnodes[0]
             act_node = cnodes[-1] if isinstance(cnodes[-1],
                                                 ActivationParameters) else None
             mul_qrec = quants[0]
             act_qrec = quants[1]
         else:
+            matmul_node = node
             act_node = None
             mul_qrec = qrec
             act_qrec = None
         gen.kernels.append(MatMulReluKernel(
-            cname, node, mul_qrec, act_node, act_qrec, gen_ctrl=node.get_gen_ctrl()))
+            cname, node, matmul_node, mul_qrec, act_node, act_qrec, gen_ctrl=node.get_gen_ctrl()))
         return True
     return False
 
@@ -57,11 +60,11 @@ class MatMulReluKernel(NewAutoTilerKernel):
 CNN_MatMul("{cname}", {gen_ctrl}, {at_bits(in1_qtype)}, {at_bits(in2_qtype)},
            {bias_bits}, {at_bits(out_qtype)}, {in1_qtype.q}, {in2_qtype.q}, {bias_q}, {out_qtype.q},
            1, 1, 1, 1,
-           {in1_shape[1]}, {in1_shape[0]}, {in2_shape[1]}, {in2_shape[0]}, 0, 0, 1, 1,
+           {in1_shape[1]}, {in1_shape[0]}, {width_2}, {height_2}, 0, 0, 1, 1,
            {relu_lower}, {relu_upper}, {mult_op}, {act_op});
 '''
 
-    def __init__(self, cname, params, matmul_qrec, act_params, act_qrec, gen_ctrl=None, out_qtype=None):
+    def __init__(self, cname, params, matmul_params, matmul_qrec, act_params, act_qrec, gen_ctrl=None, out_qtype=None):
         if gen_ctrl is None:
             gen_ctrl = GenCtrl(None, cname=cname)
         else:
@@ -72,18 +75,25 @@ CNN_MatMul("{cname}", {gen_ctrl}, {at_bits(in1_qtype)}, {at_bits(in2_qtype)},
                              f'which are not supported by the matmul kernel')
         in1_shape = params.in_dims[0].shape
         in2_shape = params.in_dims[1].shape
+        height_2 = in2_shape[0]
+        width_2 = in2_shape[1]
         out_shape = params.out_dims[0].shape
 
         in1_qtype = matmul_qrec.in_qs[0]
         in2_qtype = matmul_qrec.in_qs[1]
-        if len(matmul_qrec.in_qs) > 2:
+        if len(matmul_params.in_dims) == 3:
             bias_bits = at_bits(matmul_qrec.in_qs[2])
             bias_q = matmul_qrec.in_qs[2].q
-            mult_op = 'KOP_MATMUL'
+            matmul_op = 'KOP_MATMUL'
         else:
             bias_q = 0
             bias_bits = 0
-            mult_op = 'KOP_MATMUL_NOBIAS'
+            matmul_op = 'KOP_MATMUL_NOBIAS'
+
+        if isinstance(matmul_params, MatMulTransposedParameters):
+            matmul_op += '_TRANSPOSED'
+            height_2 = in2_shape[1]
+            width_2 = in2_shape[0]
 
         if act_params is not None:
             act_op = gen_activation_op(act_params.activation)
@@ -106,11 +116,12 @@ CNN_MatMul("{cname}", {gen_ctrl}, {at_bits(in1_qtype)}, {at_bits(in2_qtype)},
             'bias_bits': bias_bits,
             'out_qtype': out_qtype,
             'in1_shape': in1_shape,
-            'in2_shape': in2_shape,
+            'height_2': height_2,
+            'width_2': width_2,
             'out_shape': out_shape,
             'relu_lower': relu_lower,
             'relu_upper': relu_upper,
-            'mult_op': mult_op,
+            'mult_op': matmul_op,
             'act_op': act_op
         }
 

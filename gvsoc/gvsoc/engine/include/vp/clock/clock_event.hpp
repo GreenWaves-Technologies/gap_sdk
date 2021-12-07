@@ -59,6 +59,8 @@ namespace vp {
 
     int64_t get_cycle() { return cycle; }
 
+    void exec() { this->meth(this->_this, this); }
+
   private:
     uint8_t payload[CLOCK_EVENT_PAYLOAD_SIZE];
     void *args[CLOCK_EVENT_NB_ARGS];

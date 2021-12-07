@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.fusions import LinearFusionParameters
 import logging
 from abc import ABC, abstractmethod
 from copy import deepcopy
@@ -23,6 +22,7 @@ from graph.dim import Dim
 from graph.manipulations.eliminate_transposes.transpose_helpers import (
     apply_transpose, reverse_transpose)
 from graph.types.base import NNEdge
+from graph.types.fusions import LinearFusionParameters
 from graph.types.others import ReshapeParameters, TransposeParameters
 from utils.node_id import NodeId
 
@@ -84,6 +84,12 @@ class EndActionDown(EndAction):
 
 
 class InsertNodeAction(Action):
+    def __init__(self, node, direction=None, idx=None, out_edge=None):
+        super(InsertNodeAction, self).__init__(node)
+        self.direction = direction
+        self.idx = idx
+        self.out_edge = out_edge
+
     def do_insert(self, node, G, params, direction=None):
         if direction is None:
             direction = self.direction
@@ -93,17 +99,18 @@ class InsertNodeAction(Action):
             if G.quantization:
                 G.quantization.copy_qrec(node, 'in', self.idx, params)
         else:
-            G.insert_node_after(
-                node, params, from_idx=self.idx, edge_class=NNEdge)
+            if self.out_edge and G.edge_in_graph(self.out_edge):
+                G.insert_node_at_edge(params, self.out_edge, edge_class=NNEdge)
+            else:
+                G.insert_node_after(
+                    node, params, from_idx=self.idx, edge_class=NNEdge)
             if G.quantization:
                 G.quantization.copy_qrec(node, 'out', self.idx, params)
 
 
 class InsertTransposeAction(InsertNodeAction):
-    def __init__(self, node, direction=None, idx=None, transpose=None, reshape_from=None, reshape_to=None) -> None:
-        super(InsertTransposeAction, self).__init__(node)
-        self.direction = direction
-        self.idx = idx
+    def __init__(self, node, transpose=None, reshape_from=None, reshape_to=None, **kwargs) -> None:
+        super(InsertTransposeAction, self).__init__(node, **kwargs)
         self.transpose = transpose
         self.reshape_from = reshape_from
         self.reshape_to = reshape_to
@@ -130,10 +137,8 @@ class InsertTransposeAction(InsertNodeAction):
 
 
 class InsertReshapeAction(InsertNodeAction):
-    def __init__(self, node, direction=None, idx=None, in_shape=None, out_shape=None) -> None:
-        super(InsertReshapeAction, self).__init__(node)
-        self.direction = direction
-        self.idx = idx
+    def __init__(self, node, in_shape=None, out_shape=None, **kwargs) -> None:
+        super(InsertReshapeAction, self).__init__(node, **kwargs)
         assert in_shape is not None and out_shape is not None, 'find test'
         if isinstance(in_shape, (list, tuple)):
             self.in_shape = Dim.unnamed(in_shape)
@@ -181,17 +186,21 @@ class SwitchBatchLinearAction(Action):
 
 
 class TransposeSlidedSlice(Action):
-    def __init__(self, node, transpose, dir=None) -> None:
+    def __init__(self, node, transpose_in, dir=None, transpose_out=None) -> None:
         super(TransposeSlidedSlice, self).__init__(node)
-        self.transpose = tuple(transpose)
+        self.transpose_in = tuple(transpose_in)
+        if transpose_out is None:
+            self.transpose_out = self.transpose_in
+        else:
+            self.transpose_out = tuple(transpose_out)
 
     def _execute(self, node, G):
         LOGL("%s", str(self))
-        node.act_slice = [node.act_slice[idx] for idx in self.transpose]
-        node.out_shape = [node.out_shape[idx] for idx in self.transpose]
+        node.act_slice = [node.act_slice[idx] for idx in self.transpose_in]
+        node.out_shape = [node.out_shape[idx] for idx in self.transpose_out]
 
     def __str__(self) -> str:
-        return "%s transpose slided slice parameters with %s" % (self.node.name, self.transpose)
+        return "%s transpose slided slice parameters with %s/%s" % (self.node.name, self.transpose_in, self.transpose_out)
 
 
 class TransposePad(Action):

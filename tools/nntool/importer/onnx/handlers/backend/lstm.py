@@ -63,7 +63,7 @@ class LSTM(RNNMixin, ConstantMixin, BackendHandler):
 
         for name, idx in [('i_state', 5), ('c_state', 6)]:
             cls.deep_update(tensors,
-                            cls.get_state(inputs, idx, name, hidden_size, num_directions))
+                            cls.get_state(G, inputs, idx, name, hidden_size, num_directions))
 
         extra_args = {
             'cell_clip': cell_clip

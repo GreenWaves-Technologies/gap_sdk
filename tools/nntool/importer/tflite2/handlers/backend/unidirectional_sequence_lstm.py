@@ -57,7 +57,6 @@ class UnidirectionalSequenceLSTM(BackendHandler):
         params = LSTMParameters(node.name,
                                 in_dims_hint=[['sz', 'c']],
                                 out_dims_hint=[['sz', 'c']],
-                                constant_store=G.constant_store,
                                 cell_clip=cell_clip,
                                 proj_clip=proj_clip,
                                 n_input_cells=max_time,

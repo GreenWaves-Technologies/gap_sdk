@@ -1,0 +1,12 @@
+[submodule "vendors/gwt/pmsis/rtos"]
+	path = vendors/gwt/pmsis/rtos
+	url = ../pmsis_rtos.git
+[submodule "vendors/gwt/gap8/pmsis"]
+	path = vendors/gwt/gap8/pmsis
+	url = ../pmsis_implem_gap8.git
+[submodule "vendors/gwt/gap9/pmsis"]
+	path = vendors/gwt/gap9/pmsis
+	url = ../pmsis_implem_gap9.git
+[submodule "vendors/gwt/vega/pmsis"]
+	path = vendors/gwt/vega/pmsis
+	url = ../pmsis_implem_vega.git

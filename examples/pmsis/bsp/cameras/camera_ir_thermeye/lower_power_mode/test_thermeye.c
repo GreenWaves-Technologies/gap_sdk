@@ -46,7 +46,7 @@ void test_therm_eye()
         pmsis_exit(-1);
     }
 
-    pi_task_t cb = {0};
+    pi_task_t cb;
     pi_task_block(&cb);
 
     printf("Cover sensor until end of calibration(led will switch off).\n");

@@ -267,6 +267,7 @@ void LoadMFCCLibrary()
         LibKernel("PreEmphasis_f16", 		CALL_PARALLEL, 0, "PreEmphasis_f16_T", NULL);
         LibKernel("PreEmphasis_f32",		CALL_PARALLEL, 0, "PreEmphasis_f32_T", NULL);
 
+        LibKernel("InvWindowing_Fix16", 	CALL_PARALLEL, 0, "Windowing_T", NULL);
         LibKernel("WindowingReal2Cmplx_Fix16", 	CALL_PARALLEL, 0, "Windowing_T", NULL);
         LibKernel("WindowingReal2Cmplx_Fix32", 	CALL_PARALLEL, 0, "Windowing_T", NULL);
         LibKernel("WindowingReal2Cmplx_f16", 	CALL_PARALLEL, 0, "Windowing_T", NULL);
@@ -1128,7 +1129,7 @@ int IRFFT_2D_Generator(
 			IRFFT_Kernel = "IRFFT_DIF_Par_Fix16";
 			UserKernType = "short int";
 			UserKernPointer = "short int * __restrict__";
-			WinKernel = InvertWindow?"WindowingReal2Real_Fix16":0;
+			WinKernel = InvertWindow?"InvWindowing_Fix16":0;
 			InItemSize=2, OutItemSize=2, LUTItemSize=2;
 			break;
 		case FLOAT16:

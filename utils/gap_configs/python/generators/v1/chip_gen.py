@@ -37,7 +37,7 @@ class Chip(object):
     if padframe is not None:
       padframe_conf = js.import_config_from_file(tp.get_child_str('padframe/content'), find=True, interpret=True)
     chip_family           = tp.get_child_str('chip_family')
-    chip_name              = tp.get_child_str('chip')
+    chip_name              = tp.get_child_str('chip/name')
     has_pmu           = tp.get('soc/peripherals/pmu') is not None
     has_rtc           = tp.get('soc/peripherals/rtc') is not None or tp.get('soc/rtc') is not None
     has_udma          = tp.get('soc/peripherals/udma') is not None

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import re, os
 import argparse
@@ -17,7 +17,7 @@ parser.add_argument("--platform", dest="platform", default=None,
                     help='Path to platform')
 
 args = parser.parse_args()
-   
+
 if args.vcd == None:
     raise Exception('Path to VCD file must be specified through --vcd')
 

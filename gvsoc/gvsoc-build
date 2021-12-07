@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/usr/bin/env bash
 
 install_dir=$GAP_SDK_HOME/install
 doc_install_dir=$PWD/install/doc
@@ -15,7 +15,7 @@ PULP_CONFIG_PATH=$GAP_SDK_HOME/utils/gap_configs
 GVSOC_GLOBAL_PATH=$GAP_SDK_HOME/gvsoc
 GVSOC_PATH=$GVSOC_GLOBAL_PATH/gvsoc
 GVSOC_GAP_PATH=$GVSOC_GLOBAL_PATH/gvsoc_gap
-DPI_MODELS_PATH=$GVSOC_GLOBAL_PATH/dpi-models
+DPI_MODELS_PATH=$GAP_SDK_HOME/gap8/gvsoc/dpi-models
 RUNNER_PATH=$GVSOC_GLOBAL_PATH/runner
 ARCHI_PATH=$GAP_SDK_HOME/rtos/pulp/archi_gap
 

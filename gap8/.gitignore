@@ -1,0 +1,29 @@
+# SDK build and test folders
+/install/
+/build/
+BUILD*
+junit-reports/
+
+# SDK generated folders
+/rtos/pulp/archi_gap/
+/rtos/pulp/hal_gap/
+/rtos/pulp/archi/
+/rtos/pulp/hal/
+/utils/openocd/
+/utils/gap8-openocd/
+
+# Various editor files
+*~
+*.swp
+
+# Python Files
+__pycache__*
+*.pyc
+
+# C generated files
+*.o
+
+# Miscellaneous files
+*.log
+*.wav
+.scon*

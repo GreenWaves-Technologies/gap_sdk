@@ -71,6 +71,13 @@ class FusionMatch():
         return '_'.join(['linear' if isinstance(params, FcParameters)
                          else 'active' for params in self.order])
 
+def move_stats_to_fusion(fusion, stats):
+    new_stats = {}
+    for node in fusion.contained_nodes:
+        pass
+
+
+
 
 @groups('*')
 @match_name("fuse_gap_linear")
@@ -117,8 +124,7 @@ class MatchGapLinear(Matcher):
                 input_mapping=input_mapping,
                 output_mapping=output_mapping)
             if G.quantization:
-                # if there are quantization stats then clear them. They need to be created again
-                G.quantization.stats = None
+                # TODO - stats
                 qrecs = G.quantization.get_all(pnode.contained_nodes())
                 if qrecs:
                     prec = QRec.copy_ktype(

@@ -64,7 +64,7 @@ class RNN(RNNMixin, ConstantMixin, BackendHandler):
             del t['r_b']
 
         cls.deep_update(tensors,
-                        cls.get_state(inputs, 5, 'i_state', hidden_size, num_directions))
+                        cls.get_state(G, inputs, 5, 'i_state', hidden_size, num_directions))
 
         return cls.attach_rnn(G, x, RNNParameters, {}, valid_name, tensors,
                               used_tensors, hidden_size, input_size,

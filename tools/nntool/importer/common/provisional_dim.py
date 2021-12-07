@@ -26,9 +26,12 @@ class ProvisionalDim():
     def from_onnx_shape(cls, onnx_shape, check_for_batch=None, substitutions=None):
         if substitutions is None:
             substitutions = {}
-        shape = [d.dim_value if (d.dim_value > 0 and d.dim_param == "") else
-                 (substitutions[d.dim_param] if d.dim_param in substitutions else None)
-                 for d in onnx_shape.dim]
+        if not onnx_shape.dim:
+            shape = (1,)
+        else:
+            shape = [d.dim_value if (d.dim_value > 0 and d.dim_param == "") else
+                    (substitutions[d.dim_param] if d.dim_param in substitutions else None)
+                    for d in onnx_shape.dim]
         if check_for_batch is not None and shape[check_for_batch] == 1 and len(shape) > 1:
             shape[0] = None
         return cls(shape)

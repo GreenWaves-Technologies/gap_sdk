@@ -98,6 +98,7 @@ private:
     bool locked_run_req;
     bool run_req;
     bool stop_req;
+    bool pause_req;
     bool finished = false;
     bool init = false;
 

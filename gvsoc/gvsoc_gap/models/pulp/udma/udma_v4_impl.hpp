@@ -417,6 +417,7 @@ public:
     Udma_periph(udma *top, int id);
     vp::io_req_status_e req(vp::io_req *req, uint64_t offset);
     virtual void reset(bool active);
+    virtual void start() {}
     void clock_gate(bool is_on);
 
     int id;

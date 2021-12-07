@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import json
 import numpy as np
 import math
@@ -10,7 +11,7 @@ def array_to_def_c_file(arr, name, data_type, size, elem_in_rows=2):
 	# Window
 	Out_str += "PI_L2 {} {}[{}] = {{\n\t".format(data_type, name, size)
 	for i, elem in enumerate(arr):
-		Out_str += str(elem) + ", "
+		Out_str += f"{elem:>6}, "
 		if (i+1)%elem_in_rows == 0:
 			Out_str += "\n\t"
 	Out_str += "\n}; \n"
@@ -34,6 +35,8 @@ def create_parser():
 						help="step in number of samples between two consecutive frames")
 	parser.add_argument('--win_func', default="hanning", type=str,
 						help="numpy window function (e.g. hanning)")
+	parser.add_argument('--gen_inv', action="store_true",
+						help="generate the inverse window lut")
 	parser.add_argument('--n_fft', default=None, type=int,
 						help="number of fft bins")
 	parser.add_argument('--fmin', default=20.0, type=float,
@@ -84,6 +87,7 @@ def main():
 	frame_size       = args.frame_size       if not "frame_size"	   in models_params else models_params["frame_size"]
 	frame_step       = args.frame_step       if not "frame_step"	   in models_params else models_params["frame_step"]
 	window_fn        = args.win_func         if not "win_func"		   in models_params else models_params["win_func"]
+	gen_inv		     = args.gen_inv     	 if not "gen_inv"	 	   in models_params else models_params["gen_inv"]
 	name_suffix 	 = args.name_suffix      if not "name_suffix"	   in models_params else models_params["name_suffix"]
 
 	n_fft            = args.n_fft            if not "n_fft"		 	   in models_params else models_params["n_fft"]
@@ -117,10 +121,22 @@ def main():
 
 	print(lut_dtype, name_suffix, n_fft_int)
 	win_func = getattr(np, window_fn)
+	win_lut = win_func(frame_size)
 	if lut_dtype == "int":
-		Window = (win_func(frame_size) * 2**(15)).astype(np.int16)
+		Window = (win_lut * 2**(15)).astype(np.int16)
 	else:
-		Window = win_func(frame_size).astype(np.float16)
+		Window = win_lut.astype(np.float32)
+
+	if gen_inv:
+		inv_win_lut = win_lut / (win_lut ** 2 + 1e-8)
+		if lut_dtype == "int":
+			base, exp = np.frexp(inv_win_lut)
+			InvWindow = np.empty(base.size + exp.size)
+			InvWindow[0::2] = np.round(base*2**8).astype(np.uint8)
+			InvWindow[1::2] = exp.astype(np.uint8)
+			InvWindow = InvWindow.astype(np.int32)
+		else:
+			InvWindow = inv_win_lut.astype(np.float32)
 
 	Twiddles_cos, Twiddles_sin = SetupTwiddlesLUT(n_fft_int, dtype=lut_dtype)
 	if round(math.log(n_fft_int, 4)) == math.log(n_fft_int, 4):
@@ -144,6 +160,11 @@ def main():
 
 	################################ WRITE TO FILE #######################################
 	Out_str  = array_to_def_c_file(Window, f"WindowLUT{name_suffix}", data_type, frame_size, elem_in_rows=12)
+	if gen_inv:
+		if dtype == "int":
+			Out_str += array_to_def_c_file(InvWindow, f"InvWindowLUT{name_suffix}", "unsigned char", 2*frame_size, elem_in_rows=12)
+		else:
+			Out_str += array_to_def_c_file(InvWindow, f"InvWindowLUT{name_suffix}", data_type, frame_size, elem_in_rows=12)
 
 	if round(math.log(n_fft_int, 4)) == math.log(n_fft_int, 4) and not dtype == "fix32_scal":
 		Out_str += array_to_def_c_file(SwapTableR4.astype(np.int16), f"SwapTable{name_suffix}", "short int", n_fft_int, elem_in_rows=2)
@@ -155,22 +176,22 @@ def main():
 		# only rad2 for fix32_scale
 		Out_str += "PI_L2 {} TwiddlesLUT{}[{}] = {{\n".format(data_type, name_suffix, 2*len(Twiddles_cosR2))
 		for i in range(len(Twiddles_cosR2)):
-			Out_str += "\t {}, {}, \n".format(Twiddles_cosR2[i], Twiddles_sinR2[i])
+			Out_str += "\t {:>6}, {:>6}, \n".format(Twiddles_cosR2[i], Twiddles_sinR2[i])
 		Out_str += "\n};\n\n"
 	else:
 		if round(math.log(n_fft_int, 4)) == math.log(n_fft_int, 4):
 			Out_str += "PI_L2 {} TwiddlesLUT{}[{}] = {{\n".format(data_type, name_suffix, 2*len(Twiddles_cosR4))
 			for i in range(len(Twiddles_cosR4)):
-				Out_str += "\t {}, {}, \n".format(Twiddles_cosR4[i], Twiddles_sinR4[i])
+				Out_str += "\t {:>6}, {:>6}, \n".format(Twiddles_cosR4[i], Twiddles_sinR4[i])
 			Out_str += "\n};\n\n"
 		else:
 			Out_str += "PI_L2 {} TwiddlesLUT{}[{}] = {{\n".format(data_type, name_suffix, 2*len(Twiddles_cosR2))
 			for i in range(len(Twiddles_cosR2)):
-				Out_str += "\t {}, {}, \n".format(Twiddles_cosR2[i], Twiddles_sinR2[i])
+				Out_str += "\t {:>6}, {:>6}, \n".format(Twiddles_cosR2[i], Twiddles_sinR2[i])
 			Out_str += "\n};\n\n"
 		Out_str += "PI_L2 {} RFFTTwiddlesLUT{}[{}] = {{\n".format(data_type, name_suffix, 2*len(RFFTTwiddles_real))
 		for i in range(len(RFFTTwiddles_real)):
-			Out_str += "\t {}, {}, \n".format(RFFTTwiddles_real[i], RFFTTwiddles_imag[i])
+			Out_str += "\t {:>6}, {:>6}, \n".format(RFFTTwiddles_real[i], RFFTTwiddles_imag[i])
 		Out_str += "\n};\n\n"
 
 	# DCT

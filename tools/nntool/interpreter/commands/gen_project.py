@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from copy import deepcopy
 import csv
 import json
 import logging
@@ -22,6 +21,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+from copy import deepcopy
 from io import StringIO
 
 import numpy as np
@@ -35,28 +35,27 @@ from generation.default_appl_main_template import (
     generate_main_appl_make_atproject, generate_main_appl_template)
 from generation.default_template import (basic_kernel_header_template,
                                          basic_kernel_source_template,
-                                         default_template, dynamic_template,
-                                         header_template)
+                                         default_template)
 from generation.naming_convension import DefaultNamingConvension
 from interpreter.commands.aquant import AquantCommand
 from interpreter.commands.open import OpenCommand
 from interpreter.nntool_shell_base import NNToolShellBase, no_history
-from interpreter.shell_utils import input_options
+from interpreter.shell_utils import glob_input_files, input_options
 from utils.at_tensor_loader import at_map_tensors, at_tensor_loader_int
 from utils.data_importer import import_data
 from utils.node_id import NodeId
 
-from graph.types.input_output import InputParameters
+from graph.types import InputParameters
 
 LOG = logging.getLogger("nntool")
 
 
 def skip_existing_files(destdir):
-    def fn(_, contents):
+    def func(_, contents):
         return [file for file in contents
                 if os.path.exists(os.path.join(destdir, file)) and
                 not os.path.isdir(os.path.join(destdir, file))]
-    return fn
+    return func
 
 
 def parse_last_open(history):
@@ -67,8 +66,11 @@ def parse_last_open(history):
             break
     return args
 
+
 def build_last_open_args(args):
-    argnames = [argname for argname in dir(args) if not argname.startswith('_') and argname not in ['nnfile', 'new', 'load_quantization', 'orgmodel_path']]
+    argnames = [argname for argname in dir(args)
+                if not argname.startswith('_') and argname not in [
+                    'nnfile', 'new', 'load_quantization', 'orgmodel_path']]
     strargs = []
     for argname in argnames:
         attr = getattr(args, argname)
@@ -88,6 +90,7 @@ def build_last_open_args(args):
             strargs.append(f'--{argname} {attr}')
     return ' '.join(strargs)
 
+
 class GenProjectCommand(NNToolShellBase):
     # GEN PROJECT COMMAND
     parser_gen_proj = Cmd2ArgumentParser()
@@ -99,22 +102,25 @@ class GenProjectCommand(NNToolShellBase):
                                  help='overwrite existing files')
     parser_gen_proj.add_argument('--test_results',
                                  action='store_true',
-                                 help='generate fake inputs in the quantization range and generate a check of the results')
+                                 help='generate fake inputs in the quantization range '
+                                 'and generate a check of the results')
     parser_gen_proj.add_argument('--atproject',
                                  action='store_true',
                                  help='generate a native autotiler project with the model already generated')
     parser_gen_proj.add_argument('--dump_tensors',
                                  action='store_true',
                                  help='print generated tensors')
-    parser_gen_proj.add_argument('--input_file',
+    parser_gen_proj.add_argument('--input_file', nargs='+',
                                  completer_method=Cmd.path_complete, default=None,
                                  help='if test_results, use this file to run inference')
     parser_gen_proj.add_argument('--input_tensors',
-                                type=str,
-                                help='produce input tensors from tensor store with supplied name')
+                                 type=str,
+                                 help='produce input tensors from tensor store with supplied name')
     parser_gen_proj.add_argument('--save_inputs',
                                  action='store_true',
                                  help='if test_results, save the inputs in files also')
+    parser_gen_proj.add_argument('--tolerance', type=float, default=0.0,
+                                 help="if test_results active, use this tolerance to check the results")
     input_options(parser_gen_proj)
 
     @with_argparser(parser_gen_proj)
@@ -152,7 +158,8 @@ added."""
                     input_file=args.input_file,
                     input_tensors=input_tensors,
                     input_args=self._get_input_args(args),
-                    gen_atproject=args.atproject)
+                    gen_atproject=args.atproject,
+                    tolerance=args.tolerance)
         self.pfeedback(f'project generated in {args.project_folder}')
 
 
@@ -194,10 +201,12 @@ class PerformanceCommand(NNToolShellBase):
                              help='produce input tensors from tensor store with supplied name')
     parser_perf.add_argument('--path',
                              type=str,
-                             help='store the generated project in this directory rather than a temporary one - will overwrite files in directory')
+                             help=('store the generated project in this directory rather than a temporary one'
+                                   ' - will overwrite files in directory'))
     parser_perf.add_argument('--logfile',
                              type=str,
-                             help='store the generated project in this directory rather than a temporary one - will overwrite files in directory')
+                             help=('store the generated project in this directory rather than a temporary one'
+                                   ' - will overwrite files in directory'))
 
     @with_argparser(parser_perf)
     @no_history
@@ -244,7 +253,8 @@ This command can take a few minutes to complete."""
             self.pfeedback(
                 f'compiling and running project with {jobs} threads')
             with open(os.path.join(directory, 'run_make.sh'), 'w') as fp:
-                fp.write(make_script(directory, jobs, platform=args.platform, pmsis_os=args.pmsis_os))
+                fp.write(make_script(directory, jobs,
+                                     platform=args.platform, pmsis_os=args.pmsis_os))
 
             res = subprocess.run(['/bin/bash', os.path.join(directory, 'run_make.sh')],
                                  capture_output=True, text=True,
@@ -258,8 +268,8 @@ This command can take a few minutes to complete."""
 
             if res.returncode:
                 if args.logfile:
-                    with open(args.logfile, "w") as f:
-                        f.write(res.stderr)
+                    with open(args.logfile, "w") as fp:
+                        fp.write(res.stderr)
                 else:
                     self.ppaged(f'STDERR\n\n{res.stderr}')
                     self.perror(
@@ -331,9 +341,10 @@ def make_script(tempdir, jobs=1, platform=None, pmsis_os="freertos"):
 
 
 def get_rand(shape, low_high=None):
+    val = np.random.randn(*shape).astype(np.float32)
     if low_high:
-        return (np.random.randint(low_high[0] * 127, low_high[1] * 127, size=shape).astype(np.float32))/127
-    return np.random.randn(*shape).astype(np.float32)
+        val = (val * (low_high[1]-low_high[0])) + low_high[0]
+    return val
 
 
 def process_script(script):
@@ -344,8 +355,8 @@ def process_script(script):
             continue
         if line.startswith('aquant'):
             # add abs path for input files and try to remake command
-            args = aquant_parser.parse_args(line.split(' ')[1:])
-            input_files = [os.path.abspath(f) for f in args.input_files]
+            args = aquant_parser.parse_args(line.rstrip().split(' ')[1:])
+            input_files = [os.path.abspath(f) for f in args.input_files if f != '']
             opts = [f"--{k} {v}" if v != True else f"--{k}" for k, v in vars(args).items()
                     if v and k != 'input_files']
             line = " ".join(['aquant'] + opts + input_files)
@@ -355,7 +366,7 @@ def process_script(script):
 
 def gen_project(G, settings, project_folder, script_commands, overwrite=False, performance=False,
                 quantized=False, test_results=False, save_inputs=False, input_file=None, input_args=None,
-                gen_atproject=False, dump_tensors=False, input_tensors=None):
+                gen_atproject=False, dump_tensors=False, input_tensors=None, tolerance=0.0):
     settings = deepcopy(settings)
     settings['graph_monitor_cycles'] = True
     settings['graph_produce_node_names'] = True
@@ -375,10 +386,11 @@ def gen_project(G, settings, project_folder, script_commands, overwrite=False, p
         for i, node in enumerate(G.input_nodes()):
             out_q = G.quantization[NodeId(node)].out_qs[0]
             if input_file:
-                finput = import_data(input_file, **input_args)
+                file_per_input = glob_input_files(input_file, G.num_inputs)[0]
+                finput = import_data(file_per_input[i], **input_args)
             else:
-                min_val = out_q.min_val if not out_q.is_floating else -1.0
-                max_val = out_q.max_val if not out_q.is_floating else 1.0
+                min_val = out_q.min if not out_q.is_floating else -1.0
+                max_val = out_q.max if not out_q.is_floating else 1.0
                 finput = get_rand(node.out_dims[0].shape, low_high=(
                     min_val, max_val))
             finput_tensors.append(finput)
@@ -405,7 +417,7 @@ def gen_project(G, settings, project_folder, script_commands, overwrite=False, p
     if overwrite or not os.path.exists(main_c):
         with open(os.path.join(project_folder, f"{code_gen.project_name}.c"), "w") as output_fp:
             output_fp.write(generate_main_appl_template(
-                G, code_gen, input_tensors, qoutputs))
+                G, code_gen, input_tensors, qoutputs, tolerance))
     if overwrite or not os.path.exists(main_h):
         with open(os.path.join(project_folder, f"{code_gen.project_name}.h"), "w") as output_fp:
             output_fp.write(generate_main_appl_header(G, code_gen))

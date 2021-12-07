@@ -21,10 +21,18 @@ YMIN_IDX, XMIN_IDX, YMAX_IDX, XMAX_IDX = 0, 1, 2, 3
 
 def convert_cors2cnts(bboxes_cors):
     bboxes_cnts = np.zeros_like(bboxes_cors)
-    bboxes_cors[:, H_IDX] = bboxes_cnts[:, YMAX_IDX] - bboxes_cnts[:, YMIN_IDX]
-    bboxes_cors[:, W_IDX] = bboxes_cnts[:, XMAX_IDX] - bboxes_cnts[:, XMIN_IDX]
-    bboxes_cors[:, CNTY_IDX] = bboxes_cnts[:, YMIN_IDX] + 0.5 * bboxes_cors[:, H_IDX]
-    bboxes_cors[:, CNTX_IDX] = bboxes_cnts[:, XMIN_IDX] + 0.5 * bboxes_cors[:, W_IDX]
+    bboxes_cnts[:, H_IDX] = bboxes_cors[:, YMAX_IDX] - bboxes_cors[:, YMIN_IDX]
+    bboxes_cnts[:, W_IDX] = bboxes_cors[:, XMAX_IDX] - bboxes_cors[:, XMIN_IDX]
+    bboxes_cnts[:, CNTY_IDX] = bboxes_cors[:, YMIN_IDX] + 0.5 * bboxes_cnts[:, H_IDX]
+    bboxes_cnts[:, CNTX_IDX] = bboxes_cors[:, XMIN_IDX] + 0.5 * bboxes_cnts[:, W_IDX]
+    return bboxes_cnts
+
+def convert_cnts2cors(bboxes_cnts):
+    bboxes_cors = np.zeros_like(bboxes_cnts)
+    bboxes_cors[:, YMIN_IDX] = bboxes_cnts[:, CNTY_IDX] - 0.5 * bboxes_cnts[:, H_IDX]
+    bboxes_cors[:, XMIN_IDX] = bboxes_cnts[:, CNTX_IDX] - 0.5 * bboxes_cnts[:, W_IDX]
+    bboxes_cors[:, YMAX_IDX] = bboxes_cnts[:, CNTY_IDX] + 0.5 * bboxes_cnts[:, H_IDX]
+    bboxes_cors[:, XMAX_IDX] = bboxes_cnts[:, CNTX_IDX] + 0.5 * bboxes_cnts[:, W_IDX]
     return bboxes_cors
 
 def rect_intersect_area(box_cors_a, box_cors_b):

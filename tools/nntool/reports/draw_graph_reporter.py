@@ -19,8 +19,8 @@ from expressions.symbolic.symbol import Constant, Variable
 from graph.nngraph import NNGraph
 from graph.types import ExpressionFusionParameters, FusionBase
 from graph.types.fusions import FusionInputParameters, FusionOutputParameters
-from graph.types.linear import FcParameters
 from graphviz import Digraph, nohtml
+from quantization.qtype import QType
 from utils.node_id import NodeId
 
 
@@ -152,10 +152,11 @@ class DrawGraphReporter():
             if from_node:
                 qrec = qrecs.get(nid)
                 if qrec is None:
-                    return 'no quant', True
-                qtype = qrec.out_qs and qrec.out_qs[idx]
-                if not qtype:
-                    return 'no qtype', True
+                    qtype = 'no qrec'
+                else:
+                    qtype = qrec.out_qs[idx] if qrec.out_qs and idx < len(qrec.out_qs) else None
+                    if not qtype:
+                        qtype = 'no qtype'
             else:
                 qtype = "n/a"
             if to_node:
@@ -163,10 +164,10 @@ class DrawGraphReporter():
                     parent, fnode=edge.to_node)
                 to_qrec = qrecs.get(nid)
                 if to_qrec is None:
-                    return f'{qtype}/None', True
-                to_qtype = to_qrec.in_qs and to_qrec.in_qs[edge.to_idx]
+                    return f'{qtype}/no qrec', True
+                to_qtype = to_qrec.in_qs[edge.to_idx] if to_qrec.in_qs and edge.to_idx < len(to_qrec.in_qs) else None
                 if not to_qtype:
-                    return f'{qtype}/None', True
+                    return f'{qtype}/no qtype', True
             else:
                 to_qtype = "n/a"
             if not to_node:
@@ -191,10 +192,11 @@ class DrawGraphReporter():
                     parent, fnode=node)
                 qrec = qrecs.get(nid)
                 if qrec is None:
-                    return 'no quant', True
-                qtype = qrec.in_qs and qrec.in_qs[idx]
-                if qtype is None:
-                    return 'no qtype', True
+                    qtype = 'no qrec'
+                else:
+                    qtype = qrec.in_qs[idx] if qrec.in_qs and idx < len(qrec.in_qs) else None
+                    if qtype is None:
+                        return 'no qtype', True
             else:
                 qtype = "n/a"
             if from_node:
@@ -202,10 +204,10 @@ class DrawGraphReporter():
                     parent, fnode=edge.from_node)
                 from_qrec = qrecs.get(nid)
                 if from_qrec is None:
-                    return f'None/{qtype}', True
-                from_qtype = from_qrec.out_qs and from_qrec.out_qs[edge.from_idx]
+                    return f'no qrec/{qtype}', True
+                from_qtype = from_qrec.out_qs[edge.from_idx] if from_qrec.out_qs and edge.from_idx < len(from_qrec.out_qs) else None
                 if not from_qtype:
-                    return f'None/{qtype}', True
+                    return f'no qtype/{qtype}', True
             else:
                 from_qtype = "n/a"
             if not from_node:
@@ -304,7 +306,7 @@ class DrawGraphReporter():
 
         if quant_labels:
             if G.quantization is None:
-                raise ValueError("graph is not quantizated")
+                raise ValueError("graph is not quantized")
             qrecs = G.quantization
         else:
             qrecs = None

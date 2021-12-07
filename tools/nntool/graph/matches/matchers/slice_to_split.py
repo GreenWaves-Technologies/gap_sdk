@@ -20,10 +20,11 @@ from typing import OrderedDict
 
 import numpy as np
 from graph.dim import Dim
-from graph.manipulations.eliminate_transposes.transpose_helpers import reverse_transpose
-from graph.types import NNEdge, SplitParameters, StridedSliceParameters
-from graph.types.input_output import OutputParameters
-from graph.types.others import ReshapeParameters, TransposeParameters
+from graph.manipulations.eliminate_transposes.transpose_helpers import \
+    reverse_transpose
+from graph.types import (NNEdge, OutputParameters, ReshapeParameters,
+                         SplitParameters, StridedSliceParameters,
+                         TransposeParameters)
 from quantization.quantizer.new_quantizer import NewQuantizer
 from utils.graph import GraphView
 
@@ -69,7 +70,7 @@ def check_tree_complete(tree, lengths, each_complete=False):
         if length != lengths[0]:
             return False
     # slices must not overlap
-    if not all(sl[0] + sl[1] == slices[i+1][0] for i, sl in enumerate(slices[:-1:])):
+    if not all(sl[1] == slices[i+1][0] for i, sl in enumerate(slices[:-1:])):
         return False
     return all(
         check_tree_complete(

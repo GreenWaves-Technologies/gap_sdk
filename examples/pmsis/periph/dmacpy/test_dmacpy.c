@@ -105,7 +105,7 @@ void test_dmacpy(void)
     }
 
     /* Init & open dmacpy. */
-    struct pi_dmacpy_conf dmacpy_conf = {0};
+    struct pi_dmacpy_conf dmacpy_conf;
     pi_dmacpy_conf_init(&dmacpy_conf);
     pi_open_from_conf(&dmacpy, &dmacpy_conf);
     errors = pi_dmacpy_open(&dmacpy);
@@ -120,8 +120,8 @@ void test_dmacpy(void)
            "size = %d Bytes.\n",
            buff, rcv_buff_0, rcv_buff_1, rcv_buff_2, cpy_size);
 
-    pi_task_t task_fcl2 = {0}, task_l2l2 = {0}, task_l2fc = {0}, task_copy = {0};
-    dma_memcpy_t copy_fcl2 = {0}, copy_l2l2 = {0}, copy_l2fc = {0};
+    pi_task_t task_fcl2, task_l2l2, task_l2fc, task_copy;
+    dma_memcpy_t copy_fcl2, copy_l2l2, copy_l2fc;
     copy_fcl2.src = buff;
     copy_fcl2.dst = rcv_buff_0;
     copy_fcl2.size = cpy_size;

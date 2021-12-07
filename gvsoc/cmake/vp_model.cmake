@@ -44,6 +44,9 @@ function(vp_model)
         target_link_libraries(${VP_MODEL_NAME_OPTIM} PRIVATE gvsoc gap_archi archi_pulp)
         set_target_properties(${VP_MODEL_NAME_OPTIM} PROPERTIES PREFIX "")
         target_compile_options(${VP_MODEL_NAME_OPTIM} PRIVATE "-D__GVSOC__")
+        foreach(X IN LISTS VP_MODEL_ROOT_DIRS)
+            target_include_directories(${VP_MODEL_NAME_OPTIM} PRIVATE ${X})
+        endforeach()
 
         if(VP_MODEL_OUTPUT_NAME)
             set_target_properties(${VP_MODEL_NAME_OPTIM}
@@ -71,6 +74,9 @@ function(vp_model)
         set_target_properties(${VP_MODEL_NAME_DEBUG} PROPERTIES PREFIX "")
         target_compile_options(${VP_MODEL_NAME_DEBUG} PRIVATE "-D__GVSOC__")
         target_compile_definitions(${VP_MODEL_NAME_DEBUG} PRIVATE "-DVP_TRACE_ACTIVE=1")
+        foreach(X IN LISTS VP_MODEL_ROOT_DIRS)
+            target_include_directories(${VP_MODEL_NAME_DEBUG} PRIVATE ${X})
+        endforeach()
 
         if(VP_MODEL_OUTPUT_NAME)
             set(RENAME_DEBUG_NAME ${VP_MODEL_OUTPUT_NAME})
@@ -91,7 +97,7 @@ function(vp_model)
 
     if(${BUILD_RTL})
         add_library(${VP_MODEL_NAME_SV} MODULE ${VP_MODEL_SOURCES})
-        target_link_libraries(${VP_MODEL_NAME_SV} PRIVATE gvsoc_debug gap_archi archi_pulp)
+        target_link_libraries(${VP_MODEL_NAME_SV} PRIVATE gvsoc_sv gap_archi archi_pulp)
         set_target_properties(${VP_MODEL_NAME_SV} PROPERTIES PREFIX "")
         target_compile_options(${VP_MODEL_NAME_SV} PRIVATE "-D__GVSOC__")
         target_compile_definitions(${VP_MODEL_NAME_SV}
@@ -99,6 +105,9 @@ function(vp_model)
             "-DVP_TRACE_ACTIVE=1"
             "-D__VP_USE_SYSTEMV=1"
             )
+        foreach(X IN LISTS VP_MODEL_ROOT_DIRS)
+            target_include_directories(${VP_MODEL_NAME_SV} PRIVATE ${X})
+        endforeach()
 
         if(VP_MODEL_OUTPUT_NAME)
             set(RENAME_SV_NAME ${VP_MODEL_OUTPUT_NAME})

@@ -54,7 +54,7 @@ class LogSoftmax(ConstantMixin, BackendHandler):
             G.add_edge(NNEdge(from_node=x[0], to_node=softmax_params, from_idx=x[1], to_idx=0))
             params = LogOpParameters(f'{valid_name}_log')
             G.add_edge(NNEdge(from_node=softmax_params, to_node=params))
-        all_nodes[node.output[0]] = (params, 0, copy.deepcopy(x[2]))
+        all_nodes[node.output[0]] = (params, 0, copy.deepcopy(x[2]), None)
         return params
 
     @classmethod

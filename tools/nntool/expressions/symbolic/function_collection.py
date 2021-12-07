@@ -31,7 +31,7 @@ class FunctionCollection():
     def __init__(self, functions: Sequence[Tuple[Variable, Symbol]], qrecs=None) -> None:
         self._qrecs = qrecs
         # save map from produced variable to function
-        self._functions = {var: symbol for var, symbol in functions}
+        self._functions = {k: v for k, v in  functions}
         # now create a map with producted variable name to free variables in function
         self._freevars = {var.name: set([name for name in func.unbound_variables.keys()])
                           for var, func in self._functions.items()}
@@ -59,6 +59,9 @@ class FunctionCollection():
                     raise ValueError('%s points to more than one variable' % res_symbol.name)
             else:
                 self._vars[res_symbol.name] = res_symbol
+        self.init_indexes()
+    
+    def init_indexes(self):
         # iterators contains list of iterators
         self._iterators = None
         self._variable_indexes = None
@@ -239,7 +242,7 @@ class FunctionCollection():
                     produced_idx, execution_order, index_dependencies, depth, code_block)
 
                 code_block.deindent()
-                code_block.write('}}')
+                code_block.write('}')
         else:
             produced_idx = self.produce_functions(
                 produced_idx, execution_order, index_dependencies, 0, code_block)

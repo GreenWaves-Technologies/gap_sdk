@@ -95,7 +95,7 @@ class NNToolShellSettings(Cmd):
     @log_level.setter
     def log_level(self, val):
         try:
-            val = int(val)
+            val = int(val) # @IgnoreException
             self.settings['log_level'] = val
         except ValueError:
             val = val.upper()

@@ -41,7 +41,7 @@
         "flash_devices": [
           "target/board/devices/flash",
           "target/board/devices/spiflash",
-          "target/board/devices/mram"
+          "target/chip/soc/mram"
         ],
         "boot": {
             "jtag_mode": null,

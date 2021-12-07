@@ -76,7 +76,7 @@ void Ne16::streamout_setup() {
       xt::view(this->accum, xt::all()) = xt::clip(this->accum, -128, 127);
     }
   }
-  else if(this->use_relu) {
+  else if(this->use_relu && this->output_quant) {
     xt::view(this->accum, xt::all()) = xt::clip(this->accum, 0, 0xffffffff);
   }
   if(this->accum_traces) {

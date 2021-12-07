@@ -4,7 +4,7 @@ COMMON_SRCS = $(GVSOC_ISS_PATH)/vp/src/iss_wrapper.cpp $(GVSOC_ISS_PATH)/src/iss
 	$(GVSOC_ISS_PATH)/src/resource.c \
 	$(GVSOC_ISS_PATH)/flexfloat/flexfloat.c
 
-COMMON_CFLAGS = -DRISCV=1 -DRISCY -I$(GVSOC_ISS_PATH)/include -I$(GVSOC_ISS_PATH)/vp/include -I$(GVSOC_ISS_PATH)/flexfloat -march=native -fno-strict-aliasing
+COMMON_CFLAGS = -DRISCV=1 -DRISCY -I$(GVSOC_ISS_PATH)/include -I$(GVSOC_ISS_PATH)/vp/include -I$(GVSOC_ISS_PATH)/flexfloat -mtune=generic -fno-strict-aliasing
 
 ifdef USE_TRDB
 COMMON_CFLAGS += -DUSE_TRDB=1

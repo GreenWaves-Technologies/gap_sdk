@@ -17,11 +17,12 @@ import logging
 
 from graph.dim import Dim
 
-from .base import Parameters, SensitiveToOrder, cls_op_name, nargs
+from .base import NNNodeRef, Parameters, SensitiveToOrder, cls_op_name, nargs
 
 LOG = logging.getLogger("nntool." + __name__)
 
 SSD_INPUT_NAMES = ['boxes_offsets', 'scores', 'anchors']
+
 
 @cls_op_name('ssd_detector')
 @nargs(SSD_INPUT_NAMES)
@@ -112,6 +113,82 @@ class SSDDetectorParameters(Parameters, SensitiveToOrder):
             Dim(shape=[num_detected_boxes], is_ordered=True),
             Dim(shape=[num_detected_boxes], is_ordered=True),
             Dim(shape=[num_detected_boxes], is_ordered=True),
+        ]
+
+    def __str__(self):
+        return "{} SCORE_THR {:.2f} IOU_THR {:.2f}".format(
+            self.at_options,
+            self.nms_score_threshold,
+            self.nms_iou_threshold
+        )
+
+
+NMS_INPUT_NAMES = ['boxes_offsets', 'scores']
+
+
+@cls_op_name('non_max_suppression')
+@nargs(NMS_INPUT_NAMES)
+class NMSParameters(Parameters, SensitiveToOrder):
+
+    INPUT_NAMES = NMS_INPUT_NAMES
+
+    def __init__(self, *args, parameters=None, in_dims_hint=None, out_dims_hint=None,
+                 batch=None, ker_in_order=None, ker_out_order=None, **kwargs):
+        if in_dims_hint is None:
+            in_dims_hint = [['batch', 'spatial_dim', 'box'],
+                            ['batch', 'class', 'spatial_dim']]
+        if out_dims_hint is None:
+            out_dims_hint = [['spatial_dim', 'index']]
+        super(NMSParameters, self).__init__(
+            *args, in_dims_hint=in_dims_hint, out_dims_hint=out_dims_hint, **kwargs)
+        self._parameters = parameters
+        self.nms_config = {'using_json_config': {'INCLUDE': False, 'json_config_path': ''},
+                           'using_pipeline_config': {'INCLUDE': False, 'pipeline_config_path': ''},
+                           'using_params': {'INCLUDE': True, 'params': self._parameters}}
+        self._ker_in_order = [['batch', 'spatial_dim', 'box'], [
+            'batch', 'class', 'spatial_dim']]
+        self._ker_out_order = [['spatial_dim', 'index']]
+
+    def __call__(self, *args, **kwargs):
+        noderef = super(NMSParameters, self).__call__(*args, **kwargs)
+        return tuple(NNNodeRef(self, i, noderef.ref[1]) for i in range(2))
+
+    def get_parameter_size(self):
+        return 0
+
+    @property
+    def can_equalize(self):
+        return False
+
+    @property
+    def nms_score_threshold(self):
+        return self._parameters['nms_score_threshold']
+
+    @nms_score_threshold.setter
+    def nms_score_threshold(self, val):
+        self._parameters['nms_score_threshold'] = val
+
+    @property
+    def nms_iou_threshold(self):
+        return self._parameters['nms_iou_threshold']
+
+    @property
+    def max_output_boxes_per_class(self):
+        return self._parameters['max_output_boxes_per_class']
+
+    @property
+    def num_classes(self):
+        return self._parameters['num_classes']
+
+    @property
+    def center_point_box(self):
+        return self._parameters['center_point_box']
+
+    def get_output_size(self, in_dims):
+        num_detected_boxes = self._parameters['max_output_boxes_per_class'] * \
+            self._parameters['num_classes']
+        return [
+            Dim(shape=[num_detected_boxes, 3], is_ordered=True),
         ]
 
     def __str__(self):

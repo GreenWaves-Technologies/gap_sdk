@@ -15,9 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from graph.types.base import NNEdge
-from graph.types.input_output import ConstantInputParameters
-from graph.types.others import SplitParameters
+from graph.types import ConstantInputParameters, NNEdge, SplitParameters
 from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
 from importer.onnx.common import logger
@@ -90,13 +88,13 @@ class Split(ConstantMixin, BackendHandler):
             logger.info("reducing %s to %s constant(s)", valid_name, len(out_shapes))
             values = params.numpy_split(cls.get_constant(x))
             for idx, out_pshape in enumerate(out_pshapes):
-                cparams = ConstantInputParameters(valid_name, value=values[idx], constant_store=G.constant_store)
-                all_nodes[node.output[idx]] = (cparams, 0, out_pshape)
+                cparams = ConstantInputParameters(valid_name, value=values[idx])
+                all_nodes[node.output[idx]] = (cparams, 0, out_pshape, x[3])
             return None
 
         G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         for idx, out_pshape in enumerate(out_pshapes):
-            all_nodes[node.output[idx]] = (params, idx, out_pshape)
+            all_nodes[node.output[idx]] = (params, idx, out_pshape, x[3])
         return params
 
     @classmethod

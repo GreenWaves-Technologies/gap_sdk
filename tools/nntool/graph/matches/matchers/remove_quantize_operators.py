@@ -17,13 +17,12 @@ from copy import deepcopy
 
 import numpy as np
 from bfloat16 import bfloat16
-from graph.types.base import InsensitiveToQuantization, NNEdge
-from graph.types.input_output import InputParameters, OutputParameters
-from graph.types.others import QuantizeParameters
+from graph.types import (InputParameters, InsensitiveToQuantization, NNEdge,
+                         OutputParameters, QuantizeParameters)
 from utils.graph import GraphView
 from utils.node_id import NodeId
 
-from ..matcher import Matcher, match_name, description, run_before
+from ..matcher import Matcher, description, match_name, run_before
 
 LOG = logging.getLogger("nntool." + __name__)
 

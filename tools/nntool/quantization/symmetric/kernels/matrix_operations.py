@@ -21,7 +21,7 @@ from graph.types import (MatMulOpParameters, MatrixAddParameters,
                          MatrixSubParameters)
 from graph.types.expression_fusion import ExpressionFusionParameters
 from graph.types.fusions import MatScaleFusionParameters
-from graph.types.tensor_arithmetic import Broadcastable
+from graph.types.tensor_arithmetic import Broadcastable, MatMulTransposedParameters
 from quantization.kernels.kernel_base import (KernelBase, params_type,
                                               qrec_type)
 from quantization.multiplicative.mulbias import (compute_in_out_scale,
@@ -183,7 +183,7 @@ class ExpressionSymmetric(KernelBase):
             details['results'] = results
         return qrec.get_outputs(params, out_tensors, ktype="symmetric")
 
-@params_type(MatMulOpParameters)
+@params_type(MatMulOpParameters, MatMulTransposedParameters)
 @qrec_type('scaled')
 class MatMulScaled(KernelBase):
     @classmethod
@@ -194,23 +194,28 @@ class MatMulScaled(KernelBase):
 
         in_tensors = [in_tensor.astype(np.int32) for in_tensor in qrec.prepare_inputs(
             params, in_tensors, ktype="symmetric")]
+        if isinstance(params, MatMulTransposedParameters):
+            mat1, mat2 = in_tensors[0], np.transpose(in_tensors[1], (1, 0))
+        else:
+            mat1, mat2 = in_tensors[0], in_tensors[1]
 
+        mat2 = mat2.astype(np.int32) - qrec.in_qs[1].zero_point.astype(np.int32)
 
         if len(in_tensors) > 2:
             biases = in_tensors[2]
             if len(biases.shape) == 1:
-                biases = np.expand_dims(biases, -1)
+                biases = np.expand_dims(biases, 1 if mat2.shape[1] == 1 else 0)
         else:
             biases = 0
-        
-        out_tensor = np.matmul(in_tensors[0], in_tensors[1]) + biases
+
+        out_tensor = np.matmul(mat1, mat2) + biases
         mul_biases_q = qrec.cache['mul_biases_q']
-        scale_axis = None if len(mul_biases_q.scale) == 1 else 0
-        out_tensor = mul_biases_q.apply_scales(out_tensor, scale_axis).astype(qrec.out_qs[0].dtype)
+        scale_axis = None if len(mul_biases_q.scale) == 1 else 1
+        out_tensor = mul_biases_q.apply_scales(out_tensor, scale_axis)
 
         return qrec.get_outputs(params, [out_tensor], ktype="symmetric")
 
-@params_type(MatMulOpParameters)
+@params_type(MatMulOpParameters, MatMulTransposedParameters)
 @qrec_type('symmetric')
 class MatMulSymmetric(KernelBase):
     @classmethod
@@ -222,15 +227,21 @@ class MatMulSymmetric(KernelBase):
         in_tensors = [in_tensor.astype(np.int32) for in_tensor in qrec.prepare_inputs(
             params, in_tensors, ktype="symmetric")]
 
+        if isinstance(params, MatMulTransposedParameters):
+            mat1, mat2 = in_tensors[0], np.transpose(in_tensors[1], (1, 0))
+        else:
+            mat1, mat2 = in_tensors[0], in_tensors[1]
+
         if len(in_tensors) > 2:
             biases = in_tensors[2]
             if len(biases.shape) == 1:
-                biases = np.expand_dims(biases, -1)
+                biases = np.expand_dims(biases, 1 if mat2.shape[1] == 1 else 0)
         else:
             biases = 0
+
         # expect biases in in_q1 + in_q2
         q_calc = QType.Pow2(bits=32, q=qrec.in_qs[0].q + qrec.in_qs[1].q, signed=True)
-        out_tensor = np.matmul(in_tensors[0], in_tensors[1]) + biases
+        out_tensor = np.matmul(mat1, mat2) + biases
         out_tensor = qrec.out_qs[0].reduce_from(out_tensor, q_calc)
 
         return qrec.get_outputs(params, [out_tensor], ktype="symmetric")

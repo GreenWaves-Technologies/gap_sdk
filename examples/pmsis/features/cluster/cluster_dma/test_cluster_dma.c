@@ -12,7 +12,7 @@ struct cl_args_s
     uint8_t *l2_out;
 };
 
-PI_L2 static struct cl_args_s cl_arg = {0};
+PI_L2 static struct cl_args_s cl_arg;
 
 /* Task executed by cluster cores. */
 void cluster_dma(void *arg)
@@ -150,7 +150,7 @@ void test_cluster_dma(void)
 
     printf("Sending task.\n");
     #if defined(ASYNC)
-    pi_task_t wait_task = {0};
+    pi_task_t wait_task;
     pi_task_block(&wait_task);
     pi_cluster_send_task_to_cl_async(&cluster_dev, task, &wait_task);
     printf("Wait end of cluster task\n");

@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import numpy as np
+
 from ..backend_handler import BackendHandler
 from ..handler import onnx_op
 from .reducer_mixin import ReducerMixin
@@ -23,7 +25,7 @@ class ReduceMean(ReducerMixin, BackendHandler):
 
     @classmethod
     def _common(cls, node, **kwargs):
-        return super(ReduceMean, cls)._common(node, reduce_type="average", **kwargs)
+        return super(ReduceMean, cls)._common(node, reduce_type="average", constant_operation=np.mean, **kwargs)
 
     @classmethod
     def version_1(cls, node, **kwargs):

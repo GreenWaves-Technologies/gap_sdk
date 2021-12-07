@@ -14,12 +14,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from graph.types import ConstantInputParameters, NNEdge, ReshapeParameters
+from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
 from importer.onnx.common import logger
 
 from ..backend_handler import BackendHandler
 from ..handler import onnx_op
-from importer.common.constant_mixin import ConstantMixin
 
 
 @onnx_op("Squeeze")
@@ -35,7 +35,7 @@ class Squeeze(ConstantMixin, BackendHandler):
         x_shape = x[2].shape
         axes = cls._resolve_negative_ranks(kwargs['axes'], len(x_shape))
         if axes:
-            if any(x_shape[axis] != 1 for axis in axes):
+            if any(x_shape[axis] != 1 and x_shape[axis] is not None for axis in axes):
                 raise ValueError("axis parameter in node %s is invalid %s" % (valid_name, axes))
             new_shape = [dim for idx, dim in enumerate(x_shape) if idx not in axes]
         else:
@@ -45,14 +45,13 @@ class Squeeze(ConstantMixin, BackendHandler):
         if cls.is_constant(x):
             logger.info("reducing %s to a constant", valid_name)
             x_val = cls.get_constant(x)
-            params = ConstantInputParameters(valid_name, value=x_val.reshape(new_shape),
-                                             constant_store=G.constant_store)
+            params = ConstantInputParameters(valid_name, value=x_val.reshape(new_shape))
         else:
             old_shape = cls._get_real_dim(x_shape)
             shape = cls._get_real_dim(new_shape)
             params = ReshapeParameters(valid_name, old_shape=old_shape, shape=shape)
             G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
-        all_nodes[node.output[0]] = (params, 0, pshape)
+        all_nodes[node.output[0]] = (params, 0, pshape, x[3])
         return params
 
     @classmethod

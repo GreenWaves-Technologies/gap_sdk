@@ -19,31 +19,42 @@ import numpy as np
 from expressions.symbolic.basic import Add
 
 from ..function import Function
-from ..symbol import c_headers, nargs
+from ..symbol import c_headers, nargs, copy_props
 
 
 @nargs(1)
 @c_headers('"Gap.h"')
+@copy_props('clip_dtype')
 class Clip(Function):
     def __init__(self, *args, clip_dtype=None, **kwargs):
-        iinfo = np.iinfo(clip_dtype)
-        self._clip_max = iinfo.max
-        self._clip_min = iinfo.min
+        self._clip_dtype = clip_dtype
         super().__init__(*args, **kwargs)
 
+    @property
+    def clip_dtype(self):
+        return self._clip_dtype
+
+    def get_clip_min_max(self):
+        iinfo = np.iinfo(self._clip_dtype)
+        return iinfo.min, iinfo.max
+
     def _impl(self, *args, **kwargs):
-        return np.maximum(np.minimum(args[0], self._clip_max, dtype=self.dtype), self._clip_min, dtype=self.dtype)
+        clip_min, clip_max = self.get_clip_min_max()
+        return np.maximum(np.minimum(args[0], clip_max, dtype=self.dtype), clip_min, dtype=self.dtype)
 
     def _py_expr(self, *args, **kwargs):
-        return "np.maximum(np.minimum(%s, %s), %s)" % (args[0], self._clip_max, self._clip_min)
+        clip_min, clip_max = self.get_clip_min_max()
+        return "np.maximum(np.minimum(%s, %s), %s)" % (args[0], clip_max, clip_min)
 
     def _c_expr(self, *args, **kwargs):
+        _, clip_max = self.get_clip_min_max()
         if np.issubdtype(self.dtype, np.signedinteger):
-            return "gap_clip((%s), (%s))" % (args[0], math.ceil(math.log2(self._clip_max)))
-        return "gap_clipu((%s), (%s))" % (args[0], math.ceil(math.log2(self._clip_max)))
+            return "gap_clip((%s), (%s))" % (args[0], math.ceil(math.log2(clip_max)))
+        return "gap_clipu((%s), (%s))" % (args[0], math.ceil(math.log2(clip_max)))
 
     def __repr__(self) -> str:
-        return "Clip(%s, %s, %s)" % (self.contents[0], self._clip_max, self._clip_min)
+        clip_min, clip_max = self.get_clip_min_max()
+        return "Clip(%s, %s, %s)" % (self.contents[0], clip_max, clip_min)
 
 
 @nargs(2)
@@ -67,6 +78,7 @@ class Norm(Function):
         try:
             num = int(args[1])
             if num:
+                assert num <= 31, "Numeric overflow in shift"
                 if np.issubdtype(self.dtype, np.signedinteger):
                     return f"gap_roundnorm({args[0]}, {num})"
                 return f"gap_roundnormu({args[0]}, {num})"

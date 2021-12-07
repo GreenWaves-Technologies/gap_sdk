@@ -22,7 +22,6 @@
 
 #include <vp/vp.hpp>
 #include <vp/itf/io.hpp>
-#include "archi/gvsoc/gvsoc.h"
 #include "iss.hpp"
 #include "gap9_iss_wrapper.hpp"
 

@@ -36,10 +36,9 @@ class Shape(ConstantMixin, BackendHandler):
         # this process can leave dangling nodes without outputs
         # we clean them after we have finished loading
         x_shape = [dim if dim else 1 for dim in x[2].shape]
-        params = ConstantInputParameters(valid_name, value=np.array(x_shape),
-                                         constant_store=G.constant_store)
+        params = ConstantInputParameters(valid_name, value=np.array(x_shape))
         logger.info("reducing %s to a constant %s", valid_name, x_shape)
-        all_nodes[node.output[0]] = (params, 0, ProvisionalDim([len(x_shape)]))
+        all_nodes[node.output[0]] = (params, 0, ProvisionalDim([len(x_shape)]), None)
         return params
 
     @classmethod

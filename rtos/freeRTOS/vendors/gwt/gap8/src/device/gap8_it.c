@@ -28,7 +28,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "gap8_it.h"
+#include "device/gap8_it.h"
 #include "pmsis/implem/hal/hal.h"
 #include "printf.h"
 #include "pmsis.h"

@@ -23,7 +23,7 @@ void test_gpio(void)
 {
     int32_t errors = 0;
     uint32_t value = 0;
-    struct pi_gpio_conf gpio_conf = {0};
+    struct pi_gpio_conf gpio_conf;
     pi_gpio_conf_init(&gpio_conf);
     pi_open_from_conf(&gpio, &gpio_conf);
     errors = pi_gpio_open(&gpio);
@@ -32,7 +32,7 @@ void test_gpio(void)
         printf("Error opening GPIO %d\n", errors);
         pmsis_exit(errors);
     }
-    pi_task_t cb_gpio = {0};
+    pi_task_t cb_gpio;
 
     pi_gpio_e gpio_in = PI_GPIO_A0_PAD_12_A3;
     pi_gpio_notif_e irq_type = PI_GPIO_NOTIF_RISE;

@@ -59,14 +59,14 @@ class MissingStatsError(Exception):
 
 class NewQuantizer():
     def __init__(self, G: GraphView, reset_all=False) -> None:
-        self._G = G
+        self._graph = G
         if G.quantization and not reset_all:
-            self.set_stats(current_stats=G.quantization.stats)
-            self._options = G.quantization.options
-            if self._G.quantization.scheme_priority:
-                self._schemes = self._G.quantization.scheme_priority
+            self.set_stats(current_stats=G.quantization.stats,
+                           current_options=G.quantization.options)
+            if self._graph.quantization.scheme_priority:
+                self._schemes = self._graph.quantization.scheme_priority
             else:
-                self._schemes = list(self._G.quantization.schemes_present)
+                self._schemes = list(self._graph.quantization.schemes_present)
         else:
             self._stats = {}
             self._options = {}
@@ -125,16 +125,16 @@ class NewQuantizer():
                 f'{edge.to_node.name}:{edge.to_idx} {qtype}')
 
     def report_resolve(self, edge, direction):
-        self.report_edge(edge, f'RESOLVE {direction}', info)
+        self.report_edge(edge, f'RESOLVE {direction}', debug)
 
     def report_conflict(self, edge):
-        self.report_edge(edge, 'CONFLICT', info)
+        self.report_edge(edge, 'CONFLICT', debug)
 
     def report_pass(self, edge):
-        self.report_edge(edge, 'PASS', info)
+        self.report_edge(edge, 'PASS', debug)
 
     def report_quantizer(self, edge):
-        self.report_edge(edge, 'insert quantizer', info)
+        self.report_edge(edge, 'insert quantizer', debug)
 
     @staticmethod
     def report_qrec(phase, node, qrec):
@@ -204,7 +204,8 @@ class NewQuantizer():
         if not cur_qtype:
             self._qtypes[edge] = qtype
         elif isinstance(cur_qtype, tuple):
-            # tuple containing edge_up_qtype, edge_down_qtype, resolution direction (up/down) i.e. the direction to proceed to try to resolve this
+            # tuple containing edge_up_qtype, edge_down_qtype, resolution direction (up/down)
+            # i.e. the direction to proceed to try to resolve this
             if direction == 'down':
                 if cur_qtype[1] == qtype:  # qtype resolves since it matches the down side
                     self._qtypes[edge] = qtype
@@ -316,7 +317,8 @@ class NewQuantizer():
                     else:
                         # all outputs are forced. we want to keep the one that best represents
                         # the output so we calculate the maximum overlapping range
-                        # TODO - what about 16 bit versus 8 bit - if the range overlap is similar then lower scale should be taken into account
+                        # TODO - what about 16 bit versus 8 bit - if the range overlap is similar
+                        # then lower scale should be taken into account
                         range_diffs = sorted([(qtype, min(qtype.max, uniq_cur_qtype.max_val) - max(
                             qtype.min, uniq_cur_qtype.min_val)) for qtype in forced_qtypes], key=lambda x: x[1])
                         qtypes.append(range_diffs[-1][0])
@@ -324,41 +326,47 @@ class NewQuantizer():
             cur_qtypes = ",".join(str(qtype) for qtype in cur_qtypes)
             forced_qtypes = ",".join(str(qtype) for qtype in forced_qtypes)
             raise NotImplementedError(
-                f'unexpected quantization conflict seen cur {cur_qtypes} forced {forced_qtypes} - please contact GreenWaves')
+                f'unexpected quantization conflict seen cur {cur_qtypes} forced {forced_qtypes}'
+                ' - please contact GreenWaves')
         return qtypes
 
     def get_outqtypes_up_fusion(self, G, node):
-        return [self.select_qtype_fusion([self.get_conflict_up(edge) for edge in edge_bundle]) for edge_bundle in G.indexed_out_edges(node)]
+        return [self.select_qtype_fusion([self.get_conflict_up(edge) for edge in edge_bundle])
+                for edge_bundle in G.indexed_out_edges(node)]
 
-    def get_fusion_in_outs(self, int_G, ins_by_idx, outs_by_idx):
+    def get_fusion_in_outs(self, int_graph, ins_by_idx, outs_by_idx):
         # get the in outs forced to the actual evaluated ones with no conflict evaluation
         # remove all conflicts on fusion inputs and outputs
         in_qtypes = []
         for in_node in ins_by_idx:
-            edge = int_G.out_edges(in_node)[0]
+            edge = int_graph.out_edges(in_node)[0]
             in_qtypes.append(self.get_qtype_forced_down(edge))
-            for edge in int_G.out_edges(in_node):
+            for edge in int_graph.out_edges(in_node):
                 self._qtypes[edge] = in_qtypes[-1]
         out_qtypes = []
         for out_node in outs_by_idx:
-            edge = int_G.in_edges(out_node)[0]
+            edge = int_graph.in_edges(out_node)[0]
             out_qtypes.append(self.get_qtype_forced_up(edge))
             self._qtypes[edge] = out_qtypes[-1]
         return in_qtypes, out_qtypes
 
-    def set_stats(self, current_stats=None):
-        self._stats = set_stats(self._G, current_stats=current_stats)
+    def set_stats(self, current_stats=None, current_options=None):
+        if current_options is None:
+            current_options = self.options
+        self._stats, self._options = set_stats(
+            self._graph, current_stats=current_stats, current_options=current_options)
 
     def get_options(self, nid, handler=None):
         if handler is not None:
             opts = handler.get_default_options()
             opts.update({k: v for k, v in self._options.items()
-                        if k in opts})
+                         if k in opts})
             node_options = self._options.get(nid, {})
             opts.update({k: v for k, v in node_options.items()
-                        if k in opts})
+                         if k in opts})
         else:
-            opts = {k: v for k, v in self._options.items() if not isinstance(k, NodeId)}
+            opts = {k: v for k, v in self._options.items()
+                    if not isinstance(k, NodeId)}
             opts.update(self._options.get(nid, {}))
         return opts
 
@@ -374,7 +382,10 @@ class NewQuantizer():
             scheme_priority = self._schemes
         return [scheme.upper() for scheme in scheme_priority]
 
-    def _choose_quantizer(self, cur_G, node, in_qs, out_qs, stats, opts, scheme_priority, **kwargs):
+    def _choose_quantizer(self, cur_G, node, in_qs, out_qs, stats, opts,
+                          scheme_priority, fusion, set_out_qs, direction):
+        kwargs = self.setup_kwargs(
+            cur_G, out_qs, opts, fusion, set_out_qs, direction)
         return match_handler(cur_G, self._handlers, node, scheme_priority, opts,
                              in_qs_constraint=in_qs, out_qs_constraint=out_qs, **kwargs)
 
@@ -387,14 +398,15 @@ class NewQuantizer():
             cur_G, out_qs, opts, fusion, set_out_qs, direction)
         return handler.quantize(node, in_qs, stats, **kwargs)
 
-    def _call_get_in_qs_from_stats(self, cur_G, direction, handler, node, in_qs, out_qs, stats, opts, fusion, set_out_qs=False):
+    def _call_get_in_qs_from_stats(self, cur_G, direction, handler, node, in_qs, out_qs,
+                                   stats, opts, fusion, set_out_qs=False):
         kwargs = self.setup_kwargs(
             cur_G, out_qs, opts, fusion, set_out_qs, direction=direction)
         return handler.get_in_qs_from_stats(node, stats, in_qs, **kwargs)
 
     def setup_kwargs(self, cur_G, out_qs, opts, fusion, set_out_qs, direction):
         kwargs = {
-            'G': self._G,
+            'G': self._graph,
             'opts': opts,
             'all_stats': self._stats,
             'fusion': fusion,
@@ -411,7 +423,7 @@ class NewQuantizer():
 
     def _set_fusion_in_edges(self, parent_node, in_qtypes=None):
         if in_qtypes is None:
-            in_qtypes = self.get_inqtypes_down(self._G, parent_node)
+            in_qtypes = self.get_inqtypes_down(self._graph, parent_node)
         int_G = parent_node.subgraph
         ins_by_idx = sorted(int_G.inputs(), key=lambda x: x.idx)
         out_nodes = set()
@@ -424,7 +436,7 @@ class NewQuantizer():
     def _set_fusion_out_edges(self, parent_node, out_qtypes=None):
         int_G = parent_node.subgraph
         if out_qtypes is None:
-            for out_idx, out_edge_bundle in enumerate(self._G.indexed_out_edges(parent_node)):
+            for out_idx, out_edge_bundle in enumerate(self._graph.indexed_out_edges(parent_node)):
                 qtype = None
                 for edge in out_edge_bundle:
                     if qtype is None:
@@ -465,7 +477,8 @@ class NewQuantizer():
         stat = self._stats.get(nid, None)
         opts = self.get_options(nid)
         scheme_priority = self.get_scheme_priority(nid)
-        return self._resolve_qrec(self._G, 'down', parent_node, stat, opts, scheme_priority, in_qtypes, out_qs=out_qtypes, set_out_qs=True)
+        return self._resolve_qrec(self._graph, 'down', parent_node, stat, opts,
+                                  scheme_priority, in_qtypes, out_qs=out_qtypes, set_out_qs=True)
 
     def _bfs_pass(self, cur_G, node, qset, visited, parent=None):
         in_edges = cur_G.indexed_in_edges(node)
@@ -529,7 +542,8 @@ class NewQuantizer():
         set_in_qs = in_qs
         while qrec is None:
             handler = self._choose_quantizer(cur_G,
-                                             node, set_in_qs, out_qs, stat, opts, scheme_priority)
+                                             node, set_in_qs, out_qs, stat, opts, scheme_priority,
+                                             fusion, set_out_qs, direction)
             if handler is not None:
                 pnid = NodeId(node) if fusion is None else NodeId(fusion)
                 handler_opts = self.get_options(pnid, handler)
@@ -542,7 +556,8 @@ class NewQuantizer():
                         node, in_qs, out_qs,
                         stat, handler_opts, fusion, set_out_qs=set_out_qs)
                 qrec = self._call_quantizer(cur_G,
-                                            handler, node, cur_in_qs, out_qs, stat, handler_opts, fusion, direction=direction, set_out_qs=set_out_qs)
+                                            handler, node, cur_in_qs, out_qs, stat, handler_opts, fusion,
+                                            direction=direction, set_out_qs=set_out_qs)
             if qrec is None:
                 if out_qs is not None:
                     out_qs = None
@@ -565,8 +580,8 @@ class NewQuantizer():
         self._qset = QuantizationSet()
         self.remove_quantizers(only_inserted=only_inserted)
         visited = []
-        for node in self._G.inputs():
-            self._bfs_pass(self._G, node, self._qset, visited)
+        for node in self._graph.inputs():
+            self._bfs_pass(self._graph, node, self._qset, visited)
 
     def elimination_pass_up(self, cur_G, edge, qtype, visited, fusion=None):
         if edge.from_node in visited:
@@ -583,7 +598,7 @@ class NewQuantizer():
         self.set_qtype_down(edge, qrec.out_qs[edge.from_idx])
         if self.is_conflict(edge):
             if fusion:
-                raise CantContinueError()
+                raise CantContinueError()  # @IgnoreException
             if not was_conflict:
                 self.report_conflict(edge)
         else:
@@ -651,7 +666,7 @@ class NewQuantizer():
         in_qtypes, out_qtypes = self.get_fusion_in_outs(
             int_G, ins_by_idx, outs_by_idx)
 
-        for edge in self._G.indexed_in_edges(parent_node):
+        for edge in self._graph.indexed_in_edges(parent_node):
             was_conflict = self.is_conflict(
                 edge) if edge in self._qtypes else False
             self.set_qtype_up(edge, in_qtypes[edge.to_idx])
@@ -668,7 +683,8 @@ class NewQuantizer():
         stat = self._stats.get(nid, None)
         opts = self.get_options(nid)
         scheme_priority = self.get_scheme_priority(nid)
-        return self._resolve_qrec(self._G, 'down', parent_node, stat, opts, scheme_priority, in_qtypes, out_qs=out_qtypes, set_out_qs=True)
+        return self._resolve_qrec(self._graph, 'down', parent_node, stat, opts,
+                                  scheme_priority, in_qtypes, out_qs=out_qtypes, set_out_qs=True)
 
     def elimination_fusion_pass_up(self, parent_node, qrecs, in_qs, out_qs):
         int_G = parent_node.subgraph
@@ -703,7 +719,7 @@ class NewQuantizer():
         in_qtypes, out_qtypes = self.get_fusion_in_outs(
             int_G, ins_by_idx, outs_by_idx)
 
-        for edge_bundle in self._G.indexed_out_edges(parent_node):
+        for edge_bundle in self._graph.indexed_out_edges(parent_node):
             for edge in edge_bundle:
                 was_conflict = self.is_conflict(
                     edge) if edge in self._qtypes else False
@@ -721,7 +737,7 @@ class NewQuantizer():
         stat = self._stats.get(nid, None)
         opts = self.get_options(nid)
         scheme_priority = self.get_scheme_priority(nid)
-        qrec = self._resolve_qrec(self._G, 'up', parent_node, stat, opts,
+        qrec = self._resolve_qrec(self._graph, 'up', parent_node, stat, opts,
                                   scheme_priority, in_qtypes, out_qs=out_qtypes, set_out_qs=True)
         return qrec
 
@@ -777,7 +793,8 @@ class NewQuantizer():
                 if not self.is_conflict(out_edge):
                     continue
                 qrecs.update(self.elimination_pass_down(cur_G,
-                                                        out_edge, self.get_qtype_down(out_edge), visited + [node], fusion=fusion))
+                                                        out_edge, self.get_qtype_down(out_edge),
+                                                        visited + [node], fusion=fusion))
 
     def continue_up(self, cur_G, qrecs, visited, node, qrec, exclude_edge=None, fusion=None):
         # check in_qs for match problems and continue up
@@ -826,10 +843,10 @@ class NewQuantizer():
                 self.report_pass(edge)
 
                 if conflict[2] == 'up':
-                    qrecs = self.elimination_pass_up(self._G,
+                    qrecs = self.elimination_pass_up(self._graph,
                                                      edge, conflict[1], [edge.to_node])
                 else:
-                    qrecs = self.elimination_pass_down(self._G,
+                    qrecs = self.elimination_pass_down(self._graph,
                                                        edge, conflict[0], [edge.from_node])
                 after_len = self.conflict_count()
                 if after_len < before_len:
@@ -849,7 +866,8 @@ class NewQuantizer():
             self.report_quantizer(edge)
 
             qnode = QuantizeParameters(
-                self._G.unique_name(f'{edge.to_node.name}_qin{edge.to_idx}'),
+                self._graph.unique_name(
+                    f'{edge.to_node.name}_qin{edge.to_idx}'),
                 from_qtype=from_qtype,
                 to_qtype=to_qtype)
             self._qset[NodeId(qnode)] = QRec(
@@ -859,16 +877,16 @@ class NewQuantizer():
                 'range_in': [{'min': from_qtype.min_val, 'max': from_qtype.max_val}],
                 'range_out': [{'min': to_qtype.min_val, 'max': to_qtype.max_val}]
             }
-            self._G.insert_node_at_edge(qnode, edge, edge_class=NNEdge)
-            for out_edge in self._G.out_edges(qnode):
+            self._graph.insert_node_at_edge(qnode, edge, edge_class=NNEdge)
+            for out_edge in self._graph.out_edges(qnode):
                 self._qtypes[out_edge] = to_qtype
-        RemoveCopies().match(self._G)
+        RemoveCopies().match(self._graph)
 
     def remove_quantizers(self, only_inserted=False):
-        for node in self._G.nodes(node_classes=QuantizeParameters):
+        for node in self._graph.nodes(node_classes=QuantizeParameters):
             if only_inserted and not node.inserted_by_quantizer:
                 continue
-            self._G.remove_and_reconnect(node, edge_class=NNEdge)
+            self._graph.remove_and_reconnect(node, edge_class=NNEdge)
             nid = NodeId(node)
             if self._qset and nid in self._qset:
                 del self._qset[nid]
@@ -880,21 +898,21 @@ class NewQuantizer():
             raise ValueError('no quantization schemes set')
         self._postprocess = {'requires_adjust': False}
         self.bfs_pass()
-        self._G.quantization = self.qset
+        self._graph.quantization = self.qset
         self.elimination_pass()
         self.insert_quantizers()
-        RemoveUnnecessaryQuantizeOperators().match(self._G)
-        self._G.add_dimensions()
+        RemoveUnnecessaryQuantizeOperators().match(self._graph)
+        self._graph.add_dimensions()
         if self._postprocess['requires_adjust']:
-            self._G.adjust_order()
-        self._G.quantization.scheme_priority = self._schemes
-        self._G.quantization.schemes_present |= set(self._schemes)
-        self._G.quantization.stats = self._stats
-        self._G.quantization.options = self._options
-        problems = verify_quantization(self._G)
+            self._graph.adjust_order()
+        self._graph.quantization.scheme_priority = self._schemes
+        self._graph.quantization.schemes_present |= set(self._schemes)
+        self._graph.quantization.stats = self._stats
+        self._graph.quantization.options = self._options
+        problems = verify_quantization(self._graph)
         if problems:
             LOG.warning('quantization has errors')
             for problem in problems:
                 LOG.warning(problem)
             raise ValueError('quantization did not complete successfully')
-        return self._G.quantization
+        return self._graph.quantization

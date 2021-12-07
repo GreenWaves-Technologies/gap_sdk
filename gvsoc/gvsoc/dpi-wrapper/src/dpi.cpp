@@ -30,6 +30,7 @@ using namespace std;
 extern "C" void *dpi_open(char *config_path)
 {
   struct gv_conf gv_conf;
+  gv_conf.proxy_socket = NULL;
   gv_init(&gv_conf);
   void *handle = gv_create(config_path, &gv_conf);
   return handle;

@@ -29,6 +29,7 @@ class Max(ArithmeticMixin, BackendHandler):
         return super(Max, cls)._common(node,
                                        params_class=MaxOpParameters,
                                        constant_operation=np.maximum,
+                                       copy_qtype=True,
                                        **kwargs)
 
     @classmethod

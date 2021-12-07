@@ -16,10 +16,13 @@
 import texttable
 from cmd2 import Cmd2ArgumentParser, with_argparser
 from interpreter.nntool_shell_base import NNToolShellBase
+from quantization.quantizer.new_quantizer import NewQuantizer
+from quantization.verify_quantization import verify_quantization
 
 from graph.matches.matches import (get_fusion, get_fusions,
                                    get_pow2_match_group,
                                    get_scale8_match_group)
+from graph.types import ConstantInputParameters
 
 
 class FusionsCommand(NNToolShellBase):
@@ -56,21 +59,31 @@ Carry out the default set of fusions on the graph"""
             self.ppaged(table.draw())
             return
         self._check_graph()
-        if args.apply:
-            fusions = [get_fusion(name) for name in args.apply]
-            invalid_names = [args.apply[idx] for idx, fusion in enumerate(fusions) if fusion is None]
-            if invalid_names:
-                self.perror(f'fusion{"s" if len(invalid_names) > 1 else ""} {", ".join(invalid_names)} not found')
+        state = ConstantInputParameters.save_compression_state(self.G)
+        try:
+            if args.apply:
+                fusions = [get_fusion(name) for name in args.apply]
+                invalid_names = [args.apply[idx] for idx, fusion in enumerate(fusions) if fusion is None]
+                if invalid_names:
+                    self.perror(f'fusion{"s" if len(invalid_names) > 1 else ""} {", ".join(invalid_names)} not found')
+                    return
+            elif args.pow2:
+                fusions = [get_pow2_match_group()]
+            elif args.scale8:
+                fusions = [get_scale8_match_group()]
+            else:
+                self.perror("No fusion set selected. Nothing to do. Select --pow2 or --scale8.")
                 return
-        elif args.pow2:
-            fusions = [get_pow2_match_group()]
-        elif args.scale8:
-            fusions = [get_scale8_match_group()]
-        else:
-            self.perror("No fusion set selected. Nothing to do. Select --pow2 or --scale8.")
-            return
-        for fusion in fusions:
-            fusion.match(self.G)
-        self.G.add_dimensions()
-        if self.G.quantization and not self.G.quantization.verify_quantization(self.G):
-            self.G.quantization = None
+            for fusion in fusions:
+                fusion.match(self.G)
+            self.G.add_dimensions()
+            if self.G.quantization and verify_quantization(self.G):
+                quantizer = NewQuantizer(self.G)
+                quantizer.quantize()
+                problems = verify_quantization(self.G)
+                if problems:
+                    self.perror('quantization issue after fusions')
+                    for problem in problems:
+                        self.perror(problem)
+        finally:
+            ConstantInputParameters.restore_compression_state(self.G, state)

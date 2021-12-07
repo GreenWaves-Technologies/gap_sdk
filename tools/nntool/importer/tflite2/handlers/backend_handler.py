@@ -19,10 +19,8 @@ from copy import deepcopy
 
 import numpy as np
 from graph.dim import Dim
-from graph.types.activations import ActivationParameters
-from graph.types.base import NNEdge
-from graph.types.input_output import ConstantInputParameters
-from graph.types.others import ReshapeParameters
+from graph.types import (ActivationParameters, ConstantInputParameters, NNEdge,
+                         ReshapeParameters)
 from importer.common.provisional_dim import ProvisionalDim
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
@@ -152,8 +150,7 @@ class BackendHandler(Handler):
                 const_param = ConstantInputParameters(
                     tensor.name,
                     dims=Dim.unnamed(tensor.shape),
-                    value=tensor.value,
-                    constant_store=G.constant_store)
+                    value=tensor.value)
                 all_nodes[tensor] = (
                     const_param,
                     0,

@@ -32,7 +32,7 @@
 /* Scheduler includes. */
 #include "FreeRTOS.h"
 #include "task.h"
-#include "system_gap8.h"
+#include "device/system_gap8.h"
 
 /* Macro definitions. */
 #include "chip_specific_extensions/gap8/freertos_risc_v_chip_specific_extensions.h"

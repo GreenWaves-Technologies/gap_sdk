@@ -14,14 +14,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from ..function import Function
-from ..symbol import nargs, Constant, c_headers
+from ..symbol import nargs, Constant, c_headers, copy_props
 
 @nargs(1)
 @c_headers('"Gap.h"')
+@copy_props('to_qrec')
 class Q15ScaleFloat(Function):
     def __init__(self, *args, to_qrec=None, **kwargs):
         self._to_qrec = to_qrec
         super().__init__(*args, **kwargs)
+
+    @property
+    def to_qrec(self):
+        return self._to_qrec
 
     def _eval(self, *args, **kwargs):
         if isinstance(args[0], Constant):

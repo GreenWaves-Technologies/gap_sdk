@@ -1,6 +1,6 @@
-#include "pmsis_backend_native_types.h"
+#include "pmsis/backend/pmsis_backend_native_types.h"
 #include "pmsis.h"
-#include "gap_io.h"
+#include "driver/gap_io.h"
 
 /**
  * Kickoff the first "main" os task and scheduler

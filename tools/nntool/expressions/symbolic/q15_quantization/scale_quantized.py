@@ -16,9 +16,10 @@
 import math
 
 import numpy as np
+from numpy.core.getlimits import iinfo
 from expressions.symbolic.function import Function
 
-from ..basic import Cast, CompoundFunction, LShift, Mul
+from ..basic import Add, Cast, CompoundFunction, LShift, Mul, Sub, copy_props
 from ..symbol import c_headers, nargs
 from .clip_norm import Norm
 from .q15_scale_q_rec import Q15ScaleQRec
@@ -27,10 +28,15 @@ from .quantized_constant import QuantizedConstant
 
 @nargs(2)
 @c_headers('"Gap.h"')
+@copy_props('norm')
 class MulRN(Function):
     def __init__(self, *args, norm=0, **kwargs):
         self._norm = norm
         super().__init__(*args, **kwargs)
+
+    @property
+    def norm(self):
+        return self._norm
 
     def _impl(self, *args, **kwargs):
         factor = int(math.pow(2, self._norm - 1))
@@ -46,6 +52,7 @@ class MulRN(Function):
 
 @nargs(1)
 @c_headers('"Gap.h"')
+@copy_props('from_qrec', 'to_qrec', 'num_bits')
 class ScaleQuantized(CompoundFunction):
     def __init__(self, *args, from_qrec=None, to_qrec=None, num_bits=15, **kwargs):
         self._from_qrec = from_qrec
@@ -85,15 +92,16 @@ class ScaleQuantized(CompoundFunction):
         if self._from_qrec == self._to_qrec:
             return sym
 
-        if sym.is_zero:
-            if self._from_qrec.dtype != self._to_qrec.dtype:
-                return Cast(sym, dtype=self._to_qrec.dtype)
-            return sym
+        if sym.is_zero(self._from_qrec):
+            return QuantizedConstant(self._to_qrec.zero_point, dtype=self._to_qrec.dtype)
 
         qbias, qnorm = self._calc_bias()
         # make sure we are in int32 before doing these operations
         if self._from_qrec.dtype != np.int32:
             sym = Cast(sym, dtype=np.int32)
+
+        if self._from_qrec.zero_point != 0:
+            sym = Sub(sym, QuantizedConstant(self._from_qrec.zero_point, dtype=np.int32))
 
         if qbias == 1:
             # its a left shift
@@ -141,6 +149,12 @@ class ScaleQuantized(CompoundFunction):
                 name=self.name,
                 dtype=self._to_qrec.dtype
             )
+
+        if self._to_qrec.zero_point != 0:
+            sym = Add(sym, QuantizedConstant(self._to_qrec.zero_point, dtype=np.int32))
+
+        # TODO - Check if we need to clip here!!
+
         if self._to_qrec.dtype != np.int32:
             sym = Cast(sym, dtype=self._to_qrec.dtype)
         return sym

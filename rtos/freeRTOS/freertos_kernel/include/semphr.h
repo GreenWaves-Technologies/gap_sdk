@@ -33,6 +33,10 @@
 
 #include "queue.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef QueueHandle_t SemaphoreHandle_t;
 
 #define semBINARY_SEMAPHORE_QUEUE_LENGTH    ( ( uint8_t ) 1U )
@@ -293,7 +297,7 @@ typedef QueueHandle_t SemaphoreHandle_t;
  * \defgroup xSemaphoreTake xSemaphoreTake
  * \ingroup Semaphores
  */
-#define xSemaphoreTake( xSemaphore, xBlockTime )    xQueueSemaphoreTake( ( xSemaphore ), ( xBlockTime ) )
+#define xSemaphoreTake( xSemaphore, xBlockTime )    xQueueSemaphoreTake( ( (QueueHandle_t) xSemaphore ), ( xBlockTime ) )
 
 /**
  * semphr. h
@@ -1170,4 +1174,7 @@ typedef QueueHandle_t SemaphoreHandle_t;
  */
 #define uxSemaphoreGetCount( xSemaphore )                uxQueueMessagesWaiting( ( QueueHandle_t ) ( xSemaphore ) )
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* SEMAPHORE_H */

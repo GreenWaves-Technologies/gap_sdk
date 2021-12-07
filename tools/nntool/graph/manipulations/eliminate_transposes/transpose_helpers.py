@@ -36,6 +36,12 @@ def reverses_transpose(trans1, trans2, dim=None):
     return True
 
 
+def identity_transpose(trans):
+    if trans is None:
+        return False
+    return list(trans) == sorted(list(trans))
+
+
 def apply_transpose(elems, trans):
     return [elems[i] for i in trans]
 

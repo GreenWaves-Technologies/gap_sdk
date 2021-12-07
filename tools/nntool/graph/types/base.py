@@ -111,7 +111,7 @@ class Parameters(Node):
     NARGS = {1}
     NOT_GENERATED = False
 
-    def __init__(self, name, *args, in_dims_hint=None, out_dims_hint=None, constant_store=None, **kwargs):
+    def __init__(self, name, *args, in_dims_hint=None, out_dims_hint=None, **kwargs):
         super().__init__(name, *args, **kwargs)
         del args, kwargs
         self._in_dims = None
@@ -119,7 +119,6 @@ class Parameters(Node):
         self._in_dims_hint = in_dims_hint
         self._out_dims_hint = out_dims_hint
         self._step_idx = -1
-        self._constant_store = constant_store
         self._valid_at_options = {"VCD_TRACE_ON": int, "DUMP_TENSORS": int,
                                   "OUT_HOME_MEM_LOC": str, "OUT_EXEC_MEM_LOC": str,
                                   "NODE_CNAME": str}
@@ -541,17 +540,11 @@ class MultiplicativeBiasParameters(FilterParameters):
 
     @property
     def mul_biases(self):
-        if self._constant_store:
-            return self._constant_store.get(self, 3)
-        else:
-            return self._mul_biases
+        return self._mul_biases
 
     @mul_biases.setter
     def mul_biases(self, val):
-        if self._constant_store:
-            self._constant_store.set(self, 3, val)
-        else:
-            self._mul_biases = val
+        self._mul_biases = val
 
     def get_parameters(self):
         res = super().get_parameters()

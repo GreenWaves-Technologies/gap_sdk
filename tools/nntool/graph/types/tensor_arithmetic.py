@@ -242,3 +242,32 @@ class MatMulOpParameters(Parameters, SensitiveToOrder):
 
     def __str__(self):
         return f"{self.op_name} {self.at_options}"
+
+@cls_op_name('matmulT')
+class MatMulTransposedParameters(MatMulOpParameters):
+    def get_output_size(self, in_dims):
+        x_shape = list(in_dims[0].shape).copy()
+        y_shape = list(in_dims[1].shape).copy()
+
+        if len(x_shape) == 1:
+            x_shape = [1] + x_shape
+            remove_first = True
+        else:
+            remove_first = False
+
+        if len(y_shape) == 1:
+            y_shape = y_shape + [1]
+            remove_last = True
+        else:
+            remove_last = False
+        y_shape = y_shape[::-1]
+        x_chans = x_shape[:-2:]
+        y_chans = y_shape[:-2:]
+        out_chans = Dim.npbroadcast([x_chans, y_chans])
+        x = [] if remove_first else [x_shape[-2]]
+        y = [] if remove_last else [y_shape[-1]]
+        out_dim = Dim.unnamed(out_chans + x + y)
+        return [out_dim]
+
+    def __str__(self):
+        return f"Transposed {self.op_name} {self.at_options}"

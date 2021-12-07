@@ -44,8 +44,6 @@ public:
 private:
     void add_port(std::string name, vp::port *port);
     std::map<std::string, vp::port *> ports;
-
-    vp::power_trace power_trace;
 };
 
 
@@ -58,7 +56,7 @@ composite::composite(js::config *config)
 
 void composite::dump_traces(FILE *file)
 {
-    this->power_trace.dump(file);
+    this->power.get_power_trace()->dump(file);
 }
 
 
@@ -68,19 +66,12 @@ int composite::build()
     this->create_ports();
     this->create_bindings();
 
-    if (this->power.new_trace("power_trace", &this->power_trace))
-        return -1;
-
     return 0;
 }
 
 
 void composite::start()
 {
-    //if (this->get_clock())
-    {
-        this->power_trace.collect();
-    }
 }
 
 

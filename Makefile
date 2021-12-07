@@ -25,6 +25,38 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+ifeq ($(TARGET_CHIP), GAP9)
+use_old_build = 1
+endif
+
+ifeq ($(TARGET_CHIP_FAMILY), GAP8)
+use_old_build = 1
+endif
+
+ifeq '$(use_old_build)' '1'
+
+checkout:
+	git submodule update --init --recursive
+
+all:
+	$(MAKE) -f gap8/gap8.mk gap8.all
+
+sdk: all
+
+audio-framework: all
+minimal: all
+plptest.all: all
+autotiler: all
+nntool: all
+littlefs.build: all
+gvsoc: all
+openocd.all: all
+
+clean:
+	$(MAKE) -f gap8/gap8.mk clean
+
+else
+
 ifndef GAP_SDK_HOME
     $(error Please run 'source sourceme.sh' in gap_sdk first)
 endif				# GAP_SDK_HOME
@@ -63,7 +95,7 @@ help:
 checkout:
 	git submodule update --recursive --init
 
-all: minimal gvsoc autotiler nntool littlefs.build openocd.all
+all: minimal gvsoc autotiler nntool littlefs.build
 
 clean: littlefs.clean
 	$(RM) $(TARGET_INSTALL_DIR)
@@ -73,13 +105,9 @@ clean: littlefs.clean
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/nntool clean
 	if [ -e tools/profiler ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/profiler clean; fi
 
-ifeq ($(TARGET_CHIP_FAMILY), GAP8)
-minimal: pulp-os openocd_tools.build plptest.build
-else
 all: sfu.build
 minimal: plptest.build
 clean: sfu.clean
-endif				# TARGET_CHIP_FAMILY
 
 # Compat
 sdk: all
@@ -103,108 +131,42 @@ pmsis-bsp.checkout:
 pmsis-api.checkout:
 	git submodule update --init rtos/pmsis/pmsis_api
 
-# This rules is to compile pmsis-bsp for pulp os on gap8, wihtout having to recompile the whole sdk
-pmsis-bsp.build:
-	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp all
-
 gap_configs.checkout:
 	git submodule update --init utils/gap_configs
 
-# PulpOS_v1
-pulprt.all: pulprt.checkout pulprt.build
-
-pulprt.checkout:
-	git submodule update --init rtos/pulp/pulp-os
-
-pulprt.build:
-	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pulp build.pulprt
-
-pulp-os: $(TARGET_INSTALL_DIR) install_others
-	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api -f tools/export.mk build
-	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pulp build
-	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp all
-	$(MAKE) -C $(GAP_SDK_HOME)/libs/gap_lib all
-
 # PulpOS_v2
-pulpos.all:
+pulpos.all: pulpos.checkout
 
 gap_lib.checkout:
 	git submodule update --init libs/gap_lib
 
 pulpos.checkout: gap_lib.checkout
-	git submodule update --init rtos/pulp/pulpos-2 rtos/pulp/pulpos-2_gap8 rtos/pulp/pulpos-2_gap9 rtos/pulp/gap_archi rtos/pulp/hal_pulp rtos/pulp/archi_pulp
+	git submodule update --init rtos/pulp/pulpos-2 rtos/pulp/pulpos-2_gap9 rtos/pulp/gap_archi
 
 freertos.all: freertos.checkout
 
 freertos.checkout:
 	git submodule update --recursive --init rtos/freeRTOS
 
-use_old_gvsoc=0
-
-ifeq '$(TARGET_CHIP_FAMILY)' 'GAP8'
-use_old_gvsoc=1
-endif
-
-ifeq '$(TARGET_CHIP)' 'GAP9'
-use_old_gvsoc=1
-endif
-
 # GVSOC
-ifeq '$(use_old_gvsoc)' '1'
-gvsoc: pulp-os pulpos.all gvsoc.checkout
-	./gvsoc/gvsoc-build
+gvsoc:
 	$(MAKE) gvsoc.build
-else
-gvsoc: pulp-os
-	$(MAKE) gvsoc.build
-endif
 
 gvsoc.all: gvsoc.checkout gvsoc.build
 
 gvsoc.checkout:
 	git submodule update --init --recursive gvsoc
 
-ifeq '$(use_old_gvsoc)' '1'
-gvsoc.build: gvsoc.checkout gap_configs.checkout
-	$(MAKE) -C gvsoc/gvsoc build BUILD_DIR=$(BUILD_DIR)/gvsoc INSTALL_DIR=$(INSTALL_DIR) TARGET_INSTALL_DIR=$(GAP_SDK_HOME)/install
-	$(MAKE) -C gvsoc/gvsoc_gap build BUILD_DIR=$(BUILD_DIR)/gvsoc_gap INSTALL_DIR=$(INSTALL_DIR) TARGET_INSTALL_DIR=$(GAP_SDK_HOME)/install
-else
 gvsoc.build:
-	cmake -S gvsoc -B build/gvsoc -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTARGET_CHIP=GAP9_V2 && cmake --build build/gvsoc -j8 && cmake --install build/gvsoc --prefix $(GAP_SDK_HOME)/install/workstation
-endif
+	cmake -S gvsoc -B build/gvsoc -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTARGET_CHIP=GAP9_V2 -DCONFIG_GVSOC_SKIP_UDMA_BUILD=$(CONFIG_GVSOC_SKIP_UDMA_BUILD)
+	cmake --build build/gvsoc
+	cmake --install build/gvsoc --prefix $(GAP_SDK_HOME)/install/workstation
 
 gvsoc.clean:
 	$(MAKE) -C gvsoc/gvsoc clean BUILD_DIR=$(BUILD_DIR)/gvsoc INSTALL_DIR=$(INSTALL_DIR) TARGET_INSTALL_DIR=$(GAP_SDK_HOME)/install
 
 
 # Tools
-
-ifeq ($(TARGET_CHIP_FAMILY), GAP8)
-
-openocd.all: openocd.build
-
-openocd.checkout:
-	if [ ! -e utils/gap8-openocd ]; then \
-		git clone --recursive https://github.com/GreenWaves-Technologies/gap8_openocd.git utils/gap8-openocd; \
-		cd utils/gap8-openocd; \
-	fi
-
-openocd.build: openocd.checkout
-	cd utils/gap8-openocd && ./bootstrap
-	cd utils/gap8-openocd && ./configure --prefix=$(INSTALL_DIR)/gap8-openocd --program-prefix=gap8-
-	cd utils/gap8-openocd && make -j install
-	mkdir -p $(INSTALL_DIR)/gap8-openocd/share/openocd/scripts/tcl
-	cd utils/openocd_tools && cp -r tcl/* $(INSTALL_DIR)/gap8-openocd/share/openocd/scripts/tcl
-	cd utils/openocd_tools && mkdir -p $(INSTALL_DIR)/gap8-openocd/share/openocd/gap_bins && cp -r gap_bins/* $(INSTALL_DIR)/gap8-openocd/share/openocd/gap_bins
-
-openocd_tools.all: openocd_tools.build
-
-openocd_tools.build:
-	mkdir -p $(INSTALL_DIR)/gap8-openocd/share/openocd/scripts/tcl
-	cd utils/openocd_tools && cp -r tcl/* $(INSTALL_DIR)/gap8-openocd/share/openocd/scripts/tcl
-	cd utils/openocd_tools && mkdir -p $(INSTALL_DIR)/gap8-openocd/share/openocd/gap_bins && cp -r gap_bins/* $(INSTALL_DIR)/gap8-openocd/share/openocd/gap_bins
-
-else
 
 openocd.all: openocd.build
 
@@ -221,8 +183,6 @@ openocd.build: openocd.checkout
 openocd.clean:
 	rm -rf $(INSTALL_DIR)/openocd tools/openocd
 
-endif				# TARGET_CHIP_FAMILY
-
 profiler:
 	$(MAKE) -C tools/profiler all
 	mkdir -p $(INSTALL_DIR)/bin
@@ -231,16 +191,22 @@ profiler:
 nntool:
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/nntool all
 
+
+# SFUConfigurationGenerator (aka sfu_gen)
+SFUGEN_DIR = $(GAP_SDK_HOME)/tools/sfu_gen
+SFUGEN_BUILD_DIR = $(GAP_SDK_HOME)/build/sfu_gen
+
 sfu.clean:
 ifneq ("$(wildcard tools/sfu_gen/Makefile)","")
-	cd tools/sfu_gen && make clean
+	rm -rf $(SFUGEN_BUILD_DIR)
 endif
 
 sfu.build:
-ifneq ("$(wildcard tools/sfu_gen/Makefile)","")
-	cd tools/sfu_gen && make lib all install #INSTALL_DIR=$(CURDIR)/tools/sfu_gen/install
+ifneq ("$(wildcard tools/sfu_gen/CMakeLists.txt)","")
+	cmake -S $(SFUGEN_DIR) -B $(SFUGEN_BUILD_DIR)
+	cmake --build $(SFUGEN_BUILD_DIR)
+	cmake --install $(SFUGEN_BUILD_DIR) --prefix $(INSTALL_DIR)
 endif
-
 
 # Utils
 gapy.all: gapy.checkout
@@ -264,14 +230,10 @@ LFS_MAKEFILE = $(LFS_BUILD_DIR)/Makefile
 
 #include $(LFS_MAKEFILE)
 
-littlefs.build: $(LFS_MAKEFILE)
-	make -C $(LFS_BUILD_DIR) all install
-
-$(LFS_MAKEFILE): $(LFS_DIR)/CMakeLists.txt | $(LFS_BUILD_DIR)
-	cd $(LFS_BUILD_DIR) && cmake -DCMAKE_INSTALL_PREFIX:PATH=$(INSTALL_DIR) $(LFS_DIR)
-
-$(LFS_BUILD_DIR):
-	$(MKDIR) -p $@
+littlefs.build:
+	cmake -S $(LFS_DIR) -B build/lfs
+	cmake --build build/lfs
+	cmake --install build/lfs --prefix $(INSTALL_DIR)
 
 littlefs.checkout:
 	git submodule update --init utils/littlefs
@@ -315,4 +277,6 @@ test:
 	plptest --max-timeout=$(TIMEOUT) --bench-csv-file=results.csv score
 
 
-.PHONY: all clean install_others pulp-os gvsoc minimal
+.PHONY: all clean install_others gvsoc minimal
+
+endif

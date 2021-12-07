@@ -15,7 +15,7 @@
 
 import logging
 
-from graph.dim import Conv2DFilterDim, Dim
+from graph.dim import Conv2DFilterDim, Dim, PadDim
 from graph.types import Conv2DParameters, ConvFusionParameters
 from utils.graph import GraphView
 
@@ -50,15 +50,41 @@ class FilterBiggerThanInput(Matcher):
                             filt_node.name, filt_dim.h, filt_dim.w, in_dim[0].h, in_dim[0].w)
                 continue
 
-            ker_h = 1 if min_h == 1 else filt_dim.h
-            ker_w = 1 if min_w == 1 else filt_dim.w
+            if min_h == 1:
+                ker_h = 1
+                ker_h_reduced = True
+            else:
+                ker_h_reduced = False
+                ker_h = filt_dim.h
+            if min_w == 1:
+                ker_w = 1
+                ker_w_reduced = True
+            else:
+                ker_w_reduced = False
+                ker_w = filt_dim.w
             if ker_h == filt_dim.h and ker_w == filt_dim.w:
                 continue
+            if filt_node.padding:
+                if ker_h_reduced:
+                    top = bottom = 0
+                else:
+                    top = filt_node.padding.t
+                    bottom = filt_node.padding.b
+                if ker_w_reduced:
+                    left = right = 0
+                else:
+                    left = filt_node.padding.l
+                    right = filt_node.padding.r
+                padding = PadDim(top, bottom, left, right)
+            else:
+                padding = PadDim(0)
+
             new_filt_dim = Conv2DFilterDim(
                 ker_h, ker_w, filt_dim.out_c, in_c=filt_dim.in_c)
             LOG.warning("Converting filter of %s from [%dx%d] -> [%dx%d]",
                         filt_node.name, filt_dim.h, filt_dim.w, new_filt_dim.h, new_filt_dim.w)
             filt_node.filter = new_filt_dim
+            filt_node.padding = padding
             new_w_idxs = []
             for dim in filt_dim.order:
                 if dim in ('out_c', 'in_c'):

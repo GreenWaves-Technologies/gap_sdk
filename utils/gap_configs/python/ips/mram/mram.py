@@ -15,14 +15,23 @@
 #
 
 import gsystree as st
+from devices.flash.flash import Flash
 
-class Mram(st.Component):
+class Mram(Flash):
 
     def __init__(self, parent, name, size):
 
         super(Mram, self).__init__(parent, name)
 
         self.add_properties({
-            #'vp_component': 'pulp.mram.mram_v1_impl',
+            'vp_component': 'pulp.mram.mram_v1_impl',
             'size': size
         })
+
+        self.add_property('content/partitions/readfs/files', [])
+        self.add_property('content/partitions/readfs/type', 'readfs')
+        self.add_property('content/partitions/readfs/enabled', False)
+
+        self.add_property('datasheet/type', 'mram')
+        self.add_property('datasheet/size', '2MB')
+        self.add_property('datasheet/block-size', '8KB')

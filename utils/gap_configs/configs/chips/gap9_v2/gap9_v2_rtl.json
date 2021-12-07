@@ -2,6 +2,15 @@
     "config_type": "generator",
     "@generator@": "generators/v1/config_rtl_gen",
   
+    "chip": {
+      "name": "gap9_v2",
+      "soc": {
+        "mram": {
+          "@include@": "ips/mram/mram.json"
+        }
+      }
+    },
+
     "board": {
       "name": "gap9_v2",
       "devices": {
@@ -11,9 +20,6 @@
         "flash": {
           "@include@" : "devices/hyperflash.json",
           "cs": 1
-        },
-        "mram": {
-            "@include@": "ips/mram/mram.json"
         }
       },
 
@@ -433,6 +439,5 @@
       }
     },
   
-    "chip": "gap9_v2",
     "chip_family": "gap9_v2"
   }

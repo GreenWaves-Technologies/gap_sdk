@@ -122,6 +122,7 @@ static int pos_get_div(pos_mram_t *mram, int freq)
 }
 
 
+
 static void mram_set_baudrate(struct pi_device *device, int frequency)
 {
     pos_mram_t *mram = (pos_mram_t *)device->data;
@@ -740,6 +741,12 @@ static int mram_copy_2d_async(struct pi_device *device, uint32_t flash_addr, voi
     {
         mram->pending_copy = task;
 
+        unsigned int base = mram->base;
+
+        udma_mram_mode_t mode = { .raw = udma_mram_mode_get(base) };
+        mode.operation = MRAM_CMD_READ;
+        udma_mram_mode_set(base, mode.raw);
+
         udma_mram_trans_addr_set(mram->base, (uint32_t)buffer);
         udma_mram_trans_size_set(mram->base, size);
         udma_mram_ext_addr_set(mram->base, flash_addr);
@@ -814,7 +821,7 @@ static inline int mram_reg_get(struct pi_device *device, uint32_t pi_flash_addr,
 static inline int mram_copy(struct pi_device *device, uint32_t flash_addr, void *buffer, uint32_t size, int ext2loc)
 {
     struct pi_task task;
-    //mram_async(device, flash_addr, buffer, size, ext2loc, pi_task_block(&task));
+    mram_copy_async(device, flash_addr, buffer, size, ext2loc, pi_task_block(&task));
     pi_task_wait_on(&task);
     return 0;
 }

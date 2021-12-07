@@ -34,27 +34,27 @@
 #include "pmsis/pmsis_types.h"
 #include "FreeRTOS_util.h"
 
-#ifndef IMPLEM_MUTEX_OBJECT_TYPE
-#define IMPLEM_MUTEX_OBJECT_TYPE \
+#ifndef IMPLEM_MUTEX_STATIC_TYPE
+#define IMPLEM_MUTEX_STATIC_TYPE \
     void* mutex_object;
 #endif
 
 struct pi_mutex
 {
-    IMPLEM_MUTEX_OBJECT_TYPE
+    IMPLEM_MUTEX_STATIC_TYPE
     __pmsis_mutex_func take;
     __pmsis_mutex_func release;
 };
 
-#ifndef IMPLEM_SEM_OBJECT_TYPE
-#define IMPLEM_SEM_OBJECT_TYPE \
+#ifndef IMPLEM_SEM_STATIC_TYPE
+#define IMPLEM_SEM_STATIC_TYPE \
     StaticSemaphore_t sem_object_static;\
     void* sem_object;
 #endif
 
 struct pi_sem
 {
-    IMPLEM_SEM_OBJECT_TYPE
+    IMPLEM_SEM_STATIC_TYPE
     __pi_sem_func take;
     __pi_sem_func give;
 };

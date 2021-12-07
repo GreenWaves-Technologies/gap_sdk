@@ -53,7 +53,7 @@ class AveragePoolingSymmetric(KernelBase):
             in_tensor = np.pad(in_tensor,
                                params.padding.numpy_pad_shape(in_dims),
                                mode='constant',
-                               constant_values=qrec.in_qs[0].pad_zero_point)
+                               constant_values=qrec.in_qs[0].zero_point)
             pad_w = params.padding.w
             pad_h = params.padding.h
         else:
@@ -107,7 +107,7 @@ class MaxPoolingSymmetric(KernelBase):
             in_tensor = np.pad(in_tensor,
                                params.padding.numpy_pad_shape(in_dims),
                                mode='constant',
-                               constant_values=qrec.in_qs[0].pad_zero_point)
+                               constant_values=qrec.in_qs[0].zero_point)
             pad_w = params.padding.w
             pad_h = params.padding.h
         else:

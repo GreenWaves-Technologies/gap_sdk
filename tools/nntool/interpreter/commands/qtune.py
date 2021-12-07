@@ -1,4 +1,4 @@
-# Copyright (C) 2020  GreenWaves Technologies, SAS
+# Copyright (C) 2020, 2021  GreenWaves Technologies, SAS
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -13,92 +13,123 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from cmd2 import with_argparser
+import json
+import argparse
+from functools import reduce
+from pathlib import Path
+
+from cmd2 import Cmd, with_argparser
 from interpreter.nntool_shell_base import (NODE_SELECTOR_HELP,
                                            NNToolArguementParser,
                                            NNToolShellBase)
-from quantization.handlers_helpers import (add_options_to_parser,
-                                           get_set_options_from_args)
-from quantization.tuneq import (FLOAT_DTYPES, POW2_DTYPES, tune_float,
-                                tune_options, tune_pow2, tune_scaled)
+from quantization.handlers_helpers import get_all_options_by_params
+from quantization.quantizer.new_quantizer import NewQuantizer
+from utils.argparse_kwargs import kwargs_append_action
+from utils.json_serializable import JsonSerializableStateDecoder, JsonSerializableStateEncoder
+from utils.node_id import NodeId
 
+SCHEME_OPTIONS = {
+    'choices': ['scaled', 'float', 'pow2']
+}
+
+SCHEME_NAME_MAPPINGS = {
+    'scaled': 'SQ8',
+    'pow2': 'POW2',
+    'float': 'FLOAT',
+}
+
+def valid_keys(first_arg_nodes):
+    all_options = get_all_options_by_params()
+    options = {}
+    for node in first_arg_nodes:
+        this_options = all_options.get(node.__class__, {})
+        options.update(this_options)
+    options['scheme'] = SCHEME_OPTIONS
+    return options
+
+def capture_shell(nntool_shell):
+    return argparse.Namespace(shell=nntool_shell)
 
 class QtuneCommand(NNToolShellBase):
 
     # QTUNE COMMAND
     parser_tune = NNToolArguementParser()
+
+    def qtune_first_arg_mapper(self, nodestr):
+        return self.get_node_step_or_name(nodestr, allow_comma=True)[0]
+
     parser_tune.add_argument(
-        'step',
-        help='step to tune. ' + NODE_SELECTOR_HELP,
-        completer_method=NNToolShellBase.node_step_or_name_completer)
-    parser_tune_sub = parser_tune.add_subparsers(
-        title='qtune subcommands', help='atune action to carry out on selected layer')
-    parser_tune_set_float = parser_tune_sub.add_parser(
-        'float',
-        help='tune quantization scheme of layer to float')
-    parser_tune_set_float.add_argument(
-        'float_type', choices=['float16', 'bfloat16', 'float32'],
-        help='float type to use for selected layers'
-    )
-    parser_tune_set_scaled = parser_tune_sub.add_parser(
-        'scaled',
-        help='tune quantization scheme of layer to scaled')
-    parser_tune_set_pow2 = parser_tune_sub.add_parser(
-        'pow2', help='tune quantization scheme of layer to pow2')
-    parser_tune_set_pow2.add_argument(
-        'int_type', choices=['int8', 'int16'],
-        help='integer type to use for selected layers'
-    )
-    parser_tune_set_option = parser_tune_sub.add_parser(
-        'option', help='set specific quantizer options on a layer or layers')
-    add_options_to_parser(parser_tune_set_option)
+        '--step',
+        nargs='+',
+        kwargs_valid_keys=valid_keys,
+        kwargs_first_arg_completer=NNToolShellBase.node_step_or_name_completer(allow_comma=True),
+        kwargs_first_arg_mapper=qtune_first_arg_mapper,
+        action=kwargs_append_action,
+        metavar="STEP KEY1=VALUE1 KEY2=VALUE2",
+        help='step to tune followed by key=value pairs. Step can be specified as:\n' + NODE_SELECTOR_HELP,
+        completer_method=kwargs_append_action.get_completer_method(
+            valid_keys,
+            kwargs_first_arg_completer=NNToolShellBase.node_step_or_name_completer(allow_comma=True),
+            kwargs_first_arg_mapper=qtune_first_arg_mapper))
 
-    def qtune_set_options(self, nodes, node_descr, args):
-        self._check_quantized()
-        options = get_set_options_from_args(args)
-        tune_options(self.G, nodes, options)
-        self.pfeedback(f'set options on {node_descr}')
+    parser_tune.add_argument(
+        '--json',
+        completer_method=Cmd.path_complete,
+        help='json file to save quantization options')
 
-    def qtune_set_float(self, nodes, node_descr, args):
-        float_dtype = FLOAT_DTYPES.get(args.float_type)
-        if float_dtype is None:
-            self.perror(f'invalid float type {args.float_type}')
-            return
-        tune_float(self.G, nodes, args.float_type)
-        self.pfeedback(f'set {node_descr} to {args.float_type} operation')
-
-    def qtune_set_scaled(self, nodes, node_descr, args):
-        self._check_quantized()
-        tune_scaled(self.G, nodes)
-        self.pfeedback(f'set {node_descr} to scaled operation')
-
-    def qtune_set_pow2(self, nodes, node_descr, args):
-        self._check_quantized()
-        pow2_dtype = POW2_DTYPES.get(args.int_type)
-        if pow2_dtype is None:
-            self.perror(f'invalid int type {args.int_type}')
-            return
-        tune_pow2(self.G, nodes, args.int_type)
-        self.pfeedback(f'set {node_descr} to pow2 {args.int_type} operation')
-
-    parser_tune_set_option.set_defaults(func=qtune_set_options)
-    parser_tune_set_float.set_defaults(func=qtune_set_float)
-    parser_tune_set_scaled.set_defaults(func=qtune_set_scaled)
-    parser_tune_set_pow2.set_defaults(func=qtune_set_pow2)
-
-    @with_argparser(parser_tune)
+    @with_argparser(parser_tune, ns_provider=capture_shell)
     def do_qtune(self, args):
         """
 Tune quantization of graph."""
         self._check_graph()
-        nodes, node_descr = self.get_node_step_or_name(args.step)
-        if not nodes:
-            return
-        func = getattr(args, 'func', None)
+        self._check_quantized()
 
-        if func is not None:
-            # Call whatever subcommand function was selected
-            func(self, nodes, node_descr, args)
+        def reduction(state, x):
+            nodes = x[0]
+            opts = x[1]
+            if 'scheme' in opts:
+                opts['scheme'] = SCHEME_NAME_MAPPINGS.get(opts['scheme'])
+            for node in nodes:
+                props = state.setdefault(NodeId(node), {})
+                props.update(opts)
+            return state
+
+        if args.json:
+            json_path = Path(args.json)
+            if not json_path.exists() or not json_path.is_file():
+                self.perror(f'{json_path} does not exist or is not a file')
+                return
+            with json_path.open('r') as fp:
+                options = json.load(fp, cls=JsonSerializableStateDecoder)
         else:
-            # No subcommand was provided, so call help
-            self.do_help('qtune')
+            options = {}
+
+        if args.step:
+            options = reduce(reduction, args.step, options)
+
+        quantizer = NewQuantizer(self.G)
+        quantizer.options.update(options)
+        quantizer.quantize()
+        self.pfeedback('quantization options set')
+
+class QTuneSaveCommand(NNToolShellBase):
+
+    # QTUNESAVE COMMAND
+    parser_qtune_save = NNToolArguementParser()
+    parser_qtune_save.add_argument('jsonfile',
+                             completer_method=Cmd.path_complete,
+                             help='json file to save quantization options')
+
+    @with_argparser(parser_qtune_save)
+    def do_qtunesave(self, args):
+        """
+Save set quantization options."""
+        self._check_graph()
+        self._check_quantized()
+        save_path = Path(args.jsonfile).with_suffix('.json')
+        options = self.G.quantization.options.copy()
+        if 'scheme' not in options:
+            options['scheme'] = self.G.quantization.scheme_priority[0]
+        with save_path.open('w') as fp:
+            json.dump(options, fp, cls=JsonSerializableStateEncoder, indent=2)
+        self.pfeedback(f'quantization options saved to {save_path}')

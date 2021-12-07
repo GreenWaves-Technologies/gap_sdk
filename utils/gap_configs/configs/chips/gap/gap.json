@@ -2,6 +2,10 @@
   "config_type": "generator",
   "@generator@": "generators/v1/config_gen",
 
+  "chip": {
+    "name": "gap"
+  },
+
   "board": {
     "devices": {
       "uart": {
@@ -30,8 +34,6 @@
     }
   },
 
-
-  "chip": "gap",
   "chip_family": "gap",
     
   "padframe": {

@@ -168,11 +168,9 @@ void test_hyper_ram_delegate(void)
     }
 
     /* Prepare cluster task and send it to cluster. */
-    struct pi_cluster_task cl_task = {0};
-    cl_task.entry = cluster_delegate;
-    cl_task.arg = NULL;
+    struct pi_cluster_task cl_task;
 
-    pi_cluster_send_task_to_cl(&cluster_dev, &cl_task);
+    pi_cluster_send_task_to_cl(&cluster_dev, pi_cluster_task(&cl_task, cluster_delegate, NULL));
 
     pi_cluster_close(&cluster_dev);
 

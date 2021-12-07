@@ -181,6 +181,7 @@ vp::time_engine::time_engine(js::config *config)
 
     run_req = false;
     stop_req = false;
+    pause_req = false;
 }
 
 
@@ -200,6 +201,7 @@ void vp::time_engine::run()
     }
 
     run_req = true;
+    pause_req = false;
     pthread_cond_broadcast(&cond);
 
     pthread_mutex_unlock(&mutex);
@@ -365,11 +367,14 @@ void vp::time_engine::run_loop()
     {
         pthread_mutex_lock(&mutex);
 
-        while (!run_req)
+        while (!run_req || pause_req)
         {
-            for (auto x: this->exec_notifiers)
+            if (pause_req)
             {
-                x->notify_stop();
+                for (auto x: this->exec_notifiers)
+                {
+                    x->notify_stop();
+                }
             }
             running = false;
             pthread_cond_broadcast(&cond);
@@ -641,6 +646,7 @@ void vp::time_engine::stop_exec()
 {
     pthread_mutex_lock(&mutex);
     pthread_cond_broadcast(&cond);
+    this->pause_req = true;
     this->run_req = false;
     pthread_mutex_unlock(&mutex);
 }

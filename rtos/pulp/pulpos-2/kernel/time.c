@@ -26,10 +26,6 @@ static PI_FC_L1 pos_cbsys_t pos_time_cbsys_poweroff;
 static PI_FC_L1 pos_cbsys_t pos_time_cbsys_poweron;
 
 
-#ifndef CONFIG_REF_CLOCK
-#define CONFIG_REF_CLOCK ARCHI_REF_CLOCK
-#endif
-
 #ifndef CONFIG_NO_FAST_OSC
 #define TIMER_CLOCK CONFIG_REF_CLOCK
 #define TIMER_SOURCE 1

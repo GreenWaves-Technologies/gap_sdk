@@ -151,7 +151,11 @@ endif
 
 ifeq '$(CONFIG_BOOT_DEVICE)' 'mram'
 CONFIG_BOOT_DEVICE_FREQUENCY ?= 25000000
-override config_args += --config-opt=**/runner/boot/device=target/board/devices/mram
+ifeq '$(platform)' 'gvsoc'
+override config_args += --config-opt=**/runner/boot/device=chip/soc/mram
+else
+override config_args += --config-opt=**/runner/boot/device=target/chip/soc/mram
+endif
 endif
 
 ifdef CONFIG_BOOT_MODE

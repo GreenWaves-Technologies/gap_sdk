@@ -18,7 +18,7 @@ from functools import reduce
 from graph.types.others import GatherParameters
 
 import numpy as np
-from graph.types.input_output import ConstantInputParameters
+from graph.types import ConstantInputParameters
 from importer.common.provisional_dim import ProvisionalDim
 
 from graph.dim import Dim
@@ -30,7 +30,8 @@ from importer.tflite2.tflite_schema_head.GatherOptions import \
 from utils.node_id import NodeId
 
 from ..backend_handler import BackendHandler
-from ..handler import tflite_op
+from ..handler import tflite_op, partial_support, ps_description
+
 
 def sequence_to_slice(val):
     if len(val) == 1:
@@ -48,7 +49,11 @@ def sequence_to_slice(val):
     else:
         return None
 
+
 @tflite_op("GATHER")
+@partial_support(True)
+@ps_description('Gather is supported on constants and is folded to a constant value. It is not supported on '
+                'GAP at present.')
 class Gather(BackendHandler):
 
     @classmethod
@@ -69,12 +74,15 @@ class Gather(BackendHandler):
             inp = np.take(inp, gather_tensor, axis=axis)
             pout_shape = inp.shape
             LOG.info("reducing %s to a constant", node.name)
-            params = ConstantInputParameters(node.name, value=inp, dims=pout_shape, constant_store=G.constant_store)
+            params = ConstantInputParameters(
+                node.name, value=inp, dims=pout_shape)
         else:
             if x_shape[axis] is None:
-                raise ValueError(f'GATHER {node.name} on batch axis not supported')
+                raise ValueError(
+                    f'GATHER {node.name} on batch axis not supported')
             slices = [sequence_to_slice(elem) for elem in gather_tensor]
-            strides = set([slices[idx + 1][0] - slice[0] for idx, slice in enumerate(slices[:-1:])])
+            strides = set([slices[idx + 1][0] - slice[0]
+                           for idx, slice in enumerate(slices[:-1:])])
             lengths = set([abs(slice[1] - slice[0]) for slice in slices])
             if len(strides) != 1 or len(lengths) != 1:
                 raise ValueError(f'Irregular GATHER {node.name} not supported')
@@ -89,7 +97,8 @@ class Gather(BackendHandler):
                 axis=axis)
 
         if opts.get('load_quantization'):
-            G.quantization[NodeId(params)] = cls.load_tf_quantization(node.input, node.output)
+            G.quantization[NodeId(params)] = cls.load_tf_quantization(
+                node.input, node.output)
         all_nodes[node.output[0]] = (params, 0, ProvisionalDim(pout_shape))
         return params
 

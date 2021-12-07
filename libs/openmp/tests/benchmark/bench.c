@@ -11,32 +11,32 @@
 #define PRINTF(...)
 //#define PRINTF(...) printf(__VA_ARGS__)
 
-static void start_timer()
+static void test_start_timer()
 {
     pi_perf_cl_reset();
     pi_perf_conf(1<<PI_PERF_CYCLES);
     pi_perf_cl_start();
 }
 
-static void reset_timer()
+static void test_reset_timer()
 {
     pi_perf_cl_reset();
 }
 
-static unsigned int get_time()
+static unsigned int test_get_time()
 {
     return pi_perf_cl_read(PI_PERF_CYCLES);
 }
 static inline unsigned int startTimer() {
     PRINTF("Starting timer\n");
-    reset_timer();
-    start_timer();
+    test_reset_timer();
+    test_start_timer();
     return 0;
 }
 static inline unsigned int getTimer(unsigned int start)
 {
     PRINTF("Ending timer\n");
-    return get_time();
+    return test_get_time();
 }
 
 void test_barrier(unsigned int nthreads)
@@ -139,25 +139,25 @@ void test_parallel_single(unsigned int nthreads)
 
 void test_entry()
 {
-    for (int i = 1; i <= pi_cl_cluster_nb_pe_cores(); i++)
+    for (uint32_t i = 1; i <= pi_cl_cluster_nb_pe_cores(); i++)
     {
         test_barrier(i);
     }
 
     printf("\n");
-    for (int i = 1; i <= pi_cl_cluster_nb_pe_cores(); i++)
+    for (uint32_t i = 1; i <= pi_cl_cluster_nb_pe_cores(); i++)
     {
         test_critical(i);
     }
 
     printf("\n");
-    for (int i = 1; i <= pi_cl_cluster_nb_pe_cores(); i++)
+    for (uint32_t i = 1; i <= pi_cl_cluster_nb_pe_cores(); i++)
     {
         test_parallel_loop_static (i);
     }
 
     printf("\n");
-    for (int i = 1; i <= pi_cl_cluster_nb_pe_cores(); i++)
+    for (uint32_t i = 1; i <= pi_cl_cluster_nb_pe_cores(); i++)
     {
         test_parallel_single(i);
     }

@@ -16,12 +16,15 @@
 from importer.tflite2.common.tflite_node import TFLiteNode
 
 from ..backend_handler import BackendHandler
-from ..handler import tflite_op
+from ..handler import tflite_op, partial_support, ps_description
 
 from .pad_mixin import PadMixin
 
 
 @tflite_op("PAD")
+@partial_support(True)
+@ps_description('Padding is only supported on GAP when it can be fused into another layer that supports it like '
+                'a pooling or convolution layer.')
 class Pad(PadMixin, BackendHandler):
 
     @classmethod

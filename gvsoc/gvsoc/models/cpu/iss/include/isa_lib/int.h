@@ -1755,16 +1755,44 @@ static inline unsigned int lib_flexfloat_max(iss_cpu_state_t *s, unsigned int a,
 }
 
 static inline int64_t lib_flexfloat_cvt_w_ff_round(iss_cpu_state_t *s, unsigned int a, uint8_t e, uint8_t m, unsigned int round) {
-  int old = setFFRoundingMode(s, round);
+  int old;
+  bool neg = false;
+  unsigned int new_round = round == 4 ? 2 : round;
+  old = setFFRoundingMode(s, new_round);
   FF_INIT_1(a, e, m)
+  if (round == 4)
+  {
+    if (ff_a.value < 0)
+    {
+      ff_a.value = -ff_a.value;
+      neg = true;
+    }
+    ff_a.value += 0.5f;
+  }
   int32_t result_int = double_to_int(ff_a.value);
-  restoreFFRoundingMode(old);
+  if (neg)
+  {
+      result_int = -result_int;
+  }
+  restoreFFRoundingMode(new_round);
   return (int64_t) result_int;
 }
 
 static inline int64_t lib_flexfloat_cvt_wu_ff_round(iss_cpu_state_t *s, unsigned int a, uint8_t e, uint8_t m, unsigned int round) {
-  int old = setFFRoundingMode(s, round);
+  int old;
+  bool neg = false;
+  unsigned int new_round = round == 4 ? 2 : round;
+  old = setFFRoundingMode(s, new_round);
   FF_INIT_1(a, e, m)
+  if (round == 4)
+  {
+    if (ff_a.value < 0)
+    {
+      ff_a.value = -ff_a.value;
+      neg = true;
+    }
+    ff_a.value += 0.5f;
+  }
   int32_t result_int = double_to_uint(ff_a.value);
   restoreFFRoundingMode(old);
   return (int64_t) result_int;

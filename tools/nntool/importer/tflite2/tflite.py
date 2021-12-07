@@ -17,7 +17,6 @@
 import os
 from copy import deepcopy
 
-from graph.constant_store import ConstantStore
 from graph.dim import Dim
 from graph.matches.matchers.duplicate_constants import MatchDuplicateConstants
 from graph.matches.matchers.remove_quantize_operators import \
@@ -25,9 +24,7 @@ from graph.matches.matchers.remove_quantize_operators import \
 from graph.matches.matchers.remove_reshapes_before_linear import \
     RemoveReshapesBeforeLinear
 from graph.nngraph import NNGraph
-from graph.types import (ActivationParameters, ConcatParameters,
-                         ConstantInputParameters, NNEdge,
-                         SoftMaxParameters, SplitParameters)
+from graph.types import ConstantInputParameters, NNEdge
 from importer.common.clean_dangling_nodes import clean_dangling_nodes
 from importer.common.get_reasonable_name import get_reasonable_name
 from importer.tflite2.common.tflite_graph import TFLiteGraph
@@ -81,7 +78,6 @@ class TFLiteImporter(ImporterBase):
                 res |= set(nodes)
         return res
 
-
     def create_graph(self, filename, opts):
         opts = self.get_opts(opts)
         self._name_cache = {}
@@ -95,8 +91,7 @@ class TFLiteImporter(ImporterBase):
                 "nntool only supports one subgraph. There may be errors loading this graph.")
         G = NNGraph(model=model,
                     filename=filename,
-                    name=opts.get('name'),
-                    constant_store=ConstantStore())
+                    name=opts.get('name'))
         if opts.get('load_quantization'):
             G.quantization = QuantizationSet()
             G.has_quantized_parameters = True
@@ -122,7 +117,8 @@ class TFLiteImporter(ImporterBase):
                     to_remove.append(nid)
             for nid in to_remove:
                 del G.quantization[nid]
-            nodes_with_bad_quantization = self.find_nodes_with_bad_quantization(G)
+            nodes_with_bad_quantization = self.find_nodes_with_bad_quantization(
+                G)
             quantizer = NewQuantizer.from_quantized_graph(G)
             # check for quantization problems
             # 1) need to force softmax/Sigmoid input to POW2 quantization
@@ -141,7 +137,8 @@ class TFLiteImporter(ImporterBase):
 
     def _import_tflite_graph(self, G: NNGraph, model, opts: dict):
         name_cache = set()
-        graph = TFLiteGraph.from_model(model, 0, anonymise=opts.get('anonymise'), name_cache=name_cache)
+        graph = TFLiteGraph.from_model(
+            model, 0, anonymise=opts.get('anonymise'), name_cache=name_cache)
         handlers = self._get_handlers(graph.model_version)
         all_nodes = {}
         constants = self._get_all_constants(
@@ -183,8 +180,7 @@ class TFLiteImporter(ImporterBase):
                         tensor.name, name_cache=name_cache, anonymise=anonymise),
                     dims=Dim.unnamed(tensor.shape),
                     value=tensor.value if load_quantization else tensor.dqvalue,
-                    qtype=tensor.qtype if load_quantization else None,
-                    constant_store=G.constant_store),
+                    qtype=tensor.qtype if load_quantization else None),
                 0,
                 ProvisionalDim.from_tflite_shape(tensor.shape)
             )
@@ -209,8 +205,8 @@ class TFLiteImporter(ImporterBase):
         node_recs = {
             inp: (
                 G.add_input(Dim.unnamed(prov_dims[idx].known_shape).apply_naming_hints(hints[idx]),
-                            in_dim_hint=[hints[idx]] if hints[idx] else None,
-                            out_dim_hint=[hints[idx]] if hints[idx] else None),
+                            in_dims_hint=[hints[idx]] if hints[idx] else None,
+                            out_dims_hint=[hints[idx]] if hints[idx] else None),
                 0,
                 prov_dims[idx]
             )
@@ -237,12 +233,11 @@ class TFLiteImporter(ImporterBase):
         for node in graph.nodes:
             handler = handlers.get(node.op_name, None)
             if not handler:
-                raise ValueError("no handler found for %s" % node.op_type)
+                raise NotImplementedError(f"TensorFlow Lite {node.op_type} operator is not currently supported")
             if node.is_custom and handler:
                 handler = handler.get(node.custom_op_name, None)
                 if not handler:
-                    raise ValueError("no handler found for custom operation %s" %
-                                     node.custom_op_name)
+                    raise NotImplementedError(f"TensorFlow Lite custom operation {node.custom_op_name} is not currently supported")
 
             params = handler.handle(
                 node, all_nodes=all_nodes, G=G, opts=opts, importer=self, outputs=outputs)

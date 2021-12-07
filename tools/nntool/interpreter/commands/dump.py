@@ -34,7 +34,6 @@ from utils.at_norm import set_do_rounding, get_do_rounding
 LOG = logging.getLogger('nntool.'+__name__)
 
 
-
 class DumpCommand(NNToolShellBase):
     # DUMP COMMAND
     parser_dump = Cmd2ArgumentParser()
@@ -50,7 +49,8 @@ class DumpCommand(NNToolShellBase):
                              action='store_true', help='dequantize result')
     parser_dump.add_argument('--quantize_and_dequantize',
                              action='store_true', help='quantize and dequantize float results')
-    parser_dump_group = parser_dump.add_mutually_exclusive_group(required=False)
+    parser_dump_group = parser_dump.add_mutually_exclusive_group(
+        required=False)
     parser_dump_group.add_argument('-q', '--quantize', action='store_true',
                                    help='quantize the graph (must have already set quantization)')
     parser_dump_group.add_argument('-Q', '--quantize_step', type=int,
@@ -68,7 +68,8 @@ class DumpCommand(NNToolShellBase):
                              help='save the tensor to the tensors list')
     parser_dump.add_argument('-v', '--visualize_detection',
                              action='store_true', help='visualize input images and detection predictions')
-    parser_dump.add_argument('--checksum', action='store_true', help='print checksums')
+    parser_dump.add_argument(
+        '--checksum', action='store_true', help='print checksums')
     input_options(parser_dump)
 
     @with_argparser(parser_dump)
@@ -103,7 +104,8 @@ specific step of the graph."""
             if step < 0:
                 step = num_steps + step
             if step < 0 or step > num_steps:
-                self.perror("step must be from {} to {}".format(-num_steps, num_steps))
+                self.perror(
+                    "step must be from {} to {}".format(-num_steps, num_steps))
                 return
         else:
             step = None
@@ -114,7 +116,8 @@ specific step of the graph."""
 
         for file_per_input in glob_input_files(args.input_files, self.G.num_inputs):
             LOG.info("input file %s", file_per_input)
-            data = [import_data(input_file, **input_args) for input_file in file_per_input]
+            data = [import_data(input_file, **input_args)
+                    for input_file in file_per_input]
             qrecs = None if qmode.is_none else self.G.quantization
             executer = GraphExecuter(self.G, qrecs=qrecs)
             outputs = executer.execute(data, step_idx_limit=step,
@@ -130,25 +133,34 @@ specific step of the graph."""
             if args.visualize_detection:
                 img_in = Image.open(file_per_input[0]).convert('RGBA')
 
-                height = img_in.size[1] if input_args['height'] == -1 else input_args['height']
-                width = img_in.size[0] if input_args['width'] == -1 else input_args['width']
+                height = img_in.size[1] if input_args['height'] == - \
+                    1 else input_args['height']
+                width = img_in.size[0] if input_args['width'] == - \
+                    1 else input_args['width']
                 img_in = img_in.resize((width, height))
 
                 if self.G.has_ssd_postprocess:
-                    bboxes, classes, scores = [outputs[graph_out.step_idx][0] for graph_out in self.G.outputs()]
+                    bboxes, classes, scores = [
+                        outputs[graph_out.step_idx][0] for graph_out in self.G.outputs()]
                     draw = ImageDraw.Draw(img_in, 'RGBA')
 
                     for box, score, class_id in zip(bboxes, scores, classes):
                         if args.quantize and not args.dequantize:
-                            ssd_node = [node for node in self.G.nodes() if isinstance(node, SSDDetectorParameters)][0]
+                            ssd_node = [node for node in self.G.nodes() if isinstance(
+                                node, SSDDetectorParameters)][0]
                             ssd_qrec = self.G.quantization[NodeId(ssd_node)]
-                            x0, x1 = int(box[1] * width * ssd_qrec.out_qs[0].scale), int(box[3] * width * ssd_qrec.out_qs[0].scale)
-                            y0, y1 = int(box[0] * height * ssd_qrec.out_qs[0].scale), int(box[2] * height * ssd_qrec.out_qs[0].scale)
+                            x0, x1 = int(box[1] * width *
+                                         ssd_qrec.out_qs[0].scale),
+                            int(box[3] * width * ssd_qrec.out_qs[0].scale)
+                            y0, y1 = int(box[0] * height *
+                                         ssd_qrec.out_qs[0].scale),
+                            int(box[2] * height * ssd_qrec.out_qs[0].scale)
                             score = score * ssd_qrec.out_qs[2].scale
                         else:
                             x0, x1 = int(box[1] * width), int(box[3] * width)
                             y0, y1 = int(box[0] * height), int(box[2] * height)
-                        rect_points = (x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)
+                        rect_points = (x0, y0), (x1, y0), (x1,
+                                                           y1), (x0, y1), (x0, y0)
                         draw.line(rect_points, fill='red', width=2)
                         txt = '{}@{}%'.format(class_id, int(score*100))
                         draw.text([x0, y0-10], txt, fill=(0, 255, 0))
@@ -165,7 +177,8 @@ specific step of the graph."""
                     pickle.dump(pickles, pickle_fp)
             if args.save:
                 if len(args.input_files) != self.G.num_inputs:
-                    self.perror("can only save dumps on one input to tensor store")
+                    self.perror(
+                        "can only save dumps on one input to tensor store")
                     return
                 self.tensor_store[args.save] = pickles
 

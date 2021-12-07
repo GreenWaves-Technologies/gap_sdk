@@ -26,6 +26,6 @@
 #include "vp/component.hpp"
 #include "vp/clock/clock_event.hpp"
 #include "vp/clock/clock_engine.hpp"
-#include "vp/power/power.hpp"
+#include "gv/power.hpp"
 
 #endif

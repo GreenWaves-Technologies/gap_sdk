@@ -16,9 +16,10 @@
 import logging
 
 from graph.dim import Dim
-from graph.types.base import (NNEdge, Parameters, SensitiveToOrder,
-                              SingleInputAndOutput, cls_op_name, nargs)
-from graph.types.input_output import ConstantInputParameters
+from graph.types import (ConstantInputParameters, NNEdge, Parameters,
+                         SensitiveToOrder, SingleInputAndOutput)
+
+from .base import cls_op_name, nargs
 
 LOG = logging.getLogger("nntool." + __name__)
 

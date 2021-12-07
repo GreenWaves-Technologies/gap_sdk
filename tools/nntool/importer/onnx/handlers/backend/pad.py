@@ -26,7 +26,7 @@ from ..handler import onnx_op, partial_support, ps_description
 
 @onnx_op("Pad")
 @partial_support(True)
-@ps_description("Only constant pad amounts are supported. Only zero padding is supported. "
+@ps_description("Only constant pad amounts are supported."
                 "Only 2D padding is supported. Padding must be successfully fused into a "
                 "convolution or pooling operation to generate successfully. There is currently "
                 "no AutoTiler Pad generator.")
@@ -42,39 +42,55 @@ class Pad(ConstantMixin, BackendHandler):
         x_shape = x[2].shape
 
         ndim = len(x_shape)
+        npad = len(pads)//2
+        if npad != ndim:
+            if all(not pad for pad in pads):
+                logger.warning(f'Pad {valid_name} has {npad} pad values and {ndim} input rank. '
+                               'Since pad is zero this is ignored but it probably indicates a bug in the ONNX graph.')
+            else:
+                raise ValueError(
+                    f'Eroor in ONNX graph - pad {valid_name} has {npad} pad values and {ndim} input rank.')
         apads = np.array([[pads[idx], pads[idx+ndim]] for idx in range(ndim)])
         # apads = np.array(pads).reshape((-1, 2))
         if cls.is_constant(x):
             logger.info("reducing %s to a constant", valid_name)
             val = cls.get_constant(x)
             if mode == 'constant':
-                val = np.pad(val, apads, mode=mode, constant_values=constant_value)
+                val = np.pad(val, apads, mode=mode,
+                             constant_values=constant_value)
             else:
                 val = np.pad(val, apads, mode=mode)
-            params = ConstantInputParameters(valid_name, value=val, constant_store=G.constant_store)
-            pshape = [dim + sum(apads[idx]) if dim is not None else None for idx, dim in enumerate(x_shape)]
-            all_nodes[node.output[0]] = (params, 0, ProvisionalDim(pshape))
+            params = ConstantInputParameters(valid_name, value=val)
+            pshape = [
+                dim + sum(apads[idx]) if dim is not None else None for idx, dim in enumerate(x_shape)]
+            all_nodes[node.output[0]] = (
+                params, 0, ProvisionalDim(pshape), x[3])
             return params
 
         if mode != 'constant':
-            raise ValueError('%s - pad mode %s is not supported'%(valid_name, mode))
-        if constant_value != 0:
-            raise ValueError('%s - only zero padding is supported'%valid_name)
+            raise ValueError('%s - pad mode %s is not supported' %
+                             (valid_name, mode))
 
         if any(sum(pad) > 0 and x_shape[idx] is None for idx, pad in enumerate(apads)):
-            raise ValueError(f'batch axis is being padded in {valid_name}. Manipulation of batch axis is not supported')
-        trimmed_pads = tuple([pad for idx, pad in enumerate(apads) if x_shape[idx] is not None])
-        
+            raise ValueError(
+                f'unknown/batch axis is being padded in {valid_name}. Manipulation of '
+                'unknown/batch axis is not supported')
+        trimmed_pads = tuple(
+            [pad for idx, pad in enumerate(apads) if x_shape[idx] is not None])
+
         if all(sum(trimmed_pad) == 0 for trimmed_pad in trimmed_pads):
             params = NoOPParameters(valid_name, desc="eliminated pad of 0")
             pshape = x_shape
         else:
-            pshape = [dim + sum(apads[idx]) if dim is not None else None for idx, dim in enumerate(x_shape)]
+            pshape = [
+                dim + sum(apads[idx]) if dim is not None else None for idx, dim in enumerate(x_shape)]
             # pshape = [None if dim is None else dim + sum(apads[idx]) for idx, dim in enumerate(x_shape)]
             padvals = [(constant_value, constant_value)] * len(trimmed_pads)
-            params = PadParameters(valid_name, padding=trimmed_pads, pad_vals=padvals)
-        G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
-        all_nodes[node.output[0]] = (params, 0, ProvisionalDim(pshape))
+            params = PadParameters(
+                valid_name, padding=trimmed_pads, pad_vals=padvals)
+        G.add_edge(
+            NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
+        all_nodes[node.output[0]] = (params, 0, ProvisionalDim(pshape), x[3])
         return params
 
     @classmethod
@@ -96,7 +112,8 @@ class Pad(ConstantMixin, BackendHandler):
             else:
                 value = 0
         else:
-            raise ValueError('no pads input for node %s'%kwargs['valid_name'])
+            raise ValueError('no pads input for node %s' %
+                             kwargs['valid_name'])
         return cls._common(node, mode=mode, pads=pads, constant_value=value, **kwargs)
 
     @classmethod

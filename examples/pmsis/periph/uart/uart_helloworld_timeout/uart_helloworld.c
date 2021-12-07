@@ -37,7 +37,7 @@ void test_uart_helloworld(void)
     pi_uart_ioctl(&uart, PI_UART_IOCTL_ATTACH_TIMEOUT_TX, (void *) timeout_id);
     /* Write though uart. */
     #if (ASYNC)
-    pi_task_t wait_task = {0};
+    pi_task_t wait_task;
     pi_task_block(&wait_task);
     pi_task_timeout_set(&wait_task, timeout_us);
     pi_uart_write_async(&uart, hello, strlen(hello), &wait_task);

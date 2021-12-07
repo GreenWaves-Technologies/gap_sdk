@@ -27,13 +27,16 @@ class DrawCommand(NNToolShellBase):
     parser_draw = NNToolArguementParser("display graph")
     parser_draw.add_argument('step', nargs=(0, 1),
                              help='step to show or nothing to show all.' + NODE_SELECTOR_HELP,
-                             completer_method=NNToolShellBase.node_step_or_name_completer)
+                             completer_method=NNToolShellBase.node_step_or_name_completer())
     parser_draw.add_argument('-s', '--show_constants', action='store_true',
                              help='Show constant parameters nodes')
     parser_draw.add_argument('-a', '--all_edges',
                              action='store_true',
                              help='Show labels on all inputs and outputs even '
                              'if destination or source node is not selected')
+    parser_draw.add_argument('-F', '--fusions',
+                             action='store_true',
+                             help='Show fusions as subgraphs')
     parser_draw.add_argument('--expressions',
                              choices=['quantized', 'unquantized'],
                              help='show expressions as subgraphs')
@@ -77,4 +80,5 @@ Render the graph to a simple image."""
         DrawGraphReporter().report(self.G, nodes=nodes, all_dims=args.all_edges,
                                    filename=args.file, view=args.file is None,
                                    anonymise=args.anonymise, expressions=args.expressions,
-                                   quant_labels=args.quant_labels)
+                                   quant_labels=args.quant_labels,
+                                   fusions=args.fusions)

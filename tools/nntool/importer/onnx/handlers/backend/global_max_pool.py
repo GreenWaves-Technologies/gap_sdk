@@ -23,4 +23,4 @@ class GlobalMaxPool(GlobalPoolMixin, BackendHandler):
 
     @classmethod
     def version_1(cls, node, **kwargs):
-        return cls._common(node, pool_type="max", **kwargs)
+        return cls._common(node, pool_type="max", copy_qtype=True, **kwargs)

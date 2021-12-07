@@ -86,7 +86,7 @@ typedef struct {
 } Ker_MM_Conv_NE16_T;
 
 typedef struct {
-	unsigned char * __restrict__  In;
+	void * __restrict__  In;
 	unsigned short * __restrict__ Filter;
 	int * __restrict__            Bias;
 	void * __restrict__           Out;
@@ -130,6 +130,23 @@ typedef struct {
 	unsigned int					Sem;
 	signed char * 					Infos;
 } KerLinear_NE16fp_T;
+
+typedef struct {
+	void * __restrict__ In1;
+	unsigned short int W_In1;
+	unsigned short int H_In1;
+	void * __restrict__ In2;
+	unsigned short int W_In2;
+	void * __restrict__ Bias;
+	unsigned char * __restrict__ Scale;
+	unsigned char * __restrict__ ScaleN;
+	void * __restrict__ Out;
+	void * __restrict__ Buff;
+	signed char * __restrict__ Infos;
+	int W_Offset;
+	unsigned int Semaphores[2];
+	unsigned int Default_NE16_Job_Cfg;
+} KerMatMul_NE16_T;
 
 typedef struct 
 {
@@ -224,7 +241,12 @@ void KerConv1x1_SmallHW_Stride1_NE16(KerConv_NE16_T *Arg);
 void KerConv1D_StrideS_NE16(KerConv_NE16_T *Arg);
 void KerConvNxMDxDy_StrideSxSy_NE16(KerConv_NE16_T *Arg);
 void KerConv3x3Stride1_DxDy_NE16(KerConv_NE16_T *Arg);
-void KerLinear_NE16(KerLinear_NE16_T *Arg);
+void KerLinear_8a_NE16(KerLinear_NE16_T *Arg);
+void KerLinear_16a_NE16(KerLinear_NE16_T *Arg);
 void Ker_MM_Conv2D_NE16(Ker_MM_Conv_NE16_T *Arg);
+void KerMatMul_8a_NE16(KerMatMul_NE16_T *Arg);
+void KerMatMul_8aFast_NE16(KerMatMul_NE16_T *Arg);
+void KerMatMul_16a_NE16(KerMatMul_NE16_T *Arg);
+void KerMatMul_16aFast_NE16(KerMatMul_NE16_T *Arg);
 
 #endif

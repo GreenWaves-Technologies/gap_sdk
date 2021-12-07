@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-
-# 
+#
 # Copyright (C) 2015 ETH Zurich and University of Bologna and
 # GreenWaves Technologies
 # All rights reserved.
@@ -38,7 +36,7 @@ class Boot_callback(object):
 
             with open(path, 'rb') as file:
                 elffile = ELFFile(file)
-    
+
                 self.entry = elffile['e_entry']
 
                 for segment in elffile.iter_segments():
@@ -63,7 +61,7 @@ class Image(object):
 
     def add_boot_callback(self, callback):
         self.boot_callbacks.append(Boot_callback(elf=callback))
-    
+
     def __roundToNextBlock(self):
         nextOffset = (int)((self.eeprom_offset + self.blockSize - 1) / self.blockSize) * self.blockSize
         padding = nextOffset - self.eeprom_offset

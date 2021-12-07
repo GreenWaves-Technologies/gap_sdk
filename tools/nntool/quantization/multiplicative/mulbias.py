@@ -66,8 +66,6 @@ def gen_mul_biases(qrec, params: MultiplicativeBiasParameters) -> np.ndarray:
     mul_biases_q = qrec.cache.get('mul_biases_q')
     if mul_biases_q is None:
         raise ValueError(f'no mul_bias configuration found for {params.name}')
-    if isinstance(mul_biases_q, MultMulBiasScaleQType):
-        mul_biases_q.pre_normalization = compute_prenorm(qrec, params)
     return mul_biases_q.qbiases
 
 
@@ -82,7 +80,6 @@ def apply_multiplicative_bias(qrec, params: FilterParameters, input_tensor: np.n
     if ktype == 'symmetric' and qrec.ktype.startswith('scaled'):
         mul_biases_q = qrec.cache.get('mul_biases_q')
         if isinstance(mul_biases_q, MultMulBiasScaleQType):
-            mul_biases_q.pre_normalization = compute_prenorm(qrec, params)
             input_tensor = mul_biases_q.apply_scales(input_tensor, axis)
     elif ktype == 'symmetric' and qrec.ktype.startswith('symmetric'):
         if params.has_mul_bias:

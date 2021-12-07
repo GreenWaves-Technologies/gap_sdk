@@ -92,13 +92,6 @@ class Runner(runner.default_runner.Runner):
         if self.config.get('**/runner/peripherals') is not None:
             self.set_arg('-gCONFIG_FILE=rtl_config.json')
 
-            if os.environ.get('INSTALL_DIR') is not None:
-                dpi_path = '%s/lib/libpulpdpi' % (os.environ.get('INSTALL_DIR'))
-                if not os.path.exists(dpi_path + '.so'):
-                    raise FatalError('Did no find DPI models: ' + dpi_path + '.so')
-
-                self.set_arg('-sv_lib %s' % dpi_path)
-
         #
         # Co-simulation with GVSOC
         #

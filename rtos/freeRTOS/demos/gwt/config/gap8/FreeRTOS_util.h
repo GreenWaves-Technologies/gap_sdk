@@ -40,7 +40,7 @@
 #include "event_groups.h"
 
 /* GAP8 handler includes. */
-#include "gap8_it.h"
+#include "device/gap8_it.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "printf.h"

@@ -134,8 +134,7 @@ class MatchGapPool(Matcher):
                 input_mapping=input_mapping,
                 output_mapping=output_mapping)
             if G.quantization:
-                # if there are quantization stats then clear them. They need to be created again
-                G.quantization.stats = None
+                # TODO - stats
                 qrecs = G.quantization.get_all(pnode.contained_nodes())
                 if qrecs:
                     prec = QRec.copy_ktype(

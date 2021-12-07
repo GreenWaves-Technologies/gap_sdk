@@ -89,9 +89,9 @@ proc gap_fuse_once {device_struct_ptr_addr i_cmd i_bit_pos i_bit_len i_log_lvl i
 
 proc dump_fuse_array {gap_tools_path} {
     reset
-	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser@gapuino8.elf elf
+	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser-gapuino8.elf elf
     sleep 100
-	puts "${gap_tools_path}/gap_bins/gap_fuser@gapoc_a.elf"
+	puts "${gap_tools_path}/gap_bins/gap_fuser-gapoc_a.elf"
 	gap_fuse_open 0x1c000190
 
 	array set fuse_array {
@@ -223,9 +223,9 @@ proc fuse_flash_hyperflash {} {
 
 proc fuse_hyperflash_boot {gap_tools_path} {
 	reset
-	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser@gapuino8.elf elf
+	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser-gapuino8.elf elf
 	sleep 100
-	puts "${gap_tools_path}/gap_bins/gap_fuser@gapoc_a.elf"
+	puts "${gap_tools_path}/gap_bins/gap_fuser-gapoc_a.elf"
 	gap_fuse_open 0x1c000190
 	puts "fuse boot from flash bit"
 	fuse_boot_from_flash
@@ -403,7 +403,7 @@ proc fuse_fll_assert_cycles_revb {gap_tools_path} {
     puts "fuse fll assrt cycles"
     #-------------------------------------------------------------------------------------#
 	reset
-	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser@gapuino8.elf elf
+	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser-gapuino8.elf elf
 	sleep 100
 	gap_fuse_open 0x1c000190
 	puts "fuse fll config on bit"
@@ -413,7 +413,7 @@ proc fuse_fll_assert_cycles_revb {gap_tools_path} {
 	gap_fuse_terminate 0x1c000190
     #-------------------------------------------------------------------------------------#
     reset
-	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser@gapuino8.elf elf
+	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser-gapuino8.elf elf
 	sleep 100
 	gap_fuse_open 0x1c000190
 	fuse_fll_assert_cycles 0x1c000190
@@ -431,7 +431,7 @@ proc fuse_xtal_assert_cycles_revc {gap_tools_path} {
     puts "fuse fll assrt cycles"
     #-------------------------------------------------------------------------------------#
 	reset
-	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser@gapuino8.elf elf
+	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser-gapuino8.elf elf
 	sleep 100
 	gap_fuse_open 0x1c000190
 	puts "fuse rev clk wait on bit"
@@ -440,7 +440,7 @@ proc fuse_xtal_assert_cycles_revc {gap_tools_path} {
 	gap_fuse_terminate 0x1c000190
     #-------------------------------------------------------------------------------------#
     reset
-	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser@gapuino8.elf elf
+	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser-gapuino8.elf elf
 	sleep 100
 	gap_fuse_open 0x1c000190
 	puts "fuse xtal config cycles"
@@ -449,7 +449,7 @@ proc fuse_xtal_assert_cycles_revc {gap_tools_path} {
 	gap_fuse_terminate 0x1c000190
     #-------------------------------------------------------------------------------------#
     reset
-	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser@gapuino8.elf elf
+	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser-gapuino8.elf elf
 	sleep 100
 	puts "fuse xtal oscillator stable check"
 	gap_fuse_open 0x1c000190
@@ -468,7 +468,7 @@ proc fuse_reliable_hyper_boot_revc {gap_tools_path} {
     puts "fuse all the bits for boot from hyperflash and xtal check for revc"
     #-------------------------------------------------------------------------------------#
 	reset
-	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser@gapuino8.elf elf
+	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser-gapuino8.elf elf
 	sleep 100
 	gap_fuse_open 0x1c000190
 	puts "fuse start"

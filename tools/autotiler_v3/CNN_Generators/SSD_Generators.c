@@ -97,7 +97,7 @@ int CNN_SSD_PostProcess_SQ8(
                         TCArg("int8_t *"             , "class_out" ),
                         TCArg("int8_t *"             , "scores_out"),
                         TCArg("uint8_t * "           , "in_scales" ),
-                        TCArg("uint8_t * "           , "in_norms"  )
+                        TCArg("int8_t * "            , "in_norms"  )
                         ),
                 Calls(3,
                         Call("Ker_SSD_Init", LOC_LOOP_PROLOG,

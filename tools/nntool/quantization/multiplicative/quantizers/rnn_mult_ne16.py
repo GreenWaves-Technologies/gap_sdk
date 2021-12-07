@@ -91,6 +91,7 @@ def calculatate_weight_q(in_qs,
             'Ki': padded_dim[1],
             'Qw': qw
         },
+        no_compression=True,
         **extra_attrs)
     w_q = in_qs[w_idx]
 

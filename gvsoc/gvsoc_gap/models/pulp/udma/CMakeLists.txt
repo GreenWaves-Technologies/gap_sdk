@@ -1,3 +1,6 @@
+if("${CONFIG_GVSOC_SKIP_UDMA_BUILD}" EQUAL "1")
+    message(NOTICE "GVSOC SKIP UDMA BUILD")
+else()
 if("${TARGET_CHIP}" STREQUAL "GAP8")
     message(FATAL_ERROR "GAP8 compilation is not supported by GVSOC")
 elseif("${TARGET_CHIP}" STREQUAL "GAP8_V2")
@@ -14,10 +17,12 @@ elseif("${TARGET_CHIP}" STREQUAL "GAP9_V2")
     set(UDMA_I2C_VERSION   "4")
     set(UDMA_I2S_VERSION   "3")
     set(UDMA_HYPER_VERSION "3")
+    set(UDMA_MRAM_VERSION  "2")
     set(UDMA_SFU_VERSION   "1")
 
     set(UDMA_SOURCES
         "udma_v4_impl.cpp"
+        "dc_fifo.cpp"
         "udma_v4_addrgens.cpp"
         "udma_v4_rx_channels.cpp"
         "udma_v4_tx_channels.cpp"
@@ -169,6 +174,21 @@ if("${UDMA_HYPER_VERSION}" EQUAL "3")
         NAME udma_model
         DEFINITIONS
         -DHAS_HYPER
+        )
+endif()
+endif()
+
+
+if("${UDMA_MRAM_VERSION}" EQUAL "2")
+    vp_model_sources(
+        NAME udma_model
+        SOURCES
+        "mram/udma_mram_v2.cpp"
+        )
+    vp_model_compile_definitions(
+        NAME udma_model
+        DEFINITIONS
+        -DHAS_MRAM
         )
 endif()
 

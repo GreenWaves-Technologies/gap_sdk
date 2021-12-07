@@ -33,8 +33,8 @@ void cluster_malloc(void *arg)
       Cluster core requests memory allocation in L2, and wait response for request.
       The request is delegated to FC.
     */
-    pi_cl_alloc_req_t alloc_req = {0};
-    pi_cl_free_req_t free_req = {0};
+    pi_cl_alloc_req_t alloc_req;
+    pi_cl_free_req_t free_req;
     for (uint32_t i=0; i<1000; i++)
     {
         pi_cl_l2_malloc((uint32_t) BUFFER_SIZE, &alloc_req);
@@ -72,13 +72,12 @@ void test_cluster_malloc(void)
     }
 
     /* Prepare cluster task and send it to cluster. */
-    struct pi_cluster_task task = {0};
-    task.entry = cluster_malloc;
-    task.arg = NULL;
+    struct pi_cluster_task task;
+    pi_cluster_task(&task, cluster_malloc, NULL);
 
     printf("Sending task.\n");
     #if defined(ASYNC)
-    pi_task_t wait_task = {0};
+    pi_task_t wait_task;
     pi_task_block(&wait_task);
     pi_cluster_send_task_to_cl_async(&cluster_dev, &task, &wait_task);
     printf("Wait end of cluster task\n");

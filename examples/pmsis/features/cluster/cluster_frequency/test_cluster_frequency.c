@@ -73,9 +73,8 @@ void test_cluster_frequency(void)
     printf("FC frequency : %ld\nCL frequency : %ld\n", cur_fc_freq, cur_cl_freq);
 
     /* Prepare cluster task. */
-    struct pi_cluster_task task = {0};
-    task.entry = master_entry;
-    task.arg = NULL;
+    struct pi_cluster_task task;
+    pi_cluster_task(&task, master_entry, NULL);
 
     for (int32_t voltage = DCDC_DEFAULT_NV; voltage >= DCDC_DEFAULT_LV; voltage -= 100)
     {
@@ -118,7 +117,7 @@ void test_cluster_frequency(void)
                 printf("Cluster Frequency : %ld Hz, freq : %ld\n", cur_cl_freq, cl_freq);
 
                 #if defined(ASYNC)
-                pi_task_t wait_task = {0};
+                pi_task_t wait_task;
                 pi_task_block(&wait_task);
                 pi_cluster_send_task_to_cl_async(&cluster_dev, &task, &wait_task);
                 pi_task_wait_on(&wait_task);

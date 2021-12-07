@@ -24,12 +24,13 @@ from quantization.qtype import QType
 from quantization.qtype_constraint import MatchAll
 from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        out_qs_constraint,
-                                                       params_type)
+                                                       params_type, needs_stats)
 
 
 @params_type(RFFT2DPreprocessingParameters)
 @in_qs_constraint(MatchAll({'dtype': set([np.float32, np.float16, bfloat16])}))
 @out_qs_constraint(MatchAll({'dtype': set([np.float32, np.float16, bfloat16])}))
+@needs_stats(False)
 class RFFT2DFloat(FloatQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
@@ -43,6 +44,7 @@ class RFFT2DFloat(FloatQuantizionHandler):
 @params_type(MFCCPreprocessingParameters)
 @in_qs_constraint(MatchAll({'dtype': set([np.float32, np.float16, bfloat16])}))
 @out_qs_constraint(MatchAll({'dtype': set([np.float32, np.float16, bfloat16])}))
+@needs_stats(False)
 class MFCCFloat(FloatQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):

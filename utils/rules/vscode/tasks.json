@@ -51,7 +51,7 @@
         {
             "label": "openocd",
             "type": "shell",
-            "command": "<OCD install path>/openocd.exe -f <OCD install path>/scripts/tcl/interface/ftdi/olimex-arm-usb-ocd-h.cfg -f <SDK install path>/utils/openocd_tools/tcl/gap9revb.tcl",
+            "command": "@OCD_install_path@ -f @OPENOCD_CABLE_CFG@ -f @TARGET_CFG@",
             "presentation": {
                 "reveal": "always",
                 "panel": "new"

@@ -1,0 +1,12 @@
+[submodule "rtos/pulp/archi_pulp"]
+	path = rtos/pulp/archi_pulp
+	url = ../../gwt_sdk_developer/archi_pulp.git
+[submodule "rtos/pulp/hal_pulp"]
+	path = rtos/pulp/hal_pulp
+	url = ../../gwt_sdk_developer/hal_pulp.git
+[submodule "rtos/pulp/pulp-os"]
+	path = rtos/pulp/pulp-os
+	url = ../../gwt_sdk_developer/pulp-rt.git
+[submodule "gvsoc/dpi-models"]
+	path = gvsoc/dpi-models
+	url = ../../gwt_sdk_developer/gvsoc_dpi_models.git

@@ -14,13 +14,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from graph.types import GlobalPoolingParameters, NNEdge
+from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
 
 
-class GlobalPoolMixin(object):
+class GlobalPoolMixin(ConstantMixin):
 
     @classmethod
-    def _common(cls, node, pool_type="max", **kwargs):
+    def _common(cls, node, pool_type="max", constant_operation=None, copy_qtype=False, **kwargs):
         all_nodes = kwargs['all_nodes']
         G = kwargs['G']
         valid_name = kwargs['valid_name']
@@ -36,5 +37,5 @@ class GlobalPoolMixin(object):
         )
         pout_dims = ProvisionalDim([x_shape[0], x_shape[1]] + ([1] * (len(x_shape) - 2)))
         G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
-        all_nodes[node.output[0]] = (params, 0, pout_dims)
+        all_nodes[node.output[0]] = (params, 0, pout_dims, x[3] if copy_qtype else None)
         return params

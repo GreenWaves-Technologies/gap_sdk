@@ -22,6 +22,9 @@
 #include "bsp/ram/spiram.h"
 #include "bsp/flash/hyperflash.h"
 #include "bsp/flash/spiflash.h"
+#ifdef __GAP9__
+#include "bsp/flash/mram.h"
+#endif
 #include "bsp/fs.h"
 
 
@@ -460,7 +463,143 @@ static inline void __at_qspiflash_fs_close(AT_QSPIFLASH_FS_T *file)
 #define AT_QSPIFLASH_FS_CL_WAIT(file,event) \
   pi_cl_fs_wait(event)
 
+#ifdef __GAP9__
 
+/*
+ * EMRAM
+ */
+
+#define AT_EMRAMFLASH_TYPE 1
+
+typedef struct pi_mram_conf         AT_EMRAMFLASH_CONF_T;
+typedef struct pi_device            AT_EMRAMFLASH_T;
+typedef uint32_t                    AT_EMRAMFLASH_EXT_ADDR_TYPE;
+typedef void *                      AT_EMRAMFLASH_LOC_ADDR_TYPE;
+typedef pi_cl_ram_req_t             AT_EMRAMFLASH_EVENT;
+
+#define AT_EMRAMFLASH_EXT2LOC 0
+#define AT_EMRAMFLASH_LOC2EXT 1
+
+#define AT_EMRAMFLASH_CONF_INIT(dev,type,name) \
+  pi_mram_conf_init(dev)
+
+#define AT_EMRAMFLASH_OPEN(dev,conf,err) \
+  do { pi_open_from_conf((dev), (conf)); *(err) = pi_flash_open(dev); } while(0)
+
+#define AT_EMRAMFLASH_CLOSE(dev) \
+  pi_flash_close(dev)
+
+// TODO not yet supported
+#define AT_EMRAMFLASH_COPY(dev,ext,loc,size,dir,event)
+
+// TODO not yet supported
+#define AT_EMRAMFLASH_COPY2D(dev,ext,loc,size,stride,len,dir,event)
+
+// TODO not yet supported
+#define AT_EMRAMFLASH_WAIT(dev,event)
+
+
+/*
+ * EMRAM FS
+ */
+
+#define AT_QSPIFLASH_FS_TYPE 1
+
+typedef struct pi_mram_conf AT_EMRAMFLASH_FS_CONF_T;
+
+typedef struct
+{
+  struct pi_device fs;
+  struct pi_device emramflash;
+  pi_fs_file_t *file;
+} AT_EMRAMFLASH_FS_T;
+
+typedef unsigned int AT_EMRAMFLASH_FS_EXT_ADDR_TYPE;
+typedef void *AT_EMRAMFLASH_FS_INT_ADDR_TYPE;
+typedef pi_task_t AT_EMRAMFLASH_FS_FC_EVENT;
+typedef pi_cl_fs_req_t AT_EMRAMFLASH_FS_CL_EVENT;
+
+static inline void __at_emramflash_fs_open(AT_EMRAMFLASH_FS_T *file, int is_write, struct pi_fs_conf *conf, const char *filename, int *err)
+{
+  struct pi_mram_conf emramflash_conf;
+  pi_mram_conf_init(&emramflash_conf);
+  pi_open_from_conf(&file->emramflash, &emramflash_conf);
+  if (pi_flash_open(&file->emramflash))
+  {
+    *err = -1;
+    return;
+  }
+  conf->flash = &file->emramflash;
+  if (is_write)
+    conf->type = PI_FS_HOST;
+  else
+    conf->type = PI_FS_READ_ONLY;
+
+  pi_open_from_conf(&file->fs, conf);
+  if (pi_fs_mount(&file->fs))
+  {
+    pi_flash_close(&file->emramflash);
+    *err = -1;
+    return;
+  }
+  file->file = pi_fs_open(&file->fs, filename, is_write ? PI_FS_FLAGS_WRITE : 0);
+  if (file->file == NULL)
+  {
+    pi_fs_unmount(&file->fs);
+    pi_flash_close(&file->emramflash);
+    *err = -1;
+    return;
+  }
+  *err = 0;
+
+  if (is_write)
+    file->file->size = 3*512*1024;
+}
+
+static inline void __at_emramflash_fs_close(AT_EMRAMFLASH_FS_T *file)
+{
+  pi_fs_close(file->file);
+  pi_fs_unmount(&file->fs);
+  pi_flash_close(&file->emramflash);
+}
+
+#define AT_EMRAMFLASH_FS_EXT2LOC 0
+#define AT_EMRAMFLASH_FS_LOC2EXT 1
+
+#define AT_EMRAMFLASH_FS_CONF_INIT(dev,type,name) \
+  pi_fs_conf_init(dev)
+
+#define AT_EMRAMFLASH_FS_OPEN(file,conf,filename,err) \
+  __at_emramflash_fs_open(file, 0, conf, filename, err)
+
+#define AT_EMRAMFLASH_FS_OPEN_WRITE(file,conf,filename,err) \
+  __at_emramflash_fs_open(file, 1, conf, filename, err)
+
+#define AT_EMRAMFLASH_FS_OPEN_SET_SIZE(file, size) \
+  file->file->size = size
+
+#define AT_EMRAMFLASH_FS_CLOSE(file) \
+  __at_emramflash_fs_close(file)
+
+#define AT_EMRAMFLASH_FS_FC_COPY(fs,ext,loc,size,dir,event) \
+  pi_fs_copy_async((fs)->file, ext, loc, size, !(dir), pi_task_block(event))
+
+#define AT_EMRAMFLASH_FS_FC_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
+  pi_fs_copy_2d_async(file->file, ext, loc, size, stride, len, !(dir), pi_task_block(event))
+
+#define AT_EMRAMFLASH_FS_FC_WAIT(file,event) \
+  pi_task_wait_on(event)
+
+#define AT_EMRAMFLASH_FS_CL_COPY(fs,ext,loc,size,dir,event) \
+  pi_cl_fs_copy((fs)->file, ext, loc, size, !(dir), event)
+
+#define AT_EMRAMFLASH_FS_CL_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
+  pi_cl_fs_copy_2d(file->file, ext, loc, size, stride, len, !(dir), event)
+
+#define AT_EMRAMFLASH_FS_CL_WAIT(file,event) \
+  pi_cl_fs_wait(event)
+
+#endif
 
 /*
  * DMA

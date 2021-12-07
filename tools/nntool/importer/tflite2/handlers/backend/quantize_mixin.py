@@ -42,8 +42,7 @@ class QuantizeMixin(ConstantMixin):
             params = ConstantInputParameters(node.name,
                                              value=val,
                                              dims=Dim.unnamed(val.shape),
-                                             qtype=out_qtype,
-                                             constant_store=G.constant_store)
+                                             qtype=out_qtype)
             if opts.get('load_quantization'):
                 G.quantization[NodeId(params)] = QRec.scaled(
                     in_qs=[out_qtype], out_qs=[out_qtype])

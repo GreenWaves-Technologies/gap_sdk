@@ -20,7 +20,7 @@ void test_rtc_alarm(void)
     int32_t errors = 0;
 
     /* Init & open RTC. */
-    struct pi_rtc_conf rtc_conf = {0};
+    struct pi_rtc_conf rtc_conf;
     pi_rtc_conf_init(&rtc_conf);
     rtc_conf.mode = PI_RTC_MODE_CALENDAR | PI_RTC_MODE_ALARM;
     /* Date & time. */
@@ -45,7 +45,7 @@ void test_rtc_alarm(void)
         pmsis_exit(-1);
     }
 
-    struct tm time = {0}, time_now = {0};
+    struct tm time, time_now;
 
     /* Initial date & time. */
     pi_rtc_datetime_get(&rtc, &time_now);
@@ -75,7 +75,7 @@ void test_rtc_alarm(void)
 
     /* Binding RTC IRQ. */
     uint32_t arg = 0xabbadead;
-    struct pi_task task = {0};
+    struct pi_task task;
     pi_task_callback(&task, alarm_irq_handler, &arg);
     pi_rtc_ioctl(&rtc, PI_RTC_ALARM_ATTACH_TASK, &task);
 

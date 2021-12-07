@@ -55,6 +55,28 @@ static int LastDefinedOutput(int DimIn, int F, int PadL, int Stride, int D)
         return ((DimIn - ((F-1)/2*D - PadL + (F/2)*D) + Stride-1)/Stride);
 }
 
+#define B_CLR(x, bits) ((x) & (~((1 << (bits)) - 1)))
+static inline void Copy(void *__restrict__ To, void *__restrict__ From, unsigned int Size, unsigned int CoreId)
+
+{
+        unsigned int Chunk = ChunkSize(Size), First = Chunk * CoreId, Last = Min(First + Chunk, Size);
+        unsigned int Iter = Max(0, Last - First);
+
+        int *pFrom = (int *)(From + First), *pTo = (int *)(To + First);
+        for (int i = 0; i < Iter / 8; i++)
+        {
+                int V0 = pFrom[2 * i], V1 = pFrom[2 * i + 1];
+                pTo[2 * i] = V0;
+                pTo[2 * i + 1] = V1;
+        }
+        if (Iter & 0x4)
+                *((int *)(To + First + B_CLR(Iter, 3))) = *((int *)(From + First + B_CLR(Iter, 3)));
+        if (Iter & 0x2)
+                *((short int *)(To + First + B_CLR(Iter, 2))) = *((short int *)(From + First + B_CLR(Iter, 2)));
+        if (Iter & 0x1)
+                *((signed char *)(To + First + Iter - 1)) = *((signed char *)(From + First + Iter - 1));
+}
+
 static inline void SetNE16_InPointer(void *InPointer){
 	NE16_WRITE_REG(NE16_REG_INFEAT_PTR, (int) InPointer);
         #if defined( DEBUG_NE16) || defined(DEBUG_NE16_PNTR)
@@ -210,8 +232,16 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 	unsigned char * __restrict__ Scale   = (unsigned char *__restrict__) Arg->Scale;
 	unsigned char * __restrict__ ScaleN  = (unsigned char *__restrict__) Arg->ScaleN;
         unsigned char * InPointer;
+        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
+
 	int Tile_InFeat  = Arg->Tile_InFeat,  Tile_InW  = Arg->Tile_InW,  Tile_InH  = Arg->Tile_InH;
 	int Tile_OutFeat = Arg->Tile_OutFeat, Tile_OutW = Arg->Tile_OutW, Tile_OutH = Arg->Tile_OutH;
+	int Mode16 = 0;
+        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
+        	Tile_InFeat *= 2;
+        	Mode16 = 1;
+	}
+
 	int PadL = Arg->Pad[0], PadR = Arg->Pad[1], PadT = Arg->Pad[2], PadB = Arg->Pad[3];
 	int Nb_KI	= Tile_InFeat/16 + (Tile_InFeat%16?1:0);
 	int Nb_LoadedKI = Arg->TotalInFeatures/16 + (Arg->TotalInFeatures%16?1:0);
@@ -223,14 +253,10 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 	int Rem_H_Subtiles = (Ho_L - Ho_F) % 3, H_SubTiles = (Ho_L - Ho_F) / 3 + (Rem_H_Subtiles?1:0);
 	int Rem_W_Subtiles = (Wo_L - Wo_F) % 3, W_SubTiles = (Wo_L - Wo_F) / 3 + (Rem_W_Subtiles?1:0);
         unsigned int res_quant_out_flag, set_quant_out_flag, streamin_flag, Gen_Cfg;
-        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 	int QuantBitsFlag = (Default_cfg >> NE16_SHIFT_QUANT_BITS) & NE16_MASK_QUANT_BITS;
         int OutBytes = (QuantBitsFlag==2)?4: ((QuantBitsFlag==1)?2:1);
 	int Out_Stride0 = (QuantBitsFlag==2)?32:((QuantBitsFlag==1)?16:0);
-        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
-        	Nb_KI	= (2*Tile_InFeat)/16 + ((2*Tile_InFeat)%16?1:0);
-		Rem_KI	= (2*Tile_InFeat)%16?(2*Tile_InFeat)%16:16;
-        }
+
 	res_quant_out_flag  = ~(NE16_MASK_OUTQUANT << NE16_SHIFT_OUTQUANT);
 	res_quant_out_flag &= ~(NE16_MASK_NORM_SHIFT << NE16_SHIFT_NORM_SHIFT);
 	res_quant_out_flag &= ~(NE16_MASK_NORM_BIAS << NE16_SHIFT_NORM_BIAS);
@@ -263,7 +289,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 					SetNE16_InPointer     ((void *) Max((unsigned int) In, (unsigned int) InPointer + Tile_InFeat*(subfilter_i*Dx + w*Sx-PadL + Tile_InW*(Ho_F*Sy-PadT + subfilter_j*Dy))));
 					SetNE16_OutPointer    (Out + Tile_OutFeat*(w + Ho_F*Tile_OutW));
 					// TODO - checkme I think here you need the total number of loaded chin
-					SetNE16_WeightsPointer(Filter + Tile_OutFeat*16*Nb_LoadedKI*subfilter_i + Tile_OutFeat*16*Nb_LoadedKI*Fx*subfilter_j);
+					SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
 					SetNE16_Reminders     (1, Rem_H_Subtiles, Rem_KI, Rem_KO, 1, Rem_H_Subtiles);
 					SetNE16_Dim           (Nb_KI, Nb_KO, 1, H_SubTiles);
 					SetNE16_GenConfig     (Gen_Cfg);
@@ -272,7 +298,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 					SetNE16_ScaleNPointer (ScaleN);
 					SetNE16_Strides       (Tile_InFeat*Sx, Tile_InFeat*Sy*Tile_InW, 0,	    // In_D0, In_D1, In_D2 - unused
 							       Out_Stride0, OutBytes*Tile_OutFeat, OutBytes*Tile_OutFeat*Tile_OutW, // Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-							       2*Arg->Qw, Nb_KI*16*Arg->Qw/8, 0);		   // Weights_D0, Weights_D1, Weights_D2
+							       (Mode16?1:2)*Arg->Qw, Nb_KI*(Mode16?1:2)*Arg->Qw, 0);		   // Weights_D0, Weights_D1, Weights_D2
 					SetNE16_ConfigPad     ((v4s) {DoPad, DoPad, DoPad, DoPad}, Arg->Pad_Val);
 					SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
 					SetNE16_WOffset       (Arg->W_Offset);
@@ -306,7 +332,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 					SetNE16_InPointer     (InPointer + Tile_InFeat*(w*Sx-PadL + subfilter_i*Dx + Tile_InW*(Ho_F*Sy-PadT + subfilter_j*Dy)));
 					SetNE16_OutPointer    (Out + Tile_OutFeat*(w + Ho_F*Tile_OutW));
 					// TODO - checkme I think here you need the total number of loaded chin
-					SetNE16_WeightsPointer(Filter + Tile_OutFeat*16*Nb_LoadedKI*subfilter_i + Tile_OutFeat*16*Nb_LoadedKI*Fx*subfilter_j);
+					SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
 					SetNE16_Reminders     (1, Rem_H_Subtiles, Rem_KI, Rem_KO, 1, Rem_H_Subtiles);
 					SetNE16_Dim           (Nb_KI, Nb_KO, 1, H_SubTiles);
 					SetNE16_GenConfig     (Gen_Cfg);
@@ -315,7 +341,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 					SetNE16_ScaleNPointer (ScaleN);
 					SetNE16_Strides       (Tile_InFeat*Sx, Tile_InFeat*Sy*Tile_InW, 0,	    // In_D0, In_D1, In_D2 - unused
 							       Out_Stride0, OutBytes*Tile_OutFeat, OutBytes*Tile_OutFeat*Tile_OutW, // Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-							       2*Arg->Qw, Nb_KI*16*Arg->Qw/8, 0);		   // Weights_D0, Weights_D1, Weights_D2
+							       (Mode16?1:2)*Arg->Qw, Nb_KI*(Mode16?1:2)*Arg->Qw, 0);		   // Weights_D0, Weights_D1, Weights_D2
 					SetNE16_ConfigPad     ((v4s) {DoPad, DoPad, DoPad, DoPad}, Arg->Pad_Val);
 					SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
 					SetNE16_WOffset       (Arg->W_Offset);
@@ -349,7 +375,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 					SetNE16_InPointer     ((void *) Max((unsigned int) InPointer, (unsigned int) InPointer + Tile_InFeat*(Wo_F*Sx-PadL + subfilter_i*Dx + (subfilter_j*Dy+h*Sy-PadT)*Tile_InW)));
 					SetNE16_OutPointer    (Out + Tile_OutFeat*(Wo_F + h*Tile_OutW));
 					// TODO - checkme I think here you need the total number of loaded chin
-					SetNE16_WeightsPointer(Filter + Tile_OutFeat*16*Nb_LoadedKI*subfilter_i + Tile_OutFeat*16*Nb_LoadedKI*Fx*subfilter_j);
+					SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
 					SetNE16_Reminders     (Rem_W_Subtiles, 1, Rem_KI, Rem_KO, Rem_W_Subtiles, 1);
 					SetNE16_Dim           (Nb_KI, Nb_KO, W_SubTiles, 1);
 					SetNE16_GenConfig     (Gen_Cfg);
@@ -358,7 +384,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 					SetNE16_ScaleNPointer (ScaleN);
 					SetNE16_Strides       (Tile_InFeat*Sx, Tile_InFeat*Sy*Tile_InW, 0,	    	    // In_D0, In_D1, In_D2 - unused
 							       Out_Stride0, OutBytes*Tile_OutFeat, OutBytes*Tile_OutFeat*Tile_OutW, // Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-							       2*Arg->Qw, Nb_KI*16*Arg->Qw/8, 0);		   		    // Weights_D0, Weights_D1, Weights_D2
+							       (Mode16?1:2)*Arg->Qw, Nb_KI*(Mode16?1:2)*Arg->Qw, 0);		   		    // Weights_D0, Weights_D1, Weights_D2
 					SetNE16_ConfigPad     ((v4s) {DoPad, DoPad, DoPad, DoPad}, Arg->Pad_Val);
 					SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
 					SetNE16_WOffset       (Arg->W_Offset);
@@ -392,7 +418,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 					SetNE16_InPointer     (InPointer + Tile_InFeat*(Wo_F*Sx-PadL + subfilter_i*Dx + (subfilter_j*Dy+h*Sy-PadT)*Tile_InW));
 					SetNE16_OutPointer    (Out + Tile_OutFeat*(Wo_F + h*Tile_OutW));
 					// TODO - checkme I think here you need the total number of loaded chin
-					SetNE16_WeightsPointer(Filter + Tile_OutFeat*16*Nb_LoadedKI*subfilter_i + Tile_OutFeat*16*Nb_LoadedKI*Fx*subfilter_j);
+					SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
 					SetNE16_Reminders     (Rem_W_Subtiles, 1, Rem_KI, Rem_KO, Rem_W_Subtiles, 1);
 					SetNE16_Dim           (Nb_KI, Nb_KO, W_SubTiles, 1);
 					SetNE16_GenConfig     (Gen_Cfg);
@@ -401,7 +427,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 					SetNE16_ScaleNPointer (ScaleN);
 					SetNE16_Strides       (Tile_InFeat*Sx, Tile_InFeat*Sy*Tile_InW, 0,	    	    // In_D0, In_D1, In_D2 - unused
 							       Out_Stride0, OutBytes*Tile_OutFeat, OutBytes*Tile_OutFeat*Tile_OutW, // Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-							       2*Arg->Qw, Nb_KI*16*Arg->Qw/8, 0);		   		    // Weights_D0, Weights_D1, Weights_D2
+							       (Mode16?1:2)*Arg->Qw, Nb_KI*(Mode16?1:2)*Arg->Qw, 0);		   		    // Weights_D0, Weights_D1, Weights_D2
 					SetNE16_ConfigPad     ((v4s) {DoPad, DoPad, DoPad, DoPad}, Arg->Pad_Val);
 					SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
 					SetNE16_WOffset       (Arg->W_Offset);
@@ -437,7 +463,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 						SetNE16_InPointer     ((void *) Max((unsigned int) In, (unsigned int) InPointer + Tile_InFeat*(subfilter_i*Dx + w*Sx - PadL + (subfilter_j*Dy+h*Sy-PadT)*Tile_InW)));
 						SetNE16_OutPointer    (Out + Tile_OutFeat*(w + h*Tile_OutW));
 						// TODO - checkme I think here you need the total number of loaded chin
-						SetNE16_WeightsPointer(Filter + Tile_OutFeat*16*Nb_LoadedKI*subfilter_i + Tile_OutFeat*16*Nb_LoadedKI*Fx*subfilter_j);
+						SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
 						SetNE16_Reminders     (1, 1, Rem_KI, Rem_KO, 1, 1);
 						SetNE16_Dim           (Nb_KI, Nb_KO, 1, 1);
 						SetNE16_GenConfig     (Gen_Cfg);
@@ -446,7 +472,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 						SetNE16_ScaleNPointer (ScaleN);
 						SetNE16_Strides       (Tile_InFeat*Sx, Tile_InFeat*Sy*Tile_InW, 0,	    // In_D0, In_D1, In_D2 - unused
 								       Out_Stride0, OutBytes*Tile_OutFeat, OutBytes*Tile_OutFeat*Tile_OutW, // Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-								       2*Arg->Qw, Nb_KI*16*Arg->Qw/8, 0);		   // Weights_D0, Weights_D1, Weights_D2
+								       (Mode16?1:2)*Arg->Qw, Nb_KI*(Mode16?1:2)*Arg->Qw, 0);		   // Weights_D0, Weights_D1, Weights_D2
 						SetNE16_ConfigPad     ((v4s) {DoPad, DoPad, DoPad, DoPad}, Arg->Pad_Val);
 						SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
 						SetNE16_WOffset       (Arg->W_Offset);
@@ -483,7 +509,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 						SetNE16_InPointer     ((void *) Max((unsigned int) In, (unsigned int) InPointer + Tile_InFeat*(subfilter_i*Dx + (w*Sx-PadL) + (subfilter_j*Dy+h*Sy-PadT)*Tile_InW)));
 						SetNE16_OutPointer    (Out + Tile_OutFeat*(w + h*Tile_OutW));
 						// TODO - checkme I think here you need the total number of loaded chin
-						SetNE16_WeightsPointer(Filter + Tile_OutFeat*16*Nb_LoadedKI*subfilter_i + Tile_OutFeat*16*Nb_LoadedKI*Fx*subfilter_j);
+						SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
 						SetNE16_Reminders     (1, 1, Rem_KI, Rem_KO, 1, 1);
 						SetNE16_Dim           (Nb_KI, Nb_KO, 1, 1);
 						SetNE16_GenConfig     (Gen_Cfg);
@@ -492,7 +518,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 						SetNE16_ScaleNPointer (ScaleN);
 						SetNE16_Strides       (Tile_InFeat*Sx, Tile_InFeat*Sy*Tile_InW, 0,	    // In_D0, In_D1, In_D2 - unused
 								       Out_Stride0, OutBytes*Tile_OutFeat, OutBytes*Tile_OutFeat*Tile_OutW, // Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-								       2*Arg->Qw, Nb_KI*16*Arg->Qw/8, 0);		   // Weights_D0, Weights_D1, Weights_D2
+								       (Mode16?1:2)*Arg->Qw, Nb_KI*(Mode16?1:2)*Arg->Qw, 0);		   // Weights_D0, Weights_D1, Weights_D2
 						SetNE16_ConfigPad     ((v4s) {DoPad, DoPad, DoPad, DoPad}, Arg->Pad_Val);
 						SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
 						SetNE16_WOffset       (Arg->W_Offset);
@@ -529,7 +555,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 						SetNE16_InPointer     ((void *) Max((unsigned int) In, (unsigned int) InPointer + Tile_InFeat*(subfilter_i*Dx + w*Sx - PadL + (subfilter_j*Dy+h*Sy-PadT)*Tile_InW)));
 						SetNE16_OutPointer    (Out + Tile_OutFeat*(h*Tile_OutW + w));
 						// TODO - checkme I think here you need the total number of loaded chin
-						SetNE16_WeightsPointer(Filter + Tile_OutFeat*16*Nb_LoadedKI*subfilter_i + Tile_OutFeat*16*Nb_LoadedKI*Fx*subfilter_j);
+						SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
 						SetNE16_Reminders     (1, 1, Rem_KI, Rem_KO, 1, 1);
 						SetNE16_Dim           (Nb_KI, Nb_KO, 1, 1);
 						SetNE16_GenConfig     (Gen_Cfg);
@@ -538,7 +564,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 						SetNE16_ScaleNPointer (ScaleN);
 						SetNE16_Strides       (Tile_InFeat*Sx, Tile_InFeat*Sy*Tile_InW, 0,	    // In_D0, In_D1, In_D2 - unused
 								       Out_Stride0, OutBytes*Tile_OutFeat, OutBytes*Tile_OutFeat*Tile_OutW, // Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-								       2*Arg->Qw, Nb_KI*16*Arg->Qw/8, 0);		   // Weights_D0, Weights_D1, Weights_D2
+								       (Mode16?1:2)*Arg->Qw, Nb_KI*(Mode16?1:2)*Arg->Qw, 0);		   // Weights_D0, Weights_D1, Weights_D2
 						SetNE16_ConfigPad     ((v4s) {DoPad, DoPad, DoPad, DoPad}, Arg->Pad_Val);
 						SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
 						SetNE16_WOffset       (Arg->W_Offset);
@@ -575,7 +601,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 						SetNE16_InPointer     (InPointer + Tile_InFeat*(subfilter_i*Dx + w*Sx-PadL + (subfilter_j*Dy+h*Sy-PadT)*Tile_InW));
 						SetNE16_OutPointer    (Out + Tile_OutFeat*(h*Tile_OutW + w));
 						// TODO - checkme I think here you need the total number of loaded chin
-						SetNE16_WeightsPointer(Filter + Tile_OutFeat*16*Nb_LoadedKI*subfilter_i + Tile_OutFeat*16*Nb_LoadedKI*Fx*subfilter_j);
+						SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
 						SetNE16_Reminders     (1, 1, Rem_KI, Rem_KO, 1, 1);
 						SetNE16_Dim           (Nb_KI, Nb_KO, 1, 1);
 						SetNE16_GenConfig     (Gen_Cfg);
@@ -584,7 +610,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 						SetNE16_ScaleNPointer (ScaleN);
 						SetNE16_Strides       (Tile_InFeat*Sx, Tile_InFeat*Sy*Tile_InW, 0,	    // In_D0, In_D1, In_D2 - unused
 								       Out_Stride0, OutBytes*Tile_OutFeat, OutBytes*Tile_OutFeat*Tile_OutW, // Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-								       2*Arg->Qw, Nb_KI*16*Arg->Qw/8, 0);		   // Weights_D0, Weights_D1, Weights_D2
+								       (Mode16?1:2)*Arg->Qw, Nb_KI*(Mode16?1:2)*Arg->Qw, 0);		   // Weights_D0, Weights_D1, Weights_D2
 						SetNE16_ConfigPad     ((v4s) {DoPad, DoPad, DoPad, DoPad}, Arg->Pad_Val);
 						SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
 						SetNE16_WOffset       (Arg->W_Offset);
@@ -671,6 +697,12 @@ void NE16_PrepareJob(Ker_NE16_Job_T *Arg)
 void KerConv3x3Stride1_NE16(KerConv_NE16_T *Arg) {
 	int Tile_InFeat  = Arg->Tile_InFeat,  Tile_InW  = Arg->Tile_InW,  Tile_InH  = Arg->Tile_InH;
 	int Tile_OutFeat = Arg->Tile_OutFeat, Tile_OutW = Arg->Tile_OutW, Tile_OutH = Arg->Tile_OutH;
+        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
+	int Mode16 = 0;
+        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
+        	Tile_InFeat *= 2;
+        	Mode16 = 1;
+	}
 
 	int Nb_KI	= Tile_InFeat/16 + (Tile_InFeat%16?1:0);
 	int Rem_KI	= Tile_InFeat%16?Tile_InFeat%16:16;
@@ -683,19 +715,12 @@ void KerConv3x3Stride1_NE16(KerConv_NE16_T *Arg) {
 	int Rem_WI	= Rem_WO?(Rem_WO+2):0;
 	int Rem_HI	= Rem_HO?(Rem_HO+2):0;
         int W_Stride1   = 2*3*3*Arg->Qw*Nb_KI;
-        unsigned int Gen_Cfg;
-        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
+        unsigned int Gen_Cfg = Default_cfg;
 	int QuantBitsFlag = (Default_cfg >> NE16_SHIFT_QUANT_BITS) & NE16_MASK_QUANT_BITS;
         int OutBytes	= (QuantBitsFlag==2)?4: ((QuantBitsFlag==1)?2:1);
 	int Out_Stride0 = (QuantBitsFlag==2)?32:((QuantBitsFlag==1)?16:0);
         int PadL = Arg->Pad[0], PadT = Arg->Pad[2], PadR = Arg->Pad[1]?((Rem_WI?(5 - Rem_WI):0) + Arg->Pad[1]):0, PadB = Arg->Pad[3]?((Rem_HI?(5 - Rem_HI):0) + Arg->Pad[3]):0;
 
-        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
-        	Nb_KI	= (2*Tile_InFeat)/16 + ((2*Tile_InFeat)%16?1:0);
-		Rem_KI	= (2*Tile_InFeat)%16?(2*Tile_InFeat)%16:16;
-        }
-
-	Gen_Cfg = Default_cfg;
 	if (!Arg->LastD0){
 		// Do not apply reduction if not last
 		Gen_Cfg = (Gen_Cfg & RESET_QUANTOUT) | (NE16_MASK_QUANT_NORECT << NE16_SHIFT_QUANT_NORECT);
@@ -718,7 +743,7 @@ void KerConv3x3Stride1_NE16(KerConv_NE16_T *Arg) {
 	SetNE16_ScaleNPointer (Arg->ScaleN);
 	SetNE16_Strides       (Tile_InFeat, Tile_InFeat * Tile_InW, 5*5*Tile_InFeat,			// In_D0, In_D1, In_D2 - unused
 			       Out_Stride0, OutBytes * Tile_OutFeat, OutBytes * Tile_OutFeat * Tile_OutW,	// Out_D0, Out_D1, Out_D2
-			       2*3*3, W_Stride1, 0);	
+			       (Mode16?1:2)*3*3, (Mode16?1:2)*3*3*Arg->Qw*Nb_KI, 0);	
 	SetNE16_Reminders     (Rem_WI, Rem_HI, Rem_KI, Rem_KO, Rem_WO, Rem_HO);
 	SetNE16_Dim           (Nb_KI, Nb_KO, Nb_WO, Nb_HO);
 	SetNE16_ConfigPad     ((v4s) {PadL, PadR, PadT, PadB}, Arg->Pad_Val);
@@ -744,6 +769,7 @@ void KerConvDW3x3Stride1_NE16(KerConv_NE16_T *Arg)
 	unsigned short int * __restrict__ Filter = (unsigned short int *) Arg->Filter;
 	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
 	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 
 	int Tile_InFeat  = Arg->Tile_InFeat,  Tile_InW  = Arg->Tile_InW,  Tile_InH  = Arg->Tile_InH;
 	int Tile_OutFeat = Arg->Tile_OutFeat, Tile_OutW = Arg->Tile_OutW, Tile_OutH = Arg->Tile_OutH;
@@ -760,16 +786,10 @@ void KerConvDW3x3Stride1_NE16(KerConv_NE16_T *Arg)
 	int Rem_HI	= Rem_HO?(Rem_HO+2):0;
         int W_Stride1   = 0;
         unsigned int quant_out_flag, streamin_flag, Gen_Cfg;
-        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 	int QuantBitsFlag = (Default_cfg >> NE16_SHIFT_QUANT_BITS) & NE16_MASK_QUANT_BITS;
         int OutBytes	= (QuantBitsFlag==2)?4: ((QuantBitsFlag==1)?2:1);
 	int Out_Stride0 = (QuantBitsFlag==2)?32:((QuantBitsFlag==1)?16:0);
 	int PadL = Arg->Pad[0], PadT = Arg->Pad[2], PadR = (Rem_WI?(5 - Rem_WI):0) + Arg->Pad[1], PadB = (Rem_HI?(5 - Rem_HI):0) + Arg->Pad[3];
-
-        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
-        	Nb_KI	= (2*Tile_InFeat)/16 + ((2*Tile_InFeat)%16?1:0);
-		Rem_KI	= (2*Tile_InFeat)%16?(2*Tile_InFeat)%16:16;
-        }
 	Gen_Cfg = Default_cfg;
 
         volatile int job_id;
@@ -813,10 +833,16 @@ void KerConv3x3Stride1_DxDy_NE16(KerConv_NE16_T *Arg)
 	unsigned short int * __restrict__ Filter = (unsigned short int *) Arg->Filter;
 	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
 	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 
 	int Tile_InFeat  = Arg->Tile_InFeat,  Tile_InW  = Arg->Tile_InW,  Tile_InH  = Arg->Tile_InH;
 	int Tile_OutFeat = Arg->Tile_OutFeat, Tile_OutW = Arg->Tile_OutW, Tile_OutH = Arg->Tile_OutH;
 
+	int Mode16 = 0;
+        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
+        	Tile_InFeat *= 2;
+        	Mode16 = 1;
+	}
 	int Dx 		= Arg->Dx;
 	int Dy 		= Arg->Dy;
 	int Nb_KI	= Tile_InFeat/16 + (Tile_InFeat%16?1:0);
@@ -830,15 +856,9 @@ void KerConv3x3Stride1_DxDy_NE16(KerConv_NE16_T *Arg)
 
         int W_Stride1   = 2*3*3*Arg->Qw*Nb_KI;
         unsigned int Gen_Cfg;
-        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 	int QuantBitsFlag = (Default_cfg >> NE16_SHIFT_QUANT_BITS) & NE16_MASK_QUANT_BITS;
         int OutBytes	= (QuantBitsFlag==2)?4: ((QuantBitsFlag==1)?2:1);
 	int Out_Stride0 = (QuantBitsFlag==2)?32:((QuantBitsFlag==1)?16:0);
-
-        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
-        	Nb_KI	= (2*Tile_InFeat)/16 + ((2*Tile_InFeat)%16?1:0);
-		Rem_KI	= (2*Tile_InFeat)%16?(2*Tile_InFeat)%16:16;
-        }
 
 	Gen_Cfg = Default_cfg;
 	if (!Arg->LastD0){
@@ -877,7 +897,7 @@ void KerConv3x3Stride1_DxDy_NE16(KerConv_NE16_T *Arg)
 					// Strides consider dilation, i.e. 2 consecutive pixels in the W dimension will be at Dx*Chin stride
 					SetNE16_Strides       (Dx * Tile_InFeat, Dy * Tile_InFeat * Tile_InW, 0, 				// In_D0, In_D1, In_D2 - unused
 							       Out_Stride0, Dx * OutBytes * Tile_OutFeat, Dy * OutBytes * Tile_OutFeat * Tile_OutW,	// Out_D0, Out_D1, Out_D2
-							       2*3*3, W_Stride1, 0);
+							       (Mode16?1:2)*3*3, (Mode16?1:2)*3*3*Arg->Qw*Nb_KI, 0);
 					// load configuration for the layer
 					SetNE16_Reminders (wo==(Nb_WO_Subtiles-1)?Last_Rem_WI:0, ho==(Nb_HO_Subtiles-1)?Last_Rem_HI:0, Rem_KI, Rem_KO, 
 							   wo==(Nb_WO_Subtiles-1)?Last_Rem_WO:0, ho==(Nb_HO_Subtiles-1)?Last_Rem_HO:0);
@@ -909,10 +929,16 @@ void KerConv3x3Stride2_NE16(KerConv_NE16_T *Arg)
 	unsigned short int * __restrict__ Filter = (unsigned short int *) Arg->Filter;
 	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
 	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 
 	int Tile_InFeat  = Arg->Tile_InFeat,  Tile_InW  = Arg->Tile_InW,  Tile_InH  = Arg->Tile_InH;
 	int Tile_OutFeat = Arg->Tile_OutFeat, Tile_OutW = Arg->Tile_OutW, Tile_OutH = Arg->Tile_OutH;
 
+	int Mode16 = 0;
+        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
+        	Tile_InFeat *= 2;
+        	Mode16 = 1;
+	}
 	// In each subtile we compute 2 output pixel in both spatial dimensions
         int H_subtiles  = Tile_OutH / 2 + (Tile_OutH % 2);
         int W_subtiles  = Tile_OutW / 2 + (Tile_OutW % 2);
@@ -936,16 +962,10 @@ void KerConv3x3Stride2_NE16(KerConv_NE16_T *Arg)
 	int TilePadL = PadL, TilePadT = PadT;
 	int PadR = 0, PadB = 0;
         unsigned int Gen_Cfg;
-        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 	int QuantBitsFlag = (Default_cfg >> NE16_SHIFT_QUANT_BITS) & NE16_MASK_QUANT_BITS;
         int OutBytes	= (QuantBitsFlag==2)?4: ((QuantBitsFlag==1)?2:1);
 	int Out_Stride0 = (QuantBitsFlag==2)?32:((QuantBitsFlag==1)?16:0);
 	int ApplyRect = (Default_cfg & (NE16_MASK_QUANT_NORECT << NE16_SHIFT_QUANT_NORECT)) == 0;
-
-        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
-        	Nb_KI	= (2*Tile_InFeat)/16 + ((2*Tile_InFeat)%16?1:0);
-		Rem_KI	= (2*Tile_InFeat)%16?(2*Tile_InFeat)%16:16;
-        }
 
 	Gen_Cfg = Default_cfg;
 	if (!Arg->LastD0){
@@ -1006,7 +1026,7 @@ void KerConv3x3Stride2_NE16(KerConv_NE16_T *Arg)
 	SetNE16_ScaleNPointer (ScaleN);
 	SetNE16_Strides       (Tile_InFeat, Tile_InFeat * Tile_InW, 0, 	        			// In_D0, In_D1, In_D2 - unused
 		      	       Out_Stride0, OutBytes * Tile_OutFeat / 2, OutBytes * Tile_OutFeat * Tile_OutW / 2,	// Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-		      	       2*3*3, W_Stride1, 0);                                				// Weights_D0, Weights_D1, Weights_D2
+		      	       (Mode16?1:2)*3*3, (Mode16?1:2)*3*3*Arg->Qw*Nb_KI, 0);                                				// Weights_D0, Weights_D1, Weights_D2
 	SetNE16_Dim           (Nb_KI, Nb_KO, Nb_WO, Nb_HO);
 	// Assume first subtile no need for right/bottom pad
 	SetNE16_ConfigPad     ((v4s) {PadL, IsLastSubtileW?PadR:0, PadT, IsLastSubtileH?PadB:0}, Arg->Pad_Val);
@@ -1074,7 +1094,7 @@ void KerConv3x3Stride2_NE16(KerConv_NE16_T *Arg)
 	SetNE16_ScaleNPointer (ScaleN);
 	SetNE16_Strides       (Tile_InFeat, Tile_InFeat * Tile_InW, 0, 				        // In_D0, In_D1, In_D2 - unused
 		      	       Out_Stride0, OutBytes * Tile_OutFeat / 2, OutBytes * Tile_OutFeat * Tile_OutW / 2,	// Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-		      	       2*3*3, W_Stride1, 0);				                                // Weights_D0, Weights_D1, Weights_D2
+		      	       (Mode16?1:2)*3*3, (Mode16?1:2)*3*3*Arg->Qw*Nb_KI, 0);				                                // Weights_D0, Weights_D1, Weights_D2
 	SetNE16_Dim           (Nb_KI, Nb_KO, Nb_WO, Nb_HO);
 	// Moving to next spatial subtile means consider less padding (2 because of the stride)
 	PadL = Max(0, TilePadL-2*subtile_j_major);
@@ -1174,6 +1194,7 @@ void KerConvDW3x3Stride2_NE16(KerConv_NE16_T *Arg)
 	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
 	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
 
+        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 	int Tile_InFeat  = Arg->Tile_InFeat,  Tile_InW  = Arg->Tile_InW,  Tile_InH  = Arg->Tile_InH;
 	int Tile_OutFeat = Arg->Tile_OutFeat, Tile_OutW = Arg->Tile_OutW, Tile_OutH = Arg->Tile_OutH;
 
@@ -1199,16 +1220,10 @@ void KerConvDW3x3Stride2_NE16(KerConv_NE16_T *Arg)
 	int PadL = Arg->Pad[0], PadR = Arg->Pad[1], PadT = Arg->Pad[2], PadB = Arg->Pad[3];
 	int TilePadL = PadL, TilePadT = PadT;
         unsigned int res_quant_out_flag, streamin_flag, Gen_Cfg;
-        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 	int QuantBitsFlag = (Default_cfg >> NE16_SHIFT_QUANT_BITS) & NE16_MASK_QUANT_BITS;
         int OutBytes	= (QuantBitsFlag==2)?4: ((QuantBitsFlag==1)?2:1);
 	int Out_Stride0 = (QuantBitsFlag==2)?32:((QuantBitsFlag==1)?16:0);
 	Gen_Cfg = Default_cfg;
-
-        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
-        	Nb_KI	= (2*Tile_InFeat)/16 + ((2*Tile_InFeat)%16?1:0);
-		Rem_KI	= (2*Tile_InFeat)%16?(2*Tile_InFeat)%16:16;
-        }
 
 	volatile int job_id;
         NE16_SETPRIORITY_NE16(); // priority to NE16 w.r.t. cores, DMA
@@ -1260,7 +1275,7 @@ void KerConvDW3x3Stride2_NE16(KerConv_NE16_T *Arg)
 	SetNE16_ScaleNPointer (ScaleN);
 	SetNE16_Strides       (Tile_InFeat, Tile_InFeat * Tile_InW, 0, 	        			// In_D0, In_D1, In_D2 - unused
 		      	       Out_Stride0, OutBytes * Tile_OutFeat / 2, OutBytes * Tile_OutFeat * Tile_OutW / 2,	// Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-		      	       2*3*3, W_Stride1, 0);                                				// Weights_D0, Weights_D1, Weights_D2
+		      	       2*3*3, 2*3*3*Arg->Qw*Nb_KI, 0);                                				// Weights_D0, Weights_D1, Weights_D2
 	SetNE16_Dim           (Nb_KI, Nb_KO, Nb_WO, Nb_HO);
 	// Assume first subtile no need for right/bottom pad
 	SetNE16_ConfigPad     ((v4s) {PadL, IsLastSubtileW?PadR:0, PadT, IsLastSubtileH?PadB:0}, Arg->Pad_Val);
@@ -1328,7 +1343,7 @@ void KerConvDW3x3Stride2_NE16(KerConv_NE16_T *Arg)
 	SetNE16_ScaleNPointer (ScaleN);
 	SetNE16_Strides       (Tile_InFeat, Tile_InFeat * Tile_InW, 0, 				        // In_D0, In_D1, In_D2 - unused
 		      	       Out_Stride0, OutBytes * Tile_OutFeat / 2, OutBytes * Tile_OutFeat * Tile_OutW / 2,	// Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-		      	       2*3*3, W_Stride1, 0);				                                // Weights_D0, Weights_D1, Weights_D2
+		      	       2*3*3, 2*3*3*Arg->Qw*Nb_KI, 0);				                                // Weights_D0, Weights_D1, Weights_D2
 	SetNE16_Dim           (Nb_KI, Nb_KO, Nb_WO, Nb_HO);
 	// Moving to next spatial subtile means consider less padding (2 because of the stride)
 	PadL = Max(0, TilePadL-2*subtile_j_major);
@@ -1427,6 +1442,7 @@ void KerConv1D_StrideS_NE16(KerConv_NE16_T *Arg)
 	unsigned char * __restrict__ Filter = (unsigned char *__restrict__) Arg->Filter;
 	unsigned char * __restrict__ Scale  = (unsigned char *__restrict__) Arg->Scale;
 	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 	int Tile_InFeat  = Arg->Tile_InFeat, Tile_InW = Arg->Tile_InW;
 	int Tile_OutFeat = Arg->Tile_OutFeat, Tile_OutW = Arg->Tile_OutW, Tile_OutH = 3;
 	int Sx = Arg->Sx, Fx = Arg->Fx, Dx = Arg->Dx;
@@ -1434,8 +1450,13 @@ void KerConv1D_StrideS_NE16(KerConv_NE16_T *Arg)
 	int Wo = (Tile_InW-Fx+Arg->Pad[0]+Arg->Pad[1])/Sx + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(Fx, Arg->Pad[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Tile_InW, Fx, Arg->Pad[0], Sx, Dx));
 
+	int Mode16 = 0;
+        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
+        	Tile_InFeat *= 2;
+        	Mode16 = 1;
+	}
 	int Nb_KI	= Tile_InFeat/16 + (Tile_InFeat%16?1:0);
-	int Nb_LoadedKI = Arg->TotalInFeatures/16 + (Arg->TotalInFeatures%16?1:0);
+	int Nb_LoadedKI = Arg->TotalInFeatures/(Mode16?8:16) + (Arg->TotalInFeatures%(Mode16?8:16)?1:0);
 	int Rem_KI	= Tile_InFeat%16?Tile_InFeat%16:16;
 	int Nb_KO	= Tile_OutFeat/32 + (Tile_OutFeat%32?1:0);
 	int Rem_KO	= Tile_OutFeat%32?Tile_OutFeat%32:32;
@@ -1447,16 +1468,9 @@ void KerConv1D_StrideS_NE16(KerConv_NE16_T *Arg)
 	int LastSubtileSize = LastSubtileHeight?(LastSubtileHeight*3):9;
 
 	int Rem_WI = 0, Rem_HI = 0;
-        int W_Stride1 = 2*Arg->Fx*Arg->Qw*Nb_KI;
-
-        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 	unsigned int Gen_Cfg = Default_cfg;
 	int ApplyRect = (Default_cfg & (NE16_MASK_QUANT_NORECT << NE16_SHIFT_QUANT_NORECT)) == 0;
 
-        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
-        	Nb_KI	= (2*Tile_InFeat)/16 + ((2*Tile_InFeat)%16?1:0);
-		Rem_KI	= (2*Tile_InFeat)%16?(2*Tile_InFeat)%16:16;
-        }
 	if (!Arg->LastD0){
 		// Do not apply reduction if not last
 		Gen_Cfg = (Gen_Cfg & RESET_QUANTOUT) | (NE16_MASK_QUANT_NORECT << NE16_SHIFT_QUANT_NORECT);
@@ -1484,7 +1498,7 @@ void KerConv1D_StrideS_NE16(KerConv_NE16_T *Arg)
 		int LastSubfilterW = subfilter_i >= (Fx-1);
 		if (Arg->LastD0 && LastSubfilterW){
 			// Do not apply reduction if not last
-			Gen_Cfg |= SET_QUANTOUT;
+			if (!Mode16) Gen_Cfg |= SET_QUANTOUT;
 			if (ApplyRect) Gen_Cfg &= ~(NE16_MASK_QUANT_NORECT << NE16_SHIFT_QUANT_NORECT);
 		} else {
 			Gen_Cfg = (Gen_Cfg & RESET_QUANTOUT) | (NE16_MASK_QUANT_NORECT << NE16_SHIFT_QUANT_NORECT);
@@ -1494,7 +1508,7 @@ void KerConv1D_StrideS_NE16(KerConv_NE16_T *Arg)
 
 		unsigned char *pIn   = In + Tile_InFeat*(w*Sx - Arg->Pad[0] + subfilter_i*Dx);
 		unsigned char *pOut  = Out    + OutBytes*Tile_OutFeat*w;
-		unsigned char *pFilt = Filter + Tile_OutFeat*16*Nb_LoadedKI*subfilter_i;
+		unsigned char *pFilt = Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i;
 		if (LastSubtileW) {
 			Rem_HI = LastSubtileHeight;
 			w += LastSubtileSize;
@@ -1523,7 +1537,7 @@ void KerConv1D_StrideS_NE16(KerConv_NE16_T *Arg)
 			SetNE16_ScaleNPointer (ScaleN);
 			SetNE16_Strides       (Tile_InFeat*Sx, Tile_InFeat*Sx*3, 0,		    // In_D0, In_D1, In_D2 - unused
 					       Out_Stride0, OutBytes*Tile_OutFeat, OutBytes*Tile_OutFeat*3, // Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-					       2*Arg->Qw, Nb_KI*2*Arg->Qw, 0);			  	    // Weights_D0, Weights_D1, Weights_D2
+					       (Mode16?1:2)*Arg->Qw, Nb_KI*(Mode16?1:2)*Arg->Qw, 0);			  	    // Weights_D0, Weights_D1, Weights_D2
 			SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
 			SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
 			SetNE16_WOffset       (Arg->W_Offset);
@@ -1563,6 +1577,11 @@ void KerConvNxMDxDy_StrideSxSy_NE16(KerConv_NE16_T *Arg)
 	if (!Arg->FirstD0){
 		Gen_Cfg |= SET_STREAMIN;
 	}
+	int Mode16 = 0;
+        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
+        	Tile_InFeat *= 2;
+        	Mode16 = 1;
+	}
 	int OutBytes	= 4;
 	int Out_Stride0 = 32;
 	int SubTileCount = 0;
@@ -1574,7 +1593,7 @@ void KerConvNxMDxDy_StrideSxSy_NE16(KerConv_NE16_T *Arg)
 	int Wo = (Tile_InW-Dx*(Fx-1)-1+Arg->Pad[0]+Arg->Pad[1])/Sx + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(Fx, Arg->Pad[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Tile_InW, Fx, Arg->Pad[0], Sx, Dx));
 	int Nb_KI	= Tile_InFeat/16 + (Tile_InFeat%16?1:0);
-	int Nb_LoadedKI = Arg->TotalInFeatures/16 + (Arg->TotalInFeatures%16?1:0);
+	int Nb_LoadedKI = Arg->TotalInFeatures/(Mode16?8:16) + (Arg->TotalInFeatures%(Mode16?8:16)?1:0);
 	int Rem_KI	= Tile_InFeat%16?Tile_InFeat%16:16;
 	int Nb_KO	= Tile_OutFeat/32 + (Tile_OutFeat%32?1:0);
 	int Rem_KO	= Tile_OutFeat%32?Tile_OutFeat%32:32;
@@ -1583,11 +1602,6 @@ void KerConvNxMDxDy_StrideSxSy_NE16(KerConv_NE16_T *Arg)
 	int Rem_HO	= (Ho_L - Ho_F) % 3;
 	int Nb_HO	= (Ho_L - Ho_F) / 3 + (Rem_HO?1:0);
 
-	if((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
-                Rem_KI = Tile_InFeat/32 + (Tile_InFeat%32?1:0);
-                Nb_KI  = Tile_InFeat%32?Tile_InFeat%32:32;
-                Nb_LoadedKI = Arg->TotalInFeatures/32 + (Arg->TotalInFeatures%32?1:0);
-        }
 	volatile int job_id;
 	NE16_SETPRIORITY_NE16(); // priority to NE16 w.r.t. cores, DMA
 
@@ -1600,7 +1614,7 @@ void KerConvNxMDxDy_StrideSxSy_NE16(KerConv_NE16_T *Arg)
 			int LastSubfilterW = subfilter_i >= (Fx-1);
 			if (Arg->LastD0 && LastSubfilterW && LastSubfilterH){
 				// Do not apply reduction if not last
-				Gen_Cfg |= SET_QUANTOUT;
+				if (!Mode16) Gen_Cfg |= SET_QUANTOUT;
 				if (ApplyRect) Gen_Cfg &= ~(NE16_MASK_QUANT_NORECT << NE16_SHIFT_QUANT_NORECT);
 			} else {
 				Gen_Cfg = (Gen_Cfg & RESET_QUANTOUT) | (NE16_MASK_QUANT_NORECT << NE16_SHIFT_QUANT_NORECT);
@@ -1614,7 +1628,7 @@ void KerConvNxMDxDy_StrideSxSy_NE16(KerConv_NE16_T *Arg)
 			// update input / output pointers
 			SetNE16_InPointer     (In + Tile_InFeat*(Wo_F*Sx - Arg->Pad[0] + subfilter_i*Dx + Tile_InW*(Ho_F*Sy - Arg->Pad[2] + subfilter_j*Dy)));
 			SetNE16_OutPointer    (Out + OutBytes*Tile_OutFeat*(Wo_F + Tile_OutW*Ho_F));
-			SetNE16_WeightsPointer(Filter + Tile_OutFeat*16*Nb_LoadedKI*(subfilter_i + Fx*subfilter_j));
+			SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*(subfilter_i + Fx*subfilter_j));
 			SetNE16_Reminders     (Rem_WO, Rem_HO, Rem_KI, Rem_KO, Rem_WO, Rem_HO);
 			SetNE16_Dim           (Nb_KI, Nb_KO, Nb_WO, Nb_HO);
 			SetNE16_GenConfig     (Gen_Cfg);
@@ -1624,7 +1638,7 @@ void KerConvNxMDxDy_StrideSxSy_NE16(KerConv_NE16_T *Arg)
 				SetNE16_ScaleNPointer (ScaleN);
 				SetNE16_Strides       (Tile_InFeat*Sx, Tile_InFeat*Tile_InW*Sy, 0,	    // In_D0, In_D1, In_D2 - unused
 						       Out_Stride0, OutBytes*Tile_OutFeat, OutBytes*Tile_OutFeat*Tile_OutW, // Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-						       2*Arg->Qw, Nb_KI*2*Arg->Qw, 0);			  	    // Weights_D0, Weights_D1, Weights_D2
+						       (Mode16?1:2)*Arg->Qw, Nb_KI*(Mode16?1:2)*Arg->Qw, 0);			  	    // Weights_D0, Weights_D1, Weights_D2
 				SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
 				SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
 				SetNE16_WOffset       (Arg->W_Offset);
@@ -1650,9 +1664,16 @@ void KerConv1x1Stride1_NE16(KerConv_NE16_T *Arg)
 	unsigned short int * __restrict__ Filter = (unsigned short int *) Arg->Filter;
 	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
 	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+        unsigned int Gen_Cfg;
+        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 
 	int Tile_InFeat  = Arg->Tile_InFeat, Tile_InW  = Arg->Tile_InW,  Tile_InH  = Arg->Tile_InH;
 	int Tile_OutFeat = Arg->Tile_OutFeat, Tile_OutW = Arg->Tile_OutW, Tile_OutH = Arg->Tile_OutH;
+	int Mode16 = 0;
+        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
+        	Tile_InFeat *= 2;
+        	Mode16 = 1;
+	}
 
 	int Nb_KI	= Tile_InFeat/16 + (Tile_InFeat%16?1:0);
 	int Rem_KI	= Tile_InFeat%16?Tile_InFeat%16:16;
@@ -1664,16 +1685,10 @@ void KerConv1x1Stride1_NE16(KerConv_NE16_T *Arg)
 	int Nb_HO	= Tile_OutH / 3 + (Rem_HO?1:0);
 	int Rem_WI	= Tile_InW % 3;
 	int Rem_HI	= Tile_InH % 3;
-        unsigned int Gen_Cfg;
-        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 	int QuantBitsFlag = (Default_cfg >> NE16_SHIFT_QUANT_BITS) & NE16_MASK_QUANT_BITS;
         int OutBytes	= (QuantBitsFlag==2)?4: ((QuantBitsFlag==1)?2:1);
 	int Out_Stride0 = (QuantBitsFlag==2)?32:((QuantBitsFlag==1)?16:0);
 
-        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
-        	Nb_KI	= (2*Tile_InFeat)/16 + ((2*Tile_InFeat)%16?1:0);
-		Rem_KI	= (2*Tile_InFeat)%16?(2*Tile_InFeat)%16:16;
-        }
 	Gen_Cfg = Default_cfg;
 	if (!Arg->LastD0){
 		// Do not apply reduction if not last
@@ -1698,7 +1713,7 @@ void KerConv1x1Stride1_NE16(KerConv_NE16_T *Arg)
 	SetNE16_ScaleNPointer (ScaleN);
 	SetNE16_Strides       (Tile_InFeat, Tile_InFeat * Tile_InW, 0, 				 // In_D0, In_D1, In_D2 - unused
 			       Out_Stride0, OutBytes * Tile_OutFeat, OutBytes * Tile_OutFeat * Tile_OutW, // Out_D0, Out_D1, Out_D2
-                               2*Arg->Qw, Nb_KI*16*Arg->Qw/8, 0);				 // Weights_D0, Weights_D1, Weights_D2
+                               (Mode16?1:2)*Arg->Qw, Nb_KI*(Mode16?1:2)*Arg->Qw, 0);				 // Weights_D0, Weights_D1, Weights_D2
 	SetNE16_Reminders     (Rem_WI, Rem_HI, Rem_KI, Rem_KO, Rem_WO, Rem_HO);
 	SetNE16_Dim           (Nb_KI, Nb_KO, Nb_WO, Nb_HO);
 	SetNE16_WOffset       (Arg->W_Offset);
@@ -1726,9 +1741,15 @@ void KerConv1x1StrideS_NE16(KerConv_NE16_T *Arg)
 	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
 	int Sx = Arg->Sx;
 	int Sy = Arg->Sy;
+        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 
 	int Tile_InFeat  = Arg->Tile_InFeat,  Tile_InW  = Arg->Tile_InW,  Tile_InH  = Arg->Tile_InH;
 	int Tile_OutFeat = Arg->Tile_OutFeat, Tile_OutW = Arg->Tile_OutW, Tile_OutH = Arg->Tile_OutH;
+	int Mode16 = 0;
+        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
+        	Tile_InFeat *= 2;
+        	Mode16 = 1;
+	}
 
 	int Nb_KI	= Tile_InFeat/16 + (Tile_InFeat%16?1:0);
 	int Rem_KI	= Tile_InFeat%16?Tile_InFeat%16:16;
@@ -1739,15 +1760,11 @@ void KerConv1x1StrideS_NE16(KerConv_NE16_T *Arg)
 	int Rem_HO	= Tile_OutH % 3;
 	int Nb_HO	= Tile_OutH / 3 + (Rem_HO?1:0);
         unsigned int Gen_Cfg;
-        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 	int QuantBitsFlag = (Default_cfg >> NE16_SHIFT_QUANT_BITS) & NE16_MASK_QUANT_BITS;
         int OutBytes	= (QuantBitsFlag==2)?4: ((QuantBitsFlag==1)?2:1);
 	int Out_Stride0 = (QuantBitsFlag==2)?32:((QuantBitsFlag==1)?16:0);
 
-        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
-        	Nb_KI	= (2*Tile_InFeat)/16 + ((2*Tile_InFeat)%16?1:0);
-		Rem_KI	= (2*Tile_InFeat)%16?(2*Tile_InFeat)%16:16;
-        }
+
 	Gen_Cfg = Default_cfg;
 	if (!Arg->LastD0){
 		// Do not apply reduction if not last
@@ -1772,7 +1789,7 @@ void KerConv1x1StrideS_NE16(KerConv_NE16_T *Arg)
 	SetNE16_ScaleNPointer (ScaleN);
 	SetNE16_Strides       (Tile_InFeat*Sx, Tile_InFeat*Tile_InW*Sy, 0,			 // In_D0, In_D1, In_D2 - unused
 			       Out_Stride0, OutBytes * Tile_OutFeat, OutBytes * Tile_OutFeat * Tile_OutW, // Out_D0, Out_D1, Out_D2
-                               2*Arg->Qw, Nb_KI*16*Arg->Qw/8, 0);		                 // Weights_D0, Weights_D1, Weights_D2
+                               (Mode16?1:2)*Arg->Qw, Nb_KI*(Mode16?1:2)*Arg->Qw, 0);		                 // Weights_D0, Weights_D1, Weights_D2
 	SetNE16_Reminders     (Rem_WO, Rem_HO, Rem_KI, Rem_KO, Rem_WO, Rem_HO);
 	SetNE16_Dim           (Nb_KI, Nb_KO, Nb_WO, Nb_HO);
 	SetNE16_WOffset       (Arg->W_Offset);
@@ -1802,9 +1819,16 @@ void KerConv1x1_SmallHW_Stride1_NE16(KerConv_NE16_T *Arg)
         unsigned char * __restrict__ InPointer;
 	unsigned char * __restrict__ OutPointer;
 	unsigned char * __restrict__ FilterPointer;
+	unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 
 	int Tile_InFeat  = Arg->Tile_InFeat; //Tile_InW  = Arg->Tile_InW  / 3, Tile_InH  = 3;
 	int Tile_OutFeat = Arg->Tile_OutFeat, Tile_OutW = Arg->Tile_OutW, Tile_OutH = Arg->Tile_OutH;
+	int Mode16 = 0;
+        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
+        	Tile_InFeat *= 2;
+        	Mode16 = 1;
+	}
+
 	int Nb_KI	= Tile_InFeat/16 + (Tile_InFeat%16?1:0);
 	int Rem_KI	= Tile_InFeat%16?Tile_InFeat%16:16;
 	int Nb_KO	= Tile_OutFeat/32 + (Tile_OutFeat%32?1:0);
@@ -1819,14 +1843,7 @@ void KerConv1x1_SmallHW_Stride1_NE16(KerConv_NE16_T *Arg)
 	int Rem_HI = 0;
         int W_Stride1   = 2*Arg->Fx*1*Arg->Qw*Nb_KI;
 
-        unsigned int Gen_Cfg;
-        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
-
-        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
-        	Nb_KI	= (2*Tile_InFeat)/16 + ((2*Tile_InFeat)%16?1:0);
-		Rem_KI	= (2*Tile_InFeat)%16?(2*Tile_InFeat)%16:16;
-        }
-	Gen_Cfg = Default_cfg;
+        unsigned int Gen_Cfg = Default_cfg;
 	if (!Arg->LastD0){
 		// Do not apply reduction if not last
 		Gen_Cfg = (Gen_Cfg & RESET_QUANTOUT) | (NE16_MASK_QUANT_NORECT << NE16_SHIFT_QUANT_NORECT);
@@ -1879,7 +1896,7 @@ void KerConv1x1_SmallHW_Stride1_NE16(KerConv_NE16_T *Arg)
 			SetNE16_ScaleNPointer (ScaleN);
 			SetNE16_Strides       (Tile_InFeat, Tile_InFeat*3, 0,			   // In_D0, In_D1, In_D2 - unused
 					       Out_Stride0, OutBytes*Tile_OutFeat, OutBytes*Tile_OutFeat*3, // Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-					       2*Arg->Qw, Nb_KI*16*Arg->Qw/8, 0);		   // Weights_D0, Weights_D1, Weights_D2
+					       (Mode16?1:2)*Arg->Qw, Nb_KI*(Mode16?1:2)*Arg->Qw, 0);		   // Weights_D0, Weights_D1, Weights_D2
 			SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
 			SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
 			SetNE16_WOffset       (Arg->W_Offset);
@@ -1910,9 +1927,15 @@ void KerConv1x1_SmallHW_StrideS_NE16(KerConv_NE16_T *Arg)
         unsigned char * __restrict__ InPointer;
 	unsigned char * __restrict__ OutPointer;
 	unsigned char * __restrict__ FilterPointer;
+	unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
 
 	int Tile_InFeat  = Arg->Tile_InFeat; //Tile_InW  = Arg->Tile_InW  / 3, Tile_InH  = 3;
 	int Tile_OutFeat = Arg->Tile_OutFeat, Tile_OutW = Arg->Tile_OutW, Tile_OutH = Arg->Tile_OutH;
+	int Mode16 = 0;
+        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
+        	Tile_InFeat *= 2;
+        	Mode16 = 1;
+	}
 	int Nb_KI	= Tile_InFeat/16 + (Tile_InFeat%16?1:0);
 	int Rem_KI	= Tile_InFeat%16?Tile_InFeat%16:16;
 	int Nb_KO	= Tile_OutFeat/32 + (Tile_OutFeat%32?1:0);
@@ -1929,14 +1952,7 @@ void KerConv1x1_SmallHW_StrideS_NE16(KerConv_NE16_T *Arg)
 	int Rem_HI = 0;
         int W_Stride1   = 2*Arg->Fx*1*Arg->Qw*Nb_KI;
 
-        unsigned int Gen_Cfg;
-        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
-
-        if ((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
-        	Nb_KI	= (2*Tile_InFeat)/16 + ((2*Tile_InFeat)%16?1:0);
-		Rem_KI	= (2*Tile_InFeat)%16?(2*Tile_InFeat)%16:16;
-        }
-	Gen_Cfg = Default_cfg;
+        unsigned int Gen_Cfg = Default_cfg;
 	if (!Arg->LastD0){
 		// Do not apply reduction if not last
 		Gen_Cfg = (Gen_Cfg & RESET_QUANTOUT) | (NE16_MASK_QUANT_NORECT << NE16_SHIFT_QUANT_NORECT);
@@ -1989,7 +2005,7 @@ void KerConv1x1_SmallHW_StrideS_NE16(KerConv_NE16_T *Arg)
 			SetNE16_ScaleNPointer (ScaleN);
 			SetNE16_Strides       (Tile_InFeat*Sx, Tile_InFeat*Sy*3, 0,			   // In_D0, In_D1, In_D2 - unused
 					       Out_Stride0, OutBytes*Tile_OutFeat, OutBytes*Tile_OutFeat*3, // Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-					       2*Arg->Qw, Nb_KI*16*Arg->Qw/8, 0);		   // Weights_D0, Weights_D1, Weights_D2
+					       (Mode16?1:2)*Arg->Qw, Nb_KI*(Mode16?1:2)*Arg->Qw, 0);		   // Weights_D0, Weights_D1, Weights_D2
 			SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
 			SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
 			SetNE16_WOffset       (Arg->W_Offset);
@@ -2009,7 +2025,7 @@ void KerConv1x1_SmallHW_StrideS_NE16(KerConv_NE16_T *Arg)
 	NE16_SETPRIORITY_CORE();
 }
 
-void KerLinear_NE16(KerLinear_NE16_T *Arg)
+void KerLinear_8a_NE16(KerLinear_NE16_T *Arg)
 {
 	unsigned char * __restrict__ In = (unsigned char *) Arg->In;
 	unsigned char * __restrict__ Out = (unsigned char *) Arg->Out;
@@ -2019,10 +2035,8 @@ void KerLinear_NE16(KerLinear_NE16_T *Arg)
 	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
 
 	int Tile_InFeat  = Arg->Tile_InFeat;
+	int UsedKI 	 = Tile_InFeat;
 	int Tile_OutFeat = Arg->Tile_OutFeat;
-
-        int Nb_KI  = Tile_InFeat / 256 + (Tile_InFeat % 256 ? 1 : 0);
-	int Rem_KI = ((Tile_InFeat % 256) / 16) == 0 ? 16 : (Tile_InFeat % 256) / 16;
 
 	int Nb_KO	= Tile_OutFeat/32 + (Tile_OutFeat%32?1:0);
 	int Rem_KO	= Tile_OutFeat%32?Tile_OutFeat%32:32; // Check different wrt simulator
@@ -2033,10 +2047,12 @@ void KerLinear_NE16(KerLinear_NE16_T *Arg)
 	int Out_Stride0 = (QuantBitsFlag==2)?32:((QuantBitsFlag==1)?16:0);
 	// int Weights_KI = Tile_InFeat / 16 + (Tile_InFeat%16?1:0);
 
-        if((Default_cfg >> NE16_SHIFT_MODE16) & NE16_MASK_MODE16) {
-                Rem_KI = ((Tile_InFeat % 512) / 16) == 0 ? 16 : (Tile_InFeat % 512) / 16;
-                Nb_KI  = Tile_InFeat / 512 + (Tile_InFeat % 512 ? 1 : 0);
-        }
+	if (Tile_InFeat % 16) {
+		UsedKI = (Tile_InFeat/16+1)*16;
+		for (int i=Tile_InFeat; i<UsedKI; i++) In[i] = 0;
+	}
+	int Nb_KI  = UsedKI / 256 + (UsedKI % 256 ? 1 : 0);
+	int Rem_KI = ((UsedKI % 256) / 16) == 0 ? 16 : (UsedKI % 256) / 16;
 
 	Gen_Cfg = Default_cfg;
 	if (!Arg->LastD0){
@@ -2049,29 +2065,132 @@ void KerLinear_NE16(KerLinear_NE16_T *Arg)
  	volatile int job_id;
         NE16_SETPRIORITY_NE16(); // priority to NE16 w.r.t. cores, DMA
 
-        for (int subtile_ko=0; subtile_ko<Nb_KO; subtile_ko++) {
+	// acquire job
+	NE16_BARRIER_ACQUIRE(job_id);
+	// load configuration for the layer
+	SetNE16_OutPointer    (Out);
+	SetNE16_WeightsPointer(Filter);
+	SetNE16_BiasPointer   (Bias);
+	SetNE16_ScalePointer  (Scale);
+	SetNE16_ScaleNPointer (ScaleN);
+	SetNE16_Reminders     (0, 0, Rem_KI, Rem_KO, 0, 0);
+	SetNE16_InPointer     (In);
+	SetNE16_Strides       (16, 0, 0, 	                                // In_D0, In_D1 - unused, In_D2 - unused
+			       Out_Stride0, 0, 0,				// Out_D0, Out_D1 - unused, Out_D2 - unused
+			       UsedKI*2/16, Arg->Qw*UsedKI*2/16, Arg->Qw*UsedKI*2);	// Weights_D0, Weights_D1, Weights_D2
+	SetNE16_Dim           (Nb_KI, Nb_KO, 1, 1);
+	SetNE16_WOffset       (Arg->W_Offset);
+	SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
+	SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
+	SetNE16_GenConfig     (Gen_Cfg);
+
+	// commit and trigger NE16 computation
+	NE16_WRITE_CMD(NE16_COMMIT_AND_TRIGGER, NE16_TRIGGER_CMD);
+
+	// wait for end of computation
+	NE16_BARRIER();
+
+	// set priority to core side
+	NE16_SETPRIORITY_CORE();
+}
+
+void KerLinear_16a_NE16(KerLinear_NE16_T *Arg)
+{
+	unsigned char * __restrict__ In = (unsigned char *) Arg->In;
+	unsigned char * __restrict__ Out = (unsigned char *) Arg->Out;
+	int * __restrict__ Bias = (int *) Arg->Bias;
+	unsigned char * __restrict__ Filter = (unsigned char *) Arg->Filter;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+
+	int Tile_InFeat  = Arg->Tile_InFeat;
+	int UsedKI 	 = Tile_InFeat;
+	int Tile_OutFeat = Arg->Tile_OutFeat;
+
+
+	int Nb_KO	= Tile_OutFeat/32 + (Tile_OutFeat%32?1:0);
+	int Rem_KO	= Tile_OutFeat%32?Tile_OutFeat%32:32; // Check different wrt simulator
+        unsigned int res_quant_out_flag, streamin_flag, Gen_Cfg;
+        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
+	int QuantBitsFlag = (Default_cfg >> NE16_SHIFT_QUANT_BITS) & NE16_MASK_QUANT_BITS;
+        int OutBytes	= (QuantBitsFlag==2)?4: ((QuantBitsFlag==1)?2:1);
+	int Out_Stride0 = (QuantBitsFlag==2)?32:((QuantBitsFlag==1)?16:0);
+	// int Weights_KI = Tile_InFeat / 16 + (Tile_InFeat%16?1:0);
+
+	if (Tile_InFeat % 32) {
+		UsedKI = (Tile_InFeat/32+1)*32;
+	 	for (int i=Tile_InFeat; i<UsedKI; i++) ((unsigned short int *) In)[i] = 0;
+	}
+        int Nb_KI  = UsedKI / 256 + (UsedKI % 256 ? 1 : 0);
+        int Rem_KI = ((UsedKI % 256) / 16) == 0 ? 16 : (UsedKI % 256) / 16;
+
+	Gen_Cfg = Default_cfg;
+	if (!Arg->LastD0){
+		// Do not apply reduction if not last
+		Gen_Cfg = (Gen_Cfg & RESET_QUANTOUT) | (NE16_MASK_QUANT_NORECT << NE16_SHIFT_QUANT_NORECT);
+	}
+	if (!Arg->FirstD0){
+		Gen_Cfg |= SET_STREAMIN;
+	}
+ 	volatile int job_id;
+        NE16_SETPRIORITY_NE16(); // priority to NE16 w.r.t. cores, DMA
+
+ //        int Offset = 0;
+ //        for (int subtile_ki=0; subtile_ki<Nb_KI; subtile_ki++) {
+ //        	int IsLastKI = subtile_ki == (Nb_KI-1);
+ //        	int InFeatSubTile = IsLastKI?(UsedKI%256):256;
+	//         for (int subtile_ko=0; subtile_ko<Nb_KO; subtile_ko++) {
+	// 		// acquire job
+	// 		NE16_BARRIER_ACQUIRE(job_id);
+	// 		int IsLastKO = subtile_ko == (Nb_KO-1);
+	// 		// load configuration for the layer
+	// 		SetNE16_OutPointer    (Out+subtile_ko*32*OutBytes);
+	// 		SetNE16_WeightsPointer(Filter+subtile_ko*32*UsedKI+subtile_ki*256*Tile_OutFeat);
+	// 		SetNE16_BiasPointer   (Bias+subtile_ko*32);
+	// 		SetNE16_ScalePointer  (Scale+subtile_ko*32);
+	// 		SetNE16_ScaleNPointer (ScaleN+subtile_ko*32);
+	// 		SetNE16_Reminders     (0, 0, IsLastKI?Rem_KI:0, IsLastKO?Rem_KO:32, 0, 0);
+	// 		if (subtile_ko<2){
+	// 			SetNE16_InPointer     (In+256*subtile_ki*2);
+	// 			SetNE16_Strides       (16, 0, 0, 	                                // In_D0, In_D1 - unused, In_D2 - unused
+	// 					       Out_Stride0, 0, 0,				// Out_D0, Out_D1 - unused, Out_D2 - unused
+	// 					       InFeatSubTile*2/16, Arg->Qw*InFeatSubTile*2/16, Arg->Qw*InFeatSubTile*2);	// Weights_D0, Weights_D1, Weights_D2
+	// 					       //Tile_InFeat/Arg->Qw, Tile_InFeat, Tile_InFeat);	// Weights_D0, Weights_D1, Weights_D2
+	// 			SetNE16_Dim           (1, 1, 1, 1);
+	// 			SetNE16_WOffset       (Arg->W_Offset);
+	// 			SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
+	// 			SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
+	// 			SetNE16_GenConfig     (Gen_Cfg);
+	// 		}
+
+	// 		// commit and trigger NE16 computation
+	// 		NE16_WRITE_CMD(NE16_COMMIT_AND_TRIGGER, NE16_TRIGGER_CMD);
+	// 	}
+	// }
+
+        int Offset = 0;
+        for (int subtile_ki=0; subtile_ki<Nb_KI; subtile_ki++) {
+        	int IsLastKI = subtile_ki == (Nb_KI-1);
+        	int InFeatSubTile = IsLastKI?(UsedKI%256):256;
 		// acquire job
 		NE16_BARRIER_ACQUIRE(job_id);
-		int IsLastKO = subtile_ko == (Nb_KO-1);
 		// load configuration for the layer
-		SetNE16_OutPointer    (Out+subtile_ko*32*OutBytes);
-		SetNE16_WeightsPointer(Filter+subtile_ko*32*Tile_InFeat);
-		SetNE16_BiasPointer   (Bias+subtile_ko*32);
-		SetNE16_ScalePointer  (Scale+subtile_ko*32);
-		SetNE16_ScaleNPointer (ScaleN+subtile_ko*32);
-		SetNE16_Reminders     (0, 0, Rem_KI, IsLastKO?Rem_KO:32, 0, 0);
-		if (subtile_ko<2){
-			SetNE16_InPointer     (In);
-			SetNE16_Strides       (16, 0, 0, 	                                // In_D0, In_D1 - unused, In_D2 - unused
-					       Out_Stride0, 0, 0,				// Out_D0, Out_D1 - unused, Out_D2 - unused
-					       Tile_InFeat*2/16, Arg->Qw*Tile_InFeat*2/16, Arg->Qw*Tile_InFeat*4);	// Weights_D0, Weights_D1, Weights_D2
-					       //Tile_InFeat/Arg->Qw, Tile_InFeat, Tile_InFeat);	// Weights_D0, Weights_D1, Weights_D2
-			SetNE16_Dim           (Nb_KI, 1, 1, 1);
-			SetNE16_WOffset       (Arg->W_Offset);
-			SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
-			SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
-			SetNE16_GenConfig     (Gen_Cfg);
-		}
+		SetNE16_OutPointer    (Out);
+		SetNE16_WeightsPointer(Filter+subtile_ki*256*Tile_OutFeat);
+		SetNE16_BiasPointer   (Bias);
+		SetNE16_ScalePointer  (Scale);
+		SetNE16_ScaleNPointer (ScaleN);
+		SetNE16_Reminders     (0, 0, IsLastKI?Rem_KI:0, Rem_KO, 0, 0);
+		SetNE16_InPointer     (In+256*subtile_ki*2);
+		SetNE16_Strides       (16, 0, 0, 	                                // In_D0, In_D1 - unused, In_D2 - unused
+				       Out_Stride0, 0, 0,				// Out_D0, Out_D1 - unused, Out_D2 - unused
+				       InFeatSubTile*2/16, Arg->Qw*InFeatSubTile*2/16, Arg->Qw*InFeatSubTile*2);	// Weights_D0, Weights_D1, Weights_D2
+				       //Tile_InFeat/Arg->Qw, Tile_InFeat, Tile_InFeat);	// Weights_D0, Weights_D1, Weights_D2
+		SetNE16_Dim           (1, Nb_KO, 1, 1);
+		SetNE16_WOffset       (Arg->W_Offset);
+		SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
+		SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
+		SetNE16_GenConfig     (Gen_Cfg);
 
 		// commit and trigger NE16 computation
 		NE16_WRITE_CMD(NE16_COMMIT_AND_TRIGGER, NE16_TRIGGER_CMD);
@@ -2083,242 +2202,235 @@ void KerLinear_NE16(KerLinear_NE16_T *Arg)
 	// set priority to core side
 	NE16_SETPRIORITY_CORE();
 }
-/*
-void KerLinear_NE16fp(KerLinear_NE16fp_T *Arg)
+
+void KerMatMul_8aFast_NE16(KerMatMul_NE16_T *Arg)
 {
-	unsigned short * __restrict__ In = (unsigned short *) Arg->In;
-	unsigned int * __restrict__  Out = (unsigned int *) Arg->Out;
+	unsigned char * __restrict__ In = (unsigned char *) Arg->In1;
+	unsigned char * __restrict__ Out = (unsigned char *) Arg->Out;
 	int * __restrict__ Bias = (int *) Arg->Bias;
-	unsigned char * __restrict__ Filter = (unsigned char *) Arg->Filter;
+	unsigned char * __restrict__ In2 = (unsigned char *) Arg->In2;
 	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
 	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
-	unsigned char * __restrict__ Infos = (unsigned char *__restrict__) Arg->Infos;
 
-	int Tile_OutFeat = Arg->Tile_OutFeat;
-	int Nb_KO	= Tile_OutFeat/32 + (Tile_OutFeat%32?1:0);
-	int Rem_KO	= Tile_OutFeat%32?Tile_OutFeat%32:32;
-        unsigned int CoreId = gap_coreid();
+	int W_In1  = Arg->W_In1;
+	int W_In2  = Arg->W_In2;
 
-	if (Arg->FirstD0) {
-		// First Input Tile - Copy Biases
-		unsigned int ChunkCell = ChunkSize(Tile_OutFeat, 1);
-		unsigned int First = CoreId * ChunkCell;
-		unsigned int Last = Min(First + ChunkCell, Tile_OutFeat);
-		for (int o = First; o<Last; o++) {
-			Out[o] = Bias[o];
-		}
-		gap_waitbarrier_cc();
+	int Nb_KO	= W_In2/32 + (W_In2%32?1:0);
+	int Rem_KO	= W_In2%32?W_In2%32:32; // Check different wrt simulator
+        unsigned int res_quant_out_flag, streamin_flag, Gen_Cfg;
+        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
+	int QuantBitsFlag = (Default_cfg >> NE16_SHIFT_QUANT_BITS) & NE16_MASK_QUANT_BITS;
+        int OutBytes	= (QuantBitsFlag==2)?4: ((QuantBitsFlag==1)?2:1);
+	int Out_Stride0 = (QuantBitsFlag==2)?32:((QuantBitsFlag==1)?16:0);
+	int Qw = ((Default_cfg >> NE16_SHIFT_WBITS_M1) & NE16_MASK_WBITS_M1) + 1;
+
+	int Nb_KI  = W_In1 / 256 + (W_In1 % 256 ? 1 : 0);
+	int Rem_KI = ((W_In1 % 256) / 16) == 0 ? 16 : (W_In1 % 256) / 16;
+
+	Gen_Cfg = Default_cfg;
+ 	volatile int job_id;
+        NE16_SETPRIORITY_NE16(); // priority to NE16 w.r.t. cores, DMA
+
+        for (int Line=0; Line<Arg->H_In1; Line++) {
+		// acquire job
+		NE16_BARRIER_ACQUIRE(job_id);
+		// load configuration for the layer
+		SetNE16_InPointer     (In + W_In1*Line);
+		//SetNE16_OutPointer    (Out + W_In2*(i + OutFirstCol));
+		SetNE16_OutPointer    (Out + W_In2*Line);
+		SetNE16_WeightsPointer(In2);
+		SetNE16_BiasPointer   (Bias);
+		SetNE16_ScalePointer  (Scale);
+		SetNE16_ScaleNPointer (ScaleN);
+		SetNE16_Reminders     (0, 0, Rem_KI, Rem_KO, 0, 0);
+		SetNE16_Strides       (16, 0, 0, 	                                // In_D0, In_D1 - unused, In_D2 - unused
+				       Out_Stride0, 0, 0,				// Out_D0, Out_D1 - unused, Out_D2 - unused
+				       W_In1*2/16, Qw*W_In1*2/16, Qw*W_In1*2);	// Weights_D0, Weights_D1, Weights_D2
+		SetNE16_Dim           (Nb_KI, Nb_KO, 1, 1);
+		SetNE16_WOffset       (Arg->W_Offset);
+		SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
+		SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
+		SetNE16_GenConfig     (Gen_Cfg);
+
+		// commit and trigger NE16 computation
+		NE16_WRITE_CMD(NE16_COMMIT_AND_TRIGGER, NE16_TRIGGER_CMD);
 	}
-	if (CoreId != 8) {
-		if (Arg->LastD0) {
-			// First Last Tile - Process output
-			unsigned int PerCycle = 32 / gap_ncore();
-			unsigned int First = CoreId * PerCycle;
-			unsigned int Last = Min(First + PerCycle, 32);
-			unsigned int ChunkCell = ChunkSize(Rem_KO, 0);
-			unsigned int FinalFirst = 32 * (Nb_KO-1) + CoreId * ChunkCell;
-			unsigned int FinalLast = Min(FinalFirst + ChunkCell, Rem_KO);
-			gap_waitbarrier_cc();
-			while(Nb_KO--) {
-				if (CoreId==0) pi_cl_sem_dec(Arg->Sem);
-				gap_waitbarrier();
-				int ThisFirst, ThisLast;
-				if (Nb_KO) {
-					ThisFirst = First;
-					ThisLast = Last;
-					First += PerCycle;
-					Last += PerCycle;
-				} else {
-					ThisFirst = FinalFirst;
-					ThisLast = FinalLast;
-				}
-				for (int o = ThisFirst; o<ThisLast; o++) {
-					Out[o] = AT_SCALE(gap_norm_reg(Out[o], Infos[NE16_FC_PRENORM]), Scale[o], ScaleN[o]);
-				}
-			}
-		}
-	} else {
-		int Tile_InFeat  = Arg->Tile_InFeat;
 
-		int Nb_KI, Rem_KI;
-		unsigned int Cfg = Arg->Default_NE16_Job_Cfg;
+	// wait for end of computation
+	NE16_BARRIER();
 
-		Rem_KI = ((Tile_InFeat % 512) / 16) == 0 ? 16 : (Tile_InFeat % 512) / 16;
-		Nb_KI  = Tile_InFeat / 512 + (Tile_InFeat % 512 ? 1 : 0);
+	// set priority to core side
+	NE16_SETPRIORITY_CORE();
+}
 
-		if (Arg->FirstD0) {
-			if (Arg->FirstD1)
-				Arg->Sem = pi_cl_sem_alloc();
-			gap_waitbarrier_cc();
-		}
-		if (Arg->LastD0) {
-			pi_cl_sem_set(Arg->Sem, 0);
-			gap_waitbarrier_cc();
-		}
-		volatile int job_id;
-		NE16_SETPRIORITY_NE16(); // priority to NE16 w.r.t. cores, DMA
 
-		for (int subtile_ko=0; subtile_ko<Nb_KO; subtile_ko++) {
+void KerMatMul_16aFast_NE16(KerMatMul_NE16_T *Arg)
+{
+	short int * __restrict__ In = (short int *) Arg->In1;
+	int * __restrict__ Out = (int *) Arg->Out;
+	int * __restrict__ Bias = (int *) Arg->Bias;
+	unsigned char * __restrict__ In2 = (unsigned char *) Arg->In2;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+
+	int W_In1  = Arg->W_In1;
+	int W_In2  = Arg->W_In2;
+
+	int Nb_KO	= W_In2/32 + (W_In2%32?1:0);
+	int Rem_KO	= W_In2%32?W_In2%32:32; // Check different wrt simulator
+        unsigned int res_quant_out_flag, streamin_flag, Gen_Cfg;
+        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
+	int QuantBitsFlag = (Default_cfg >> NE16_SHIFT_QUANT_BITS) & NE16_MASK_QUANT_BITS;
+        int OutBytes	= (QuantBitsFlag==2)?4: ((QuantBitsFlag==1)?2:1);
+	int Out_Stride0 = (QuantBitsFlag==2)?32:((QuantBitsFlag==1)?16:0);
+	int Qw = ((Default_cfg >> NE16_SHIFT_WBITS_M1) & NE16_MASK_WBITS_M1) + 1;
+
+        int Nb_KI  = W_In1 / 256 + (W_In1 % 256 ? 1 : 0);
+        int Rem_KI = ((W_In1 % 256) / 16) == 0 ? 16 : (W_In1 % 256) / 16;
+
+	Gen_Cfg = Default_cfg;
+ 	volatile int job_id;
+        NE16_SETPRIORITY_NE16(); // priority to NE16 w.r.t. cores, DMA
+
+        for (int Line=0; Line<Arg->H_In1; Line++) {
+	        for (int subtile_ki=0; subtile_ki<Nb_KI; subtile_ki++) {
+
+	        	int IsLastKI = subtile_ki == (Nb_KI-1);
+	        	int InFeatSubTile = IsLastKI?(W_In1%256):256;
 			// acquire job
 			NE16_BARRIER_ACQUIRE(job_id);
-			if (Arg->LastD0&&subtile_ko>2) {
-				pi_cl_sem_inc(Arg->Sem, 1);
-			}
-			int IsLastKO = subtile_ko == (Nb_KO-1);
 			// load configuration for the layer
-			SetNE16_OutPointer    (Out+subtile_ko*32*4);
-			SetNE16_WeightsPointer(Filter+subtile_ko*32*Tile_InFeat);
-			SetNE16_Reminders     (0, 0, Rem_KI, IsLastKO?Rem_KO:32, 0, 0);
-			if (subtile_ko<2){
-				SetNE16_InPointer     (In);
-				SetNE16_Strides       (16, 0, 0, 	                                // In_D0, In_D1 - unused, In_D2 - unused
-						       32, 0, 0,				// Out_D0, Out_D1 - unused, Out_D2 - unused
-						       Tile_InFeat*2/16, Arg->Qw*Tile_InFeat*2/16, Arg->Qw*Tile_InFeat*4);	// Weights_D0, Weights_D1, Weights_D2
-						//Tile_InFeat/Arg->Qw, Tile_InFeat, Tile_InFeat);	// Weights_D0, Weights_D1, Weights_D2
-				SetNE16_Dim           (Nb_KI, 1, 1, 1);
-				SetNE16_WOffset       (Infos[NE16_FC_WOFF]);
-				SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
-				SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
-				SetNE16_GenConfig     (Cfg);
-			}
+			SetNE16_InPointer     (In + W_In1*Line +256*subtile_ki*2);
+			SetNE16_OutPointer    (Out + W_In2*Line);
+			SetNE16_WeightsPointer(In2+subtile_ki*256*W_In2);
+			SetNE16_BiasPointer   (Bias);
+			SetNE16_ScalePointer  (Scale);
+			SetNE16_ScaleNPointer (ScaleN);
+			SetNE16_Reminders     (0, 0, IsLastKI?Rem_KI:0, Rem_KO, 0, 0);
+			SetNE16_Strides       (16, 0, 0, 	                                // In_D0, In_D1 - unused, In_D2 - unused
+					       Out_Stride0, 0, 0,				// Out_D0, Out_D1 - unused, Out_D2 - unused
+					       InFeatSubTile*2/16, Qw*InFeatSubTile*2/16, Qw*InFeatSubTile*2);	// Weights_D0, Weights_D1, Weights_D2
+					       //Tile_InFeat/Qw, Tile_InFeat, Tile_InFeat);	// Weights_D0, Weights_D1, Weights_D2
+			SetNE16_Dim           (1, Nb_KO, 1, 1);
+			SetNE16_WOffset       (Arg->W_Offset);
+			SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
+			SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
+			SetNE16_GenConfig     (Gen_Cfg);
 
 			// commit and trigger NE16 computation
 			NE16_WRITE_CMD(NE16_COMMIT_AND_TRIGGER, NE16_TRIGGER_CMD);
 		}
-
-		// wait for end of computation
-		NE16_BARRIER();
-
-		// set priority to core side
-		NE16_SETPRIORITY_CORE();
-		if (Arg->LastD0)
-			pi_cl_sem_inc(Arg->Sem, 2);
 	}
-	gap_waitbarrier_cc();
-	if (Arg->LastD0&&Arg->LastD1) {
-		if (CoreId == 8) pi_cl_sem_free(Arg->Sem);
-		gap_waitbarrier_cc();
-	}
+
+	// wait for end of computation
+	NE16_BARRIER();
+
+	// set priority to core side
+	NE16_SETPRIORITY_CORE();
 }
 
-void KerLinearReLU_NE16fp(KerLinear_NE16fp_T *Arg)
+void KerMatMul_8a_NE16(KerMatMul_NE16_T *Arg)
 {
-	unsigned short * __restrict__ In = (unsigned short *) Arg->In;
-	unsigned short * __restrict__  Out = (unsigned short *) Arg->Out;
-	unsigned int * __restrict__  Buf = (unsigned int *) Arg->Buf;
-	int * __restrict__ Bias = (int *) Arg->Bias;
-	unsigned char * __restrict__ Filter = (unsigned char *) Arg->Filter;
-	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
-	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
-	unsigned char * __restrict__ Infos = (unsigned char *__restrict__) Arg->Infos;
-
-	int Tile_OutFeat = Arg->Tile_OutFeat;
-	int Nb_KO	= Tile_OutFeat/32 + (Tile_OutFeat%32?1:0);
-	int Rem_KO	= Tile_OutFeat%32?Tile_OutFeat%32:32;
+	unsigned char * __restrict__ In = (unsigned char *) Arg->In1;
+	int W_In1  = Arg->W_In1;
+	int UsedKI = (W_In1%16)?((W_In1/16+1)*16):W_In1;
+	unsigned char * __restrict__ Buff1 = (unsigned char *__restrict__) Arg->Buff;
+	unsigned char * __restrict__ Buff2 = Buff1 + UsedKI;
+	unsigned char * __restrict__ CurBuff = Buff1;
         unsigned int CoreId = gap_coreid();
+        unsigned int *Semaphores = Arg->Semaphores;
 
-	if (Arg->FirstD0) {
-		// First Input Tile - Copy Biases
-		unsigned int ChunkCell = ChunkSize(Tile_OutFeat, 1);
-		unsigned int First = CoreId * ChunkCell;
-		unsigned int Last = Min(First + ChunkCell, Tile_OutFeat);
-		for (int o = First; o<Last; o++) {
-			Buf[o] = Bias[o];
-		}
-		gap_waitbarrier_cc();
+	if (CoreId == 0) {
+		Semaphores[0] = pi_cl_sem_alloc();
+		Semaphores[1] = pi_cl_sem_alloc();
+		pi_cl_sem_set(Semaphores[0], 0);
+		pi_cl_sem_set(Semaphores[1], 2);
+	 	for (int i=W_In1; i<UsedKI; i++) {
+	 		((unsigned char *) Buff1)[i] = 0;
+	 		((unsigned char *) Buff2)[i] = 0;
+	 	}
 	}
-	if (CoreId != 8) {
-		if (Arg->LastD0) {
-			// First Last Tile - Process output
-			unsigned int PerCycle = 32 / gap_ncore();
-			unsigned int First = CoreId * PerCycle;
-			unsigned int Last = Min(First + PerCycle, 32);
-			unsigned int ChunkCell = ChunkSize(Rem_KO, 0);
-			unsigned int FinalFirst = 32 * (Nb_KO-1) + CoreId * ChunkCell;
-			unsigned int FinalLast = Min(FinalFirst + ChunkCell, Rem_KO);
-			gap_waitbarrier_cc();
-			while(Nb_KO--) {
-				if (CoreId==0) pi_cl_sem_dec(Arg->Sem);
-				gap_waitbarrier();
-				int ThisFirst, ThisLast;
-				if (Nb_KO) {
-					ThisFirst = First;
-					ThisLast = Last;
-					First += PerCycle;
-					Last += PerCycle;
-				} else {
-					ThisFirst = FinalFirst;
-					ThisLast = FinalLast;
-				}
-				for (int o = ThisFirst; o<ThisLast; o++) {
-					Out[o] = (unsigned short)gap_clipu(AT_SCALE(gap_norm_reg(Buf[o], Infos[NE16_FC_PRENORM]), Scale[o], ScaleN[o]) + *((signed short *)&Infos[NE16_FC_ZP]), 16);
-				}
-			}
-		}
-	} else {
-		int Tile_InFeat  = Arg->Tile_InFeat;
+	gap_waitbarrier_cc();
 
-		int Nb_KI, Rem_KI;
-		unsigned int Cfg = Arg->Default_NE16_Job_Cfg;
+	for (int Line=0; Line<Arg->H_In1; Line++) {
+		if (CoreId != 8) {
+			/* Producer */
+			if (CoreId == 0)
+				pi_cl_sem_dec(Semaphores[1]);
+			gap_waitbarrier(0);
 
-		Rem_KI = ((Tile_InFeat % 512) / 16) == 0 ? 16 : (Tile_InFeat % 512) / 16;
-		Nb_KI  = Tile_InFeat / 512 + (Tile_InFeat % 512 ? 1 : 0);
+			/* --- */
+			Copy(CurBuff, In+W_In1*Line, W_In1, CoreId);
+			CurBuff = (CurBuff==Buff1)?Buff2:Buff1;
+			gap_waitbarrier(0);
 
-		if (Arg->FirstD0) {
-			if (Arg->FirstD1)
-				Arg->Sem = pi_cl_sem_alloc();
-			gap_waitbarrier_cc();
-		}
-		if (Arg->LastD0) {
-			pi_cl_sem_set(Arg->Sem, 0);
-			gap_waitbarrier_cc();
-		}
-		volatile int job_id;
-		NE16_SETPRIORITY_NE16(); // priority to NE16 w.r.t. cores, DMA
+			if (CoreId == 0)
+				pi_cl_sem_inc(Semaphores[0], 1);
+			gap_waitbarrier(0);
 
-		for (int subtile_ko=0; subtile_ko<Nb_KO; subtile_ko++) {
+		} else {
+			/* Consumer */
+			unsigned char * __restrict__ Out = (unsigned char *) Arg->Out;
+			int * __restrict__ Bias = (int *) Arg->Bias;
+			unsigned char * __restrict__ In2 = (unsigned char *) Arg->In2;
+			unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+			unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+
+			int W_In2  = Arg->W_In2;
+			int Nb_KO  = W_In2/32 + (W_In2%32?1:0);
+			int Rem_KO = W_In2%32?W_In2%32:32;
+
+		        unsigned int res_quant_out_flag, streamin_flag, Gen_Cfg;
+		        unsigned int Default_cfg = Arg->Default_NE16_Job_Cfg;
+			int QuantBitsFlag = (Default_cfg >> NE16_SHIFT_QUANT_BITS) & NE16_MASK_QUANT_BITS;
+		        int OutBytes	= (QuantBitsFlag==2)?4: ((QuantBitsFlag==1)?2:1);
+			int Out_Stride0 = (QuantBitsFlag==2)?32:((QuantBitsFlag==1)?16:0);
+			int Qw = ((Default_cfg >> NE16_SHIFT_WBITS_M1) & NE16_MASK_WBITS_M1) + 1;
+
+			int Nb_KI  = UsedKI / 256 + (UsedKI % 256 ? 1 : 0);
+			int Rem_KI = ((UsedKI % 256) / 16) == 0 ? 16 : (UsedKI % 256) / 16;
+
+			Gen_Cfg = Default_cfg;
+		 	volatile int job_id;
+		        NE16_SETPRIORITY_NE16(); // priority to NE16 w.r.t. cores, DMA
+
 			// acquire job
 			NE16_BARRIER_ACQUIRE(job_id);
-			if (Arg->LastD0&&subtile_ko>2) {
-				pi_cl_sem_inc(Arg->Sem, 1);
-			}
-			int IsLastKO = subtile_ko == (Nb_KO-1);
+
+			pi_cl_sem_dec(Semaphores[0]);
+
 			// load configuration for the layer
-			SetNE16_OutPointer    (Buf+subtile_ko*32*4);
-			SetNE16_WeightsPointer(Filter+subtile_ko*32*Tile_InFeat);
-			SetNE16_Reminders     (0, 0, Rem_KI, IsLastKO?Rem_KO:32, 0, 0);
-			if (subtile_ko<2){
-				SetNE16_InPointer     (In);
-				SetNE16_Strides       (16, 0, 0, 	                                // In_D0, In_D1 - unused, In_D2 - unused
-						       32, 0, 0,				// Out_D0, Out_D1 - unused, Out_D2 - unused
-						       Tile_InFeat*2/16, Arg->Qw*Tile_InFeat*2/16, Arg->Qw*Tile_InFeat*4);	// Weights_D0, Weights_D1, Weights_D2
-						//Tile_InFeat/Arg->Qw, Tile_InFeat, Tile_InFeat);	// Weights_D0, Weights_D1, Weights_D2
-				SetNE16_Dim           (Nb_KI, 1, 1, 1);
-				SetNE16_WOffset       (Infos[NE16_FC_WOFF]);
-				SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
-				SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
-				SetNE16_GenConfig     (Cfg);
-			}
+			SetNE16_InPointer     (CurBuff);
+			//SetNE16_OutPointer    (Out + W_In2*(i + OutFirstCol));
+			SetNE16_OutPointer    (Out + W_In2*Line);
+			SetNE16_WeightsPointer(In2);
+			SetNE16_BiasPointer   (Bias);
+			SetNE16_ScalePointer  (Scale);
+			SetNE16_ScaleNPointer (ScaleN);
+			SetNE16_Reminders     (0, 0, Rem_KI, Rem_KO, 0, 0);
+			SetNE16_Strides       (16, 0, 0, 	                                // In_D0, In_D1 - unused, In_D2 - unused
+					       Out_Stride0, 0, 0,				// Out_D0, Out_D1 - unused, Out_D2 - unused
+					       UsedKI*2/16, Qw*UsedKI*2/16, Qw*UsedKI*2);	// Weights_D0, Weights_D1, Weights_D2
+			SetNE16_Dim           (Nb_KI, Nb_KO, 1, 1);
+			SetNE16_WOffset       (Arg->W_Offset);
+			SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
+			SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
+			SetNE16_GenConfig     (Gen_Cfg);
 
 			// commit and trigger NE16 computation
 			NE16_WRITE_CMD(NE16_COMMIT_AND_TRIGGER, NE16_TRIGGER_CMD);
+
+			// wait for end of computation
+			NE16_BARRIER();
+
+			// set priority to core side
+			NE16_SETPRIORITY_CORE();
+			CurBuff = (CurBuff==Buff1)?Buff2:Buff1;
+
+			pi_cl_sem_inc(Semaphores[1], 1);
 		}
-
-		// wait for end of computation
-		NE16_BARRIER();
-
-		// set priority to core side
-		NE16_SETPRIORITY_CORE();
-		if (Arg->LastD0)
-			pi_cl_sem_inc(Arg->Sem, 2);
-	}
-	gap_waitbarrier_cc();
-	if (Arg->LastD0&&Arg->LastD1) {
-		if (CoreId == 8) pi_cl_sem_free(Arg->Sem);
-		gap_waitbarrier_cc();
 	}
 }
-*/
 
 void Ker_MM_Conv2D_NE16(
 	Ker_MM_Conv_NE16_T *Arg
@@ -2353,6 +2465,7 @@ void Ker_MM_Conv2D_NE16(
 		pi_cl_sem_set(Semaphores[0], 0);
 		pi_cl_sem_set(Semaphores[1], 2);
 	}
+	gap_waitbarrier_cc();
 
 	int ColBuffSize = ((W_In1+15)/16)*16;
 	int Tail = ColBuffSize / 4;
@@ -2363,7 +2476,7 @@ void Ker_MM_Conv2D_NE16(
 	int Iter1 = Iter*FS;
 
 	unsigned int Gen_Cfg, Default_cfg = Arg->Default_NE16_Job_Cfg;
-	int Nb_KI, Rem_KI, Nb_KO, Rem_KO, OutBytes, Out_Stride0;
+	int Nb_KI=0, Rem_KI=0, Nb_KO=0, Rem_KO=0, OutBytes=0, Out_Stride0=0;
 	if (CoreId == 8) {
 		Nb_KO	= OutFeat/32 + (OutFeat%32?1:0);
 		Rem_KO	= OutFeat%32?OutFeat%32:32; // Check different wrt simulator
@@ -2448,32 +2561,27 @@ void Ker_MM_Conv2D_NE16(
 				/* Consumer: Master core set the job and trigger NE16 on the prepared buffers */
 				pi_cl_sem_dec(Semaphores[0]);
 
-				for (int subtile_ko=0; subtile_ko<Nb_KO; subtile_ko++) {
-					// acquire job
-					NE16_BARRIER_ACQUIRE(job_id);
-					int IsLastKO = subtile_ko == (Nb_KO-1);
-					// load configuration for the layer
-					SetNE16_OutPointer    (Out+((l*Wo+c)*OutFeat+subtile_ko*32)*OutBytes);
-					SetNE16_WeightsPointer(Filter+subtile_ko*32*FS*InFeat);
-					SetNE16_BiasPointer   (Bias+subtile_ko*32);
-					SetNE16_ScalePointer  (Scale+subtile_ko*32);
-					SetNE16_ScaleNPointer (ScaleN+subtile_ko*32);
-					SetNE16_Reminders     (0, 0, Rem_KI, IsLastKO?Rem_KO:32, 0, 0);
-					if (subtile_ko<2){
-						SetNE16_InPointer  (ColBuff);
-						SetNE16_Strides    (16, 0, 0,						 // In_D0, In_D1 - unused, In_D2 - unused
-								    Out_Stride0, 0, 0,					 // Out_D0, Out_D1 - unused, Out_D2 - unused
-								    FS*InFeat*2/16, Arg->Qw*FS*InFeat*2/16, Arg->Qw*FS*InFeat*4); // Weights_D0, Weights_D1, Weights_D2
-						SetNE16_Dim        (Nb_KI, 1, 1, 1);
-						SetNE16_WOffset    (Arg->W_Offset);
-						SetNE16_ConfigPad  ((v4s) {0, 0, 0, 0}, 0);
-						SetNE16_ConfigFMask((v4s) {0, 0, 0, 0});
-						SetNE16_GenConfig  (Gen_Cfg);
-					}
+				// load configuration for the layer
+				SetNE16_InPointer     (ColBuff);
+				//SetNE16_OutPointer    (Out + W_In2*(i + OutFirstCol));
+				SetNE16_OutPointer    (Out + ((l*Wo+c)*OutFeat)*OutBytes);
+				SetNE16_WeightsPointer(Filter);
+				SetNE16_BiasPointer   (Bias);
+				SetNE16_ScalePointer  (Scale);
+				SetNE16_ScaleNPointer (ScaleN);
+				SetNE16_Reminders     (0, 0, Rem_KI, Rem_KO, 0, 0);
+				SetNE16_Strides       (16, 0, 0, 	                                // In_D0, In_D1 - unused, In_D2 - unused
+						       Out_Stride0, 0, 0,				// Out_D0, Out_D1 - unused, Out_D2 - unused
+						       FS*InFeat*2/16, Arg->Qw*FS*InFeat*2/16, Arg->Qw*FS*InFeat*4);	// Weights_D0, Weights_D1, Weights_D2
+				SetNE16_Dim           (Nb_KI, Nb_KO, 1, 1);
+				SetNE16_WOffset       (Arg->W_Offset);
+				SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
+				SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
+				SetNE16_GenConfig     (Gen_Cfg);
 
-					// commit and trigger NE16 computation
-					NE16_WRITE_CMD(NE16_COMMIT_AND_TRIGGER, NE16_TRIGGER_CMD);
-				}
+				// commit and trigger NE16 computation
+				NE16_WRITE_CMD(NE16_COMMIT_AND_TRIGGER, NE16_TRIGGER_CMD);
+
 				NE16_BARRIER();
 				ColBuff = (ColBuff==ColBuff1)?ColBuff2:ColBuff1;
 

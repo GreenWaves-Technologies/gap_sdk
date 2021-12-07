@@ -163,8 +163,8 @@ proc fuse_flash_hyperflash {} {
 }
 
 proc fuse_hyperflash_boot {gap_tools_path} {
-	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser@gapoc_a.elf elf
-	puts "${gap_tools_path}/gap_bins/gap_fuser@gapoc_a.elf"
+	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser-gapoc_a.elf elf
+	puts "${gap_tools_path}/gap_bins/gap_fuser-gapoc_a.elf"
 	gap_fuse_open 0x1c000190
 	fuse_boot_from_flash
 	fuse_flash_hyperflash

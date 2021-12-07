@@ -13,7 +13,7 @@ void test_rtc_calendar(void)
     int32_t errors = 0;
 
     /* Init & open RTC. */
-    struct pi_rtc_conf rtc_conf = {0};
+    struct pi_rtc_conf rtc_conf;
     pi_rtc_conf_init(&rtc_conf);
     rtc_conf.mode = PI_RTC_MODE_CALENDAR;
     /* Date & time. */

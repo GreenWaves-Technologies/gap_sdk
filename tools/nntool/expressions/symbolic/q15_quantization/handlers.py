@@ -51,7 +51,7 @@ class BasicConstantQuant(Q15ScaledQuantization):
             max_val = np.max(sym.value)
             min_val = np.max(sym.value)
             return (sym, Q15ScaleQRec(sym.dtype, 1, 0, min_val=min_val, max_val=max_val))
-        if sym.is_zero:
+        if sym.is_zero(qrec):
             return (sym, Q15ScaleQRec(sym.dtype, 1, 15, min_val=0, max_val=0))
         if len(sym.value) == 1:
             max_val = np.max(sym.value)
@@ -91,7 +91,7 @@ class BasicVariableQuant(Q15ScaledQuantization):
 
         # see if an nntool quantizer qtype is available
         if not qrec and qtypes and sym.name in qtypes:
-            qrec = cls.qrec_from_qtype(qtypes[sym.name])
+            sym, qrec = cls.qrec_from_qtype(sym, qtypes[sym.name])
             if qrec:
                 sym.qrec = qrec
                 return (sym, qrec)
@@ -102,7 +102,7 @@ class BasicVariableQuant(Q15ScaledQuantization):
         qdtype = qrec.dtype if qrec and qrec.dtype else np.int8
         q = cls.get_maxq_from_dtype(qdtype)
         qrec = Q15ScaleQRec.inherit(
-            qrec, np.int8, max_val, q, max_val=max_val, min_val=-max_val)
+            qrec, np.int8, max_val, q, max_val=max_val, min_val=-max_val, zero_point=0)
         # tag the variable with its quantization
         sym.qrec = qrec
         if quantize_inputs:
@@ -110,21 +110,41 @@ class BasicVariableQuant(Q15ScaledQuantization):
         return (sym, qrec)
 
     @classmethod
-    def qrec_from_qtype(cls, qtype):
+    def qrec_from_qtype(cls, sym, qtype):
         if qtype.dtype == np.int8:
             if len(qtype.scale) > 1:
-                return None
-            q = 7
-            dtype = np.int8
+                return sym, None
+            max_val = qtype.scale[0] * (math.pow(2, 7) - qtype.zero_point[0])
+            min_val = -qtype.scale[0] * (math.pow(2, 7) + qtype.zero_point[0])
+            return sym, Q15ScaleQRec(np.int8, max_val, 7,
+                                     max_val=max_val, min_val=min_val,
+                                     zero_point=qtype.zero_point[0])
         elif qtype.dtype == np.int16:
             if len(qtype.scale) > 1:
-                return None
-            q = 15
-            dtype = np.int16
+                return sym, None
+            max_val = qtype.scale[0] * (math.pow(2, 15) - qtype.zero_point[0])
+            min_val = -qtype.scale[0] * (math.pow(2, 15) + qtype.zero_point[0])
+            return sym, Q15ScaleQRec(np.int16, max_val, 15,
+                                     max_val=max_val, min_val=min_val,
+                                     zero_point=qtype.zero_point[0])
+        elif qtype.dtype == np.uint8:
+            if len(qtype.scale) > 1:
+                return sym, None
+            max_val = qtype.scale[0] * (math.pow(2, 8) - qtype.zero_point[0])
+            min_val = qtype.scale[0] * -qtype.zero_point[0]
+            return sym, Q15ScaleQRec(np.uint8, max_val, 8,
+                                     max_val=max_val, min_val=min_val,
+                                     zero_point=qtype.zero_point[0])
+        elif qtype.dtype == np.uint16:
+            if len(qtype.scale) > 1:
+                return sym, None
+            max_val = qtype.scale[0] * (math.pow(2, 16) - qtype.zero_point[0])
+            min_val = qtype.scale[0] * -qtype.zero_point[0]
+            return sym, Q15ScaleQRec(np.uint16, max_val, 16,
+                                     max_val=max_val, min_val=min_val,
+                                     zero_point=qtype.zero_point[0])
         else:
             return None
-        max_val = qtype.scale[0] * math.pow(2, q)
-        return Q15ScaleQRec(dtype, max_val, q, max_val=max_val, min_val=-max_val)
 
 
 @qhandler("Q15Scale", QuantizedValue)
@@ -151,14 +171,20 @@ class BasicFunctionQuant(Q15ScaledQuantization):
 
     @staticmethod
     def cast_symbols(in_syms, qrecs, dtype=np.int32):
-        return zip(*[(Cast(sym, dtype=dtype), Q15ScaleQRec.override(qrec, dtype=dtype))
-                     if qrec.dtype != dtype else (sym, qrec)
-                     for sym, qrec in zip(in_syms, qrecs)])
+        return zip(*[
+            (
+                ScaleQuantized(
+                    sym,
+                    from_qrec=qrec,
+                    to_qrec=Q15ScaleQRec.override(qrec, dtype=dtype, zero_point=0)),
+                Q15ScaleQRec.override(qrec, dtype=dtype, zero_point=0)
+            )
+            if qrec.dtype != dtype else (sym, qrec)
+            for sym, qrec in zip(in_syms, qrecs)])
 
 
 def find_range(sym, qrecs):
-    assert np.all(
-        qrec.min_val is not None and qrec.max_val is not None for qrec in qrecs), 'all values must be set'
+    assert all(qrec.min_val is not None and qrec.max_val is not None for qrec in qrecs), 'all values must be set'
     val_range = np.array([
         sym.call_with_constants(qrecs[0].min_val, qrecs[1].min_val),
         sym.call_with_constants(qrecs[0].max_val, qrecs[1].min_val),
@@ -192,7 +218,8 @@ class BasicEqualizeQ15Quant(BasicFunctionQuant):
             max_val = find_range(sym, in_qrecs)
         out_qrec = Q15ScaleQRec(np.int32, max_val, 15,
                                 min_val=-max_val, max_val=max_val)
-        is_zero = list(in_sym.is_zero for in_sym in in_syms)
+        is_zero = list(in_sym.is_zero(in_qrec)
+                       for in_sym, in_qrec in zip(in_syms, in_qrecs))
         in_syms, in_qrecs = cls.cast_symbols(in_syms, in_qrecs)
         # scale to the larger Q but not more than Q15
         calc_qrec = None
@@ -252,7 +279,7 @@ class BasicMulQ15Quant(BasicFunctionQuant):
                                   for inner_sym in sym.contents])
         sym_cls = sym.__class__
         # eliminate multiply by zero
-        if any(in_sym.is_zero for in_sym in in_syms):
+        if any(in_sym.is_zero(in_qrec) for in_sym, in_qrec in zip(in_syms, in_qrecs)):
             return (QuantizedConstant(0), Q15ScaleQRec(np.int32, 1, 15))
         # TODO - This caused regression issues that I did not have time to track down
         # # eliminate multiply by one
@@ -267,7 +294,8 @@ class BasicMulQ15Quant(BasicFunctionQuant):
         out_qrec = Q15ScaleQRec(np.int32, prod_scale, min(
             prod_q, 15), max_val=prod_scale, min_val=-prod_scale)
         if prod_q > 15:
-            qsym = Norm(sym_cls(*in_syms, dtype=np.int32), QuantizedConstant(prod_q - 15))
+            qsym = Norm(sym_cls(*in_syms, dtype=np.int32),
+                        QuantizedConstant(prod_q - 15))
         else:
             qsym = sym_cls(*in_syms)
         return (qsym, out_qrec)
@@ -294,7 +322,8 @@ class BasicDivQ15Quant(BasicFunctionQuant):
                 Mul(
                     QuantizedValue(
                         in_syms[0], qrec=in_qrecs[0], name=in_syms[0].name),
-                    Constant(value, name=in_syms[1].name, shape=in_syms[1].shape),
+                    Constant(
+                        value, name=in_syms[1].name, shape=in_syms[1].shape),
                     name=sym.name,
                     dtype=np.int32),
                 sym_ctrl)
@@ -363,12 +392,15 @@ class BasicQ17Q15SqrtQuant(BasicFunctionQuant):
         in_syms, in_qrecs = cls.cast_symbols(in_syms, in_qrecs)
         in_sym = in_syms[0]
         if in_qrec.q < 15:
-            in_sym = LShift(in_sym, QuantizedConstant(15 - in_qrec.q), dtype=in_sym.dtype)
+            in_sym = LShift(in_sym, QuantizedConstant(
+                15 - in_qrec.q), dtype=in_sym.dtype)
         elif in_qrec.q > 15:
-            in_sym = Norm(in_sym, QuantizedConstant(in_qrec.q - 15), dtype=in_sym.dtype)
+            in_sym = Norm(in_sym, QuantizedConstant(
+                in_qrec.q - 15), dtype=in_sym.dtype)
 
         out_qrec = Q15ScaleQRec(np.int32, new_scale, 15)
         return (Cast(Sqrt1715(in_sym, dtype=np.uint32), dtype=np.int32), out_qrec)
+
 
 @nargs(1)
 @c_headers('"math_funcs.h"')
@@ -420,6 +452,7 @@ class BasicQ16Q16RSqrtQuant(BasicFunctionQuant):
         out_qrec = Q15ScaleQRec(np.int32, new_scale, 15)
         return (Cast(Norm(RSqrt1616(in_sym, dtype=np.uint32), QuantizedConstant(norm), dtype=np.uint32), dtype=np.int32), out_qrec)
 
+
 @nargs(1)
 @environment({
     'logn_17_15': logn_17_15,
@@ -454,9 +487,11 @@ class BasicQ17Q15LogQuant(BasicFunctionQuant):
         in_syms, in_qrecs = cls.cast_symbols(in_syms, in_qrecs)
         in_sym = in_syms[0]
         if in_qrec.q < 15:
-            in_sym = LShift(in_sym, QuantizedConstant(15 - in_qrec.q), dtype=np.int32)
+            in_sym = LShift(in_sym, QuantizedConstant(
+                15 - in_qrec.q), dtype=np.int32)
         elif in_qrec.q > 15:
-            in_sym = Norm(in_sym, QuantizedConstant(in_qrec.q - 15), dtype=np.int32)
+            in_sym = Norm(in_sym, QuantizedConstant(
+                in_qrec.q - 15), dtype=np.int32)
 
         # log(Qx * scale) = log(Qx) + log(scale)
         max_val = sym_ctrl.get_max(sym)
@@ -523,15 +558,15 @@ class BasicQ17Q15PowQuant(BasicFunctionQuant):
             raise NotImplementedError(
                 "power is currently only supported with fractional constants, 2, 1, & 0")
 
-        val = np.round(rhs.value.astype(np.float) *
-                       in_qrecs[1].scaledq, decimals=4)
+        val = np.round(in_qrecs[1].dequantize(rhs.value), decimals=4)
         lhs, lhs_qrec = cls.cast_symbols(in_syms[:1:], in_qrecs[:1:])
         lhs, lhs_qrec = lhs[0], lhs_qrec[0]
         if lhs_qrec.q < 15:
             lhs = LShift(lhs, QuantizedConstant(
                 15 - lhs_qrec.q, dtype=np.int8), dtype=np.int32)
         elif lhs_qrec.q > 15:
-            lhs = Norm(lhs, QuantizedConstant(lhs_qrec.q - 15, dtype=np.int8), dtype=np.int32)
+            lhs = Norm(lhs, QuantizedConstant(
+                lhs_qrec.q - 15, dtype=np.int8), dtype=np.int32)
 
         if val == 2:
             out_qrec = Q15ScaleQRec(np.int32, np.power(lhs_qrec.scale, 2), 15)
@@ -743,9 +778,10 @@ class BasicQ12Q15TanHSigmoidQuant(BasicFunctionQuant):
         in_syms, in_qrecs = zip(*[cls.quantize(inner_sym, sym_ctrl, **kwargs)
                                   for inner_sym in sym.contents])
         # scale to Q12
+        func = 'tanh' if isinstance(sym, TanH) else 'sigmoid'
         calc_qrec = Q15ScaleQRec(np.int32, 1, 12)
         # output is Q15 * 1
-        out_qrec = Q15ScaleQRec(np.int32, 1, 15)
+        out_qrec = Q15ScaleQRec(np.int32, 1, 15, min_val=-1.0 if func == 'tanh' else 0.0, max_val=1.0)
         in_syms, in_qrecs = cls.cast_symbols(in_syms, in_qrecs)
         lhs = ScaleQuantized(
             in_syms[0], from_qrec=in_qrecs[0], to_qrec=calc_qrec)

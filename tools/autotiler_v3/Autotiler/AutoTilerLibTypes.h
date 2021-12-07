@@ -59,6 +59,8 @@ typedef enum {
         KOP_GLOBAL_MAXPOOL_REDUCT,
         KOP_GLOBAL_AVGPOOL,
         KOP_GLOBAL_AVGPOOL_REDUCT,
+        KOP_GLOBAL_SUMPOOL,
+        KOP_GLOBAL_SUMPOOL_REDUCT,
 	KOP_SCALE,
         KOP_ACT_NONE,
         KOP_RELU,
@@ -82,7 +84,11 @@ typedef enum {
         KOP_MATMUL_SM1,
         KOP_MATMUL_SCALE,
         KOP_MATMUL_SCALE_SCALAR,
+        KOP_MATMUL_NOBIAS_SCALE_SCALAR,
         KOP_MATMUL_TRANSPOSED,
+        KOP_MATMUL_NOBIAS_TRANSPOSED,
+        KOP_MATMUL_SCALE_SCALAR_TRANSPOSED,
+        KOP_MATMUL_NOBIAS_SCALE_SCALAR_TRANSPOSED,
         KOP_MATMUL_SCALE_SM1,
         KOP_MATMUL_SCALE_SCALAR_SM1,
 	KOP_MATSCALE_VECTOR,
@@ -296,7 +302,8 @@ typedef enum {
 	CALL_MASK=3,		/**< To extract what is related to call nature */
 	CALL_FLOAT_KER=4,	/**< Attribute, this kernel uses float arithmetic */
 	CALL_HWC_KER=8,		/**< Attribute, this kernel assumes HWC tensor order, default is CHW */
-        CALL_LAST_ATTRIBUTE=8
+	CALL_NE16_KER=16,		/**< Attribute, this kernel uses NE16 */
+        CALL_LAST_ATTRIBUTE=16
 } KernelCallTypeT;
 
 /**
@@ -549,38 +556,38 @@ typedef enum {
 #define	O_NALIAS  	((uint64_t) ((uint64_t)1<<15))
 /**< Argument tile size is adjusted dynamically */
 #define	O_DYNTILE 	((uint64_t) ((uint64_t)1<<16))
-/**<Argumentisconstant,appliestoinputonly*/
+/**< Argument is constant, applies to input only */
 #define	O_CONST		((uint64_t) ((uint64_t)1<<17))
-/**<Argumentshouldbeallocatedwithoutalignmentpaddingbetweenitandprevindeclaration list */
+/**< Argument should be allocated without alignment padding between it and prev in declaration list */
 #define	O_STACK_PRED	((uint64_t) ((uint64_t)1<<18))
-/**<ArgumenthasO_INandO_BUFFattributeandloadisalwaysperformedevenif no iteration */
+/**< Argument has O_IN and O_BUFF attribute and load is always performed even if no iteration */
 #define	O_ALWAYS_LOAD	((uint64_t) ((uint64_t)1<<19))
-/**<ArgumenthasO_INandO_BUFFattributebutloadisnotperformed*/
+/**< Argument has O_IN and O_BUFF attribute but load is not performed */
 #define	O_NO_LOAD	((uint64_t) ((uint64_t)1<<20))
-/**<ArgumenthasO_OUTandO_BUFFattributebutstoreisnotperformed*/
+/**< Argument has O_OUT and O_BUFF attribute but store is not performed */
 #define	O_NO_STORE	((uint64_t) ((uint64_t)1<<21))
-/**<ArgumentItemSizeisexpressedinbitsinsteadofbytes*/
+/**< Argument Item Size is expressed in bits instead of bytes */
 #define	O_BIT		((uint64_t) ((uint64_t)1<<22))
-/**<Argumentisalwaysaccessedwitha1Daccess,mayrequirelayoutreorgprior as a consequence Arg should be const */
+/**< Argument is always accessed with a 1D access, may require layout reorg prior as a consequence Arg should be const */
 #define	O_LINEAR	((uint64_t) ((uint64_t)1<<23))
-/**<ArgumentisaNE16weightstensorforpointwiseconvolution*/
+/**< Argument is a NE16 weights tensor for pointwise convolution */
 #define	O_NE16_PW	((uint64_t) ((uint64_t)1<<24))
-/**<ArgumentisaNE16weightstensorfordepthwiseconvolution*/
+/**< Argument is a NE16 weights tensor for depthwise convolution */
 #define	O_NE16_DW	((uint64_t) ((uint64_t)1<<25))
-/**<ArgumentisaNE16weightstensorforlinearlayer*/
+/**< Argument is a NE16 weights tensor for linear layer */
 #define	O_NE16_LIN	((uint64_t) ((uint64_t)1<<26))
-/**<ArgumentisaNE16weightstensorforbasic3x3omdelayer*/
+/**< Argument is a NE16 weights tensor for basic 3x3 mode layer */
 #define	O_NE16_3X3	((uint64_t) ((uint64_t)1<<27))
-/**<Argumentisafloat*/
+/**< Argument is a float */
 #define	O_FLOAT		((uint64_t) ((uint64_t)1<<28))
-/**<ArgumentisaHWCtensor*/
+/**< Argument is a HWC tensor */
 #define	O_HWC		((uint64_t) ((uint64_t)1<<29))
-/**<ArgumentisaNE16weightstensorforRNNlayer*/
+/**< Argument is a NE16 weights tensor for RNN layer */
 #define	O_NE16_RNN	((uint64_t) ((uint64_t)1<<30))
-/**<ArgumentisaNE16interleavedtensorforRNNlayer*/
-#define	O_NE16_INTER ((uint64_t) ((uint64_t)1<<31))
-/**<ArgumentisaNE16mode16*/
-#define	O_NE16_MODE16 ((uint64_t) ((uint64_t)1<<32))
+/**< Argument is a NE16 interleaved tensor for RNN layer */
+#define	O_NE16_INTER	((uint64_t) ((uint64_t)1<<31))
+/**< Argument is a NE16 mode16*/
+#define	O_NE16_MODE16	((uint64_t) ((uint64_t)1<<32))
 /**< Argument traverses the 3rd level of iteration on the basic data plane */
 #define	O_TILE2   	((uint64_t) ((uint64_t)1<<59))
 /**< Argument traverses the 2nd level of iteration on the basic data plane */
@@ -1348,6 +1355,7 @@ typedef struct {
 	KernelCallTypeT CallType;
 	char FloatKer;
 	char HWCKer;
+	char NE16Ker;
 	unsigned int CArgCount;
 	CKernel_Arg_T **CArg;
 	NameT *ParArgTypeName;

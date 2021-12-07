@@ -56,7 +56,7 @@ We provide you with a set of tools and two different operating systems for GAP:
 
 #### OS Requirements installation
 
-These instructions were developed using a fresh Ubuntu 18.04 Bionic Beaver
+These instructions were developed using a fresh Ubuntu 20.04 (Focal Fossa)
 64-Bit virtual machine from
 [OS-Boxes](https://www.osboxes.org/ubuntu/#ubuntu-1804-info).
 
@@ -80,6 +80,7 @@ sudo apt-get install -y \
     libsdl2-dev \
     libsdl2-ttf-dev \
     libsndfile1-dev \
+    graphicsmagick-libmagick-dev-compat \
     libtool \
     libusb-1.0-0-dev \
     pkg-config \
@@ -490,6 +491,24 @@ make clean sdk
 
 You can find a list of [releases](https://github.com/GreenWaves-Technologies/gap_sdk/releases)
 on Github.
+
+
+## Cmake Build (experimental)
+
+In order to build with cmake, source config file as explained before, 
+and then run the following code:
+
+```bash
+# If your current directory is the SDK top:
+CMAKE_GENERATOR=Ninja cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTARGET_CHIP=GAP9_V2 -DCMAKE_INSTALL_PREFIX=$(pwd)/install/workstation -D
+$ If your SDK is somewhere else:
+export SDK_PATH=PATH/TO/YOUR/SDK
+CMAKE_GENERATOR=Ninja cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTARGET_CHIP=GAP9_V2 -DCMAKE_INSTALL_PREFIX=$SDK_PATH/install/workstation -DCONFIG_GAP_SDK_HOME=$SDK_PATH
+# finally:
+cmake --build build
+cmake --install build 
+```
+To be noted: cmake build also takes care of python dependencies by default.
 
 ## Getting help
 

@@ -16,17 +16,16 @@
 import numpy as np
 from graph.types import ConstantInputParameters, ExpandParameters
 from graph.types.base import NNEdge
+from importer.common.constant_mixin import ConstantMixin
 from importer.onnx.common import logger
 
 from ..backend_handler import BackendHandler
-from ..handler import onnx_op, partial_support, ps_description
+from ..handler import onnx_op, constant_only
 from .broadcast_mixin import BroadcastMixin
-from importer.common.constant_mixin import ConstantMixin
 
 
 @onnx_op("Expand")
-@partial_support(True)
-@ps_description("only implemented on constants at import")
+@constant_only(True)
 class Expand(BroadcastMixin, ConstantMixin, BackendHandler):
 
     @classmethod
@@ -43,12 +42,12 @@ class Expand(BroadcastMixin, ConstantMixin, BackendHandler):
         if cls.is_constant(x):
             logger.info("reducing %s to a constant", valid_name)
             x_val = cls.get_constant(x)
-            params = ConstantInputParameters(valid_name, value=x_val * np.ones(shape), constant_store=G.constant_store)
+            params = ConstantInputParameters(valid_name, value=x_val * np.ones(shape))
         else:
             params = ExpandParameters(valid_name, shape=shape)
             G.add_edge(NNEdge(x[0], params, from_idx=x[1]))
 
-        all_nodes[node.output[0]] = (params, 0, pshape)
+        all_nodes[node.output[0]] = (params, 0, pshape, x[3])
         return params
 
     @classmethod

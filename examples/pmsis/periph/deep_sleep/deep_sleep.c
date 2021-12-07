@@ -11,7 +11,7 @@ int32_t setup_rtc(void)
 {
     int32_t errors = 0;
     /* Init & open RTC. */
-    struct pi_rtc_conf rtc_conf = {0};
+    struct pi_rtc_conf rtc_conf;
     pi_rtc_conf_init(&rtc_conf);
     rtc_conf.mode = PI_RTC_MODE_CALENDAR | PI_RTC_MODE_ALARM;
     /* Date & time. */
@@ -36,7 +36,7 @@ int32_t setup_rtc(void)
         return -11;
     }
 
-    struct tm time = {0}, time_now = {0};
+    struct tm time, time_now;
 
     /* Initial date & time. */
     pi_rtc_datetime_get(&wakeup_dev, &time_now);
@@ -62,7 +62,7 @@ int32_t setup_rtc(void)
 int32_t setup_gpio(struct pi_pmu_sleep_conf_s *sleep_conf)
 {
     int32_t errors = 0;
-    struct pi_gpio_conf gpio_conf = {0};
+    struct pi_gpio_conf gpio_conf;
     pi_gpio_conf_init(&gpio_conf);
     pi_open_from_conf(&wakeup_dev, &gpio_conf);
     errors = pi_gpio_open(&wakeup_dev);
@@ -97,7 +97,7 @@ void helloworld(void)
     {
         printf("Cold boot\n");
 
-        struct pi_pmu_sleep_conf_s sleep_conf = {0};
+        struct pi_pmu_sleep_conf_s sleep_conf;
         sleep_conf.pmu_cluster_state = PI_PMU_DOMAIN_STATE_OFF;
         sleep_conf.power_state = PI_PMU_WAKEUP_STATE_POWER_HIGH;
         sleep_conf.sleep_mode = PI_PMU_MODE_RET_DEEP_SLEEP;

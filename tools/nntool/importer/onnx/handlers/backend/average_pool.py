@@ -14,11 +14,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from ..backend_handler import BackendHandler
-from ..handler import onnx_op
+from ..handler import onnx_op, partial_support, ps_description
 from .pool_mixin import PoolMixin
 
 
 @onnx_op("AveragePool")
+@partial_support(True)
+@ps_description("Supports only 1D and 2D pooling.")
 class AveragePool(PoolMixin, BackendHandler):
 
     @classmethod

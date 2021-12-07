@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.16.3)
 project(gvsoc)
 
+if(NOT DEFINED VP_MODEL_ROOT_DIRS)
+    set(VP_MODEL_ROOT_DIRS
+        "${CMAKE_CURRENT_SOURCE_DIR}/gvosc/models"
+        "${CMAKE_CURRENT_SOURCE_DIR}/gvsoc_gap/models"
+        )
+endif()
+
 # gap_archi
 add_library(gap_archi INTERFACE)
 target_include_directories(gap_archi INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../rtos/pulp/gap_archi/include")
@@ -55,7 +62,6 @@ vp_set_target_types(
 # ==================
 
 add_subdirectory(ext)
-add_subdirectory(dpi-models)
 add_subdirectory(gvsoc)
 
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/gvsoc_gap_sfu")

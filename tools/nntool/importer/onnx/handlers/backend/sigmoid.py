@@ -25,7 +25,7 @@ class Sigmoid(BasicMathMixin, BackendHandler):
 
     @classmethod
     def _common(cls, node, **kwargs):
-        params_class = SigmoidActivationParameters if kwargs['opts'].get('use_lut_sigmoid') else HSigmoidActivationParameters
+        params_class = HSigmoidActivationParameters if kwargs['opts'].get('use_hard_sigmoid') else SigmoidActivationParameters
         return super(Sigmoid, cls)._common(node,
                                            params_class=params_class,
                                            constant_operation=lambda x: 1/(1 + np.exp(-x)),

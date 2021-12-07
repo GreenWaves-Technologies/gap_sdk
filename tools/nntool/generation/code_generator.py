@@ -20,8 +20,7 @@ from bfloat16 import bfloat16
 from expressions.symbolic.kernel_codegen import BasicKernel
 from graph.types import (ConcatParameters, ConstantInputParameters,
                          InputParameters, OutputParameters, ReshapeParameters,
-                         SplitParameters, SSDDetectorParameters,
-                         TransposeParameters)
+                         SplitParameters, TransposeParameters)
 from graph.types.lstm import LSTMParameters
 from graph.types.others import CopyParameters, QuantizeParameters
 from graph.types.rnn import RNNBaseParameters
@@ -151,7 +150,8 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
 
     @property
     def flash_pointer(self):
-        return "AT_HYPERFLASH_FS_EXT_ADDR_TYPE" if self.opts["l3_flash_device"] == "AT_MEM_L3_HFLASH" else "AT_QSPIFLASH_FS_EXT_ADDR_TYPE"
+        return ("AT_HYPERFLASH_FS_EXT_ADDR_TYPE" if self.opts["l3_flash_device"] == "AT_MEM_L3_HFLASH"
+                else "AT_QSPIFLASH_FS_EXT_ADDR_TYPE")
 
     def get_edge_name(self, eparams):
         return self.name_cache[eparams]['edge']
@@ -212,7 +212,10 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
             eparams.creating_node_idx]
         while isinstance(oedge.to_node, ReshapeParameters) or \
                 (isinstance(oedge.to_node, TransposeParameters) and oedge.to_node.does_nothing()):
-            assert len(G.out_edges(oedge.to_node.name)) <= 1
+            # TODO - This assert is removed but there are some corner cases where this will break
+            # it would be better to create an edge alias map before code gen
+            # need a test for x -> reshape -> y and output and y -> z -> another output
+            # assert len(G.indexed_out_edges(oedge.to_node.name)) <= 1
             oedge = G.out_edges(oedge.to_node.name)[0]
         return oedge
 
@@ -596,7 +599,8 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
 
             if any(qrec.ktype == "symmetric" for qrec in self.G.quantization.values()):
                 for out_q in qrec.out_qs:
-                    code_block.write("#define {}_{}_Q\t{}".format(self.G.name, cname, out_q.q))
+                    code_block.write("#define {}_{}_Q\t{}".format(
+                        self.G.name, cname, out_q.q))
         return str(code_block)
 
     def expressions_kernel_header_includes_generator(self, indent=0):
@@ -694,7 +698,8 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
                     'L2_MEM {} {}[] = {{{}}};',
                     dtype2ctype(inp),
                     node.name.capitalize(),
-                    ",".join(f'{elem}{dtype2typesuffix(inp)}' if not np.isposinf(elem) else "INFINITY" for elem in inp.flatten()))
+                    ",".join(f'{elem}{dtype2typesuffix(inp)}' if not np.isposinf(elem) else "INFINITY"
+                             for elem in inp.flatten()))
             else:
                 code_block.write(
                     f"L2_MEM {CTYPE[nodeq.ctype]} {node.name.capitalize()}[{node.out_dims[0].size()}];")
@@ -712,7 +717,8 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
                     'L2_MEM {} {}_gt[] = {{{}}};',
                     dtype2ctype(outp),
                     out_n.name.capitalize(),
-                    ",".join(f'{elem}{dtype2typesuffix(outp)}' if not np.isposinf(elem) else "INFINITY" for elem in outp.flatten()))
+                    ",".join(f'{elem}{dtype2typesuffix(outp)}' if not np.isposinf(elem) else "INFINITY"
+                             for elem in outp.flatten()))
         return str(code_block)
 
     def gen_inout_list(self):
@@ -739,21 +745,30 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
             nodeq = self.G.quantization[NodeId(out_node, None)].out_qs[0]
             dtype = "%f" if nodeq.is_floating else "%d"
             code.write('errors = 0;')
-            code.write('for (int j=0; j<{}; j++) {{', out_sz)
+            if tol:
+                code.write(f"{dtype2ctype(nodeq)} max_diff = 0;")
+            code.write(f'for (int j=0; j<{out_sz}; j++) {{')
             code.indent()
             if tol:
-                code.write(f"{dtype2ctype(nodeq)} diff = {out_node.name.capitalize()}[j] - {out_node.name.capitalize()}_gt[j];")
-                code.write(f'if (diff > {nodeq.quantize(np.array(tol)).item()} || diff < -{nodeq.quantize(np.array(tol)).item()}) ' + '{{')
+                code.write(
+                    f"{dtype2ctype(nodeq)} diff = {out_node.name.capitalize()}[j] - "
+                    f"{out_node.name.capitalize()}_gt[j];")
+                code.write("diff = (diff>0)?diff:(-diff);")
+                code.write(f"if (diff > max_diff) max_diff = diff;")
+                code.write(f'if (diff > {nodeq.quantize(np.array(tol)).item()}) {{')
             else:
-                code.write(f'if ({out_node.name.capitalize()}[j] != {out_node.name.capitalize()}_gt[j]) ' + '{{')
+                code.write(
+                    f'if ({out_node.name.capitalize()}[j] != {out_node.name.capitalize()}_gt[j]) {{')
             code.indent()
             code.write('errors++;')
-            code.write(
-                f'printf("Error @ %d: {dtype} instead of {dtype}\\n", j, {out_node.name.capitalize()}[j], {out_node.name.capitalize()}_gt[j]);')
+            code.write(f'printf("Error @ %d: {dtype} instead of {dtype}\\n", j, '
+                       f'{out_node.name.capitalize()}[j], {out_node.name.capitalize()}_gt[j]);')
             code.deindent()
-            code.write("}}")
+            code.write("}")
             code.deindent()
-            code.write('}}')
+            code.write('}')
             code.write(
                 f'printf("{out_node.name.capitalize()}: %d/{out_sz} errors\\n", errors);')
+            if tol:
+                code.write(f'printf("Max error: {dtype}\\n", max_diff);')
         return str(code)

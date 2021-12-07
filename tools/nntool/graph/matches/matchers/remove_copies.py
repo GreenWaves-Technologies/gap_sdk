@@ -15,44 +15,50 @@
 
 import logging
 
-from graph.types import CopyParameters, NNEdge, TransposeParameters
-from graph.types.others import QuantizeParameters
+from graph.types import (ConcatParameters, ConstantInputParameters,
+                         CopyParameters, InputParameters, NNEdge,
+                         NoOPParameters, OutputParameters, ReshapeParameters,
+                         SplitParameters, TransposeParameters)
 from utils.graph import GraphView
 from utils.node_id import NodeId
 
+from ..match_utils import search_down, search_up
 from ..matcher import (Matcher, description, groups, match_name,
                        modifies_dimensions, run_after)
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-def valid_node(node):
-    return (isinstance(node, TransposeParameters) and not node.does_nothing()) or isinstance(node, QuantizeParameters)
-
-
 @match_name("remove_copies")
 @description("Remove unnecessary copies")
 @modifies_dimensions(True)
 @groups('*')
-@run_after('expand_transposes')
+@run_after('expand_transposes', 'remove_noops')
 class RemoveCopies(Matcher):
 
     def _match(self, G: GraphView, set_identity: bool = True, **kwargs):
         has_modified_graph = False
         nodes_to_remove = []
         for node in G.nodes(node_classes=CopyParameters):
-            in_edge = G.in_edges(node.name)[0]
-            if (valid_node(in_edge.from_node) and
-                    not G.num_out_edges(in_edge.from_node.name) > 1):
-                nodes_to_remove.append(node)
+            out_edges = G.out_edges(node)
+            if len(out_edges) > 1:
                 continue
-            out_edges = G.out_edges(node.name)
-            if len(out_edges) != 1:
+            if (search_down(
+                    G,
+                    out_edges[0],
+                    (OutputParameters, InputParameters, ConstantInputParameters, SplitParameters, ConcatParameters),
+                    can_pass=(ReshapeParameters, NoOPParameters),
+                    can_pass_fn=lambda G, node: isinstance(node, TransposeParameters) and node.does_nothing,
+                    follow_multi=True) and
+                    search_up(
+                        G,
+                        G.in_edges(node)[0],
+                        (InputParameters, OutputParameters, ConstantInputParameters, SplitParameters, ConcatParameters),
+                        can_pass=(ReshapeParameters, NoOPParameters),
+                        can_pass_fn=lambda G, node: isinstance(node, TransposeParameters) and node.does_nothing,
+                        follow_multi=True)):
                 continue
-            out_edge = out_edges[0]
-            if valid_node(out_edge.to_node):
-                nodes_to_remove.append(node)
-                continue
+            nodes_to_remove.append(node)
         for node in nodes_to_remove:
             LOG.info(
                 "remove redundant copy %s",

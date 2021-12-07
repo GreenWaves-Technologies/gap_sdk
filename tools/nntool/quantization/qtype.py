@@ -13,8 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from copy import deepcopy
 import math
+from copy import deepcopy
+from functools import reduce
 
 import numpy as np
 from bfloat16 import bfloat16
@@ -127,7 +128,9 @@ def divide_ignore(a, b):
         res[res == np.inf] = 0
         return np.nan_to_num(res)
 
+
 IGNORE_KEYS = {'ne16'}
+
 
 class AttrNamespace:
     def __init__(self, **kwargs):
@@ -135,7 +138,7 @@ class AttrNamespace:
 
     def __getattr__(self, name: str):
         if name.startswith('__'):
-            raise AttributeError() # @IgnoreException
+            raise AttributeError()  # @IgnoreException
         return False
 
     def __setattr__(self, name: str, value) -> None:
@@ -179,6 +182,7 @@ FORCED_FLAGS = [
     'zero_point',
     'scale',
 ]
+
 
 class QType(JsonSerializable, EventEmitter):
     EXPORT = [
@@ -294,7 +298,7 @@ class QType(JsonSerializable, EventEmitter):
                 self.q = sum(other.q for other in others)
             else:
                 self.scale = np.atleast_1d(
-                    np.prod([other.scale for other in others]))
+                    reduce(np.multiply, [other.scale for other in others], 1.0))
         for other in others:
             other.on('scale_changed', set_scale)
         set_scale()
@@ -412,7 +416,10 @@ class QType(JsonSerializable, EventEmitter):
     @dtype.setter
     def dtype(self, val):
         if val not in DTYPES:
-            raise ValueError('dtype not found')
+            # type instances are not hashable but are comparable
+            val = next((dtype for dtype in DTYPES if val == dtype), None)
+            if val is None:
+                raise ValueError('dtype not found')
         self._dtype = val
         self._bits, self._signed = DTYPES[val]
         self.emit('dtype_changed', self._dtype)
@@ -582,14 +589,17 @@ class QType(JsonSerializable, EventEmitter):
             return np.atleast_1d(scale), np.atleast_1d(zero_point)
         elif asymmetric:
             if narrow_range:
-                raise ValueError("narrow range does not make sense with asymmetric")
-            qrange -= 1 # qrange is 2^n - 1
+                raise ValueError(
+                    "narrow range does not make sense with asymmetric")
+            qrange -= 1  # qrange is 2^n - 1
             rrange = rmax - rmin
             scale = rrange / qrange
             zero_point_from_min = qmin - rmin / scale
             zero_point_from_max = qmax - rmax / scale
-            zero_point_error_max = np.abs(np.abs(zero_point_from_max) - np.round(np.abs(zero_point_from_max)))
-            zero_point_error_min = np.abs(np.abs(zero_point_from_min) - np.round(np.abs(zero_point_from_min)))
+            zero_point_error_max = np.abs(
+                np.abs(zero_point_from_max) - np.round(np.abs(zero_point_from_max)))
+            zero_point_error_min = np.abs(
+                np.abs(zero_point_from_min) - np.round(np.abs(zero_point_from_min)))
             # alternate code to do channel scaled zero point
             # if this is ever used the zero point adjustment code needs to
             # be modified
@@ -904,6 +914,8 @@ class QType(JsonSerializable, EventEmitter):
         return QType(scale=self.scale * other.scale, bits=self.bits + other.bits, signed=self.signed or other.signed)
 
     def quantization_equal(self, other):
+        if not isinstance(self, QType) or not isinstance(other, QType):
+            return False
         return (np.allclose(self.scale, other.scale) and
                 self.bits == other.bits and
                 self.signed == other.signed and

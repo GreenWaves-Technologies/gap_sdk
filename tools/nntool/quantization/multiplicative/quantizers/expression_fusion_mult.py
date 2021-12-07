@@ -32,8 +32,8 @@ from ..mult_quantization_handler import MultQuantizionHandler
 LOG = logging.getLogger('nntool.' + __name__)
 
 @params_type(ExpressionFusionParameters)
-@in_qs_constraint(MatchAll({'dtype': np.int8}))
-@out_qs_constraint(MatchAll({'dtype': np.int8}))
+@in_qs_constraint(MatchAll({'dtype': {np.int8, np.uint8, np.int16, np.uint16}}))
+@out_qs_constraint(MatchAll({'dtype': {np.int8, np.uint8, np.int16, np.uint16}}))
 class ExpressionFusionMult(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
@@ -43,12 +43,12 @@ class ExpressionFusionMult(MultQuantizionHandler):
             raise ValueError(
                 f'no valid range information is present for {params.name}')
 
-        # expressions need a symmetric input
-        in_qs = cls.force_symmetric(in_qs)
+        # # expressions need a symmetric input
+        # in_qs = cls.force_symmetric(in_qs)
 
-        if in_qs is None:
-            LOG.info('expression quantizer for {params.name} was not able to force input symmetric')
-            return None
+        # if in_qs is None:
+        #     LOG.info('expression quantizer for {params.name} was not able to force input symmetric')
+        #     return None
 
         symbol_control = SymbolStats(stats['expression'])
         # preload the input and output quantization

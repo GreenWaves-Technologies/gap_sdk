@@ -70,7 +70,7 @@ class Runner(runner.default_runner.Runner):
                     if flash.get_str('datasheet/type') == 'spi':
                         flasher_script = 'gap9_flash_raw_spi'
                     else: 
-                        if self.config.get_str('**/chip') == 'vega':
+                        if self.config.get_str('**/chip/name') == 'vega':
                             flasher_script = 'vega_flash_raw_hyper'
                         else:
                             flasher_script = 'gap9_flash_raw_hyper'

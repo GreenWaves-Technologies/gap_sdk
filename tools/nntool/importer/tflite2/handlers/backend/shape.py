@@ -20,10 +20,12 @@ from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.common.tflite_node import TFLiteNode
 
 from ..backend_handler import BackendHandler
-from ..handler import tflite_op
+from ..handler import tflite_op, partial_support, ps_description
 
 
 @tflite_op("SHAPE")
+@partial_support(True)
+@ps_description('Shape is always reduced to a constant since tensors must always have a known shape in nntool')
 class Shape(BackendHandler):
 
     @classmethod
@@ -37,8 +39,7 @@ class Shape(BackendHandler):
         node.input[0].used = True
         params = ConstantInputParameters(node.name,
                                          dims=Dim.unnamed([len(x_shape)]),
-                                         value=np.array([1 if dim is None else dim for dim in x_shape]),
-                                         constant_store=G.constant_store)
+                                         value=np.array([1 if dim is None else dim for dim in x_shape]))
         all_nodes[node.output[0]] = (params, 0, ProvisionalDim([len(x_shape)]))
         return params
 

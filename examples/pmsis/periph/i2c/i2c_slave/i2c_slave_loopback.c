@@ -35,16 +35,16 @@
 #define I2C_SLAVE_L2_TEST_SIZE (BUFF_SIZE*4)
 
 /* Buffer to write in EEPROM : BUF_SIZE + 2, for the memory address. */
-uint32_t write_buff[BUFF_SIZE+2] = {0};
+uint32_t write_buff[BUFF_SIZE+2] ;
 /* Buffer to read from EEPROM : BUF_SIZE. */
-uint32_t read_buff[BUFF_SIZE] = {0};
+uint32_t read_buff[BUFF_SIZE] ;
 /* BUffer holding the memory address & size for read transactions. */
-uint32_t addr_buff[2] = {0};
+uint32_t addr_buff[2] ;
 
 
 // buffer to hold rx on slave side
 // BUFF SIZE + addr + size + an extra byte for matcher
-uint8_t rx_buffer[((BUFF_SIZE+2)*4)+1] = {0};
+uint8_t rx_buffer[((BUFF_SIZE+2)*4)+1] ;
 
 uint32_t g_l2_buff[BUFF_SIZE];
 

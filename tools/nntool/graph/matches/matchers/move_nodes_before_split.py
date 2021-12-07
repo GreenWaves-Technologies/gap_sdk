@@ -62,10 +62,12 @@ class MoveNodesBeforeSplit(Matcher):
             has_modified_graph = True
             in_edges = G.in_edges(node.name)
             assert len(in_edges) == 1
+            # sort by name to ensure that operation is repeatable
+            same_op_edges.sort(key=lambda x: x.to_node.name)
             keep_node = same_op_edges[0].to_node
             LOG.info(
                 'split node %s has duplicate operations on its out edges', node.name)
-            LOG.info('moving %s before split node %s', keep_node, node.name)
+            LOG.info('moving %s before split node %s', keep_node.name, node.name)
             for edge in G.out_edges(node.name):
                 node_out_edges = G.out_edges(edge.to_node.name)
                 G.remove(edge.to_node)

@@ -103,7 +103,7 @@ class ConvFusionAdjuster(AdjusterBase):
                             wqtype.quantized_dimension)
                         qrec.in_qs[1] = wqtype
                     G.quantization[NodeId(
-                        filter_node, fnode=fusion_node)].in_qs[1] = wqtype
+                        fusion_node, fnode=filter_node)].in_qs[1] = wqtype
 
         pool_node = next(iter([node for node in fusion_node.contained_nodes()
                                if isinstance(node, PoolingParameters)]), None)

@@ -14,8 +14,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
+import json
 import logging
 import os
+import numpy as np
 
 from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
 from importer.common.handler_options import HandlerOptions
@@ -28,6 +30,8 @@ from graph.matches.matchers.fuse_pad import MatchFusePad
 
 LOG = logging.getLogger("nntool")
 
+STATE_EXTENSION = '.json'
+
 NO_GRAPH = {
     'G': None,
     'graph_file': "",
@@ -39,6 +43,13 @@ valid_keys = {
         'type': int
     },
 }
+
+valid_keys_arrays = {
+    '*': {
+        'type': lambda x: eval(f'np.array({x})', {}, {'np': np})
+    },
+}
+
 
 def add_open_options(parser):
     # add all the options defined by import handlers
@@ -69,6 +80,47 @@ def add_open_options(parser):
                         metavar="KEY=VALUE",
                         help='values to substitute for unknown dimensions in the form var=val',
                         )
+    parser.add_argument('--input_shapes',
+                        nargs='*',
+                        action=kwargs_append_action,
+                        kwargs_valid_keys=valid_keys_arrays,
+                        metavar="KEY=ARRAY_VALUE",
+                        help=('shape to override input shape with. should be in the form input_name=[dim, dim, dim, etc]'
+                              'where dim is either an integer or None if this axis should not be overriden'),
+                        )
+    parser.add_argument('--fixed_inputs',
+                        nargs='*',
+                        action=kwargs_append_action,
+                        kwargs_valid_keys=valid_keys_arrays,
+                        metavar="KEY=ARRAY_VALUE",
+                        help='inputs to fix to an array value. should be in the form input_name=array of arrays ...'
+                        )
+    parser.add_argument('--out_ranges',
+                        completer_method=Cmd.path_complete,
+                        help='path to json file with: {"node_name": {"range": [min, max], "n_bits": 8, "per_channel": None, "dtype": np.int8}}  out range to override particular qrecs'
+                        )
+
+
+def parse_open_options(file_path, args, settings):
+    _, ext = os.path.splitext(file_path)
+    ext = ext.lower()
+
+    if ext == STATE_EXTENSION:
+        return True, file_path, {'orgmodel_path': args.orgmodel_path}
+    else:
+        opts = {k: getattr(args, k) if (option['val_type'] != bool or not option['default'])
+                else not getattr(args, f'no_{option["name"]}')
+                for k, option in HandlerOptions.get_all_handler_options().items()}
+
+        opts['substitutions'] = args.subs
+        opts['input_shapes'] = args.input_shapes
+        opts['fixed_inputs'] = args.fixed_inputs
+        if args.out_ranges:
+            with open(args.out_ranges) as f:
+                opts['ranges_dict'] = json.load(f)
+
+        opts['anonymise'] = settings['anonymise']
+        return False, file_path, opts
 
 
 class OpenCommand(NNToolShellBase):
@@ -89,37 +141,21 @@ class OpenCommand(NNToolShellBase):
                              action='store_true')
     add_open_options(parser_open)
 
-    def __get_opts(self, args):
-        return {k: getattr(args, k) if (option['val_type'] != bool or not option['default'])
-                else not getattr(args, f'no_{option["name"]}')
-                for k, option in HandlerOptions.get_all_handler_options().items()}
-
     def __open_graph(self, args):
         graph_file = os.path.expanduser(args.nnfile)
 
-        _, ext = os.path.splitext(graph_file)
-        ext = ext.lower()
+        is_state_file, graph_file, opts = parse_open_options(
+            graph_file, args, self.settings)
 
-        if ext == self.STATE_EXTENSION:
+        if is_state_file:
             LOG.info("opening state file %s", graph_file)
             self.load_state_file(graph_file, args.orgmodel_path)
         else:
-            opts = self.__get_opts(args)
-            opts['substitutions'] = args.subs
-
-            opts['anonymise'] = self.settings['anonymise']
 
             LOG.info("opening graph file %s load_quantization = %s",
                      graph_file, opts['load_quantization'])
 
-            G = create_graph(graph_file, opts=opts)
-            G.add_dimensions()
-            pad_fuser = MatchFusePad()
-            pad_fuser.match(G)
-            G.add_dimensions()
-            self.G = G
-            self.graph_file = graph_file
-            self._reset_history()
+            self.open_graph(graph_file, **opts)
 
             self.settings['load_quantization'] = bool(
                 opts['load_quantization'])
@@ -146,3 +182,13 @@ Open a graph or state file"""
         self.__open_graph(args)
         self._update_prompt()
         self.py_locals['G'] = self.G
+
+    def open_graph(self, file_path, **kwargs):
+        G = create_graph(file_path, opts=kwargs)
+        G.add_dimensions()
+        pad_fuser = MatchFusePad()
+        pad_fuser.match(G)
+        G.add_dimensions()
+        self.G = G
+        self.graph_file = file_path
+        self._reset_history()

@@ -98,8 +98,8 @@ class ConvTranspose(BackendHandler, ConstantMixin):
             weights = np.reshape(weights, (in_c, filt_out_c, filt_h, filt_w))
             weights_node = ConstantInputParameters(f'{valid_name}_weights', value=weights,
                                                    dims=Dim.unnamed(
-                                                       weights.shape),
-                                                   constant_store=G.constant_store)
+                                                       weights.shape))
+            cls.record_constant_qrec(inputs[1], weights_node, **kwargs)
         else:
             filt_h = weights.shape[-2]
             filt_w = weights.shape[-1]
@@ -118,8 +118,7 @@ class ConvTranspose(BackendHandler, ConstantMixin):
             biases = np.zeros([out_c], dtype=np.float32)
             biases_node = ConstantInputParameters(f'{valid_name}_biases', value=biases,
                                                   dims=Dim.unnamed(
-                                                      biases.shape),
-                                                  constant_store=G.constant_store)
+                                                      biases.shape))
 
         padding, dilations, strides, output_padding = cls.calc_shapes(node, spatial_size, Dim2D((h, w)), Dim2D((filt_h, filt_w)))
 
@@ -132,8 +131,7 @@ class ConvTranspose(BackendHandler, ConstantMixin):
                                   has_bias=True,
                                   in_dims_hint=[['c', 'h', 'w'],
                                                 cls.ONNX_TRANSFILTER_ORDER, ['c']],
-                                  out_dims_hint=[['c', 'h', 'w']],
-                                  constant_store=G.constant_store)
+                                  out_dims_hint=[['c', 'h', 'w']])
 
         in_dim = Dim.named_ordered(c=in_c, h=h, w=w)
         w_dim = Dim.named_ordered(
@@ -174,13 +172,13 @@ class ConvTranspose(BackendHandler, ConstantMixin):
             G.add_edge(NNEdge(from_node=params,
                               to_node=r2_params, from_idx=0, to_idx=0))
             pout_dims = ProvisionalDim([conv_shape[0]] + oned_out_shape)
-            all_nodes[node.output[0]] = (r2_params, 0, pout_dims)
+            all_nodes[node.output[0]] = (r2_params, 0, pout_dims, None)
             return r2_params
         else:
             pout_dims = ProvisionalDim([conv_shape[0]] + out_dims[0].shape)
             G.add_edge(
                 NNEdge(from_node=prev_node, to_node=params, from_idx=prev_idx, to_idx=0))
-            all_nodes[node.output[0]] = (params, 0, pout_dims)
+            all_nodes[node.output[0]] = (params, 0, pout_dims, None)
             return params
 
 

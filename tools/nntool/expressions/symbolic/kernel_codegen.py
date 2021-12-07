@@ -131,15 +131,15 @@ class BasicKernel():
         code.write(")")
         code.deindent()
         code.write(");")
-        code.write("if (Kernel) {{")
+        code.write("if (Kernel) {")
         code.indent()
         for kinfo in self.gen_kinfos():
             code.write("{0};", kinfo)
         code.deindent()
-        code.write("}}")
+        code.write("}")
         code.write("return (Kernel!=0);")
         code.deindent()
-        code.write("}}")
+        code.write("}")
         return code
 
     def gen_kinfos(self):
@@ -220,6 +220,7 @@ class BasicKernel():
             iterators.append('IterTiledSpace(KER_ITER_TILE0)')
         return f'KernelIterSpace({len(iterators)}, {",".join(iterators)})'
 
+
     def gen_kerbingings(self):
         max_dim_var = max(self.output_names, key=lambda x: len(self.shapes[x]))
         bindings = [
@@ -255,7 +256,7 @@ class BasicKernel():
 
         code.comment(
             "Output iteration space reduced to %s iteration spaces" % (self.kernel_dims))
-        code.write("void {}({} *Args) {{", kernel_name, kernel_arg_type_name)
+        code.write(f"void {kernel_name}({kernel_arg_type_name} *Args) {{")
         code.indent()
         for kerarg_name, kerarg_type in self.kernel_args:
             code.write('{0} {1} = Args->{1};', kerarg_type, kerarg_name)
@@ -268,13 +269,13 @@ class BasicKernel():
         self._func_col.create_kernel(self.parallel_iterator, self.fixed_iterators, code)
         code.write('gap_waitbarrier(0);')
         code.deindent()
-        code.write('}}')
+        code.write('}')
         return code
 
     def kernel_arg_type_codegen(self, type_name, code=None):
         if code is None:
             code = CodeBlock()
-        code.write('typedef struct {{')
+        code.write('typedef struct {')
         code.indent()
         for kerarg_name, kerarg_type in self.kernel_args:
             code.write('{} {};', kerarg_type, kerarg_name)

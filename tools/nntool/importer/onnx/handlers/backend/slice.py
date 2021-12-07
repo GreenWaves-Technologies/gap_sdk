@@ -13,7 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import math
 import sys
+
 import numpy as np
 from graph.dim import Dim
 from graph.types import ConstantInputParameters, NNEdge, StridedSliceParameters
@@ -58,9 +60,9 @@ class Slice(ConstantMixin, BackendHandler):
                     # this makes it compatible with the numpy slice
                     p_slices.append((begin, -sys.maxsize if end == -1 else end, step))
                     if step < 0:
-                        p_shape.append((begin - end)//-step)
+                        p_shape.append(math.ceil((begin - end)/-step))
                     else:
-                        p_shape.append((end - begin)//step)
+                        p_shape.append(math.ceil((end - begin)/step))
 
             except ValueError:
                 p_slices.append((0, dim, 1))
@@ -77,10 +79,10 @@ class Slice(ConstantMixin, BackendHandler):
                 logger.info("reducing %s to a constant %s", valid_name, x_val)
             else:
                 logger.info("reducing %s to a constant", valid_name)
-            params = ConstantInputParameters(valid_name, dims=Dim.unnamed(x_val.shape), value=x_val, constant_store=G.constant_store)
+            params = ConstantInputParameters(valid_name, dims=Dim.unnamed(x_val.shape), value=x_val)
         else:
             G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
-        all_nodes[node.output[0]] = (params, 0, ProvisionalDim(p_shape))
+        all_nodes[node.output[0]] = (params, 0, ProvisionalDim(p_shape), None)
         return params
 
     @classmethod

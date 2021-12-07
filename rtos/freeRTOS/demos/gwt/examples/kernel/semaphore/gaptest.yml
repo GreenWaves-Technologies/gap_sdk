@@ -1,0 +1,129 @@
+name: freertos_kernel_semaphore
+platforms:
+    - gvsoc
+os:
+    - freertos
+chips:
+    - gap8
+    - gap9
+variants:
+    preempt_O0:
+        name: preempt_O0
+        tags:
+            - integration
+            - release
+        duration: standard
+        os:
+           - freertos
+        chips:
+            - gap8
+            - gap9
+        flags: "NO_PREEMPTION=true APP_CFLAGS=-O0"
+    preempt_O1:
+        name: preempt_O1
+        tags:
+            - integration
+            - release
+        duration: standard
+        os:
+           - freertos
+        chips:
+            - gap8
+            - gap9
+        flags: "NO_PREEMPTION=true APP_CFLAGS=-O1"
+    preempt_O2:
+        name: preempt_O2
+        tags:
+            - integration
+            - release
+        duration: standard
+        os:
+           - freertos
+        chips:
+            - gap8
+            - gap9
+        flags: "NO_PREEMPTION=true APP_CFLAGS=-O2"
+    preempt_O3:
+        name: preempt_O3
+        tags:
+            - integration
+            - release
+        duration: standard
+        os:
+           - freertos
+        chips:
+            - gap8
+            - gap9
+        flags: "NO_PREEMPTION=true APP_CFLAGS=-O3"
+    preempt_Os:
+        name: preempt_Os
+        tags:
+            - integration
+            - release
+        duration: standard
+        os:
+           - freertos
+        chips:
+            - gap8
+            - gap9
+        flags: "NO_PREEMPTION=true APP_CFLAGS=-Os"
+    no_preempt_O0:
+        name: no_preempt_O0
+        tags:
+            - integration
+            - release
+        duration: standard
+        os:
+           - freertos
+        chips:
+            - gap8
+            - gap9
+        flags: "NO_PREEMPTION=false APP_CFLAGS=-O0"
+    no_preempt_O1:
+        name: no_preempt_O1
+        tags:
+            - integration
+            - release
+        duration: standard
+        os:
+           - freertos
+        chips:
+            - gap8
+            - gap9
+        flags: "NO_PREEMPTION=false APP_CFLAGS=-O1"
+    no_preempt_O2:
+        name: no_preempt_O2
+        tags:
+            - integration
+            - release
+        duration: standard
+        os:
+           - freertos
+        chips:
+            - gap8
+            - gap9
+        flags: "NO_PREEMPTION=false APP_CFLAGS=-O2"
+    no_preempt_O3:
+        name: no_preempt_O3
+        tags:
+            - integration
+            - release
+        duration: standard
+        os:
+           - freertos
+        chips:
+            - gap8
+            - gap9
+        flags: "NO_PREEMPTION=false APP_CFLAGS=-O3"
+    no_preempt_Os:
+        name: no_preempt_Os
+        tags:
+            - integration
+            - release
+        duration: standard
+        os:
+           - freertos
+        chips:
+            - gap8
+            - gap9
+        flags: "NO_PREEMPTION=false APP_CFLAGS=-Os"

@@ -21,6 +21,7 @@
 #include "Gap.h"
 #include "CNN_Defines.h"
 #include "CNN_FloatType.h"
+#include "CNN_Defines_fp16.h"
 
 #define gap_pack2f16(x, y)                 ((F16V) {(F16)   (x), (F16)   (y)})
 

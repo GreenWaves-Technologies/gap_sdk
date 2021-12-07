@@ -50,6 +50,7 @@
 #include "pmsis/task.h"
 #include "pmsis/cluster/cluster_sync/fc_to_cl_delegate.h"
 #include "pmsis/cluster/cl_malloc.h"
+#include "pmsis/rtos/assert.h"
 #include "pmsis/rtos/os_frontend_api/pmsis_time.h"
 #include "pmsis/rtos/os_frontend_api/freq.h"
 #include "pmsis/rtos/os_frontend_api/os.h"

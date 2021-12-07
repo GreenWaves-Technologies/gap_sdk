@@ -734,6 +734,9 @@ void Testbench::handle_received_byte(uint8_t byte)
                 this->uart_ctrl->itf.sync_full(1, 2, 0);
                 this->uart_ctrl->send_byte(this->tx_buff[0]);
                 break;
+
+            default:
+                this->trace.fatal("Received unknown request: 0x%2.2x\n", this->cmd & 0xffff);
         }
     }
     else if (this->state == STATE_WAITING_REQUEST)

@@ -42,10 +42,10 @@ class ConcatMixin(ConstantMixin):
         if all(cls.is_constant(inp) for inp in inputs):
             value = np.concatenate([cls.get_constant(inp) for inp in inputs], axis=axis)
             logger.info(f"reducing {valid_name} to a constant {print_small(value)}")
-            params = ConstantInputParameters(valid_name, value=value, constant_store=G.constant_store)
+            params = ConstantInputParameters(valid_name, value=value)
         else:
             params = ConcatParameters(valid_name, axis=axis - none_dims)
             for idx, inp in enumerate(inputs):
                 G.add_edge(NNEdge(from_node=inp[0], to_node=params, from_idx=inp[1], to_idx=idx))
-        all_nodes[node.output[0]] = (params, 0, pout_dim)
+        all_nodes[node.output[0]] = (params, 0, pout_dim, inputs[0][3])
         return params

@@ -1264,6 +1264,51 @@ static void KerGlobalAvgPoolFullFeat_SQ8(
 	*Out = gap_roundnorm_reg((Sum<<7)/((int)(W*H)), 7);
 }
 
+static void KerGlobalSumPool_SQ8(
+	signed char * __restrict__ In,
+	int * __restrict__ Out,
+	unsigned int W,
+	unsigned int H,
+	int Init)
+
+{
+	v4s M = (v4s) {1,1,1,1};
+	v4s *Vi = (v4s *) In;
+	int Sum = Init?0:(*Out);
+
+	for (int i=0; i<((W*H)/(2*4)); i++) {
+		Sum = gap_sumdotp4(Vi[2*i], M, Sum);
+		Sum = gap_sumdotp4(Vi[2*i+1], M, Sum);
+	}
+	if ((W*H)&0x4) Sum = gap_sumdotp4(Vi[(W*H)/4-1], M, Sum);
+	for (unsigned int i=4*((W*H)/4); i<(W*H); i++) Sum += In[i];
+	*Out = Sum;
+}
+
+static void KerGlobalSumPoolFullFeat_SQ8(
+	signed char * __restrict__ In,
+	signed char * __restrict__ Out,
+	unsigned int W,
+	unsigned int H,
+	unsigned int Scale,
+	unsigned int ScaleN
+	)
+
+{
+	v4s M = (v4s) {1,1,1,1};
+	v4s *Vi = (v4s *) In;
+	int Sum = 0;
+
+	for (int i=0; i<((W*H)/(2*4)); i++) {
+		Sum = gap_sumdotp4(Vi[2*i], M, Sum);
+		Sum = gap_sumdotp4(Vi[2*i+1], M, Sum);
+	}
+	if ((W*H)&0x4) Sum = gap_sumdotp4(Vi[(W*H)/4-1], M, Sum);
+	for (unsigned int i=4*((W*H)/4); i<(W*H); i++) Sum += In[i];
+
+	*Out = gap_roundnorm_reg(AT_SCALE(Sum, Scale, ScaleN), 7);
+}
+
 /* Pooling group.
 	Performs Max or Average pooling followed by an optional linear rectification (ReLU). Several output feature maps are evaluated in parallel, one output map per core
 
@@ -2017,6 +2062,112 @@ void KerParGlobalAvgPool_Reduct_ReLUMN_SQ8(KerGlobalPool_SQ8_T *Arg)
 	gap_waitbarrier(0);
 }
 
+
+void KerParGlobalSumPool_SQ8(KerGlobalPool_SQ8_T *Arg)
+
+{
+	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int Feat = Arg->Feat;
+	int * __restrict__ Out = (int *__restrict__) Arg->Out;
+	int FirstTile = Arg->FirstTile;
+
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (unsigned int of=First; of<Last; of++) KerGlobalSumPool_SQ8(In+of*W*H, Out+of, W, H, FirstTile);
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalSumPool_Reduct_SQ8(KerGlobalPool_SQ8_T *Arg)
+
+{
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int Feat = Arg->Feat;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char *__restrict__ Infos = Arg->Infos;
+	int DoScale = Arg->DoScale;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	unsigned int Scale = ((unsigned char *)Infos)[AT_INF_GLOBAL_SUM_SCALE], ScaleN = ((unsigned char *)Infos)[AT_INF_GLOBAL_SUM_SCALEN];
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	if (DoScale && ActScale) for (unsigned int of=First; of<Last; of++) Out[of] = AT_SCALE(AT_SCALE(In[of], Scale, ScaleN), ActScale, ActScaleN);
+	else for (unsigned int of=First; of<Last; of++) Out[of] = AT_SCALE(In[of], Scale, ScaleN);
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalSumPool_Reduct_ReLU_SQ8(KerGlobalPool_SQ8_T *Arg)
+
+{
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int Feat = Arg->Feat;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char *__restrict__ Infos = Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	unsigned int Scale = ((unsigned char *)Infos)[AT_INF_GLOBAL_SUM_SCALE], ScaleN = ((unsigned char *)Infos)[AT_INF_GLOBAL_SUM_SCALEN];
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	if (ActScale) for (unsigned int of=First; of<Last; of++) Out[of] = Max(0, AT_SCALE(AT_SCALE(In[of], Scale, ScaleN), ActScale, ActScaleN));
+	else for (unsigned int of=First; of<Last; of++) Out[of] = Max(0, AT_SCALE(In[of], Scale, ScaleN));
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalSumPool_Reduct_ReLUN_SQ8(KerGlobalPool_SQ8_T *Arg)
+
+{
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int Feat = Arg->Feat;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char *__restrict__ Infos = Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	unsigned int Scale = ((unsigned char *)Infos)[AT_INF_GLOBAL_SUM_SCALE], ScaleN = ((unsigned char *)Infos)[AT_INF_GLOBAL_SUM_SCALEN];
+	int A0 = Infos[AT_INF_A0];
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	if (ActScale) for (unsigned int of=First; of<Last; of++) Out[of] = Max(0, Min(A0, AT_SCALE(AT_SCALE(In[of], Scale, ScaleN), ActScale, ActScaleN)));
+	else for (unsigned int of=First; of<Last; of++) Out[of] = AT_CLIP_POS(AT_SCALE(In[of], Scale, ScaleN), A0);
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalSumPool_Reduct_ReLUM_SQ8(KerGlobalPool_SQ8_T *Arg)
+
+{
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int Feat = Arg->Feat;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char *__restrict__ Infos = Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	unsigned int Scale = ((unsigned char *)Infos)[AT_INF_GLOBAL_SUM_SCALE], ScaleN = ((unsigned char *)Infos)[AT_INF_GLOBAL_SUM_SCALEN];
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+	int A0 = Infos[AT_INF_A0];
+
+	if (ActScale) for (unsigned int of=First; of<Last; of++) Out[of] = Max(A0, AT_SCALE(AT_SCALE(In[of], Scale, ScaleN), ActScale, ActScaleN));
+	else for (unsigned int of=First; of<Last; of++) Out[of] = Max(A0, AT_SCALE(In[of], Scale, ScaleN));
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalSumPool_Reduct_ReLUMN_SQ8(KerGlobalPool_SQ8_T *Arg)
+
+{
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int Feat = Arg->Feat;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char *__restrict__ Infos = Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	unsigned int Scale = ((unsigned char *)Infos)[AT_INF_GLOBAL_SUM_SCALE], ScaleN = ((unsigned char *)Infos)[AT_INF_GLOBAL_SUM_SCALEN];
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0];
+
+	if (ActScale) for (unsigned int of=First; of<Last; of++) Out[of] = Max(A0, Min(B0, AT_SCALE(AT_SCALE(In[of], Scale, ScaleN), ActScale, ActScaleN)));
+	else for (unsigned int of=First; of<Last; of++) Out[of] = Max(A0, Min(B0, AT_SCALE(In[of], Scale, ScaleN)));
+	gap_waitbarrier(0);
+}
+
+
 void KerParGlobalMaxPoolFullFeat_SQ8(KerGlobalPool_SQ8_T *Arg)
 
 {
@@ -2175,6 +2326,87 @@ void KerParGlobalAvgPoolFullFeat_ReLUMN_SQ8(KerGlobalPool_SQ8_T *Arg)
 	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
 
 	for (unsigned int of=First; of<Last; of++) KerGlobalAvgPoolFullFeat_SQ8(In+of*W*H, Out+of, W, H);
+	KerParPoolActivation(Out, 1, 1, First, Last, Infos, ACT_RELUMN);
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalSumPoolFullFeat_SQ8(KerGlobalPool_SQ8_T *Arg)
+
+{
+	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int Feat = Arg->Feat;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	int DoScale = Arg->DoScale;
+	signed char * __restrict__ Infos = Arg->Infos;
+
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (unsigned int of=First; of<Last; of++) KerGlobalSumPoolFullFeat_SQ8(In+of*W*H, Out+of, W, H, (unsigned char) Infos[AT_INF_GLOBAL_SUM_SCALE], (unsigned char) Infos[AT_INF_GLOBAL_SUM_SCALEN]);
+	if (DoScale) KerParPoolActivation(Out, 1, 1, First, Last, Infos, ACT_NONE);
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalSumPoolFullFeat_ReLU_SQ8(KerGlobalPool_SQ8_T *Arg)
+
+{
+	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int Feat = Arg->Feat;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = Arg->Infos;
+
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (unsigned int of=First; of<Last; of++) KerGlobalSumPoolFullFeat_SQ8(In+of*W*H, Out+of, W, H, (unsigned char) Infos[AT_INF_GLOBAL_SUM_SCALE], (unsigned char) Infos[AT_INF_GLOBAL_SUM_SCALEN]);
+	KerParPoolActivation(Out, 1, 1, First, Last, Infos, ACT_RELU);
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalSumPoolFullFeat_ReLUN_SQ8(KerGlobalPool_SQ8_T *Arg)
+
+{
+	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int Feat = Arg->Feat;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = Arg->Infos;
+
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (unsigned int of=First; of<Last; of++) KerGlobalSumPoolFullFeat_SQ8(In+of*W*H, Out+of, W, H, (unsigned char) Infos[AT_INF_GLOBAL_SUM_SCALE], (unsigned char) Infos[AT_INF_GLOBAL_SUM_SCALEN]);
+	KerParPoolActivation(Out, 1, 1, First, Last, Infos, ACT_RELUN);
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalSumPoolFullFeat_ReLUM_SQ8(KerGlobalPool_SQ8_T *Arg)
+
+{
+	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int Feat = Arg->Feat;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = Arg->Infos;
+
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (unsigned int of=First; of<Last; of++) KerGlobalSumPoolFullFeat_SQ8(In+of*W*H, Out+of, W, H, (unsigned char) Infos[AT_INF_GLOBAL_SUM_SCALE], (unsigned char) Infos[AT_INF_GLOBAL_SUM_SCALEN]);
+	KerParPoolActivation(Out, 1, 1, First, Last, Infos, ACT_RELUM);
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalSumPoolFullFeat_ReLUMN_SQ8(KerGlobalPool_SQ8_T *Arg)
+
+{
+	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int Feat = Arg->Feat;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = Arg->Infos;
+
+	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (unsigned int of=First; of<Last; of++) KerGlobalSumPoolFullFeat_SQ8(In+of*W*H, Out+of, W, H, (unsigned char) Infos[AT_INF_GLOBAL_SUM_SCALE], (unsigned char) Infos[AT_INF_GLOBAL_SUM_SCALEN]);
 	KerParPoolActivation(Out, 1, 1, First, Last, Infos, ACT_RELUMN);
 	gap_waitbarrier(0);
 }
@@ -3043,7 +3275,7 @@ void KerParMaxPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg)
         int Fy = Arg->Fy, Sy = Arg->Sy;
         int PadL = Arg->Pad[0], PadT = Arg->Pad[2];
         int Feat = Arg->Feat;
-        signed char * __restrict__ Out = Arg->Out;
+        unsigned char * __restrict__ Out = Arg->Out;
         int Wo = Arg->Wo, Ho = Arg->Ho;
 
 	v4u M_Init = (v4u) {0, 0, 0, 0};
@@ -3064,19 +3296,19 @@ void KerParMaxPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg)
 				}
 				((int *)(Out+l*Wo*Feat + c*Feat+First))[f] = (int) M;
 			}
-			if (Iter&0x2) {
-				v4u M = M_Init;
+			// if (Iter&0x2) {
+			// 	v4u M = M_Init;
+			// 	for (int j=Tb; j<Db; j++) {
+			// 		for (int i=Lb; i<Rb; i++) M = gap_maxu4(M, (v4u) (int) ((unsigned short int *)(In+j*W*Feat + i*Feat+First))[0]);
+			// 	}
+			// 	((short int *)(Out+l*Wo*Feat + c*Feat+First))[0] = (int) M;
+			// }
+			for (int f=(Iter/4)*4; f<Iter; f++) {
+				unsigned char M = 0;
 				for (int j=Tb; j<Db; j++) {
-					for (int i=Lb; i<Rb; i++) M = gap_maxu4(M, (v4u) (int) ((unsigned short int *)(In+j*W*Feat + i*Feat+First))[0]);
+					for (int i=Lb; i<Rb; i++) M = Max(M, ((unsigned char *)(In+j*W*Feat + i*Feat+First))[f]);
 				}
-				((short int *)(Out+l*Wo*Feat + c*Feat+First))[0] = (int) M;
-			}
-			if (Iter&0x1) {
-				v4u M = M_Init;
-				for (int j=Tb; j<Db; j++) {
-					for (int i=Lb; i<Rb; i++) M = gap_maxu4(M, (v4u) (int) ((unsigned char *)(In+j*W*Feat + i*Feat+First))[0]);
-				}
-				((signed char *)(Out+l*Wo*Feat + c*Feat+First))[0] = (int) M;
+				((unsigned char *)(Out+l*Wo*Feat + c*Feat+First))[f] = M;
 			}
 			PosC += Sx;
                 }

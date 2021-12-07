@@ -13,17 +13,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import distutils.ccompiler as compiler
-from graph.types.input_output import InputParameters
-from graph.dim import Dim
-from graph.types.dsp_preprocessing import MFCCPreprocessingParameters, RFFT2DPreprocessingParameters
-
-from graph.types import DSPParameters
-import logging
-import os
 import json
+import logging
+
 from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
 from interpreter.nntool_shell_base import NNToolShellBase
+
+from graph.dim import Dim
+from graph.types import DSPParameters, InputParameters
+from graph.types.dsp_preprocessing import (MFCCPreprocessingParameters,
+                                           RFFT2DPreprocessingParameters)
 
 LOG = logging.getLogger("nntool")
 

@@ -14,10 +14,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-# pylint: disable=wildcard-import
-from .commands import *
 
 from interpreter.nntool_shell_base import NNToolShellBase
+
+# pylint: disable=wildcard-import,unused-wildcard-import
+from .commands import *
 
 LOG = logging.getLogger("nntool")
 

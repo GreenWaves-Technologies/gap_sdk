@@ -26,6 +26,7 @@ from quantization.quantizer.new_quantizer import NewQuantizer
 from utils.data_importer import import_data
 from utils.stats_funcs import STATS_BITS
 
+from graph.types import ConstantInputParameters
 from stats.activation_ranges_collector import ActivationRangesCollector
 
 LOG = logging.getLogger('nntool.'+__name__)
@@ -56,31 +57,34 @@ Attempt to calculate quantization for graph using one or more sample input files
         stats_collector = ActivationRangesCollector()
         # if replaying state file then load the activation stats if they are present
         opts = get_options_from_args(args)
-        if self.replaying_history and self.history_stats:
-            astats = self.history_stats
-        else:
-            input_args = self._get_input_args(args)
-            processed_input = False
-            for file_per_input in glob_input_files(args.input_files, self.G.num_inputs):
-                LOG.info("input file %s", file_per_input)
-                processed_input = True
-                data = [import_data(input_file, **input_args)
-                        for input_file in file_per_input]
-                stats_collector.collect_stats(self.G, data)
-            if not processed_input:
-                self.perror("No input files found")
-                return
-            astats = stats_collector.stats
-            self._record_stats(astats)
+        state = ConstantInputParameters.save_compression_state(self.G)
+        try:
+            if self.replaying_history and self.history_stats:
+                astats = self.history_stats
+            else:
+                input_args = self._get_input_args(args)
+                processed_input = False
+                for file_per_input in glob_input_files(args.input_files, self.G.num_inputs):
+                    LOG.info("input file %s", file_per_input)
+                    processed_input = True
+                    data = [import_data(input_file, **input_args)
+                            for input_file in file_per_input]
+                    stats_collector.collect_stats(self.G, data)
+                if not processed_input:
+                    self.perror("No input files found")
+                    return
+                astats = stats_collector.stats
+                self._record_stats(astats)
 
-        if args.force_width:
-            opts['bits'] = args.force_width
+            if args.force_width:
+                opts['bits'] = args.force_width
 
-        quantizer = NewQuantizer(self.G, reset_all=True)
-        quantizer.options = opts
-        quantizer.schemes.append(args.scheme)
-        quantizer.set_stats(astats)
-        quantizer.quantize()
+            quantizer = NewQuantizer(self.G, reset_all=True)
+            quantizer.schemes.append(args.scheme)
+            quantizer.set_stats(astats, opts)
+            quantizer.quantize()
 
-        self.G.add_dimensions()
-        LOG.info("Quantization set. Use qshow command to see it.")
+            self.G.add_dimensions()
+            LOG.info("Quantization set. Use qshow command to see it.")
+        finally:
+            ConstantInputParameters.restore_compression_state(self.G, state)

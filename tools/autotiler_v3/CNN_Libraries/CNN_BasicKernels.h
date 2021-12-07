@@ -1518,6 +1518,8 @@ extern void KerParMatMulLeakyrelu_NoBias_fp(KerMatMul_fp_T *Arg);
 extern void KerParMatMulLeakyreluSxSy_NoBias_fp(KerMatMul_fp_T *Arg);
 
 extern void KerParMatMul_fpd_fp(KerMatMul_fpd_fp_T *Arg);
+extern void KerParMatMulTransposed_fpd_fp(KerMatMul_fpd_fp_T *Arg);
+extern void KerParMatMulTransposedNoBias_fp(KerMatMul_fpd_fp_T *Arg);
 
 extern void KerParMatMulSxSy_fpd_fp(KerMatMul_fpd_fp_T *Arg);
 

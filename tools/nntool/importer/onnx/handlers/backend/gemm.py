@@ -35,7 +35,6 @@ class Gemm(PromoteLinearMixin, BackendHandler):
         G = kwargs['G']
         valid_name = kwargs['valid_name']
         all_nodes = kwargs['all_nodes']
-        biases = cls.get_constant(inputs[2]) if len(inputs) > 2 else None
         if trans_a:
             tparams = TransposeParameters(G.unique_name(
                 f'{valid_name}_tinx'), transpose=(1, 0))
@@ -51,14 +50,17 @@ class Gemm(PromoteLinearMixin, BackendHandler):
             NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         G.add_edge(
             NNEdge(from_node=y[0], to_node=params, from_idx=y[1], to_idx=1))
-        if biases is not None:
-            biases_params = ConstantInputParameters(
-                G.unique_name(f'{valid_name}_biases'), dims=Dim.unnamed(biases.shape), value=biases)
-            G.add_edge(
-                NNEdge(from_node=biases_params, to_node=params, to_idx=2))
+
         out_dims = params.get_output_size(
             [Dim.unnamed(real_x_shape), Dim.unnamed(real_y_shape)])
-        all_nodes[node.output[0]] = (params, 0, out_dims[0])
+
+        biases = cls.get_constant(inputs[2]) if len(inputs) > 2 else np.zeros(out_dims[0].shape[1])
+        biases_params = ConstantInputParameters(
+            G.unique_name(f'{valid_name}_biases'), dims=Dim.unnamed(biases.shape), value=biases)
+        G.add_edge(
+            NNEdge(from_node=biases_params, to_node=params, to_idx=2))
+        cls.record_constant_qrec(inputs[2], biases_params, **kwargs)
+        all_nodes[node.output[0]] = (params, 0, out_dims[0], None)
         return params
 
     @classmethod
@@ -86,6 +88,8 @@ class Gemm(PromoteLinearMixin, BackendHandler):
             real_y_shape) == 2 and trans_b else real_y_shape
 
         if not cls.is_linear(y, real_x_shape, real_y_shape) or trans_a:
+            if alpha != 1.0 or beta != 1.0:
+                raise NotImplementedError('Alpha and Beta not implemented on pure matmul GEMM')
             return cls._import_as_matmul(node, inputs, x, y, real_x_shape, real_y_shape,
                                          trans_a, trans_b, alpha, beta, **kwargs)
 
@@ -104,16 +108,26 @@ class Gemm(PromoteLinearMixin, BackendHandler):
             weights = np.transpose(weights, [1, 0])
         weights_params = ConstantInputParameters(
             f'{valid_name}_weights', dims=Dim.unnamed(weights.shape), value=weights)
+        if y[3]:
+            if alpha == 1.0:
+                cls.record_constant_qrec(y, weights_params, **kwargs)
+            else:
+                raise NotImplementedError("qtype on Gemm with alpha != 1.0")
+
         biases = biases * beta
         biases_params = ConstantInputParameters(
             f'{valid_name}_biases', dims=Dim.unnamed(biases.shape), value=biases)
+        if len(inputs) > 2 and inputs[2][3]:
+            if beta == 1.0:
+                cls.record_constant_qrec(inputs[2], biases_params, **kwargs)
+            else:
+                raise NotImplementedError("qtype on Gemm with beta != 1.0")
 
         params = FcParameters(valid_name, filt=filt_dim, has_bias=True,
                               #   in_dims_hint=[['c']],
                               in_dims_hint=[
                                   None, ['out_c', 'in_c'], ['out_c']],
-                              out_dims_hint=[['c']],
-                              constant_store=G.constant_store)
+                              out_dims_hint=[['c']])
 
         G.add_edge(NNEdge(from_node=weights_params, to_node=params, to_idx=1))
         G.add_edge(NNEdge(from_node=biases_params, to_node=params, to_idx=2))
@@ -125,7 +139,7 @@ class Gemm(PromoteLinearMixin, BackendHandler):
             out_dim = x[2].infer_mapping(out_dims[0].shape)
         else:
             out_dim = out_dims[0]
-        all_nodes[node.output[0]] = (params, 0, out_dim)
+        all_nodes[node.output[0]] = (params, 0, out_dim, None)
         return params
 
     @classmethod
@@ -146,4 +160,8 @@ class Gemm(PromoteLinearMixin, BackendHandler):
 
     @classmethod
     def version_11(cls, node, **kwargs):
+        return cls._common(node, **kwargs)
+
+    @classmethod
+    def version_13(cls, node, **kwargs):
         return cls._common(node, **kwargs)

@@ -18,12 +18,16 @@ from copy import deepcopy
 from graph.types import ConstantInputParameters
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
-from quantization.unified_quantization_handler import (params_type)
+from quantization.quantizer_options import QTYPE_IND_OPTION
+from quantization.unified_quantization_handler import (needs_stats, options,
+                                                       params_type)
 
 from ..mult_quantization_handler import MultQuantizionHandler
 
 
+@options(QTYPE_IND_OPTION)
 @params_type(ConstantInputParameters)
+@needs_stats(False)
 class ConstantInputMult(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
@@ -37,6 +41,9 @@ class ConstantInputMult(MultQuantizionHandler):
             o_q = deepcopy(params.qtype)
         # derive quantization from statistics
         else:
-            o_q = QType.from_array_sq(params.value, dtype=out_dtype)
+            opts = kwargs.get('opts', {})
+            o_q = opts.get('qtype_ind')
+            if not o_q:
+                o_q = QType.from_array_sq(params.value, dtype=out_dtype)
         o_q.is_constant = True
         return QRec.scaled(in_qs=[o_q], out_qs=[o_q])

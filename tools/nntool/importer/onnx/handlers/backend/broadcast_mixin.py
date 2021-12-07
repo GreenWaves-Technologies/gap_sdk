@@ -15,7 +15,7 @@
 
 import numpy as np
 from graph.dim import Dim
-from graph.types.input_output import ConstantInputParameters
+from graph.types import ConstantInputParameters
 from importer.common.provisional_dim import ProvisionalDim
 
 

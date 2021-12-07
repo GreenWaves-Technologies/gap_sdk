@@ -24,13 +24,8 @@
 extern "C" {
 #endif
 
-#define pi_assert(test)                                                 \
-    if (!(test))                                                        \
-    {                                                                   \
-        printf("PMSIS assertion error in %s, %s:%d :\n",__func__, __FILE__, (unsigned int)__LINE__); \
-        printf("%s\n", #test);                                          \
-        pmsis_exit(-1);                                                 \
-    }
+/** Assert used throughout all PMSIS functions. Must be implemented before use. */
+#define pi_assert(test) IMPLEM_SPECIFIC_ASSERT(test)
 
 #ifdef __cplusplus
 }

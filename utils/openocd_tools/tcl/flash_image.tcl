@@ -199,7 +199,7 @@ proc gap_flasher_ctrl_VEGA {ImageName ImageSize flash_offset sector_size flash_t
 
 proc gap_flash_raw {image_name image_size gap_tools_path} {
     # flash the flasher
-    gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_flasher@gapoc_a.elf elf
+    gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_flasher-gapoc_a.elf elf
     sleep 100
     # flash the flash image with the flasher
     gap_flasher_ctrl $image_name $image_size 0 0x40000 0 0x1c000090
@@ -225,7 +225,7 @@ proc gap_flash_raw_hyper {image_name image_size gap_tools_path} {
     puts "begining flash session (hyperflash)"
     puts "--------------------------"
     puts "load flasher to L2 memory"
-    gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_flasher@gapoc_a.elf elf
+    gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_flasher-gapoc_a.elf elf
     sleep 2
     # flash the flash image with the flasher
     puts "Instruct flasher to begin flash per se"
@@ -259,7 +259,7 @@ proc gap9_flash_raw_hyper {image_name image_size gap_tools_path} {
     puts "--------------------------"
     puts "load flasher to L2 memory"
     # need to pass board name as arg -- TODO: unify command name
-    load_and_start_binary ${gap_tools_path}/gap_bins/gap_flasher@gapuino9.elf 0x1c010180
+    load_and_start_binary ${gap_tools_path}/gap_bins/gap_flasher-gapuino9.elf 0x1c010180
     sleep 100
     # flash the flash image with the flasher
     puts "Instruct flasher to begin flash per se"
@@ -282,7 +282,7 @@ proc vega_flash_raw_hyper {image_name image_size gap_tools_path} {
     puts "--------------------------"
     puts "load flasher to L2 memory"
     # need to pass board name as arg -- TODO: unify command name
-    load_and_start_binary ${gap_tools_path}/gap_bins/gap_flasher@vega.elf 0x1c008080
+    load_and_start_binary ${gap_tools_path}/gap_bins/gap_flasher-vega.elf 0x1c008080
     sleep 2
     # flash the flash image with the flasher
     puts "Instruct flasher to begin flash per se"
@@ -299,7 +299,7 @@ proc gap_flash_raw_spi {image_name image_size gap_tools_path} {
     puts "begining flash session (spiflash)"
     puts "--------------------------"
     puts "load flasher to L2 memory"
-    gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_flasher@gapoc_a_qpif.elf elf
+    gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_flasher-gapoc_a_qpif.elf elf
     sleep 2
     # flash the flash image with the flasher
     puts "Instruct flasher to begin flash per se"

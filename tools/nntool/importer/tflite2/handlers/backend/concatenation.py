@@ -45,8 +45,7 @@ class Concatenation(ConstantMixin, BackendHandler):
         if cls.is_constant(inp):
             val = np.reshape(cls.get_constant(inp), new_shape)
             params = ConstantInputParameters(G.unique_name(inp[0].name), value=val,
-                                             dims=Dim.unnamed(val.shape),
-                                             constant_store=G.constant_store)
+                                             dims=Dim.unnamed(val.shape))
         else:
             params = ReshapeParameters(G.unique_name(f'{inp[0].name}_reshape'), old_shape=old_shape, shape=new_shape)
             G.add_edge(NNEdge(from_node=inp[0], to_node=params, from_idx=inp[1]))
@@ -83,7 +82,7 @@ class Concatenation(ConstantMixin, BackendHandler):
             # cls.remove_none_from_constants(inputs, pout_shape)
             LOG.info("reducing %s to a constant", node.name)
             value = np.concatenate([cls.get_constant(inp) for inp in inputs], axis=axis)
-            params = ConstantInputParameters(node.name, value=value, constant_store=G.constant_store)
+            params = ConstantInputParameters(node.name, value=value)
         else:
             axis -= sum(1 if dim is None else 0 for dim in pout_shape[:axis:])
             params = ConcatParameters(node.name, axis=axis, axis_hint=None)

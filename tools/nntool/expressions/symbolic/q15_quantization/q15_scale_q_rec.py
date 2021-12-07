@@ -22,30 +22,33 @@ from ..quantization_base import QRecBase
 
 
 class Q15ScaleQRec(QRecBase):
-    def __init__(self, dtype: np.dtype, scale: float, q: int, min_val=None, max_val=None) -> None:
+    def __init__(self, dtype: np.dtype, scale: float, q: int, min_val=None, max_val=None, zero_point=0) -> None:
         super(Q15ScaleQRec, self).__init__(dtype)
         self._scale = scale
         self._q = q
         self._min_val = min_val
         self._max_val = max_val
+        self._zero_point = zero_point
 
     def __repr__(self) -> str:
         return f"{self._dtype.__name__} {self.scale} Q{self._q}"
 
     @classmethod
-    def inherit(cls, rec, dtype: np.dtype = None, scale: float = None, q: int = None, max_val=None, min_val=None):
+    def inherit(cls, rec, dtype: np.dtype = None, scale: float = None, q: int = None, max_val=None, min_val=None, zero_point=None):
         if rec is None:
-            return cls(dtype, scale, q, max_val=max_val, min_val=min_val)
+            return cls(dtype, scale, q, max_val=max_val, min_val=min_val, zero_point=zero_point)
         if rec.q is None:
             rec.q = q
         if rec.dtype is None:
             rec.dtype = dtype
         if rec.scale is None:
             rec.scale = scale
+        if rec.zero_point is None:
+            rec.zero_point = zero_point
         return rec
 
     @classmethod
-    def override(cls, rec, dtype: np.dtype = None, scale: float = None, q: int = None):
+    def override(cls, rec, dtype: np.dtype = None, scale: float = None, q: int = None, zero_point=None):
         rec = deepcopy(rec)
         if q is not None:
             rec.q = q
@@ -53,6 +56,8 @@ class Q15ScaleQRec(QRecBase):
             rec.dtype = dtype
         if scale is not None:
             rec.scale = scale
+        if zero_point is not None:
+            rec.zero_point = zero_point
         return rec
 
     @classmethod
@@ -79,6 +84,15 @@ class Q15ScaleQRec(QRecBase):
         return self._max_val
 
     @property
+    def zero_point(self):
+        return self._zero_point
+
+    @zero_point.setter
+    def zero_point(self, val):
+        self._zero_point = val
+
+
+    @property
     def scale(self):
         return self._scale
 
@@ -97,25 +111,26 @@ class Q15ScaleQRec(QRecBase):
     def quantize(self, val):
         if np.all(val == 0):
             return val
-        return np.round(np.power(2, self.q) * val/self.scale, 0).astype(self.dtype)
+        return (np.round(np.power(2, self.q) * val/self.scale, 0) + self.zero_point).astype(self.dtype)
 
     def quantize_and_clip(self, val):
         if np.all(val == 0):
             return val.astype(self.dtype)
         iinfo = np.iinfo(self.dtype)
-        return np.clip(np.round(np.power(2, self.q) * val/self.scale, 0), iinfo.min, iinfo.max).astype(self.dtype)
+        return np.clip((np.round(np.power(2, self.q) * val/self.scale, 0) + self.zero_point), iinfo.min, iinfo.max).astype(self.dtype)
 
     def quantize_py_expr(self, val):
         if np.all(val == 0):
             return f"{val}.astype(np.{self.dtype.__name__})"
-        return f"np.round(np.power(2, {self.q}) * ({val})/{self.scale}, 0).astype(np.{self.dtype.__name__})"
+        return f"np.round((np.power(2, {self.q}) * ({val})/{self.scale}, 0) + {self.zero_point}).astype(np.{self.dtype.__name__})"
 
     def quantize_and_clip_py_expr(self, val):
         if np.all(val == 0):
             return f"{val}.astype(np.{self.dtype.__name__})"
         iinfo = np.iinfo(self.dtype)
-        return f"np.clip(np.round(np.power(2, {self.q}) * ({val})/{self.scale}, 0), {iinfo.min}, {iinfo.max}).astype(np.{self.dtype.__name__})"
+        return f"np.clip((np.round(np.power(2, {self.q}) * ({val})/{self.scale}, 0) + {self.zero_point}), {iinfo.min}, {iinfo.max}).astype(np.{self.dtype.__name__})"
 
+    #TODO - handle zero point here
     def quantize_c_expr(self, val):
         return "((%s)round(2^(%s) * (%s)/(%s), 0))" % (self.ctype, self.q, val, self.scale)
 
@@ -125,7 +140,7 @@ class Q15ScaleQRec(QRecBase):
         return "gap_clip(((%s)round(2^(%s) * (%s)/(%s), 0)), %s)" % (self.ctype, self.q, val, self.scale, bits)
 
     def dequantize(self, val):
-        return val.astype(np.float) * self.scale * math.pow(2, -self.q)
+        return (val.astype(np.float) - self.zero_point) * self.scale * math.pow(2, -self.q)
 
     def dequantize_py_expr(self, val):
         return "%s.astype(np.float) * %s * math.pow(2, -%s)" % (val, self.scale, self.q)
@@ -141,4 +156,4 @@ class Q15ScaleQRec(QRecBase):
         return self.__repr__()
 
     def __eq__(self, o: object) -> bool:
-        return self.q == o.q and self.scale == o.scale
+        return self.q == o.q and self.scale == o.scale and self.dtype == o.dtype and self.zero_point == o.zero_point

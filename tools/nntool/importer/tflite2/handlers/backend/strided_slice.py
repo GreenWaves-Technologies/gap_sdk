@@ -16,10 +16,10 @@
 
 import math
 import sys
-from graph.types.input_output import ConstantInputParameters
+
 from graph.dim import Dim
-from graph.types import (NNEdge, NoOPParameters, ReshapeParameters,
-                         StridedSliceParameters)
+from graph.types import (ConstantInputParameters, NNEdge, NoOPParameters,
+                         ReshapeParameters, StridedSliceParameters)
 from importer.common.constant_mixin import ConstantMixin
 from importer.tflite2.common import LOG
 from importer.tflite2.common.tflite_node import TFLiteNode
@@ -144,7 +144,7 @@ class StridedSlice(ConstantMixin, BackendHandler):
             x_val = cls.get_constant(x)
             params = StridedSliceParameters(node.name, act_slice=act_slice, out_shape=out_shape)
             x_val = params.numpy_slice(x_val)
-            params = ConstantInputParameters(node.name, value=x_val, constant_store=G.constant_store)
+            params = ConstantInputParameters(node.name, value=x_val)
             G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         else:
             if can_reshape:
@@ -162,7 +162,8 @@ class StridedSlice(ConstantMixin, BackendHandler):
                 # if the slice has changed the shape then do this separately with a reshape
                 G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
                 if out_slice_shape != out_shape:
-                    rparams = ReshapeParameters(G.unique_name(node.name), old_shape=out_slice_shape, shape=out_shape)
+                    rparams = ReshapeParameters(
+                        G.unique_name(node.name), old_shape=Dim.unnamed(out_slice_shape), shape=Dim.unnamed(out_shape))
                     G.add_edge(NNEdge(from_node=params, to_node=rparams))
                     params = rparams
 

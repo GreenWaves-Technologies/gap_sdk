@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.tensor_arithmetic import MatMulTransposedParameters
 import logging
 from abc import abstractproperty
 
@@ -81,6 +82,11 @@ VALID_FUSIONS = {
         'scaled': (VALID_GEN_ACTIVATIONS_SQ8, MatMulOpFusionParameters),
         'symmetric': (VALID_GEN_ACTIVATIONS_POW2, MatMulOpFusionParameters),
         'float': (VALID_GEN_ACTIVATIONS_FLOAT, MatMulOpFusionParameters),
+    },
+    MatMulTransposedParameters: {
+        'scaled': (VALID_GEN_ACTIVATIONS_SQ8, MatMulOpFusionParameters),
+        'symmetric': (VALID_GEN_ACTIVATIONS_POW2, MatMulOpFusionParameters),
+        'float': (VALID_GEN_ACTIVATIONS_FLOAT, MatMulOpFusionParameters),
     }
 }
 
@@ -127,7 +133,7 @@ class FusionMatch():
                          else 'active' for params in self.order])
 
 
-@run_after('fuse_gap_pool', 'fuse_external_bias_matbul')
+@run_after('fuse_gap_pool', 'fuse_external_bias_matmul')
 class MatchOpActivation(Matcher):
 
     @abstractproperty
@@ -172,8 +178,7 @@ class MatchOpActivation(Matcher):
                 input_mapping=input_mapping,
                 output_mapping=output_mapping)
             if G.quantization:
-                # if there are quantization stats then clear them. They need to be created again
-                G.quantization.stats = None
+                # TODO - stats
                 qrecs = G.quantization.get_all(pnode.contained_nodes())
                 if qrecs:
                     prec = QRec.copy_ktype(

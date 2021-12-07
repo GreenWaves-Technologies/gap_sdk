@@ -35,7 +35,7 @@
 #include "vp/itf/clk.hpp"
 #include "vp/clock/component_clock.hpp"
 #include "vp/trace/component_trace.hpp"
-#include "vp/power/component_power.hpp"
+#include "gv/power.hpp"
 #include "json.hpp"
 #include <functional>
 
@@ -424,7 +424,7 @@ namespace vp {
 
     void dump_traces_recursive(FILE *file);
 
-
+    component *get_parent() { return this->parent; }
     inline js::config *get_js_config() { return comp_js_config; }
 
     js::config *get_vp_config();
@@ -457,6 +457,7 @@ namespace vp {
     config *import_config(const char *config_string);
 
     void reg_step_pre_start(std::function<void()> callback);
+    void register_build_callback(std::function<void()> callback);
 
     void post_post_build();
 
@@ -525,7 +526,7 @@ namespace vp {
     virtual std::string handle_command(Gv_proxy *proxy, FILE *req_file, FILE *reply_file, std::vector<std::string> args, std::string req) { return ""; }
 
     component_trace traces;
-    component_power power;
+    vp::power::component_power power;
 
     trace warning;
 
@@ -557,6 +558,7 @@ namespace vp {
     component *parent = NULL;
 
     vector<std::function<void()>> pre_start_callbacks;
+    vector<std::function<void()>> build_callbacks;
     vector<vp::reg *> regs;
 
     bool reset_done_from_itf;

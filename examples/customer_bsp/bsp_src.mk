@@ -1,4 +1,6 @@
 GAPOC_C_BSP = $(CUSTOM_BSP_PATH)
+EPEAS_CIS001_BOARD_BSP = $(CUSTOM_BSP_PATH)
+
 PMSIS_BSP_PATH = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp
 
 BSP_READFS_SRC = $(PMSIS_BSP_PATH)/fs/read_fs/read_fs.c
@@ -17,7 +19,8 @@ BSP_RAM_SRC = $(PMSIS_BSP_PATH)/ram/ram.c $(PMSIS_BSP_PATH)/ram/alloc_extern.c
 BSP_OTA_SRC = $(PMSIS_BSP_PATH)/ota/ota.c $(PMSIS_BSP_PATH)/ota/ota_utility.c $(PMSIS_BSP_PATH)/ota/updater.c
 BSP_BOOTLOADER_SRC = $(PMSIS_BSP_PATH)/bootloader/bootloader_utility.c
 
-BSP_CAM_SRC = $(PMSIS_BSP_PATH)/camera/camera.c $(PMSIS_BSP_PATH)/camera/hm0360/hm0360.c
+BSP_CAM_SRC = $(PMSIS_BSP_PATH)/camera/camera.c $(PMSIS_BSP_PATH)/camera/hm0360/hm0360.c 
+BSP_CAM_EPEAS_CIS001_SRC = $(PMSIS_BSP_PATH)/camera/camera.c $(PMSIS_BSP_PATH)/camera/epeas_cis001/epeas_cis001.c 
 
 COMMON_SRC = \
   $(BSP_FLASH_SRC) \
@@ -36,6 +39,14 @@ GAPOC_C_SRC = \
   $(BSP_RAM_SRC) \
   $(BSP_CAM_SRC)
 
+EPEAS_CIS001_BOARD_SRC = \
+  $(COMMON_SRC) \
+  $(EPEAS_CIS001_BOARD_BSP)/bsp/epeas_cis001_board.c \
+  $(BSP_SPIFLASH_SRC) \
+  $(BSP_SPIRAM_SRC) \
+  $(BSP_RAM_SRC) \
+  $(BSP_CAM_EPEAS_CIS001_SRC)
+
 #  $(BSP_HYPERFLASH_SRC) \
 #  $(BSP_HYPERRAM_SRC) \
 
@@ -43,3 +54,6 @@ GAPOC_C_SRC = \
 GAPOC_C_BSP_FLAGS += -DCONFIG_SPIFLASH \
 					  -DCONFIG_SPIRAM	\
 					  -DCONFIG_HM0360 
+EPEAS_CIS001_BOARD_BSP_FLAGS += -DCONFIG_SPIFLASH \
+            -DCONFIG_SPIRAM \
+            -DCONFIG_EPEAS_CIS001

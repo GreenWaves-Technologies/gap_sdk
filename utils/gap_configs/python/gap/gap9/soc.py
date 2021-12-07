@@ -469,7 +469,10 @@ class Soc(st.Component):
                 self.bind(riscv_tap, name, self, 'halt_' + name)
 
         # MRAM
-        #self.bind(udma, 'mram0', mram, 'input')
+        self.bind(periph_clock, 'out', mram, 'clock')
+        self.bind(udma, 'mram0_req', mram, 'input_req')
+        self.bind(udma, 'mram0_data', mram, 'input_data')
+        self.bind(udma, 'mram0_conf', mram, 'input_conf')
 
         # GDB server
         self.bind(gdbserver, 'out', soc_ico, 'debug')

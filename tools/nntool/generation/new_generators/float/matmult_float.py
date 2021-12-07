@@ -22,7 +22,7 @@ from generation.bindings import (CommentBindingList, GNodeArgEdge,
 from generation.generators.kernels.autotiler_kernel import NewAutoTilerKernel
 from generation.new_generators.generator_base import (GeneratorBase, ktype,
                                                       paramstype)
-from graph.types import MatMulOpFusionParameters, MatMulOpParameters
+from graph.types import MatMulOpFusionParameters, MatMulOpParameters, MatMulTransposedParameters
 from graph.types.activations import (ActivationParameters,
                                      ReluActivationParameters)
 
@@ -40,17 +40,29 @@ class MatMulFloatGenerator(GeneratorBase):
     @classmethod
     def bindings_generator(cls, gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
 
-        gen.bindings.append(
-            CommentBindingList("Node {} inq1 {} inq2 {} outq {} biasesq {}", cname,
-                               qrec.in_qs[0], qrec.in_qs[1], qrec.out_qs[0], qrec.in_qs[2])
-        )
-        gen.bindings.append(
-            NodeBindingList(cname,
-                            GNodeArgEdge(in_eparams[1]),
-                            GNodeArgEdge(in_eparams[0]),
-                            GNodeArgEdge(in_eparams[2]),
-                            GNodeArgEdge(out_eparams[0], direction="GNA_OUT")
-                            ))
+        if len(node.in_dims) == 3:
+            gen.bindings.append(
+                CommentBindingList("Node {} inq1 {} inq2 {} outq {} biasesq {}", cname,
+                                qrec.in_qs[0], qrec.in_qs[1], qrec.out_qs[0], qrec.in_qs[2])
+            )
+            gen.bindings.append(
+                NodeBindingList(cname,
+                                GNodeArgEdge(in_eparams[1]),
+                                GNodeArgEdge(in_eparams[0]),
+                                GNodeArgEdge(in_eparams[2]),
+                                GNodeArgEdge(out_eparams[0], direction="GNA_OUT")
+                                ))
+        else:
+            gen.bindings.append(
+                CommentBindingList("Node {} inq1 {} inq2 {} outq {}", cname,
+                                qrec.in_qs[0], qrec.in_qs[1], qrec.out_qs[0])
+            )
+            gen.bindings.append(
+                NodeBindingList(cname,
+                                GNodeArgEdge(in_eparams[1]),
+                                GNodeArgEdge(in_eparams[0]),
+                                GNodeArgEdge(out_eparams[0], direction="GNA_OUT")
+                                ))
         return True
 
     @classmethod
@@ -81,7 +93,7 @@ class MatMulFloatKernel(NewAutoTilerKernel):
     CALL_TEMPLATE = """
 // generator for {node_name}
 CNN_MatMulAct_fp16("{cname}", {gen_ctrl}, {ColM1}, {LineM1}, {ColM2},
-                   {LineM2}, {Width}, {Height}, {Scx}, {Scy}, KOP_MATMUL, {actoper});
+                   {LineM2}, {Width}, {Height}, {Scx}, {Scy}, {kop_matmul}, {actoper});
 """
 
     def __init__(self, node_name, cname, params, aparams, qrec, gen_ctrl=None):
@@ -94,16 +106,20 @@ CNN_MatMulAct_fp16("{cname}", {gen_ctrl}, {ColM1}, {LineM1}, {ColM2},
             gen_ctrl.ReluN = aparams.upper_bound
 
         in_dims = params.in_dims
+        matop = "KOP_MATMUL" if len(in_dims) > 2 else "KOP_MATMUL_NOBIAS"
+        if isinstance(params, MatMulTransposedParameters):
+            matop += "_TRANSPOSED"
 
         attrs = {
             'ColM1': in_dims[0][1],
             'LineM1': in_dims[0][0],
-            'ColM2': in_dims[1][1],
-            'LineM2': in_dims[1][0],
+            'ColM2': in_dims[1][0] if isinstance(params, MatMulTransposedParameters) else in_dims[1][1],
+            'LineM2': in_dims[1][1] if isinstance(params, MatMulTransposedParameters) else in_dims[1][0],
             'Width': 0,
             'Height': 0,
             'Scx': 1,
             'Scy': 1,
+            'kop_matmul': matop,
             'actoper': gen_activation_op(aparams.activation if aparams else "none")
         }
 

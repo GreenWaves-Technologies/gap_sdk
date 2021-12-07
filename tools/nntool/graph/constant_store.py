@@ -15,20 +15,26 @@
 #
 # author: martin.croome@greenwaves-technologies.com
 
+from utils.stats_funcs import qsnr
+from sklearn.metrics import silhouette_score
+from sklearn.cluster import KMeans
+from scipy.cluster.vq import vq
+import numpy as np
 import logging
 import math
 from collections import namedtuple
+USE_KMEANS_CUDA = False
+if USE_KMEANS_CUDA:
+    try:
+        from libKMCUDA import kmeans_cuda
+    except ImportError:
+        kmeans_cuda = None
 
-import numpy as np
-from scipy.cluster.vq import vq
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
-from utils.stats_funcs import qsnr
 
 LOG = logging.getLogger("nntool." + __name__)
 
 CompressedVal = namedtuple(
-    'CompressedVal', ['compressed_val', 'bits', 'codebook', 'size', 'sparse'])
+    'CompressedVal', ['compressed_val', 'bits', 'codebook', 'size', 'sparse', 'sparse_idx'])
 
 
 class ConstantStore:
@@ -88,33 +94,46 @@ class ConstantStore:
 
         node_vals[idx] = (shape, None, None, None)
 
-    def compress(self, node, idx, bits=None, min_qsnr=None, force_sparse=False):
-        val = self.get(node, idx)
+    def compress(self, node, idx, bits=None, min_qsnr=None, force_sparse=False,
+                 allow_sparse=True, qbits=8, threshold=None):
+        orig_val = self.get(node, idx, compressed=False)
+        val = orig_val.copy()
+        if threshold:
+            val[np.logical_and(val < threshold, val > 0)] = 0
+            val[np.logical_and(val > np.negative(threshold), val < 0)] = 0
+
+        if np.all(val == 0):
+            return None
         flattened_val = val.flatten()
         codes = None
         if val.size <= 4:
-            LOG.warning('value in node %s is too small to compress', node.name)
+            LOG.info('value in node %s is too small to compress', node.name)
             return None
         if bits is not None:
             bins = int(math.pow(2, bits))
             if bins > val.size:
                 bits = max(int(math.floor(math.log2(val.size))), 2)
                 bins = int(math.pow(2, bits))
-                LOG.warning('more bins than values for node %s - reducing to %s bits', node.name, bits)
-            compressed_val, codes, codebook = self.cluster(bins, flattened_val, val)
+                LOG.info(
+                    'more bins than values for node %s - reducing to %s bits', node.name, bits)
+            compressed_val, codes, codebook = self.cluster(
+                bins, flattened_val, val)
         elif min_qsnr:
             cur_qsnr = -math.inf
             bits = 1
             while cur_qsnr < min_qsnr:
                 bits += 1
                 if bits > 8:
-                    LOG.warning('value in node %s cannot meet %s QSNR at 8 bits or under - not compressing', node.name, min_qsnr)
+                    LOG.info(
+                        'value in node %s cannot meet %s QSNR at 8 bits or under - not compressing', node.name, min_qsnr)
                     return None
                 bins = int(math.pow(2, bits))
                 if bins > val.size:
-                    LOG.warning('value in node %s cannot be reduced in size - not compressing', node.name)
+                    LOG.info(
+                        'value in node %s cannot be reduced in size - not compressing', node.name)
                     return None
-                compressed_val, codes, codebook = self.cluster(bins, flattened_val, val)
+                compressed_val, codes, codebook = self.cluster(
+                    bins, flattened_val, val)
                 cur_qsnr = qsnr(compressed_val.astype(
                     np.float32), val.astype(np.float32))
         else:
@@ -125,11 +144,13 @@ class ConstantStore:
                 bins = int(math.pow(2, bits))
                 if bins > val.size - 1:
                     break
-                compressed_val, codes, codebook = self.cluster(bins, flattened_val, val, inertia=inertia)
+                compressed_val, codes, codebook = self.cluster(
+                    bins, flattened_val, val, inertia=inertia)
                 silhouette.append(silhouette_score(flattened_val.reshape(-1, 1),
                                                    compressed_val.flatten()))
             if len(inertia) <= 1:
-                compressed_val, codes, codebook = self.encode_shorter(flattened_val, val)
+                compressed_val, codes, codebook = self.encode_shorter(
+                    flattened_val, val)
             else:
                 # 2nd grade derivative to find the elbow
                 if len(inertia) > 2:
@@ -139,43 +160,74 @@ class ConstantStore:
                 else:
                     elb_idx = 1
                 # take the three around the elbow and look at the silhouette
-                bits = np.argmax(np.array(silhouette[elb_idx-1:elb_idx+1])) + elb_idx + 1
+                bits = np.argmax(
+                    np.array(silhouette[elb_idx-1:elb_idx+1])) + elb_idx + 1
                 bins = int(math.pow(2, bits))
-                compressed_val, codes, codebook = self.cluster(bins, flattened_val, val)
+                compressed_val, codes, codebook = self.cluster(
+                    bins, flattened_val, val)
         # see if sparse representation is better
-        # TODO - this is not entirely correct since it is not accounting for the extra bin created by the sparse value
-        freqs = np.unique(codes, return_counts=True)
-        max_index = np.where(freqs[1] == freqs[1].max())[0][0]
-        sparse_freq = freqs[1][max_index]
-        sparse_size = math.ceil((codes.size - sparse_freq) * (bits + 1) + sparse_freq)/8
-        unsparse_size = math.ceil(codes.size * bits)/8
-        if force_sparse:
-            sparse = True
-            comp_size = sparse_size
+        unsparse_size = int(math.ceil(codes.size * bits)/8)
+        qelem_codebook_size = math.ceil((codebook.size * qbits)/8)
+        uncompressed_size = int(math.ceil((val.size * qbits)/8))
+        if allow_sparse:
+            freqs = np.unique(codes, return_counts=True)
+            sparse_idx = np.where(freqs[1] == freqs[1].max())[0][0]
+            sparse_freq = freqs[1][sparse_idx]
+            sparse_size = int(
+                math.ceil((codes.size - sparse_freq) * (bits + 1) + sparse_freq)/8)
+            if force_sparse or sparse_size < unsparse_size:
+                sparse = True
+                compressed_size = sparse_size
+            else:
+                sparse = False
+                compressed_size = unsparse_size
         else:
-            sparse = sparse_size < unsparse_size
-            comp_size = int(min(sparse_size, unsparse_size) + codebook.size)
-        if comp_size >= val.size:
-            LOG.warning('value in node %s cannot be compressed smaller with this setting', node.name)
+            compressed_size = unsparse_size
+            sparse = False
+            sparse_idx = 0
+
+        compressed_size += qelem_codebook_size
+        if compressed_size >= uncompressed_size:
+            LOG.info(f'value in node {node.name} has not been compressed since its size '
+                     f'was not reduced {uncompressed_size} bytes -> {compressed_size} bytes')
             return None
-        comp_val = CompressedVal(compressed_val, bits, codebook, comp_size, sparse)
+        comp_val = CompressedVal(
+            compressed_val, bits,
+            codebook, compressed_size, sparse, sparse_idx)
         self.set(node, idx, val, comp_val)
         return comp_val
 
     @staticmethod
     def encode_shorter(flattened_val, val):
         freqs = np.unique(flattened_val, return_counts=True)
-        codebook = np.concatenate((freqs[0], np.array([0] * (4 - freqs[0].size))))
-        compressed_val, codes = ConstantStore.codes_and_compressed(flattened_val, codebook, val.shape)
+        codebook = np.concatenate(
+            (freqs[0], np.array([0] * (4 - freqs[0].size))))
+        compressed_val, codes = ConstantStore.codes_and_compressed(
+            flattened_val, codebook, val.shape)
         return compressed_val, codes, codebook
 
     @staticmethod
     def cluster(bins, flattened_val, val, inertia=None):
-        kmeans = KMeans(n_clusters=bins)
-        kmeans.fit(flattened_val.reshape((-1, 1)))
-        codebook = kmeans.cluster_centers_
+        if USE_KMEANS_CUDA and kmeans_cuda:
+            invalids = None
+            int_bins = bins
+            while invalids is None or int_bins - invalids < bins:
+                if invalids:
+                    int_bins = bins + invalids
+                codebook, _ = kmeans_cuda(
+                    flattened_val.reshape((-1, 1)), int_bins, device=1)
+                invalids = np.count_nonzero(np.isnan(codebook).any(axis=1)) + np.count_nonzero(
+                    np.isneginf(codebook).any(axis=1)) + np.count_nonzero(np.isposinf(codebook).any(axis=1))
+            codebook = codebook[~np.isnan(codebook).any(axis=1)]
+            codebook = codebook[~np.isneginf(codebook).any(axis=1)]
+            codebook = codebook[~np.isposinf(codebook).any(axis=1)]
+        else:
+            kmeans = KMeans(n_clusters=bins)
+            kmeans.fit(flattened_val.reshape((-1, 1)))
+            codebook = kmeans.cluster_centers_
         codebook = codebook.astype(val.dtype).flatten()
-        compressed_val, codes = ConstantStore.codes_and_compressed(flattened_val, codebook, val.shape)
+        compressed_val, codes = ConstantStore.codes_and_compressed(
+            flattened_val, codebook, val.shape)
         if inertia is not None:
             inertia.append(kmeans.inertia_)
         return compressed_val, codes, codebook

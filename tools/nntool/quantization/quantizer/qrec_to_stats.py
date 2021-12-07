@@ -35,9 +35,11 @@ def build_stat_from_qrec(qrec, node=None):
         return None
     if qrec.in_qs is None or qrec.out_qs is None:
         return None
-    range_in = [None if qtype is None else ({'min': qtype.min_val, 'max': qtype.max_val} if qtype.has_valid_range else {'min': None, 'max': None})
+    range_in = [None if qtype is None else ({'min': qtype.min_val, 'max': qtype.max_val}
+                                            if qtype.has_valid_range else {'min': None, 'max': None})
                 for qtype in qrec.in_qs]
-    range_out = [None if qtype is None else ({'min': qtype.min_val, 'max': qtype.max_val} if qtype and qtype.has_valid_range else {'min': None, 'max': None})
+    range_out = [None if qtype is None else ({'min': qtype.min_val, 'max': qtype.max_val}
+                                             if qtype and qtype.has_valid_range else {'min': None, 'max': None})
                  for qtype in qrec.out_qs]
     range_in_valid = ranges_are_valid(range_in)
     range_out_valid = ranges_are_valid(range_out)
@@ -52,7 +54,8 @@ def build_stat_from_qrec(qrec, node=None):
             range_out = [{'min': np.atleast_1d(
                 node.value.min()), 'max': np.atleast_1d(node.value.max())}]
         else:
-            LOG.warning(f'{node.name} does not have valid activation range information')
+            LOG.warning(
+                f'{node.name} does not have valid activation range information')
     return {
         'range_in': range_in,
         'range_out': range_out
@@ -66,8 +69,9 @@ def build_stat(G, nid, node=None):
     return build_stat_from_qrec(qrec, node)
 
 
-def set_stats(G, current_stats=None):
+def set_stats(G, current_stats=None, current_options=None):
     stats = {} if current_stats is None else current_stats.copy()
+    current_options = {} if current_options is None else current_options.copy()
     for node in G.nodes():
         nid = NodeId(node)
         if nid not in stats or stats[nid] is None:
@@ -84,8 +88,14 @@ def set_stats(G, current_stats=None):
                             nid) if G.quantization else None
                     stats[nid] = build_stat_from_qrec(qrec)
         elif isinstance(node, ExpressionFusionParameters):
-            if 'expression' not in stats[nid]:
-                if 'expression' not in G.quantization[nid].cache:
-                    raise ValueError(f"quantized expression for {node.name} not found in current stats")
+            if stats[nid] is None or 'expression' not in stats[nid]:
+                if (G.quantization is None or nid not in G.quantization or G.quantization[nid].cache is None or
+                        'expression' not in G.quantization[nid].cache):
+                    raise ValueError(
+                        f"quantized expression for {node.name} not found in current stats")
                 stats[nid]['expression'] = G.quantization[nid].cache['expression']
-    return stats
+        elif isinstance(node, ConstantInputParameters):
+            if G.quantization and nid in G.quantization:
+                current_options.setdefault(nid, {})['qtype_ind'] = G.quantization[nid].out_qs[0]
+
+    return stats, current_options

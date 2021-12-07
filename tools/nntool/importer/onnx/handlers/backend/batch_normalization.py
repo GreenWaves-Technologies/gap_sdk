@@ -97,7 +97,7 @@ class BatchNormalization(ConstantMixin, BackendHandler, HandlerOptions):
                                                   running_variance=running_variance, spatial=spatial,
                                                   momentum=momentum, epsilon=epsilon)
             G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
-            all_nodes[node.output[0]] = (params, 0, deepcopy(x[2]))
+            all_nodes[node.output[0]] = (params, 0, deepcopy(x[2]), None)
             return params
 
     @classmethod
