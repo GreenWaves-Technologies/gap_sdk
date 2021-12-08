@@ -22,12 +22,12 @@ from interpreter.nntool_shell_base import NNToolShellBase
 from quantization.handlers_helpers import (add_options_to_parser,
                                            get_options_from_args)
 from quantization.quantizer.new_quantizer import NewQuantizer
+from utils.stats_funcs import STATS_BITS
 
-
+from graph.types.constant_input import ConstantInputParameters
 from stats.activation_ranges_collector import ActivationRangesCollector
 
 QUANTIZATION_SCHEMES = ['SQ8', 'POW2', 'FLOAT']
-from utils.stats_funcs import STATS_BITS
 
 LOG = logging.getLogger('nntool.'+__name__)
 
@@ -46,6 +46,9 @@ class FquantCommand(NNToolShellBase):
     parser_fquant.add_argument('--uniform',
                                type=float, default=0.0,
                                help='Use uniform distribution for input with the specified max value')
+    parser_fquant.add_argument('--normal',
+                               type=float, default=0.2,
+                               help='Use normal distribution for input with the specified scale value')
     parser_fquant.add_argument('--num_inference',
                                type=int, default=1,
                                help='How many inferences')
@@ -62,31 +65,34 @@ This is intended to allow code generation for performance testing even if no rea
 weights and input data are avalaible."""
         self._check_graph()
         opts = get_options_from_args(args)
-        if self.replaying_history and self.history_stats:
-            astats = self.history_stats
-        else:
-            if args.seed:
-                np.random.seed(args.seed)
-            self.G.constant_store.fake = True
-            stats_collector = ActivationRangesCollector()
-            for _ in range(args.num_inference):
-                if args.uniform:
-                    input_tensors = [np.random.uniform(-args.uniform, args.uniform, inp.dims.shape)
-                                     for inp in self.G.input_nodes()]
-                else:
-                    input_tensors = [np.random.normal(0, 0.2, inp.dims.shape)
-                                     for inp in self.G.input_nodes()]
-                stats_collector.collect_stats(self.G, input_tensors)
-            astats = stats_collector.stats
-            self._record_stats(astats)
-            self.G.constant_store.fake = False
+        state = ConstantInputParameters.save_compression_state(self.G)
+        try:
+            if self.replaying_history and self.history_stats:
+                astats = self.history_stats
+            else:
+                if args.seed:
+                    np.random.seed(args.seed)
+                ConstantInputParameters.fake(self.G, True)
+                stats_collector = ActivationRangesCollector()
+                for _ in range(args.num_inference):
+                    if args.uniform:
+                        input_tensors = [np.random.uniform(-args.uniform, args.uniform, inp.dims.shape)
+                                        for inp in self.G.input_nodes()]
+                    else:
+                        input_tensors = [np.random.normal(0, args.normal, inp.dims.shape)
+                                        for inp in self.G.input_nodes()]
+                    stats_collector.collect_stats(self.G, input_tensors)
+                astats = stats_collector.stats
+                self._record_stats(astats)
+                ConstantInputParameters.fake(self.G, False)
 
-        if args.force_width:
-            opts['bits'] = args.force_width
+            if args.force_width:
+                opts['bits'] = args.force_width
 
-        quantizer = NewQuantizer(self.G, reset_all=True)
-        quantizer.options = opts
-        quantizer.schemes.append(args.scheme)
-        quantizer.set_stats(astats)
-        quantizer.quantize()
-        LOG.info("Quantization set. Use qshow command to see it.")
+            quantizer = NewQuantizer(self.G, reset_all=True)
+            quantizer.schemes.append(args.scheme)
+            quantizer.set_stats(current_stats=astats, current_options=opts)
+            quantizer.quantize()
+            LOG.info("Quantization set. Use qshow command to see it.")
+        finally:
+            ConstantInputParameters.restore_compression_state(self.G, state)

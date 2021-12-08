@@ -1,0 +1,7 @@
+add_library(freertos_pmsis_backend pmsis_backend_native_task_api.c)
+
+target_link_libraries(freertos_pmsis_backend PRIVATE pmsis_freertos)
+target_link_libraries(freertos_pmsis_backend PRIVATE freertos_config_gap9)
+target_link_libraries(freertos_pmsis_backend PRIVATE freertos_kernel)
+target_link_libraries(freertos_pmsis_backend PRIVATE freertos_gap9)
+target_link_libraries(freertos_pmsis_backend PRIVATE freertos)

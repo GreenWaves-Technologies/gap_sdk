@@ -129,46 +129,100 @@ void Ne16::load_do_padding() { // not linear
   // | BBL   | BB    | BBR   | BBRR  |
   // +-------+-------+-------+-------+
 
-  // FIXME: non0-padding values do not work in mode16 in the model, see similar bug in NE16 RTL
+  if(!this->mode16) {
 
-  // top-left
-  if(this->padding_left  > 0 && this->j_major==0 || this->padding_top > 0 && this->i_major==0) {
-    xt::view(this->x_buffer, xt::range(0, this->padding_top), xt::range(0, this->padding_left), xt::range(0, this->load_k_in_lim)) = this->padding_value;
-  }
-
-  // top
-  if(this->padding_top  > 0 && this->i_major==0) {
-    xt::view(this->x_buffer, xt::range(0, this->padding_top), xt::range(this->padding_left, right_lim), xt::range(0, this->load_k_in_lim)) = this->padding_value;
-  }
+    // top-left
+    if(this->padding_left  > 0 && this->j_major==0 || this->padding_top > 0 && this->i_major==0) {
+      xt::view(this->x_buffer, xt::range(0, this->padding_top), xt::range(0, this->padding_left), xt::range(0, this->load_k_in_lim)) = this->padding_value;
+    }
   
-  // top-right
-  if((this->padding_right > 0 && this->j_major==this->subtile_nb_wo-1 || this->padding_top > 0 && this->i_major==0) && (right_lim <= this->w_size_in_hw)) {
-    xt::view(this->x_buffer, xt::range(0, this->padding_top), xt::range(right_lim, w_size_in_hw), xt::range(0, this->load_k_in_lim)) = this->padding_value;
-  }
+    // top
+    if(this->padding_top  > 0 && this->i_major==0) {
+      xt::view(this->x_buffer, xt::range(0, this->padding_top), xt::range(this->padding_left, right_lim), xt::range(0, this->load_k_in_lim)) = this->padding_value;
+    }
+    
+    // top-right
+    if((this->padding_right > 0 && this->j_major==this->subtile_nb_wo-1 || this->padding_top > 0 && this->i_major==0) && (right_lim <= this->w_size_in_hw)) {
+      xt::view(this->x_buffer, xt::range(0, this->padding_top), xt::range(right_lim, w_size_in_hw), xt::range(0, this->load_k_in_lim)) = this->padding_value;
+    }
+  
+    // right
+    if((this->padding_right > 0 && this->j_major==this->subtile_nb_wo-1) && (right_lim <= this->w_size_in_hw)) {
+      xt::view(this->x_buffer, xt::range(this->padding_top, bottom_lim), xt::range(right_lim, this->w_size_in_hw), xt::range(0, this->load_k_in_lim)) = this->padding_value;
+    }
+  
+    // bottom-right
+    if((this->padding_right > 0 && this->j_major==this->subtile_nb_wo-1 || this->padding_bottom > 0 && this->i_major==this->subtile_nb_ho-1) && (right_lim <= this->w_size_in_hw) && (bottom_lim <= this->h_size_in_hw)) {
+      xt::view(this->x_buffer, xt::range(bottom_lim, h_size_in_hw), xt::range(right_lim, w_size_in_hw), xt::range(0, this->load_k_in_lim)) = this->padding_value;
+    }
+  
+    // bottom
+    if((this->padding_bottom > 0 && this->i_major==this->subtile_nb_ho-1) && (bottom_lim <= this->h_size_in_hw)) {
+      xt::view(this->x_buffer, xt::range(bottom_lim, this->h_size_in_hw), xt::range(this->padding_left, right_lim), xt::range(0, this->load_k_in_lim)) = this->padding_value;
+    }
+  
+    // bottom-left
+    if((this->padding_left > 0 && this->j_major==0 || this->padding_bottom > 0 && this->i_major==this->subtile_nb_ho-1) && (bottom_lim <= this->h_size_in_hw)) {
+      xt::view(this->x_buffer, xt::range(bottom_lim, this->h_size_in_hw), xt::range(0, this->padding_left), xt::range(0, this->load_k_in_lim)) = this->padding_value;
+    }
+  
+    // left
+    if(this->padding_left > 0 && this->j_major==0) {
+      xt::view(this->x_buffer, xt::range(this->padding_top, bottom_lim), xt::range(0, this->padding_left), xt::range(0, this->load_k_in_lim)) = this->padding_value;
+    }
 
-  // right
-  if((this->padding_right > 0 && this->j_major==this->subtile_nb_wo-1) && (right_lim <= this->w_size_in_hw)) {
-    xt::view(this->x_buffer, xt::range(this->padding_top, bottom_lim), xt::range(right_lim, this->w_size_in_hw), xt::range(0, this->load_k_in_lim)) = this->padding_value;
   }
+  else {
 
-  // bottom-right
-  if((this->padding_right > 0 && this->j_major==this->subtile_nb_wo-1 || this->padding_bottom > 0 && this->i_major==this->subtile_nb_ho-1) && (right_lim <= this->w_size_in_hw) && (bottom_lim <= this->h_size_in_hw)) {
-    xt::view(this->x_buffer, xt::range(bottom_lim, h_size_in_hw), xt::range(right_lim, w_size_in_hw), xt::range(0, this->load_k_in_lim)) = this->padding_value;
-  }
+    // top-left
+    if(this->padding_left  > 0 && this->j_major==0 || this->padding_top > 0 && this->i_major==0) {
+      xt::view(this->x_buffer, xt::range(0, this->padding_top), xt::range(0, this->padding_left), xt::range(0, this->load_k_in_lim,   2)) = this->padding_value & 0xff;
+      xt::view(this->x_buffer, xt::range(0, this->padding_top), xt::range(0, this->padding_left), xt::range(1, this->load_k_in_lim+1, 2)) = this->padding_value >> 8;
+    }
+  
+    // top
+    if(this->padding_top  > 0 && this->i_major==0) {
+      xt::view(this->x_buffer, xt::range(0, this->padding_top), xt::range(this->padding_left, right_lim), xt::range(0, this->load_k_in_lim,   2)) = this->padding_value & 0xff;
+      xt::view(this->x_buffer, xt::range(0, this->padding_top), xt::range(this->padding_left, right_lim), xt::range(1, this->load_k_in_lim+1, 2)) = this->padding_value >> 8;
+    }
+    
+    // top-right
+    if((this->padding_right > 0 && this->j_major==this->subtile_nb_wo-1 || this->padding_top > 0 && this->i_major==0) && (right_lim <= this->w_size_in_hw)) {
+      xt::view(this->x_buffer, xt::range(0, this->padding_top), xt::range(right_lim, w_size_in_hw), xt::range(0, this->load_k_in_lim,   2)) = this->padding_value & 0xff;
+      xt::view(this->x_buffer, xt::range(0, this->padding_top), xt::range(right_lim, w_size_in_hw), xt::range(1, this->load_k_in_lim+1, 2)) = this->padding_value >> 8;
+    }
+  
+    // right
+    if((this->padding_right > 0 && this->j_major==this->subtile_nb_wo-1) && (right_lim <= this->w_size_in_hw)) {
+      xt::view(this->x_buffer, xt::range(this->padding_top, bottom_lim), xt::range(right_lim, this->w_size_in_hw), xt::range(0, this->load_k_in_lim,   2)) = this->padding_value & 0xff;
+      xt::view(this->x_buffer, xt::range(this->padding_top, bottom_lim), xt::range(right_lim, this->w_size_in_hw), xt::range(1, this->load_k_in_lim+1, 2)) = this->padding_value >> 8;
+    }
+  
+    // bottom-right
+    if((this->padding_right > 0 && this->j_major==this->subtile_nb_wo-1 || this->padding_bottom > 0 && this->i_major==this->subtile_nb_ho-1) && (right_lim <= this->w_size_in_hw) && (bottom_lim <= this->h_size_in_hw)) {
+      xt::view(this->x_buffer, xt::range(bottom_lim, h_size_in_hw), xt::range(right_lim, w_size_in_hw), xt::range(0, this->load_k_in_lim,   2)) = this->padding_value & 0xff;
+      xt::view(this->x_buffer, xt::range(bottom_lim, h_size_in_hw), xt::range(right_lim, w_size_in_hw), xt::range(1, this->load_k_in_lim+1, 2)) = this->padding_value >> 8;
+    }
+  
+    // bottom
+    if((this->padding_bottom > 0 && this->i_major==this->subtile_nb_ho-1) && (bottom_lim <= this->h_size_in_hw)) {
+      xt::view(this->x_buffer, xt::range(bottom_lim, this->h_size_in_hw), xt::range(this->padding_left, right_lim), xt::range(0, this->load_k_in_lim,   2)) = this->padding_value & 0xff;
+      xt::view(this->x_buffer, xt::range(bottom_lim, this->h_size_in_hw), xt::range(this->padding_left, right_lim), xt::range(1, this->load_k_in_lim+1, 2)) = this->padding_value >> 8;
+    }
+  
+    // bottom-left
+    if((this->padding_left > 0 && this->j_major==0 || this->padding_bottom > 0 && this->i_major==this->subtile_nb_ho-1) && (bottom_lim <= this->h_size_in_hw)) {
+      xt::view(this->x_buffer, xt::range(bottom_lim, this->h_size_in_hw), xt::range(0, this->padding_left), xt::range(0, this->load_k_in_lim,   2)) = this->padding_value & 0xff;
+      xt::view(this->x_buffer, xt::range(bottom_lim, this->h_size_in_hw), xt::range(0, this->padding_left), xt::range(1, this->load_k_in_lim+1, 2)) = this->padding_value >> 8;
+    }
+  
+    // left
+    if(this->padding_left > 0 && this->j_major==0) {
+      xt::view(this->x_buffer, xt::range(this->padding_top, bottom_lim), xt::range(0, this->padding_left), xt::range(0, this->load_k_in_lim,   2)) = this->padding_value & 0xff;
+      xt::view(this->x_buffer, xt::range(this->padding_top, bottom_lim), xt::range(0, this->padding_left), xt::range(1, this->load_k_in_lim+1, 2)) = this->padding_value >> 8;
+    }
 
-  // bottom
-  if((this->padding_bottom > 0 && this->i_major==this->subtile_nb_ho-1) && (bottom_lim <= this->h_size_in_hw)) {
-    xt::view(this->x_buffer, xt::range(bottom_lim, this->h_size_in_hw), xt::range(this->padding_left, right_lim), xt::range(0, this->load_k_in_lim)) = this->padding_value;
-  }
 
-  // bottom-left
-  if((this->padding_left > 0 && this->j_major==0 || this->padding_bottom > 0 && this->i_major==this->subtile_nb_ho-1) && (bottom_lim <= this->h_size_in_hw)) {
-    xt::view(this->x_buffer, xt::range(bottom_lim, this->h_size_in_hw), xt::range(0, this->padding_left), xt::range(0, this->load_k_in_lim)) = this->padding_value;
-  }
-
-  // left
-  if(this->padding_left > 0 && this->j_major==0) {
-    xt::view(this->x_buffer, xt::range(this->padding_top, bottom_lim), xt::range(0, this->padding_left), xt::range(0, this->load_k_in_lim)) = this->padding_value;
   }
 
 }

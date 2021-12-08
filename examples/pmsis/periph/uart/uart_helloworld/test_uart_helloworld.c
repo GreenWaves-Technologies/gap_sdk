@@ -29,7 +29,7 @@ void test_uart_helloworld(void)
 
     /* Write though uart. */
     #if (ASYNC)
-    pi_task_t wait_task = {0};
+    pi_task_t wait_task;
     pi_task_block(&wait_task);
     pi_uart_write_async(&uart, hello, strlen(hello), &wait_task);
     pi_task_wait_on(&wait_task);

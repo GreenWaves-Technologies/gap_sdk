@@ -65,7 +65,7 @@ void test_uart_input(void)
     pi_uart_ioctl(&uart, PI_UART_IOCTL_ATTACH_TIMEOUT_RX, (void *) timeout_id);
     /* Write on uart then wait for data from uart. */
     #if (ASYNC)
-    pi_task_t task = {0};
+    pi_task_t task;
     pi_task_callback(&task, (void *) uart_tx_cb, &task);
     pi_uart_write_async(&uart, sentence, strlen(sentence), &task);
     while (done != 2)

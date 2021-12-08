@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from functools import reduce
-from typing import MutableMapping
+from collections.abc import MutableMapping
 
 
 def rzip(a, b):
@@ -25,7 +25,6 @@ def rzip(a, b):
 
 class TransactionalDict(MutableMapping):
     def __init__(self, *args, init=None, **kwargs) -> None:
-        super(TransactionalDict, self).__init__()
         if init:
             self._stack = [init.copy()]
         else:

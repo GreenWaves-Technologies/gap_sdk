@@ -36,6 +36,7 @@ class Handler(object):
     SINCE_VERSION = 0
     PARTIAL_SUPPORT = False
     PS_DESCRIPTION = ''
+    CONSTANT_ONLY = False
 
     @classmethod
     def check_cls(cls):
@@ -92,6 +93,10 @@ class Handler(object):
         return Handler.property_register("PS_DESCRIPTION", psd)
 
     @staticmethod
+    def constant_only(is_partial):
+        return Handler.property_register("CONSTANT_ONLY", is_partial)
+
+    @staticmethod
     def property_register(name, value):
 
         def deco(cls):
@@ -106,4 +111,5 @@ domain = Handler.domain
 onnx_op = Handler.onnx_op
 partial_support = Handler.partial_support
 ps_description = Handler.ps_description
+constant_only = Handler.constant_only
 property_register = Handler.property_register

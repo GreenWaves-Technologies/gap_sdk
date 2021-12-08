@@ -3,7 +3,7 @@
 
 /* Variables used. */
 struct pi_device uart;
-PI_L2 uint32_t perf_values[ARCHI_CLUSTER_NB_PE] = {0};
+PI_L2 uint32_t perf_values[ARCHI_CLUSTER_NB_PE];
 
 /* Task executed by cluster cores. */
 void cluster_helloworld(void *arg)
@@ -37,8 +37,8 @@ void helloworld(void)
     printf("[%d %d] Hello World!\n", cluster_id, core_id);
     uint32_t fc_perf = pi_perf_read(PI_PERF_ACTIVE_CYCLES);
 
-    struct pi_device cluster_dev = {0};
-    struct pi_cluster_conf cl_conf = {0};
+    struct pi_device cluster_dev;
+    struct pi_cluster_conf cl_conf;
 
     /* Init cluster configuration structure. */
     pi_cluster_conf_init(&cl_conf);
@@ -52,11 +52,9 @@ void helloworld(void)
     }
 
     /* Prepare cluster task and send it to cluster. */
-    struct pi_cluster_task cl_task = {0};
-    cl_task.entry = cluster_delegate;
-    cl_task.arg = NULL;
+    struct pi_cluster_task cl_task;
 
-    pi_cluster_send_task_to_cl(&cluster_dev, &cl_task);
+    pi_cluster_send_task_to_cl(&cluster_dev, pi_cluster_task(&cl_task, cluster_delegate, NULL));
 
     pi_cluster_close(&cluster_dev);
 

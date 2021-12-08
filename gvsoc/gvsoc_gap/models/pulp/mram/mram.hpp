@@ -19,25 +19,34 @@
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
+#pragma once
 
 #include <vp/vp.hpp>
 
-#define MRAM_CMD_TRIM_CFG    0x01
-#define MRAM_CMD_NORMAL_TX   0x02
-#define MRAM_CMD_ERASE_CHIP  0x04
-#define MRAM_CMD_ERASE_SECT  0x08
-#define MRAM_CMD_ERASE_WORD  0x10
-#define MRAM_CMD_PWDN        0x20
-#define MRAM_CMD_READ_RX     0x40
-#define MRAM_CMD_REF_LINE_P  0x80
-#define MRAM_CMD_REF_LINE_AP 0xC0
-
-class Mram_itf 
+typedef enum
 {
-public:
-  void set_cmd(int cmd) { this->cmd = cmd; }
+    MRAM_OP_TRIM_CFG    = 0x01,
+    MRAM_OP_NORMAL_TX   = 0x02,
+    MRAM_OP_ERASE_CHIP  = 0x04,
+    MRAM_OP_ERASE_SECT  = 0x08,
+    MRAM_OP_ERASE_WORD  = 0x10,
+    MRAM_OP_PWDN        = 0x20,
+    MRAM_OP_READ_RX     = 0x40,
+    MRAM_OP_REF_LINE_P  = 0x80,
+    MRAM_OP_REF_LINE_AP = 0xC0,
+} mram_op_e;
 
-protected:
-  int cmd;
+typedef struct {
+    uint32_t div;
+} mram_conf_t;
 
-};
+typedef struct {
+    mram_op_e operation;
+    uint32_t addr;
+    uint32_t size;
+} mram_req_t;
+
+typedef struct {
+    uint8_t *data;
+    int size;
+} mram_data_t;

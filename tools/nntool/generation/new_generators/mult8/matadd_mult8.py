@@ -26,13 +26,13 @@ from generation.generators.globals.mult8_infos_generator import act_infos
 from generation.generators.kernels.autotiler_kernel import NewAutoTilerKernel
 from generation.new_generators.generator_base import (GeneratorBase, ktype,
                                                       paramstype)
-from graph.types import ActivationFusionBase, MatrixAddParameters
+from graph.types import ActivationFusionBase, MatrixAddParameters, BroadcastableActivationFusion
 from quantization.multiplicative.mulbias import set_add_in_scale
 from utils.node_id import NodeId
 
 LOG = logging.getLogger("nntool." + __name__)
 
-@paramstype(MatrixAddParameters, ActivationFusionBase)
+@paramstype(MatrixAddParameters, ActivationFusionBase, BroadcastableActivationFusion)
 @ktype("scaled")
 class MatAddSQ8Generator(GeneratorBase):
 
@@ -40,7 +40,7 @@ class MatAddSQ8Generator(GeneratorBase):
     def globals_generator(cls, gen, node, qrec, pnode, fnode) -> bool:
         if isinstance(pnode, PaddedAddFusionParameters):
             return False
-        if isinstance(pnode, ActivationFusionBase):
+        if isinstance(pnode, (ActivationFusionBase, BroadcastableActivationFusion)):
             cnodes = pnode.contained_nodes()
             quants = [gen.G.quantization[NodeId(pnode, cnode)] for cnode in cnodes]
             if isinstance(fnode, MatrixAddParameters):
@@ -78,7 +78,7 @@ class MatAddSQ8Generator(GeneratorBase):
 
     @classmethod
     def bindings_generator(cls, gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
-        if isinstance(node, ActivationFusionBase):
+        if isinstance(node, (ActivationFusionBase, BroadcastableActivationFusion)):
             cnodes = node.contained_nodes()
             quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
             if isinstance(cnodes[0], MatrixAddParameters):
@@ -107,7 +107,7 @@ class MatAddSQ8Generator(GeneratorBase):
     @classmethod
     def kernel_generator(cls, gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
         del out_eparams
-        if isinstance(node, ActivationFusionBase):
+        if isinstance(node, (ActivationFusionBase, BroadcastableActivationFusion)):
             cnodes = node.contained_nodes()
             if isinstance(cnodes[0], MatrixAddParameters):
                 if in_eparams[0].dims.size() != in_eparams[1].dims.size():

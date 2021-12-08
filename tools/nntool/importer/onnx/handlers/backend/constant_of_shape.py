@@ -37,9 +37,8 @@ class ConstantOfShape(BackendHandler):
         const_shape = list(x[0].value)
         params = ConstantInputParameters(valid_name,
                                          dims=Dim.unnamed(const_shape),
-                                         value=np.full(const_shape, numpy_helper.to_array(value)),
-                                         constant_store=G.constant_store)
-        all_nodes[node.output[0]] = (params, 0, ProvisionalDim(const_shape))
+                                         value=np.full(const_shape, numpy_helper.to_array(value)))
+        all_nodes[node.output[0]] = (params, 0, ProvisionalDim(const_shape), None)
         return params
 
     @classmethod

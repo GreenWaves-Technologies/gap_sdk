@@ -75,9 +75,9 @@
 	#define Maxf32			MaxF
 	#define AbsF2(a)	((v2h) {((float)(a)[0]<0.0)?(-(float)(a)[0]):((float)(a)[0]), \
 					 ((float)(a)[1]<0.0)?(-(float)(a)[1]):((float)(a)[1])})
-	#define MaxF2(a, b)	((v2h) {((float)(a)[0]<(float)(b)[0])?((float)(a)[0]):((float)(b)[0]), \
+	#define MinF2(a, b)	((v2h) {((float)(a)[0]<(float)(b)[0])?((float)(a)[0]):((float)(b)[0]), \
 					 ((float)(a)[1]<(float)(b)[1])?((float)(a)[1]):((float)(b)[1])})
-	#define MinF2(a, b)	((v2h) {((float)(a)[0]>(float)(b)[0])?((float)(a)[0]):((float)(b)[0]), \
+	#define MaxF2(a, b)	((v2h) {((float)(a)[0]>(float)(b)[0])?((float)(a)[0]):((float)(b)[0]), \
 					 ((float)(a)[1]>(float)(b)[1])?((float)(a)[1]):((float)(b)[1])})
 	#define Absv2h			AbsF2
 	#define Absv2ah 		AbsF2

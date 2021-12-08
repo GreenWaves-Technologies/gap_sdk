@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-
-# 
+#
 # Copyright (C) 2015 ETH Zurich and University of Bologna
 # All rights reserved.
 #
@@ -64,7 +62,7 @@ class Binary(object):
 
             with open(elf, 'rb') as file:
                 elffile = ELFFile(file)
-    
+
                 self.entry = elffile['e_entry']
 
                 for segment in elffile.iter_segments():
@@ -115,7 +113,7 @@ class FlashImage(object):
 
     def appendBootBinary(self, elf=None):
         self.bootBinary = Binary(elf=elf)
-    
+
     def appendComponent(self, dirname, name):
 
         self.compList.append(Comp(dirname, name))
@@ -254,7 +252,7 @@ class FlashImage(object):
             if segment.base > area.base + area.size:
                 diff = segment.base - (area.base + area.size)
                 area.size += diff
-                for i in range(0, diff): 
+                for i in range(0, diff):
                     area.data.append(0)
 
             area.data += segment.data
@@ -381,7 +379,7 @@ class FlashImage(object):
             print ("  Number of sections: %d" % len(self.bootBinary.segments))
 
         if len(self.bootBinary.segments) > self.binMaxSect:
-            raise Exception('Too many (%d) sections in binary, currently only max. %d supported.' % (len(self.bootBinary.segments), self.binMaxSect)) 
+            raise Exception('Too many (%d) sections in binary, currently only max. %d supported.' % (len(self.bootBinary.segments), self.binMaxSect))
 
         tempBuff = []
         tempBuff += struct.pack("I",len(self.bootBinary.segments))
@@ -430,21 +428,21 @@ class FlashImage(object):
         #
         #  Flash address computation
         #
-        
+
         if self.verbose: print ('Generating files (header offset: 0x%x)' % self.flashOffset)
 
         flashAddr = self.flashOffset
         headerSize = 0
-        
+
         # Compute the header size
         headerSize += 12    # Header size and number of components
-        
+
         for comp in self.compList:
             headerSize += 12                # Flash address, size and path length
             headerSize += len(comp.name)+1  # Path
-        
+
         flashAddr += headerSize
-        
+
         # Now set the flash address for each component
         for comp in self.compList:
             comp.flashAddr = (flashAddr + 3) & ~3
@@ -454,28 +452,28 @@ class FlashImage(object):
 
 
         # Now create the raw image as a byte array
-        
+
         # First header size
         self.__appendLongInt(headerSize)
-        
+
         # Number of components
         self.__appendInt(len(self.compList))
-        
+
         # Then for each component
         for comp in self.compList:
             # The flash address
             self.__appendInt(comp.flashAddr)
-        
+
             # Binary size
             self.__appendInt(comp.size)
-        
+
             # The path length
             self.__appendInt(len(comp.name)+1)
-        
+
             # And the path
             self.__appendBuffer(comp.name.encode('utf-8'))
             self.__appendByte(0)
-        
+
         # Then dump all components
         for comp in self.compList:
             with open(comp.path, 'rb') as file:
@@ -557,7 +555,7 @@ class FlashImage(object):
                     for i in range(0, len(self.buffBinDescr)):
                         dumpByteToSlm(file, i+nand_model_stretch_fact*self.sysBinPtrs[1][1], self.buffBinDescr[i])
 
-                    
+
                     nbPages = len(self.buffSect) // self.blockSize
                     for j in range(0, nbPages):
                         for i in range(0, self.blockSize):
@@ -575,10 +573,10 @@ def genFlashImage(slmStim=None, rawStim=None, sysDescr=None, binDescr=None, boot
 
             if bootBinary != None:
                 romBoot = ' --flash-boot-binary=%s' % bootBinary
-    
+
             for comp in comps:
                 compsList += ' --comp=%s' % comp
-    
+
             if slmStim is not None:
                 cmd = "plp_mkflash_vivo3 %s %s --stimuli=%s --flash-type=%s" % (romBoot, compsList, slmStim, flashType)
             else:

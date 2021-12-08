@@ -324,7 +324,7 @@ class Component(object):
             The resulting dictionary
         """
 
-        with open(self.__get_property_file(path), 'r') as fd:
+        with open(self.get_file_path(path), 'r') as fd:
             return json.load(fd)
 
 
@@ -370,6 +370,26 @@ class Component(object):
             config = self.__merge_properties(config, { 'ports' : self.master_ports + self.slave_ports })
 
         return config
+
+
+    def get_file_path(self, json):
+        """Return absolute config file path.
+
+        The specified file is search from PYTHONPATH.
+
+        Returns
+        -------
+        string
+            The absolute path or None is the file is not found
+        """
+
+        if os.environ.get('PYTHONPATH') is not None:
+            for dirpath in os.environ.get('PYTHONPATH').split(':'):
+                path = os.path.join(dirpath, json)
+                if os.path.exists(path):
+                    return path
+
+        return None
 
 
     def add_properties(self, properties):
@@ -539,14 +559,3 @@ class Component(object):
                 return options
             else:
                 return src
-
-
-    def __get_property_file(self, json):
-        if os.environ.get('PYTHONPATH') is not None:
-            for dirpath in os.environ.get('PYTHONPATH').split(':'):
-                path = os.path.join(dirpath, json)
-                if os.path.exists(path):
-                    return path
-
-        return None
-

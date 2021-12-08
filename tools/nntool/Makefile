@@ -1,5 +1,4 @@
-
-NPROC := $(shell nproc)
+NPROC := 4
 SCHEMA_V3=schema_v3
 SCHEMA_HEAD=schema
 SCHEMA_HEAD_NAME=schema_head
@@ -26,14 +25,9 @@ build/.flatbuffers_clone: $(PACKAGES)
 	(cd $(PACKAGES); git clone https://github.com/google/flatbuffers.git; cd flatbuffers; git checkout $(FLAT_TAG))
 	touch build/.flatbuffers_clone
 
-$(FLAT_BUILD): build/.flatbuffers_clone
-	mkdir -p $@
-
-$(FLAT_BUILD)/Makefile: $(FLAT_BUILD)
-	(cd $(FLAT_BUILD); cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DFLATBUFFERS_BUILD_TESTS=OFF ..)
-
-$(FLAT_BUILD)/flatc: $(FLAT_BUILD)/Makefile
-	make -C $(FLAT_BUILD) -j$(NPROC)
+$(FLAT_BUILD)/flatc: build/.flatbuffers_clone
+	cmake -S $(FLAT_SRC) -B $(FLAT_BUILD) -DCMAKE_BUILD_TYPE=Release -DFLATBUFFERS_BUILD_TESTS=OFF
+	cmake --build $(FLAT_BUILD)
 
 flatbuffers/__init__.py: $(FLAT_BUILD)/flatc
 	cp -r $(FLAT_SRC)/python/flatbuffers .

@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import os
 import json
 import numpy as np
@@ -18,6 +19,8 @@ def create_parser():
 						help="numpy window function (e.g. hanning)")
 	parser.add_argument('--frame_size', required="--params_json" not in sys.argv, type=int,
 						help="size in number of samples of one frame")
+	parser.add_argument('--gen_inv', action="store_true",
+						help="generate the inverse window lut")
 	parser.add_argument('--dtype', default="int")
 	return parser
 
@@ -35,6 +38,7 @@ def main():
 	win_lut_file     = args.win_lut_file     if not "win_lut_file"	   in models_params else models_params["win_lut_file"]
 	frame_size       = args.frame_size       if not "frame_size"	   in models_params else models_params["frame_size"]
 	window_fn        = args.win_func         if not "win_func"		   in models_params else models_params["win_func"]
+	gen_inv		     = args.gen_inv     	 if not "gen_inv"	 	   in models_params else models_params["gen_inv"]
 	dtype     		 = args.dtype 		     if not "dtype"	   		   in models_params else models_params["dtype"]
 
 	if dtype == "int":
@@ -48,10 +52,24 @@ def main():
 
 	print(dtype)
 	win_func = getattr(np, window_fn)
+	win_lut = win_func(frame_size)
 	if dtype == "int":
-		Window = (win_func(frame_size) * 2**(15)).astype(np.int16)
+		Window = (win_lut * 2**(15)).astype(np.int16)
 	else:
-		Window = win_func(frame_size).astype(np.float16)
+		Window = win_lut.astype(np.float32)
+
+	if gen_inv:
+		inv_win_lut = win_lut / (win_lut ** 2 + 1e-8)
+		if dtype == "int":
+			base, exp = np.frexp(inv_win_lut)
+			InvWindow = np.empty(base.size + exp.size)
+			InvWindow[0::2] = base.astype(np.uint8)
+			InvWindow[1::2] = exp.astype(np.int8)
+			print(InvWindow)
+			InvWindow = InvWindow.astype(np.int32)
+		else:
+			InvWindow = inv_win_lut.astype(np.float32)
+
 
 	################################ WRITE TO FILE #######################################
 	Out_str = ""
@@ -63,6 +81,18 @@ def main():
 		if (i+1)%12 == 0:
 			Out_str += "\n\t"
 	Out_str += "\n}; \n"
+
+	if gen_inv:
+		win_name = "Inv" + os.path.splitext(os.path.split(win_lut_file)[1])[0]
+		if dtype == "int":
+			data_type = "unsigned char"
+			frame_size *= 2
+		Out_str += f"PI_L2 {data_type} {win_name}[{frame_size}] = {{\n\t"
+		for i, elem in enumerate(InvWindow):
+			Out_str += str(elem) + ", "
+			if (i+1)%12 == 0:
+				Out_str += "\n\t"
+		Out_str += "\n}; \n"
 
 	with open(win_lut_file, 'w') as f:
 		f.write(Out_str)

@@ -47,8 +47,8 @@ static uint8_t i2c_write(uint8_t *buf, uint16_t size)
 int scan(uint8_t itf)
 {
     printf("Scanning interface %d\n", itf);
-    uint8_t buf[1] = {0};
-    uint8_t peripherals[128] = {0};
+    uint8_t buf[1];
+    uint8_t peripherals[128];
 
     int found = 0;
     for (int i = 0; i < 128; i++)

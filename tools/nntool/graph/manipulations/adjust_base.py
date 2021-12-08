@@ -165,8 +165,9 @@ class AdjusterBase():
             G.quantization[NodeId(reshape)] = qclass(
                 in_qs=[deepcopy(qtype)], out_qs=[deepcopy(qtype)], ktype=node_qrec.ktype)
 
-    def adjust_in_out_order(self, G, node, names, order, fusion=None, has_batch=False):
-        self.verify_chw(node, names, has_batch=has_batch)
+    def adjust_in_out_order(self, G, node, names, order, fusion=None, has_batch=False, check_chw=True):
+        if check_chw:
+            self.verify_chw(node, names, has_batch=has_batch)
         trans = self.get_trans(names, order)
         trans_node = fusion if fusion is not None else node
         self.apply_input_trans(G, trans_node, trans, index=0)

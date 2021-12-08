@@ -1,50 +1,58 @@
 {
     "clock_gated": {
-        "type": "linear",
-        "unit": "W",
-      
-        "values": {
-            "25": {
-                "1.2": {
-                    "any": "0.0000016"
+        "dynamic": {
+            "type": "linear",
+            "unit": "W",
+        
+            "values": {
+                "25": {
+                    "1.2": {
+                        "any": "0.0000016"
+                    }
                 }
             }
         }
     },
     "insn_groups": [
         {
-            "type": "linear",
-            "unit": "pJ",
-          
-            "values": {
-                "25": {
-                    "1.2": {
-                        "any": "1.4854524"
+            "dynamic": {
+                "type": "linear",
+                "unit": "pJ",
+            
+                "values": {
+                    "25": {
+                        "1.2": {
+                            "any": "6.36"
+                        }
                     }
                 }
             }
         },
         {
-            "type": "linear",
-            "unit": "pJ",
-          
-            "values": {
-                "25": {
-                    "1.2": {
-                        "any": "2.4854524"
+            "dynamic": {
+                "type": "linear",
+                "unit": "pJ",
+            
+                "values": {
+                    "25": {
+                        "1.2": {
+                            "any": "6.36"
+                        }
                     }
                 }
             }
         }
     ],
     "leakage": {
-        "type": "linear",
-        "unit": "W",
-      
-        "values": {
-            "25": {
-                "1.2": {
-                    "any": "0.000030"
+        "leakage": {
+            "type": "linear",
+            "unit": "W",
+        
+            "values": {
+                "25": {
+                    "1.2": {
+                        "any": "0.0001714375"
+                    }
                 }
             }
         }

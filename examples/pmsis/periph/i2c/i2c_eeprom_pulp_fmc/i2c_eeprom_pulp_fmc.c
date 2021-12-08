@@ -13,11 +13,11 @@
 #define TEST_VALUE            0x45
 
 /* Buffer to write in EEPROM : BUF_SIZE + 2, for the memory address. */
-unsigned char write_buff[BUFF_SIZE+2] = {0};
+unsigned char write_buff[BUFF_SIZE+2];
 /* Buffer to read from EEPROM : BUF_SIZE. */
-unsigned char read_buff[BUFF_SIZE] = {0};
+unsigned char read_buff[BUFF_SIZE];
 /* BUffer holding the memory address for read transactions. */
-unsigned char addr_buff[2] = {0};
+unsigned char addr_buff[2];
 
 void data_init(int nb)
 {

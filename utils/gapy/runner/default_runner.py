@@ -96,35 +96,36 @@ class Runner(object):
             if flash_config is None:
                 raise errors.InputError('Invalid flash device: ' + flash_path)
 
-            gen_image = False
-            flash_image = self.args.force
+            if flash_config.get('content/image') is None:
 
-            # The flash can contain the boot binary and several partitions for FS
-            if flash_config.get('content/boot-loader') is not None:
+                gen_image = False
+                flash_image = self.args.force
 
-                gen_image = True
-
-
-            if flash_config.get('content/partitions') is not None:
-
-                for name, partition in flash_config.get('content/partitions').get_items().items():
+                # The flash can contain the boot binary and several partitions for FS
+                if flash_config.get('content/boot-loader') is not None:
 
                     gen_image = True
 
-                    type_name = partition.get_str('type')
+                if flash_config.get('content/partitions') is not None:
 
-                    if type_name not in ['hostfs'] and ((partition.get('files') is not None and len(partition.get('files').get_dict()) != 0) or (partition.get_str('root_dir'))):
-                        flash_image = True
+                    for name, partition in flash_config.get('content/partitions').get_items().items():
 
-                    if type_name is not None:
-                        img_path = os.path.join(work_dir, flash_path.replace('/', '.') + '.' + name + '.img')
-                        partition.set('image', img_path)
+                        gen_image = True
 
-            if gen_image:
-                img_path = os.path.join(work_dir, flash_path.replace('/', '.') + '.img')
-                flash_config.set('content/image', img_path)
-                flash_config.set('content/flash', flash_image)
+                        type_name = partition.get_str('type')
 
+                        if type_name not in ['hostfs'] and ((partition.get('files') is not None and len(partition.get('files').get_dict()) != 0) or (partition.get_str('root_dir'))):
+                            flash_image = True
+
+                        if type_name is not None:
+                            img_path = os.path.join(work_dir, flash_path.replace('/', '.') + '.' + name + '.img')
+                            partition.set('image', img_path)
+
+                if gen_image:
+                    img_path = os.path.join(work_dir, flash_path.replace('/', '.') + '.img')
+                    flash_config.set('content/gen_image', True)
+                    flash_config.set('content/image', img_path)
+                    flash_config.set('content/flash', flash_image)
 
             stim_format = flash_config.get_str("models/%s/stimuli/format" % self.args.platform)
 
@@ -235,23 +236,24 @@ class Runner(object):
             if flash_config is None:
                 raise errors.InputError('Invalid flash device: ' + flash_path)
 
-            if flash_config.get('content/partitions') is not None:
+            if flash_config.get_bool('content/gen_image'):
+                if flash_config.get('content/partitions') is not None:
 
-                for name, partition in flash_config.get('content/partitions').get_items().items():
+                    for name, partition in flash_config.get('content/partitions').get_items().items():
 
-                    type_name = partition.get_str('type')
+                        type_name = partition.get_str('type')
 
-                    if type_name is not None:
-                        if type_name == 'readfs':
-                            gen_readfs.main(config=self.config, partition_config=partition)
-                        elif type_name == 'lfs':
-                            gen_lfs.main(config=self.config, partition_config=partition)
-                        elif type_name == 'hostfs':
-                            work_dir = self.config.get_str('gapy/work_dir')
-                            for file in partition.get('files').get_dict():
-                                shutil.copy(file, work_dir)
-                        else:
-                            raise errors.InputError('Invalid partition type: ' + type_name)
+                        if type_name is not None:
+                            if type_name == 'readfs':
+                                gen_readfs.main(config=self.config, partition_config=partition)
+                            elif type_name == 'lfs':
+                                gen_lfs.main(config=self.config, partition_config=partition)
+                            elif type_name == 'hostfs':
+                                work_dir = self.config.get_str('gapy/work_dir')
+                                for file in partition.get('files').get_dict():
+                                    shutil.copy(file, work_dir)
+                            else:
+                                raise errors.InputError('Invalid partition type: ' + type_name)
 
-            if flash_config.get('content/image') is not None:
-                gen_flash_image.main(config=self.config, flash_config=flash_config)
+                if flash_config.get('content/image') is not None:
+                    gen_flash_image.main(config=self.config, flash_config=flash_config)

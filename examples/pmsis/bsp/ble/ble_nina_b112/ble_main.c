@@ -15,7 +15,7 @@ static uint8_t rx_buffer[AT_RESP_ARRAY_LENGTH];
 void test_ble(void)
 {
     int32_t errors = 0;
-    struct pi_nina_b112_conf conf = {0};
+    struct pi_nina_b112_conf conf;
     pi_ble_nina_b112_conf_init(&ble, &conf);
     pi_open_from_conf(&ble, &conf);
     errors += pi_ble_open(&ble);

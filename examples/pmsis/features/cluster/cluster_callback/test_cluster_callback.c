@@ -12,7 +12,7 @@ struct cl_args_s
     uint8_t *l2_out;
 };
 
-PI_L2 static struct cl_args_s cl_arg = {0};
+PI_L2 static struct cl_args_s cl_arg;
 
 /* Task executed by cluster cores. */
 void cluster_dma(void *arg)
@@ -137,17 +137,12 @@ void test_cluster_callback(void)
     cl_arg.l2_out = l2_out;
 
     /* Prepare cluster tasks and send them to cluster. */
-    struct pi_cluster_task cl_task = {0}, cl_task2 = {0}, cl_task3 = {0};
-    cl_task.entry = master_entry;
-    cl_task.arg = &cl_arg;
+    struct pi_cluster_task cl_task, cl_task2, cl_task3;
+    pi_cluster_task(&cl_task, master_entry, &cl_arg);
+    pi_cluster_task(&cl_task2, master_entry, &cl_arg);
+    pi_cluster_task(&cl_task3, master_entry, &cl_arg);
 
-    cl_task2.entry = master_entry;
-    cl_task2.arg = &cl_arg;
-
-    cl_task3.entry = master_entry;
-    cl_task3.arg = &cl_arg;
-
-    pi_task_t wait_task = {0}, wait_task2 = {0};
+    pi_task_t wait_task, wait_task2;
     pi_task_block(&wait_task);
     pi_task_block(&wait_task2);
 
@@ -159,7 +154,7 @@ void test_cluster_callback(void)
     /* Need to wait end of those two calls, FIFO can take only two calls. */
 
     #if defined(ASYNC)
-    pi_task_t wait_task3 = {0};
+    pi_task_t wait_task3;
     pi_task_block(&wait_task3);
     pi_cluster_send_task_to_cl_async(&cluster_dev, &cl_task3, &wait_task3);
     printf("Wait end of cluster task\n");

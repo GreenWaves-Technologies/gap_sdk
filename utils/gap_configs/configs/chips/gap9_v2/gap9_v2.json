@@ -3,6 +3,15 @@
   "@generator@": "generators/v1/config_gen",
   "chip_gen": "generators.v1.gap9_v2_chip_gen",
 
+  "chip": {
+      "name": "gap9_v2",
+      "soc": {
+          "mram": {
+              "@include@": "ips/mram/mram.json"
+          }
+      }
+  },
+
   "board": {
     "devices": {
       "spiflash": {
@@ -31,9 +40,6 @@
       },
       "jtag_proxy": {
         "@includes@": ["devices/jtag_proxy.json"]
-      },
-      "mram": {
-          "@include@": "ips/mram/mram.json"
       }
     },
 
@@ -79,7 +85,6 @@
     }
   },
 
-  "chip": "gap9_v2",
   "chip_family": "gap9_v2",
 
   "has_fast_clock": true,

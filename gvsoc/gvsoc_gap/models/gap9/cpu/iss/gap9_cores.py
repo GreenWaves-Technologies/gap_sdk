@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 #
 # Copyright (C) 2020 GreenWaves Technologies
 #
@@ -57,7 +55,7 @@ class Gap9_core(Riscv_core):
 class Gap9_cluster_core(Gap9_core):
 
     def __init__(self):
-        
+
         super(Gap9_cluster_core, self).__init__()
 
         # Declare the 3 kind of shared resources with appropriate latency and bandwidth
@@ -71,7 +69,7 @@ class Gap9_cluster_core(Gap9_core):
             # All float operations are handled by the same unit
             self.__attach_resource(insn, 'fpu_base', latency=1, bandwidth=1, tags=[
                 'fmadd', 'fadd', 'fmul', 'fconv', 'fother',
-                'sfmadd', 'sfadd', 'sfmul', 'sfconv', 'sfother', 
+                'sfmadd', 'sfadd', 'sfmul', 'sfconv', 'sfother',
             ])
 
             # Except div, rem and sqrt which goes to the sqrt unit
@@ -103,7 +101,7 @@ class Gap9_cluster_core(Gap9_core):
 class Gap9_fc_core(Gap9_core):
 
     def __init__(self):
-        
+
         super(Gap9_fc_core, self).__init__()
 
         for insn in self.isa.get_insns():

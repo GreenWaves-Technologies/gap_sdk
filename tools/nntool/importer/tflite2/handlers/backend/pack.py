@@ -14,9 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from graph.types import ConcatParameters, NNEdge
-from graph.types.input_output import ConstantInputParameters
-from graph.types.others import ReshapeParameters
+from graph.types import (ConcatParameters, ConstantInputParameters, NNEdge,
+                         ReshapeParameters)
 from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.common import LOG, check
@@ -47,7 +46,8 @@ class Pack(ConstantMixin, BackendHandler):
         buffer_idxes = [tensor.buffer_idx for tensor in node.input]
         if any(not cls.is_constant(inp) for inp in inputs):
             check(len(set(buffer_idxes)) == len(buffer_idxes),
-                "packs with multiple versions of the same input are not supported. This is normally a graph design problem.")
+                ("packs with multiple versions of the same input are not supported. "
+                "This is normally a graph design problem."))
 
         axis = node_opts.Axis()
         dimension_size = len(inp_shapes)
@@ -76,7 +76,7 @@ class Pack(ConstantMixin, BackendHandler):
         if all(cls.is_constant(inp) for inp in inputs):
             LOG.info("reducing %s to a constant", node.name)
             value = np.stack([cls.get_constant(inp) for inp in inputs], axis=axis)
-            params = ConstantInputParameters(node.name, value=value, constant_store=G.constant_store)
+            params = ConstantInputParameters(node.name, value=value)
         elif len(inputs) == 1:
             params = ReshapeParameters(node.name,
                                         old_shape=reshape_in_shape,

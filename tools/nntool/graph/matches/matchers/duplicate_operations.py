@@ -62,7 +62,7 @@ class MatchDuplicateOperations(Matcher):
                 while same_source_edge:
                     first = same_source_edge.pop(0)
 
-                    others = list(filter(partial(lambda x, y: y.to_node.is_same_operation_as(G,
+                    others = list(filter(partial(lambda x, y: x.to_node != y.to_node and y.to_node.is_same_operation_as(G,
                         x.to_node), first), same_source_edge))
                     if others:
                         same_dest_edges.append(tuple([first] + others))
@@ -70,7 +70,7 @@ class MatchDuplicateOperations(Matcher):
                             same_source_edge.remove(other)
                         continue
 
-                    other_groups = list(filter(partial(lambda x, y: y.to_node.can_be_grouped_with(
+                    other_groups = list(filter(partial(lambda x, y: x.to_node != y.to_node and y.to_node.can_be_grouped_with(
                         x.to_node), first), same_source_edge))
                     if other_groups:
                         same_dest_group_edges.append(
@@ -79,6 +79,7 @@ class MatchDuplicateOperations(Matcher):
                             same_source_edge.remove(other)
 
             # all are multiple edges that go to something comparable
+            save_same_dest_edges = same_dest_edges.copy()
             while same_dest_edges:
                 edge_set = same_dest_edges.pop(0)
                 keep_node = edge_set[0].to_node

@@ -45,7 +45,9 @@ def nodeoption_value_choices_method(arg_tokens):
 class NodeoptionCommand(NNToolShellBase):
     # nodeoption COMMAND
     parser_nodeoption = NNToolArguementParser()
-    parser_nodeoption.add_argument('step', nargs=(0, 1), completer_method=NNToolShellBase.node_step_or_name_completer,
+    parser_nodeoption.add_argument('step', nargs=(0, 1),
+                                   completer_method=NNToolShellBase.node_step_or_name_completer(
+                                       allow_comma=True),
                                    help='Set this step number or name. ' + NODE_SELECTOR_HELP)
     parser_nodeoption.add_argument('parameter', nargs=(0, 1), choices_method=nodeoption_choices_method,
                                    help='Set this parameter')
@@ -63,7 +65,7 @@ can be set refer to the autotiler documentation."""
                 print("{}: {}".format(nodeid, elem))
             return
 
-        nodes = self.get_node_step_or_name(args.step)[0]
+        nodes = self.get_node_step_or_name(args.step, allow_comma=True)[0]
 
         if args.parameter is None:
             nothing = True
@@ -89,7 +91,7 @@ can be set refer to the autotiler documentation."""
                 try:
                     option_type = node_options.valid_options[args.parameter]
                 except KeyError:
-                    self.perror(
+                    self.pwarning(
                         f"{args.parameter} is not a valid parameter for node {node.name}")
                     continue
                 val = option_type(args.value)
@@ -98,12 +100,13 @@ can be set refer to the autotiler documentation."""
                     if args.parameter == "RNN_STATES_AS_INPUTS":
                         node.rnn_states_as_inputs = (val, self.G)
                     if args.parameter == "LSTM_OUTPUT_C_STATE":
-                        node.lstm_output_c_state = (val, self.G)
+                        node.lstm_output_c_state = val
+                        node.set_c_state_as_output(self.G)
                 else:
                     setattr(node_options, args.parameter, val)
                 self.pfeedback(
                     f'set option {args.parameter} on node {node.name} to {val}')
                 self.G.node_options[NodeId(node)] = node_options
             except KeyError:
-                self.perror(
+                self.pwarning(
                     f"{args.parameter} is not a valid parameter for node {node.name}")

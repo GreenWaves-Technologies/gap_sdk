@@ -14,14 +14,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-from utils.subclasses import get_all_subclasses
 
 import numpy as np
-from iteration_utilities import duplicates
-
 from cmd2.argparse_custom import Cmd2ArgumentParser
 from graph.types import ConstantInputParameters, ReluActivationParameters
 from graph.types.base import Parameters
+from iteration_utilities import duplicates
+from utils.subclasses import get_all_subclasses
 
 # pylint: disable=wildcard-import,unused-wildcard-import
 from quantization.float.quantizers import *
@@ -103,7 +102,8 @@ def get_all_options():
             for k in opt.keys():
                 if k in optrec:
                     if k != 'help' and opt[k] != optrec[k]:
-                        raise ValueError(f'Quantization option {k} has different definitions')
+                        raise ValueError(
+                            f'Quantization option {k} has different definitions')
                 else:
                     optrec[k] = opt[k]
             optrec['handlers'].add(handler)
@@ -134,6 +134,8 @@ def add_options_to_parser(parser: Cmd2ArgumentParser):
     duplicate_shortcuts = set(duplicates(shortcuts))
     assert not duplicate_shortcuts, f'the following shortcut commands are duplicates {",".join(duplicate_shortcuts)}'
     for opt_name, opt in opts.items():
+        if opt.get('type') is None:
+            continue # internal option
         if 'shortcut' in opt:
             names = [f'-{opt["shortcut"]}']
         else:
@@ -164,7 +166,7 @@ def get_options_from_args(args):
     return {opt_name: (not getattr(args, f'no_{opt_name}'))
             if opt.get('type') == bool and opt.get('default')
             else get_arg_or_default(args, opt_name, opt)
-            for opt_name, opt in get_all_options().items()}
+            for opt_name, opt in get_all_options().items() if opt['type'] is not None}
 
 
 def get_set_options_from_args(args):
@@ -307,7 +309,7 @@ def check_option_constraints(handlers, params, options, **kwargs):
             if scheme_handler.OPTION_CONSTRAINT:
                 for k, v in scheme_handler.OPTION_CONSTRAINT.items():
                     if k == '__function_constraint':
-                        if not v(options, params, **kwargs):
+                        if not v(params, **kwargs):
                             break
                     else:
                         set_value = options.get(k)
@@ -326,11 +328,11 @@ def check_option_constraints(handlers, params, options, **kwargs):
     return filtered_phandlers
 
 
-def match_handler(cur_G, handlers, params, scheme_priorities, options,
+def match_handler(graph, handlers, params, scheme_priorities, options,
                   in_qs_constraint=None, out_qs_constraint=None, **kwargs):
     # don't run match on constants or unconnected edges
     ignore_edge = [isinstance(edge.from_node, ConstantInputParameters) if edge is not None else True
-                   for edge in cur_G.indexed_in_edges(params.name)]
+                   for edge in graph.indexed_in_edges(params.name)]
     # match the class
     params_handlers = handlers.get(params.__class__)
     params_handlers = check_option_constraints(

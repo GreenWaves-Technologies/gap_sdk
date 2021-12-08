@@ -33,7 +33,7 @@ void transfer_test(void *parameters)
     //printf("Task_%d exec now\n", args->id);
     /* Write a buffer then read back from flash. */
     #if defined(ASYNC)
-    struct pi_task cb_tx = {0}, cb_rx = {0};
+    struct pi_task cb_tx, cb_rx;
     pi_task_block(&cb_rx);
     cb_rx.arg[1] = (uint32_t) args;
     pi_task_callback(&cb_tx, __end_of_tx, &cb_rx);

@@ -26,9 +26,9 @@ void test_pwm(void)
     uint32_t freq[NB_PWM_USED] = {PWM0_FREQ, PWM1_FREQ, PWM2_FREQ, PWM3_FREQ};
     uint32_t duty_cycle[NB_PWM_USED] = {PWM0_DUTY_CYCLE, PWM1_DUTY_CYCLE,
                                         PWM2_DUTY_CYCLE, PWM3_DUTY_CYCLE};
-    struct pi_pwm_ioctl_ch_config ch_conf[NB_PWM_USED] = {0};
-    struct pi_pwm_ioctl_evt evt[NB_PWM_USED] = {0};
-    pi_task_t cb_task[NB_PWM_USED] = {0};
+    struct pi_pwm_ioctl_ch_config ch_conf[NB_PWM_USED];
+    struct pi_pwm_ioctl_evt evt[NB_PWM_USED];
+    pi_task_t cb_task[NB_PWM_USED];
 
     for (uint32_t i = 0; i < (uint32_t) NB_PWM_USED; i++)
     {

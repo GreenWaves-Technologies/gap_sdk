@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from generation.at_types.gen_ctrl import GenCtrl
 import logging
 
 from expressions.symbolic.basic import HSigmoid, HTanh, Relu, Sigmoid, TanH
@@ -150,6 +151,12 @@ class HSigmoidActivationParameters(ActivationParameters, CanFuseToExpression):
     @offset.setter
     def offset(self, val):
         self._offset = val
+
+    def get_gen_ctrl(self):
+        gen_ctrl = GenCtrl(self.at_options)
+        if self.offset != 3.0:
+            gen_ctrl.relun = self.offset
+        return gen_ctrl
 
     @property
     def can_equalize(self):

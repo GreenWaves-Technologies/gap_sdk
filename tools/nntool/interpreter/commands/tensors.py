@@ -134,6 +134,10 @@ will be shown as the result. If one or both of the tensors do not exist then N/A
                         f"{tensor_name} doesn't have a tensor at index {args.index} for that step")
                     return
                 tensor = tensor[args.index]
+                if tensor is None:
+                    self.perror(
+                        "{} doesn't have this tensor for that step".format(tensor_name))
+                    return
                 if args.channel is not None:
                     t_shape = tensor.shape
                     if len(t_shape) < len(args.channel):

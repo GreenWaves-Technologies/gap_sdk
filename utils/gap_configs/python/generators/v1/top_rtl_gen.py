@@ -24,7 +24,7 @@ import json_tools as js
 
 def get_config(tp):
 
-  chip              = tp.get_child_str('chip')
+  chip              = tp.get_child_str('chip/name')
 
   config = js.import_config({'@includes@': [ "defaults.json" ] }, interpret=True)
 

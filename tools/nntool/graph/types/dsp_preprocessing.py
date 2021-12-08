@@ -14,16 +14,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from utils.gen_melfilterbank import GenMelFilterbank_Sparse
-from utils.gen_twiddles import gen_fft_swaptable_lut, gen_fft_twiddles_lut, gen_rfft_twiddles_lut
-import numpy as np
-from graph.types.input_output import ConstantInputParameters
 import logging
-from copy import deepcopy
 import math
 
+import numpy as np
+from graph.types import ConstantInputParameters
+
+from utils.gen_melfilterbank import GenMelFilterbank_Sparse
+from utils.gen_twiddles import (gen_fft_swaptable_lut, gen_fft_twiddles_lut,
+                                gen_rfft_twiddles_lut)
+
 from ..dim import Dim
-from .base import SensitiveToOrder, SingleInputAndOutput, Parameters, cls_op_name, nargs
+from .base import (Parameters, SensitiveToOrder, SingleInputAndOutput,
+                   cls_op_name, nargs)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -321,8 +324,8 @@ class MFCCPreprocessingParameters(DSPParameters):
     def get_output_size(self, in_dims):
         self._n_frames = (in_dims[0].size() - self.frame_size) // self.frame_step + 1
         if self._n_dct:
-            return [Dim([self._n_frames, self._n_dct])]
-        return [Dim([self._n_frames, self._n_fbanks])]
+            return [Dim.unnamed([self._n_frames, self._n_dct])]
+        return [Dim.unnamed([self._n_frames, self._n_fbanks])]
 
     def gen_melfilter(self):
         if self.fbank_type == "tensorflow":

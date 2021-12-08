@@ -24,7 +24,7 @@ from graph.types.others import (AbsOpParameters, CosOpParameters,
                                 MinOpParameters, PowOpParameters,
                                 RSqrtOpParameters, SinOpParameters,
                                 SqrtOpParameters, UnaryOpParameters)
-from graph.types.tensor_arithmetic import Broadcastable, MatMulOpParameters
+from graph.types.tensor_arithmetic import Broadcastable, MatMulOpParameters, MatMulTransposedParameters
 from quantization.kernels.kernel_base import KernelBase, params_type, qrec_type
 from quantization.new_qrec import AllFloatQRec, QRec
 
@@ -116,7 +116,7 @@ class MatrixDivFloat32(PieceWiseFloat32Mixin, KernelBase):
         )
 
 
-@params_type(MatMulOpParameters)
+@params_type(MatMulOpParameters, MatMulTransposedParameters)
 @qrec_type('float')
 class MatMulFloat32(KernelBase):
     @classmethod
@@ -128,15 +128,22 @@ class MatMulFloat32(KernelBase):
         if qrec is None:
             qrec = AllFloatQRec()
         in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="float")
+
+        if isinstance(params, MatMulTransposedParameters):
+            mat1, mat2 = in_tensors[0], np.transpose(in_tensors[1], (1, 0))
+        else:
+            mat1, mat2 = in_tensors[0], in_tensors[1]
+
         if len(in_tensors) > 2:
             biases = in_tensors[2]
             if len(biases.shape) == 1:
-                biases = np.expand_dims(biases, -1)
+                biases = np.expand_dims(biases, 1 if mat2.shape[1] == 1 else 0)
         else:
             biases = 0
+
         out_dtype = qrec.out_qs[0].dtype if qrec.ktype.startswith(
             'float') else np.float32
-        output_tensor = np.matmul(in_tensors[0], in_tensors[1]).astype(
+        output_tensor = np.matmul(mat1, mat2).astype(
             out_dtype) + np.atleast_1d(biases).astype(out_dtype)
         return qrec.get_outputs(params, [output_tensor], ktype="float")
 

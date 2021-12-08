@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 # ////////////////////////////////////////////////////////////////////////////////
 # // Company:        Multitherman Laboratory @ DEIS - University of Bologna     //
@@ -10,7 +10,7 @@
 # // Additional contributions by:                                               //
 # //                 Andreas Traber - atraber@student.ethz.ch                   //
 # //                                                                            //
-# // Create Date:    05/04/2013                                                 // 
+# // Create Date:    05/04/2013                                                 //
 # // Design Name:    ULPSoC                                                     //
 # // Project Name:   ULPSoC                                                     //
 # // Language:       tcl, now python                                            //
@@ -169,7 +169,7 @@ l2_sections.write("int section_data[%d] = { \n" % len(section_data))
 
 for i in range(len(section_data)):
     l2_sections.write("0x%s,\n" % section_data[i])
-    
+
 l2_sections.write("}; \n\n")
 
 ###############################################################################

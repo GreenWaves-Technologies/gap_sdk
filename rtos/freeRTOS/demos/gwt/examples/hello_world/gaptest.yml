@@ -1,0 +1,21 @@
+name: freertos_helloworld
+platforms:
+    - gvsoc
+os:
+    - freertos
+chips:
+    - gap8
+    - gap9
+variants:
+    std:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        os:
+           - freertos
+        chips:
+            - gap8
+            - gap9
+        flags: ~

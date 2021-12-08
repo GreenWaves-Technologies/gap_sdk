@@ -110,11 +110,10 @@ class MatchPadAddAct(Matcher):
                 output_mapping=output_mapping)
             if G.quantization:
                 qrecs = G.quantization.get_all(pnode.contained_nodes())
-                # if there are quantization stats then clear them. They need to be created again
-                G.quantization.stats = None
+                # TODO - stats
                 if qrecs:
                     prec = QRec.copy_ktype(
-                        qrecs[0], in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                        qrecs[1], in_qs=qrecs[1].in_qs, out_qs=qrecs[-1].out_qs)
                     for node in pnode.contained_nodes():
                         G.quantization.move_to_fusion(node, pnode)
                     G.quantization[NodeId(pnode)] = prec

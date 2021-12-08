@@ -170,7 +170,7 @@ static inline int iss_fetch_req_common(iss_t *_this, uint64_t addr, uint8_t *dat
   if (err != vp::IO_REQ_OK)
   {
     if (err == vp::IO_REQ_INVALID)
-      _this->trace.force_warning("Invalid fetch request (addr: 0x%x, size: 0x%x)\n", addr, size);
+      _this->trace.fatal("Invalid fetch request (addr: 0x%x, size: 0x%x)\n", addr, size);
     else
     {
       iss_exec_insn_stall(_this);

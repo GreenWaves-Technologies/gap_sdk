@@ -164,8 +164,14 @@ def add_dimensions(G, naming_convension: NamingConvension = None) -> list:
 
     steps = []
     indexes = {'input': 0, 'output': 0, 'constant': 0}
-    LOG.debug("inputs: %s", [node.name for node in G.inputs()])
-    for node in G.dfs():
+    inputs = G.inputs()
+    # inputs = sorted(
+    #     G.inputs(),
+    #     key=lambda node: ("a" + node.name if isinstance(node, InputParameters)
+    #                       else "b" + (str(node.step_idx) if node.step_idx else node.name)))
+    LOG.debug("inputs: %s", [node.name for node in inputs])
+
+    for node in G.dfs(inputs):
         LOG.debug("add dimensions to: %s", node.name)
         node.step_idx = len(steps)
         steps.append({'node': node})

@@ -629,7 +629,8 @@ void Hyper_periph::handle_push_data(void *__this, vp::clock_event *event)
         {
             Hyper_read_request *req = _this->read_req_waiting->get_first();
             int iter_size = size > req->requested_size ? req->requested_size : size;
-            req->data |= (data) <<  (req->size * 8);
+            req->data = (req->data & ((1 << (req->size * 8)) - 1)) | (data <<  (req->size * 8));
+
             req->size += iter_size;
             req->requested_size -= iter_size;
             size -= iter_size;

@@ -56,9 +56,8 @@ def walk_nodes(G, node, candidates, visited_nodes=None):
     if visited_nodes is None:
         visited_nodes = set()
     visited_nodes.add(node)
-    connected_nodes = set(G.connected_nodes(node.name))
-    # find nodes that we have not visited and are in the candidate set
-    connected_nodes = (connected_nodes - visited_nodes) & candidates
+    # find nodes that we have not visited and are in the candidate set (don't use sets so the order does not change)
+    connected_nodes = [cnode for cnode in G.connected_nodes(node.name) if cnode not in visited_nodes and cnode in candidates]
     results = [node]
     for next_node in connected_nodes:
         results.extend(walk_nodes(G, next_node, candidates,
@@ -68,10 +67,9 @@ def walk_nodes(G, node, candidates, visited_nodes=None):
 
 def construct_subgraph(G, nodes):
     """ construct a subgraph from nodes """
-    nodes = set(nodes)
     sub_g = GraphView()
     while nodes:
-        node = nodes.pop()
+        node = nodes.pop(0)
         if node not in sub_g.nodes():
             sub_g.add_node(node)
         for edge in G.out_edges(node.name):
@@ -224,12 +222,15 @@ def find_connected_groups(G):
         whose input is the result of a node in the graph
         finally verify that all the nodes want to stay in each subgraph
     """
-    candidates = set(G.nodes(node_classes=CanFuseToExpression))
+    candidates = list(G.nodes(node_classes=CanFuseToExpression, sort=True))
     subgraphs = []
+    seen = []
     while candidates:
-        node = candidates.pop()
-        subgroup = set(walk_nodes(G, node, candidates))
-        candidates = candidates - subgroup
+        node = candidates.pop(0)
+        if node in seen:
+            continue
+        subgroup = walk_nodes(G, node, candidates)
+        seen.extend(subgroup)
         subgraph = construct_subgraph(G, subgroup)
         valid_subgraphs = validate_subgraph(G, subgraph)
         while valid_subgraphs:
@@ -317,8 +318,16 @@ class ExpressionMatcher(Matcher):
                     symbol = func_col.variables[func_col.output_names[idx]]
                     stats[symbol.name] = {
                         'min': qtype.min_val, 'max': qtype.max_val}
-                G.quantization[NodeId(expr)] = QRec(
+                nid = NodeId(expr)
+                G.quantization[nid] = QRec(
                     in_qs=in_qs, out_qs=out_qs, expression=stats, ktype='scaled')
+                if G.quantization.stats:
+                    G.quantization.stats[nid] = {
+                        'range_in': [{'min': qtype.min_val, 'max': qtype.max_val} for qtype in in_qs],
+                        'range_out': [{'min': qtype.min_val, 'max': qtype.max_val} for qtype in out_qs],
+                        'expression': stats.copy()
+                    }
+
                 # delete any quantize parameters on outputs to allow the quantizer
                 # to fuse them into the expression
                 out_edges = G.out_edges(expr.name)

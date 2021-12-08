@@ -1,11 +1,13 @@
 {
-  "type": "linear",
-  "unit": "W",
+  "dynamic": {
+    "type": "linear",
+    "unit": "W",
 
-  "values": {
-    "25": {
-      "1.2": {
-        "any": "0.0000016"
+    "values": {
+      "25": {
+        "1.2": {
+          "any": "0.0000016"
+        }
       }
     }
   }

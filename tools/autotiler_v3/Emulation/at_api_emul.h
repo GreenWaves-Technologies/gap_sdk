@@ -417,6 +417,116 @@ static inline void __at_qspiflash_fs_copy_2d(FILE *file, unsigned int ext, void 
 
 
 /*
+ * EMRAMflash
+ */
+
+#define AT_EMRAMFLASH_TYPE 1
+
+typedef int     AT_EMRAMFLASH_CONF_T;
+typedef int     AT_EMRAMFLASH_T;
+typedef int     AT_EMRAMFLASH_EXT_ADDR_TYPE;
+typedef int     AT_EMRAMFLASH_LOC_ADDR_TYPE;
+typedef int     AT_EMRAMFLASH_EVENT;
+
+#define AT_EMRAMFLASH_EXT2LOC 0
+#define AT_EMRAMFLASH_LOC2EXT 1
+
+// TODO not yet supported
+#define AT_EMRAMFLASH_CONF_INIT(dev,type,name) 
+
+// TODO not yet supported
+#define AT_EMRAMFLASH_OPEN(dev,conf,err) 
+
+// TODO not yet supported
+#define AT_EMRAMFLASH_CLOSE(dev) 
+
+// TODO not yet supported
+#define AT_EMRAMFLASH_COPY(dev,ext,loc,size,dir,event)
+
+// TODO not yet supported
+#define AT_EMRAMFLASH_COPY2D(dev,ext,loc,size,stride,len,dir,event)
+
+// TODO not yet supported
+#define AT_EMRAMFLASH_WAIT(dev,event)
+
+
+
+/*
+ * EMRAMflash FS
+ */
+
+#define AT_EMRAMFLASH_FS_TYPE 1
+
+typedef int            AT_EMRAMFLASH_FS_CONF_T;
+typedef FILE*          AT_EMRAMFLASH_FS_T;
+typedef unsigned int   AT_EMRAMFLASH_FS_EXT_ADDR_TYPE;
+typedef void *         AT_EMRAMFLASH_FS_INT_ADDR_TYPE;
+typedef int            AT_EMRAMFLASH_FS_FC_EVENT;
+typedef int            AT_EMRAMFLASH_FS_CL_EVENT;
+
+#define AT_EMRAMFLASH_FS_EXT2LOC 0
+#define AT_EMRAMFLASH_FS_LOC2EXT 1
+
+static inline void __at_emramflash_fs_copy(FILE *file, unsigned int ext, void *loc, int size, int dir)
+{
+  fseek(file, ext, SEEK_SET);
+  if (dir==AT_EMRAMFLASH_FS_EXT2LOC) {
+	  fwrite(loc, 1, size, file); __L3_Read += size;
+  } else {
+	  fread(loc, 1, size, file); __L3_Write += size;
+  }
+}
+
+static inline void __at_emramflash_fs_copy_2d(FILE *file, unsigned int ext, void *loc, int size, int stride, int length, int dir)
+{
+  int Chunk;
+  for (Chunk=0; Chunk<size; Chunk+=length)
+  {
+    if (length > size)
+      length = size;
+
+    fseek(file, ext, SEEK_SET);
+    if (dir==AT_EMRAMFLASH_FS_EXT2LOC) fread(loc, 1, length, file);
+    else fwrite(loc, 1, length, file);
+
+    loc = ((char *)loc) + length;
+    ext += stride;
+  }
+}
+
+
+#define AT_EMRAMFLASH_FS_CONF_INIT(dev,type,name) 
+
+#define AT_EMRAMFLASH_FS_OPEN(file,conf,filename,err) \
+  do { *(file) = fopen(filename, "r"); *(err) = *(file) == NULL; } while(0)
+
+#define AT_EMRAMFLASH_FS_OPEN_WRITE(file,conf,filename,err) \
+  do { *(file) = fopen(filename, "w"); *(err) = *(file) == NULL; } while(0)
+
+#define AT_EMRAMFLASH_FS_OPEN_SET_SIZE(file, size) 
+
+#define AT_EMRAMFLASH_FS_CLOSE(file) \
+  fclose(*file)
+
+#define AT_EMRAMFLASH_FS_FC_COPY(file,ext,loc,size,dir,event) \
+  __at_emramflash_fs_copy(*(file), ext, loc, size, dir)
+
+#define AT_EMRAMFLASH_FS_FC_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
+  __at_emramflash_fs_copy_2d(*(file), ext, loc, size, stride, len, dir)
+
+#define AT_EMRAMFLASH_FS_FC_WAIT(file,event) 
+
+#define AT_EMRAMFLASH_FS_CL_COPY(file,ext,loc,size,dir,event) \
+  __at_emramflash_fs_copy(*(file), ext, loc, size, dir)
+
+#define AT_EMRAMFLASH_FS_CL_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
+  __at_emramflash_fs_copy_2d(*(file), ext, loc, size, stride, len, dir)
+
+#define AT_EMRAMFLASH_FS_CL_WAIT(file,event) 
+
+
+
+/*
  * DMA
  */
 

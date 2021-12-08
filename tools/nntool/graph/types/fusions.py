@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from copy import deepcopy
 import logging
 
 from graph.types.others import PadParameters
@@ -299,6 +300,25 @@ class LinearFusionParameters(FilterFusionBase):
 @cls_op_name('padded_add_fusion')
 class PaddedAddFusionParameters(FusionBase, SensitiveToOrder):
     fusion_op_name = "padded_add_fusion"
+
+    def get_pad_node(self):
+        return [node for node in self.contained_nodes() if isinstance(node, PadParameters)][0]
+
+    @property
+    def padding_axis(self):
+        pad_node = self.get_pad_node()
+        padding_axis = [idx for idx, pad in enumerate(pad_node.padding) if sum(pad)][0]
+        return padding_axis
+
+    @padding_axis.setter
+    def padding_axis(self, value):
+        pad_node = self.get_pad_node()
+        old_padding_axis = [idx for idx, pad in enumerate(pad_node.padding) if sum(pad)][0]
+        new_pad = list(deepcopy(pad_node.padding))
+        pad_val = pad_node.padding[old_padding_axis]
+        new_pad.remove(pad_val)
+        new_pad.insert(value, pad_val)
+        pad_node.padding = tuple(new_pad)
 
     def _init_at_options(self):
         if self._at_options is None:

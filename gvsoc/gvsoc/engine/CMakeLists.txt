@@ -12,7 +12,12 @@ set(GVSOC_ENGINE_CXX_SRCS
     "src/clock/clock.cpp"
     "src/vp.cpp"
     "src/proxy.cpp"
-    "src/power/power.cpp"
+    "src/power/power_table.cpp"
+    "src/power/power_engine.cpp"
+    "src/power/component_power.cpp"
+    "src/power/power_trace.cpp"
+    "src/power/power_source.cpp"
+    "src/launcher.cpp"
     )
 
 set(GVSOC_ENGINE_C_SRCS
@@ -37,7 +42,7 @@ if(${BUILD_OPTIMIZED})
     add_library(gvsoc SHARED ${GVSOC_ENGINE_CXX_SRCS} ${GVSOC_ENGINE_C_SRCS})
     target_include_directories(gvsoc PUBLIC ${GVSOC_ENGINE_INC_DIRS})
     target_link_libraries(gvsoc PUBLIC json-tools z pthread ${CMAKE_DL_LIBS})
-    set_target_properties(gvsoc PROPERTIES OUTPUT_NAME "libpulpvp")
+    set_target_properties(gvsoc PROPERTIES OUTPUT_NAME "pulpvp")
     install(TARGETS gvsoc
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
@@ -63,7 +68,7 @@ if(${BUILD_DEBUG})
     add_library(gvsoc_debug SHARED ${GVSOC_ENGINE_CXX_SRCS} ${GVSOC_ENGINE_C_SRCS})
     target_include_directories(gvsoc_debug PUBLIC ${GVSOC_ENGINE_INC_DIRS})
     target_link_libraries(gvsoc_debug PUBLIC json-tools z pthread ${CMAKE_DL_LIBS})
-    set_target_properties(gvsoc_debug PROPERTIES OUTPUT_NAME "libpulpvp-debug")
+    set_target_properties(gvsoc_debug PROPERTIES OUTPUT_NAME "pulpvp-debug")
     install(TARGETS gvsoc_debug
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
@@ -91,7 +96,7 @@ if(${BUILD_RTL})
     add_library(gvsoc_sv SHARED ${GVSOC_ENGINE_CXX_SRCS} ${GVSOC_ENGINE_C_SRCS})
     target_include_directories(gvsoc_sv PUBLIC ${GVSOC_ENGINE_INC_DIRS})
     target_link_libraries(gvsoc_sv PUBLIC json-tools z pthread ${CMAKE_DL_LIBS})
-    set_target_properties(gvsoc_sv PROPERTIES OUTPUT_NAME "libpulpvp-sv")
+    set_target_properties(gvsoc_sv PROPERTIES OUTPUT_NAME "pulpvp-sv")
     install(TARGETS gvsoc_sv
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib

@@ -13,13 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.tensor_arithmetic import MatMulTransposedParameters
 import numpy as np
 from graph.dim import Dim, FcFilterDim
-from graph.types import FcParameters
-from graph.types.base import NNEdge
-from graph.types.input_output import ConstantInputParameters
-from graph.types.others import ReshapeParameters, TransposeParameters
-from graph.types.tensor_arithmetic import MatMulOpParameters
+from graph.types import (ConstantInputParameters, FcParameters,
+                         MatMulOpParameters, NNEdge, ReshapeParameters,
+                         TransposeParameters)
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.common import check
 from importer.tflite2.handlers.backend.filter_mixin import FilterMixin
@@ -87,22 +86,16 @@ class FullyConnected(FilterMixin, BackendHandler):
             else:
                 link = x
 
-            # the batched linear is transpose(weights . transpose(input))
-            params = MatMulOpParameters(node.name)
+            # the batched linear is ([NxM] . [MxK]) + [K]
+            params = MatMulTransposedParameters(node.name)
             cls.new_load_filter_parameters(G, params, weights_shape, 0,
                                            node.input[0], weights_node,
                                            bias_node, node.output[0], opts)
-            trans1 = TransposeParameters(G.unique_name(f'{node.name}_tin1'), transpose=(1, 0))
-            trans2 = TransposeParameters(G.unique_name(f'{node.name}_tout'), transpose=(1, 0))
-            G.add_edge(
-                NNEdge(from_node=link[0], to_node=trans1, from_idx=link[1]))
-            G.add_edge(
-                NNEdge(from_node=trans1, to_node=params, to_idx=1))
-            G.add_edge(NNEdge(from_node=weights_node,
-                              to_node=params, to_idx=0))
+            trans2 = TransposeParameters(G.unique_name(f'{node.name}_tin2'), transpose=(1, 0))
+            G.add_edge(NNEdge(from_node=link[0], to_node=params, from_idx=link[1]))
+            G.add_edge(NNEdge(from_node=weights_node, to_node=params, to_idx=1))
+            #G.add_edge(NNEdge(from_node=trans2, to_node=params, to_idx=1))
             G.add_edge(NNEdge(from_node=bias_node, to_node=params, to_idx=2))
-            G.add_edge(NNEdge(from_node=params, to_node=trans2))
-            params = trans2
             out_shape = [batch_size, out_c]
         else:
             ker_in_order = None
@@ -113,7 +106,6 @@ class FullyConnected(FilterMixin, BackendHandler):
                                   ker_in_order=ker_in_order,
                                   ker_out_order=ker_out_order,
                                   batch_size=batch_size,
-                                  constant_store=G.constant_store,
                                   keep_dims=keep_dims)
             cls.new_load_filter_parameters(G, params, params.filter.actual_shape, params.filter.get_order_idx('out_c'),
                                            node.input[0], weights_node,

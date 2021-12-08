@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple
+from typing import Tuple, cast
 
 import numpy as np
 import math
@@ -75,15 +75,18 @@ class Q15ScaledQuantization(QuantizationHandlerBase):
         qtypes = kwargs.get('qtypes', {})
         # first see if this has already been quantized by nntool
         # note that the qtype will be stored against the name of the output symbol
-        max_val, out_dtype, out_q = cls._get_scale_dtype_from_qtypes(
+        max_val, out_dtype, out_q, zero_point = cls._get_scale_dtype_from_qtypes(
             osym, qtypes)
         if max_val is None:
-            max_val = sym_ctrl.get_max(sym)
+            max_val = math.fabs(sym_ctrl.get_max(sym))
             out_dtype = np.int8
             out_q = 7
+            zero_point = 0
 
-        qrec_scale = Q15ScaleQRec(np.int32, max_val, out_q)
-        qrec_out = Q15ScaleQRec(out_dtype, max_val, out_q)
+#pylint: disable=invalid-unary-operand-type
+        min_val = -max_val
+        qrec_scale = Q15ScaleQRec(np.int32, max_val, out_q, min_val=min_val, max_val=max_val, zero_point=zero_point)
+        qrec_out = Q15ScaleQRec(out_dtype, max_val, out_q, min_val=min_val, max_val=max_val, zero_point=zero_point)
         # scale clip and cast to output type
         return (
             Cast(
@@ -98,15 +101,23 @@ class Q15ScaledQuantization(QuantizationHandlerBase):
     @classmethod
     def _get_scale_dtype_from_qtypes(cls, sym, qtypes):
         if not qtypes or sym.name not in qtypes:
-            return None, None, None
+            return None, None, None, None
         qtype = qtypes[sym.name]
         if qtype.dtype == np.int8:
             if len(qtype.scale) > 1:
-                return None, None, None
-            return qtype.scale[0] * math.pow(2, 7), np.int8, 7
+                return None, None, None, None
+            return qtype.scale[0] * math.pow(2, 7), np.int8, 7, qtype.zero_point
+        if qtype.dtype == np.uint8:
+            if len(qtype.scale) > 1:
+                return None, None, None, None
+            return qtype.scale[0] * math.pow(2, 8), np.uint8, 8, qtype.zero_point
         elif qtype.dtype == np.int16:
             if len(qtype.scale) > 1:
                 return None, None, None
-            return qtype.scale[0] * math.pow(2, 15), np.int16, 15
+            return qtype.scale[0] * math.pow(2, 15), np.int16, 15, qtype.zero_point
+        if qtype.dtype == np.uint16:
+            if len(qtype.scale) > 1:
+                return None, None, None, None
+            return qtype.scale[0] * math.pow(2, 16), np.uint16, 16, qtype.zero_point
         else:
-            return None, None, None
+            return None, None, None, None

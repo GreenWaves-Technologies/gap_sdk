@@ -27,7 +27,7 @@ class Runner(object):
         nb_regs = 128
         efuses = [0] * nb_regs
 
-        chip = self.config.get_str('**/chip')
+        chip = self.config.get_str('**/chip/name')
 
         if chip == 'gap8_revc':
 

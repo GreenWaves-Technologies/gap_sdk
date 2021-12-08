@@ -15,7 +15,6 @@
 
 import logging
 
-from generation.at_types.at_params import gen_activation_op
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  NodeBindingList)
@@ -23,8 +22,6 @@ from generation.generators.kernels.autotiler_kernel import NewAutoTilerKernel
 from generation.new_generators.generator_base import (GeneratorBase, ktype,
                                                       paramstype)
 from graph.types import SSDDetectorParameters
-from graph.types.activations import (ActivationParameters,
-                                     ReluActivationParameters)
 
 LOG = logging.getLogger("nntool." + __name__)
 

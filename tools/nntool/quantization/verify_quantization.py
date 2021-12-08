@@ -60,7 +60,7 @@ def walk_graph(G, qrecs, node, visited):
 
 def verify_quantization(G):
     if G.quantization is None:
-        return False, "quantization is not set"
+        return ["quantization is not set"]
     qrecs = G.quantization
     visited = set()
     problems = []

@@ -19,12 +19,12 @@ import logging
 import os
 
 from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
+from interpreter.commands.open import STATE_EXTENSION
 from interpreter.nntool_shell_base import NNToolShellBase, no_history
 from utils.json_serializable import JsonSerializableStateEncoder
 
 LOG = logging.getLogger("nntool")
 
-STATE_EXTENSION = ".json"
 
 class SaveStateCommand(NNToolShellBase):
     # SAVE_STATE COMMAND
@@ -56,5 +56,6 @@ save the state files."""
             graph_base, _ = os.path.splitext(self.G.graph_identity.filename)
         state_filename = graph_base + STATE_EXTENSION
         with open(state_filename, mode='w+') as fp:
-            json.dump(self.graph_history, fp, indent=2, cls=JsonSerializableStateEncoder)
+            json.dump(self.graph_history, fp, indent=2,
+                      cls=JsonSerializableStateEncoder)
         LOG.info("saved state to %s", state_filename)

@@ -13,26 +13,26 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.tensor_arithmetic import Broadcastable
 import logging
 from collections import Counter
 
-from graph.types.input_output import ConstantInputParameters
-
-from utils.node_id import NodeId
 from expressions.symbolic.function_collection import FunctionCollection
 from expressions.symbolic.symbol import Constant, Variable
 
-from .base import cls_op_name
+from utils.node_id import NodeId
+
+from .base import ComparableParameters, cls_op_name
+from .constant_input import ConstantInputParameters
 from .fusions import (FusionBase, FusionInputParameters,
                       FusionOutputParameters, dont_quantize_internals)
+from .tensor_arithmetic import Broadcastable
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
 @dont_quantize_internals
 @cls_op_name('expression')
-class ExpressionFusionParameters(FusionBase, Broadcastable):
+class ExpressionFusionParameters(FusionBase, Broadcastable, ComparableParameters):
     fusion_op_name = "Expression"
 
     def __init__(self, *args, constant_inputs=None, qrecs=None, **kwargs):
@@ -121,6 +121,15 @@ class ExpressionFusionParameters(FusionBase, Broadcastable):
         qtype = qrec.out_qs[0]
         symbol.control.add_min_max(symbol, qtype.min_val, qtype.max_val)
 
+    def is_same_operation_as(self, G, other):
+        if not isinstance(other, ExpressionFusionParameters):
+            return False
+        if len(self.func_col.functions) != 1 or len(other.func_col.functions) != 1:
+            return False
+        if next(iter(self.func_col.functions.values())).equivalent(next(iter(other.func_col.functions.values()))):
+            return True
+        return False
+
     def decompose(self, qrecs=None):
         # assumption - only single output nodes for all nodes in an expression
         intermediates = set([node for node in self.subgraph.nodes()
@@ -162,6 +171,24 @@ class ExpressionFusionParameters(FusionBase, Broadcastable):
         func_col = FunctionCollection(expressions)
 
         return [node.name for node in inputs], [node.name for node in outputs], func_col
+
+    def get_output_size(self, in_dims):
+        # the input shapes may have changed so the expression variables shapes could have
+        # changed and the iterators will need to be recalculated
+        dim_change = False
+        in_vars = [self.func_col.variables[name] for name in self.input_symbols]
+        for idx, dim in enumerate(in_dims):
+            shape = tuple(dim.shape)
+            if tuple(in_vars[idx].shape) != shape:
+                in_vars[idx].shape = shape
+                dim_change = True
+        out_dims = super().get_output_size(in_dims)
+        if dim_change: # if the input shapes haven't changed then the output shapes have not changed
+            out_vars = [self.func_col.variables[name] for name in self.output_symbols]
+            for idx, dim in enumerate(out_dims):
+                out_vars[idx].shape = tuple(dim.shape)
+            self.func_col.init_indexes() # recalculate the iterators
+        return out_dims
 
     def __str__(self):
         occurrences = Counter(

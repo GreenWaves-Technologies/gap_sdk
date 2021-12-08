@@ -81,8 +81,7 @@ class Conv2D(FilterMixin, BackendHandler):
                                   has_bias=True,
                                   in_dims_hint=[['h', 'w', 'c'], cls.TF_LITE_FILTER_ORDER.copy(), [
                                       'out_c']],
-                                  out_dims_hint=[['h', 'w', 'c']],
-                                  constant_store=G.constant_store)
+                                  out_dims_hint=[['h', 'w', 'c']])
         G.add_edge(NNEdge(from_node=weights_node, to_node=params, to_idx=1))
         G.add_edge(NNEdge(from_node=bias_node, to_node=params, to_idx=2))
         cls.new_load_filter_parameters(

@@ -18,7 +18,7 @@ import numpy as np
 from graph.types import RFFT2DPreprocessingParameters
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
-from quantization.unified_quantization_handler import params_type, in_qs_constraint
+from quantization.unified_quantization_handler import params_type, in_qs_constraint, needs_stats
 
 from ..mult_quantization_handler import MultQuantizionHandler
 
@@ -52,6 +52,7 @@ class DSPMultQuantHandler(MultQuantizionHandler):
 
 @params_type(RFFT2DPreprocessingParameters)
 @in_qs_constraint({'dtype': np.int16})
+@needs_stats(False)
 class RFFTPreprocessingMult(DSPMultQuantHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
@@ -66,6 +67,7 @@ class RFFTPreprocessingMult(DSPMultQuantHandler):
 
 @params_type(MFCCPreprocessingParameters)
 @in_qs_constraint({'dtype': np.int16})
+@needs_stats(False)
 class MFCCPreprocessingMult(DSPMultQuantHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):

@@ -58,12 +58,14 @@
 #define PRINTF_FTOA_BUFFER_SIZE    32U
 #endif
 
+//#define PRINTF_DISABLE_SUPPORT_FLOAT
 // support for the floating point type (%f)
 // default: activated
 #ifndef PRINTF_DISABLE_SUPPORT_FLOAT
 #define PRINTF_SUPPORT_FLOAT
 #endif
 
+//#define PRINTF_DISABLE_SUPPORT_EXPONENTIAL
 // support for exponential floating point notation (%e/%g)
 // default: activated
 #ifndef PRINTF_DISABLE_SUPPORT_EXPONENTIAL
@@ -82,6 +84,7 @@
 #define PRINTF_MAX_FLOAT  1e9
 #endif
 
+#define PRINTF_DISABLE_SUPPORT_LONG_LONG
 // support for the long long types (%llu or %p)
 // default: activated
 #ifndef PRINTF_DISABLE_SUPPORT_LONG_LONG

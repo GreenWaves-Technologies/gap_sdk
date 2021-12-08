@@ -13,8 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.dsp_preprocessing import DSPParameters
-from graph.types.fusions import FilterFusionBase, FusionBase
 import logging
 import os
 import re
@@ -33,13 +31,14 @@ from graph.graph_identity import GraphIdentity
 from graph.manipulations import (add_dimensions, adjust_order,
                                  balance_all_filters, calculate_liveness)
 from graph.manipulations.balance_filter import balance_filter_with_constants
-from graph.types import (ConstantInputParameters,
-                         InputBaseParameters, InputParameters,
-                         MultiplicativeBiasParameters, OutputParameters,
-                         ResizerParameters, RNNBaseParameters, SSDDetectorParameters)
+from graph.types import (ConstantInputParameters, InputBaseParameters,
+                         InputParameters, MultiplicativeBiasParameters,
+                         OutputParameters, ResizerParameters,
+                         RNNBaseParameters, SSDDetectorParameters)
 from graph.types.base import NNNodeRef
+from graph.types.dsp_preprocessing import DSPParameters
 from graph.types.expression_fusion import ExpressionFusionParameters
-from graph.types.others import TransposeParameters
+from graph.types.fusions import FilterFusionBase, FusionBase
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -93,8 +92,7 @@ class NNGraph(Graph):
     def __init__(self,
                  model=None,
                  name=None,
-                 filename=None,
-                 constant_store=None):
+                 filename=None):
         super().__init__()
 
         self.model = model
@@ -110,7 +108,6 @@ class NNGraph(Graph):
 
         self.load_function = None
         self.graphname = name
-        self.constant_store = constant_store
         self.graph_identity = GraphIdentity(filename)
         self._info = {
             'quantization': None,
@@ -251,12 +248,10 @@ class NNGraph(Graph):
         self.num_outputs = 0
         self.num_constants = 0
 
-    def add_input(self, dim: Dim, in_dim_hint=None, out_dim_hint=None, name=None) -> InputParameters:
+    def add_input(self, dim: Dim, name=None, **kwargs) -> InputParameters:
         self.num_inputs += 1
         node_name = "input_"+str(self.num_inputs) if not name else name
-        node = InputParameters(node_name, dims=dim)
-        node.in_dims_hint = in_dim_hint
-        node.out_dim_hint = out_dim_hint
+        node = InputParameters(node_name, dims=dim, **kwargs)
         self.add_node(node)
         return NNNodeRef(node, 0, self)
 
@@ -269,8 +264,7 @@ class NNGraph(Graph):
                                        adjust_transpose=adjust_transpose,
                                        is_intermediate=is_intermediate,
                                        is_mutated=is_mutated,
-                                       short_name=short_name,
-                                       constant_store=self.constant_store)
+                                       short_name=short_name)
         self.add_node(node)
         return NNNodeRef(node, 0, self)
 
@@ -278,9 +272,9 @@ class NNGraph(Graph):
         return list([edge for edge in self.in_edges(node_name)
                      if not isinstance(edge.from_node, ConstantInputParameters)])
 
-    def add_output(self) -> OutputParameters:
+    def add_output(self, name=None) -> OutputParameters:
         self.num_outputs += 1
-        node_name = "output_"+str(self.num_outputs)
+        node_name = "output_"+str(self.num_outputs) if name is None else name
         node = OutputParameters(node_name)
         self.add_node(node)
         return node

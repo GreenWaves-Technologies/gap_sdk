@@ -66,7 +66,7 @@ class GRU(RNNMixin, ConstantMixin, BackendHandler):
             biases, hidden_size,
             ("w_z_b", "w_r_b", "w_h_b", "r_z_b", "r_r_b", "r_h_b"), num_directions))
         cls.deep_update(tensors,
-                        cls.get_state(inputs, 5, 'h_state', hidden_size, num_directions))
+                        cls.get_state(G, inputs, 5, 'h_state', hidden_size, num_directions))
         cls.combine_biases_gru(tensors, ['z', 'r'], num_directions)
         extra_args = {
             'linear_before_reset': linear_before_reset

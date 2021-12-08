@@ -23,7 +23,7 @@ class Soc(object):
 
   def __init__(self, tp):
 
-    chip              = tp.get_child_str('chip')
+    chip              = tp.get_child_str('chip/name')
     has_cluster       = tp.get('cluster') is not None
     nb_cluster        = tp.get_child_int('cluster/nb_cluster')
     nb_pe             = tp.get_child_int('cluster/nb_pe')

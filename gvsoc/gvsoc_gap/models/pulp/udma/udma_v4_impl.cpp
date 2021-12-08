@@ -71,6 +71,10 @@
 #include "hyper/udma_hyper_v3.hpp"
 #endif
 
+#ifdef HAS_MRAM
+#include "mram/udma_mram_v2.hpp"
+#endif
+
 using namespace std::placeholders;
 
 
@@ -445,7 +449,7 @@ int udma::build()
     new_slave_port("fast_clock", &this->fast_clock_itf);
 
     nb_periphs = get_config_int("nb_periphs");
-    periphs.reserve(nb_periphs);
+    periphs.resize(nb_periphs);
 
     this->nb_channels = get_config_int("nb_channels");
     this->channels.resize(this->nb_channels);
@@ -558,6 +562,21 @@ int udma::build()
                 if (version == 3)
                 {
                     Hyper_periph *periph = new Hyper_periph(this, id, j);
+                    periphs[id] = periph;
+                }
+                else
+                {
+                    throw logic_error("Non-supported udma version: " + std::to_string(version));
+                }
+            }
+#endif
+#ifdef HAS_MRAM
+            else if (strcmp(name.c_str(), "mram") == 0)
+            {
+                trace.msg(vp::trace::LEVEL_INFO, "Instantiating MRAM channel (id: %d, offset: 0x%x)\n", id, offset);
+                if (version == 2)
+                {
+                    Mram_periph *periph = new Mram_periph(this, id, j);
                     periphs[id] = periph;
                 }
                 else
@@ -679,6 +698,13 @@ int udma::build()
 
 void udma::start()
 {
+    for (auto x: this->periphs)
+    {
+        if (x)
+        {
+            x->start();
+        }
+    }
 }
 
 void udma::reset(bool active)

@@ -18,8 +18,8 @@ from functools import reduce
 
 import numpy as np
 from graph.types import (AveragePoolParameters, GlobalAveragePoolParameters,
-                         GlobalMaxPoolParameters, GlobalSumPoolParameters,
-                         MaxPoolParameters)
+                         GlobalMaxPoolParameters, GlobalMinPoolParameters,
+                         GlobalSumPoolParameters, MaxPoolParameters)
 from quantization.kernels.kernel_base import KernelBase, params_type, qrec_type
 from quantization.new_qrec import AllFloatQRec, QRec
 
@@ -174,6 +174,23 @@ class GlobalMaxPoolFloat32(KernelBase):
         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float")[0]
 
         return qrec.get_outputs(params, [np.max(in_tensor,
+                                                axis=tuple(params.axis),
+                                                keepdims=params.keep_dims)], ktype="float")
+
+@params_type(GlobalMinPoolParameters)
+@qrec_type('float')
+class GlobalMinPoolFloat32(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QRec,
+                **kwargs):
+
+        if qrec is None:
+            qrec = AllFloatQRec()
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float")[0]
+
+        return qrec.get_outputs(params, [np.min(in_tensor,
                                                 axis=tuple(params.axis),
                                                 keepdims=params.keep_dims)], ktype="float")
 

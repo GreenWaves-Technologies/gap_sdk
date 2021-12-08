@@ -35,8 +35,17 @@ def gen_imm_arg(symbol):
 
 
 def gen_at_bindings(name, binding_list, code_block):
-    code_block.write('AddNode("{0}", Bindings({1}, {2}));'
-                     .format(name, len(binding_list), ", ".join(binding_list)))
+    code_block.write(f'AddNode("{name}",')
+    code_block.indent()
+    code_block.write(f'Bindings({len(binding_list)},')
+    code_block.indent()
+    for bind in binding_list[:-1]:
+        code_block.write(f'{bind},')
+    code_block.write(f'{binding_list[-1]}')
+    code_block.deindent()
+    code_block.write(")")
+    code_block.deindent()
+    code_block.write(");")
 
 
 def gen_at_func_bindings(name, func_name, where, binding_list, code_block):

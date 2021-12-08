@@ -24,7 +24,7 @@ CFLAGS_DBG += -DVP_TRACE_ACTIVE=1
 CFLAGS_SV += -DVP_TRACE_ACTIVE=1 -D__VP_USE_SYSTEMV=1
 
 VP_SRCS = src/vp.cpp src/proxy.cpp src/trace/trace.cpp src/clock/clock.cpp src/trace/event.cpp \
-	src/trace/vcd.cpp src/trace/lxt2.cpp src/power/power.cpp src/trace/lxt2_write.c \
+	src/trace/vcd.cpp src/trace/lxt2.cpp src/power/power_trace.cpp src/power/power_table.cpp src/power/power_source.cpp src/power/power_engine.cpp src/power/component_power.cpp src/trace/lxt2_write.c \
 	src/trace/fst/fastlz.c  src/trace/fst/lz4.c src/trace/fst/fstapi.c src/trace/fst.cpp \
 	src/trace/raw.cpp src/trace/raw/trace_dumper.cpp src/launcher.cpp
 

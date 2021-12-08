@@ -19,6 +19,7 @@ from graph.types import (ActivationParameters, ConcatParameters,
                          MatrixAddParameters, MatrixMulParameters, NNEdge,
                          PoolingParameters, ReluActivationParameters,
                          ReshapeParameters, TransposeParameters)
+from graph.types.tensor_arithmetic import MatMulOpParameters
 from utils.graph import GraphView
 from utils.node_id import NodeId
 
@@ -138,7 +139,7 @@ class MoveActivationsMatcherScale8(MoveNodeUpMatcher):
     ValidNodesToPass = (ReshapeParameters,
                         TransposeParameters, ConcatParameters)
     ValidFusions = (Conv2DParameters, FcParameters, PoolingParameters, PoolingParameters,
-                    GlobalPoolingParameters, MatrixAddParameters, MatrixMulParameters)
+                    GlobalPoolingParameters, MatrixAddParameters, MatrixMulParameters, MatMulOpParameters)
 
     ValidNodes = (ActivationParameters,)
 

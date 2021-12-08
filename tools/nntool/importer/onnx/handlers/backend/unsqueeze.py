@@ -33,37 +33,28 @@ class Unsqueeze(ConstantMixin, BackendHandler):
         inputs = [all_nodes[inp] for inp in node.input]
         x = inputs[0]
         x_shape = x[2].shape
-        axes = cls._resolve_negative_ranks(kwargs['axes'], len(x_shape))
-        if len(x_shape) == 0:
-            assert len(axes) == 1 and axes[0] == 0
-            new_shape = [1]
-        else:
-            new_shape = []
-            old_shape = x_shape.copy()
-            axes_copy = axes.copy()
-            idx = 0
-            while axes_copy or old_shape:
-                if idx in axes_copy:
-                    axes_copy.remove(idx)
-                    new_shape.append(1)
-                else:
-                    if not old_shape:
-                        raise ValueError(f'error in unsqueeze inshape {x_shape} axes {axes}')
-                    new_shape.append(old_shape.pop(0))
-                idx += 1
+        out_rank = len(x_shape) + len(kwargs['axes'])
+        axes = cls._resolve_negative_ranks(kwargs['axes'], out_rank)
+
+        old_shape = x_shape.copy()
+        new_shape = [1 if new_idx in axes else old_shape.pop(0)
+                     for new_idx in range(out_rank)]
 
         pshape = ProvisionalDim(new_shape)
         if cls.is_constant(x):
             x_val = cls.get_constant(x)
-            logger.info(f"reducing {valid_name} to a constant {cls.print_small(x_val)}")
-            params = ConstantInputParameters(valid_name, value=x_val.reshape(new_shape),
-                                             constant_store=G.constant_store)
+            logger.info(
+                f"reducing {valid_name} to a constant {cls.print_small(x_val)}")
+            params = ConstantInputParameters(
+                valid_name, value=x_val.reshape(new_shape))
         else:
             old_shape = cls._get_real_dim(x_shape)
             shape = cls._get_real_dim(new_shape)
-            params = ReshapeParameters(valid_name, old_shape=old_shape, shape=shape)
-            G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
-        all_nodes[node.output[0]] = (params, 0, pshape)
+            params = ReshapeParameters(
+                valid_name, old_shape=old_shape, shape=shape)
+            G.add_edge(
+                NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
+        all_nodes[node.output[0]] = (params, 0, pshape, x[3])
         return params
 
     @classmethod

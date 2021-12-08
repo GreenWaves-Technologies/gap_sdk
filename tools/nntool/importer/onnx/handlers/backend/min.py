@@ -29,6 +29,7 @@ class Min(ArithmeticMixin, BackendHandler):
         return super(Min, cls)._common(node,
                                        params_class=MinOpParameters,
                                        constant_operation=np.minimum,
+                                       copy_qtype=True,
                                        **kwargs)
 
     @classmethod

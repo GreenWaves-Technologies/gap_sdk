@@ -61,7 +61,7 @@ class Softmax(BasicMathMixin, BackendHandler):
                                       old_shape=new_shape, shape=old_shape)
         G.add_edge(NNEdge(from_node=softmax, to_node=reshape_2))
 
-        all_nodes[node.output[0]] = (reshape_2, 0, ProvisionalDim(x_shape))
+        all_nodes[node.output[0]] = (reshape_2, 0, ProvisionalDim(x_shape), None)
         return softmax
 
     @classmethod

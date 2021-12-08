@@ -16,7 +16,7 @@
 
 import numpy as np
 from bfloat16 import bfloat16
-from graph.types.input_output import OutputParameters
+from graph.types import OutputParameters
 from quantization.float.float_quantization_handler import \
     FloatQuantizionHandler
 from quantization.new_qrec import QRec

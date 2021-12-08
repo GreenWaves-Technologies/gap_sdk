@@ -8,7 +8,4 @@ endif
 IMPLEMENTATIONS += pulp/cluster/l1_interleaver_impl
 pulp/cluster/l1_interleaver_impl_SRCS = pulp/cluster/l1_interleaver_impl.cpp
 
-IMPLEMENTATIONS += pulp/cluster/cluster_impl
-pulp/cluster/cluster_impl_SRCS = pulp/cluster/cluster_impl.cpp
-
 endif

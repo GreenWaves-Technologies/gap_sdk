@@ -28,7 +28,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "system_gap8.h"
+#include "device/system_gap8.h"
 
 /* PMSIS includes. */
 #include "pmsis.h"

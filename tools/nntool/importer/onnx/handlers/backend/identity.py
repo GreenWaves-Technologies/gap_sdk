@@ -13,13 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import numpy as np
-from graph.types import ConstantInputParameters, NNEdge
-from graph.types.others import NoOPParameters, PadParameters
-from importer.common.constant_mixin import ConstantMixin
-from importer.common.provisional_dim import ProvisionalDim
-from importer.onnx.common import logger
-
 from ..backend_handler import BackendHandler
 from ..handler import onnx_op, partial_support, ps_description
 
@@ -35,7 +28,7 @@ class Identity(BackendHandler):
         inputs = [all_nodes[inp] for inp in node.input]
         x = inputs[0]
         all_nodes[node.output[0]] = x
-        return None
+        return x[0]
 
     @classmethod
     def version_1(cls, node, **kwargs):

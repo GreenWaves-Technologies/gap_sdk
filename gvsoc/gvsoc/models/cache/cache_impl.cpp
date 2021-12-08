@@ -258,7 +258,6 @@ cache_line_t *Cache::refill(int line_index, unsigned int addr, unsigned int tag,
     }
     else
     {
-      this->warning.force_warning("UNIMPLEMENTED AT %s %d\n", __FILE__, __LINE__);
       return NULL;
     }
   }

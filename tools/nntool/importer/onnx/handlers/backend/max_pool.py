@@ -22,14 +22,14 @@ from .pool_mixin import PoolMixin
 
 @onnx_op("MaxPool")
 @partial_support(True)
-@ps_description("only support maxpool with 2d input")
+@ps_description("Supports only 1D and 2D pooling. Maxpool with Argmax is not supported.")
 class MaxPool(PoolMixin, BackendHandler):
 
     @classmethod
     def _common(cls, node, **kwargs):
         if len(node.output) > 1:
             ValueError("max pool with argmax is not supported")
-        return cls.pool(node, pool_type="max", **kwargs)
+        return cls.pool(node, pool_type="max", copy_qtype=True, **kwargs)
 
     @classmethod
     def version_1(cls, node, **kwargs):

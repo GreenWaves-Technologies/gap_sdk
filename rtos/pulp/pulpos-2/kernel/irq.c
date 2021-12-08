@@ -68,6 +68,8 @@ void pos_irq_set_handler(int irq, void (*handler)())
 
   *(volatile unsigned int *)jmpAddr = pos_irq_get_itvec(base, irq, (unsigned int)handler);
 
+  fc_icache_ctrl_flush_set(ARCHI_FC_ICACHE_ADDR, -1);
+  
 #ifdef ARCHI_FC_HAS_ICACHE
   fc_icache_ctrl_flush_set(ARCHI_FC_ICACHE_ADDR, -1);
 #endif

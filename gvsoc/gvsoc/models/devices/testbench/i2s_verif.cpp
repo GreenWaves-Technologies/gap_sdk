@@ -574,7 +574,7 @@ Tx_stream_raw_file::Tx_stream_raw_file(Slot *slot, std::string filepath, int wid
     this->slot->trace.msg(vp::trace::LEVEL_INFO, "Opening dumper (path: %s)\n", filepath.c_str());
     if (this->outfile == NULL)
     {
-        this->slot->top->trace.fatal("Unable to open file (file: %s, error: %s)\n", filepath, strerror(errno));
+        this->slot->top->trace.fatal("Unable to open output file (file: %s, error: %s)\n", filepath.c_str(), strerror(errno));
     }
 }
 
@@ -674,7 +674,7 @@ Rx_stream_raw_file::Rx_stream_raw_file(Slot *slot, std::string filepath, int wid
     this->infile = fopen(filepath.c_str(), "r");
     if (this->infile == NULL)
     {
-         this->slot->top->trace.fatal("Unable to open file (file: %s, error: %s)\n", filepath, strerror(errno));
+         this->slot->top->trace.fatal("Unable to open input file (file: %s, error: %s)\n", filepath.c_str(), strerror(errno));
     }
 }
 

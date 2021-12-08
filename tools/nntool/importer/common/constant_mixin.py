@@ -13,7 +13,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import numpy as np
 from graph.types import ConstantInputParameters
+from quantization.new_qrec import QRec
+from utils.node_id import NodeId
+
 
 class ConstantMixin():
     @classmethod
@@ -26,3 +30,20 @@ class ConstantMixin():
         if not isinstance(params, ConstantInputParameters):
             raise ValueError("expected node %s to be constant input"%inp[0].name)
         return params.value
+
+    @classmethod
+    def optional_constant_scalar(cls, inputs, idx, default, dtype=np.float32):
+        if len(inputs) <= idx:
+            return dtype(default)
+        val = cls.get_constant(inputs[idx]).flatten()[0]
+        return val.astype(dtype)
+
+    @classmethod
+    def record_constant_qrec(cls, inp, cnode, **kwargs):
+        qtype = inp[3]
+        if qtype is None:
+            return
+        qrecs = kwargs.get('qrecs')
+        if qrecs is None:
+            return
+        qrecs[NodeId(cnode)] = QRec.scaled(out_qs=[qtype])

@@ -2,6 +2,10 @@
   "config_type": "generator",
   "@generator@": "generators/v1/config_gen",
 
+  "chip": {
+    "name": "vega"
+  },
+
   "board": {
     "devices": {
       "spiflash": {
@@ -39,7 +43,6 @@
     }
   },
 
-  "chip": "vega",
   "chip_family": "vega",
     
   "padframe": {
@@ -197,13 +200,6 @@
     },
 
     "taps": [ "pulp_tap", "riscv_tap" ],
-
-    "mram": {
-      "version": 1,
-      "config": {
-        "size": "0x00100000"
-      }
-    },
 
     "l2": {
       "base": "0x1C000000",

@@ -78,7 +78,7 @@ static int test_entry()
 
 
     //Configuring GPIO A0 on Pin A3 to receive wake up signal from Vesper mic
-    struct pi_gpio_conf gpio_conf = {0};
+    struct pi_gpio_conf gpio_conf;
     pi_gpio_conf_init(&gpio_conf);
     pi_open_from_conf(&gpio, &gpio_conf);
     if (pi_gpio_open(&gpio))

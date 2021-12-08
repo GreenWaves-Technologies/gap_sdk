@@ -178,8 +178,16 @@ GlobalPoolATParam = namedtuple('GlobalPoolATParam', [
 ])
 
 def gen_globalpool_at_params(params):
+    if params.pool_type == "average":
+        pop = "KOP_GLOBAL_AVGPOOL"
+    elif params.pool_type == "max":
+        pop = "KOP_GLOBAL_MAXPOOL"
+    elif params.pool_type == "sum":
+        pop = "KOP_GLOBAL_SUMPOOL"
+    else:
+        raise NotImplementedError()
     return GlobalPoolATParam(
-        GlobalPoolOper="KOP_GLOBAL_AVGPOOL" if params.pool_type == "average" else "KOP_GLOBAL_MAXPOOL"
+        GlobalPoolOper=pop
     )
 
 # LINEAR

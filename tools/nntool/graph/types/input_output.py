@@ -1,3 +1,12 @@
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
 
@@ -8,19 +17,22 @@ import logging
 import sys
 
 import numpy as np
+from graph.dim import Dim
 
-from .base import InsensitiveToQuantization, NNNodeRef, Parameters, cls_op_name, not_generated
+from .base import (InsensitiveToQuantization, NNNodeRef, Parameters,
+                   cls_op_name, not_generated)
 
 LOG = logging.getLogger("nntool." + __name__)
 
 @not_generated
 class InputOutputParameters(Parameters):
 
-    def __init__(self, *args, dims=None, fixed_order=False, short_name=None, **kwargs):
+    def __init__(self, *args, imported_dtype=None, dims=None, fixed_order=False, short_name=None, **kwargs):
         super().__init__(*args, **kwargs)
         self._output_value = None
         self._index = None
         self._short_name = short_name
+        self.imported_dtype = imported_dtype
         self.dims = dims
         self.at_options.valid_options['ALLOCATE'] = int
         self.at_options.valid_options['FIXED_ORDER'] = int
@@ -141,187 +153,7 @@ class InputParameters(InputBaseParameters, InsensitiveToQuantization):
         self.output_value = value
 
 
-@cls_op_name('constant')
-class ConstantInputParameters(InputBaseParameters):
 
-    def __init__(self, *args, adjust_transpose=None, is_mutated=False,
-                 is_intermediate=False, always_copy=False, value=None, qtype=None, **kwargs):
-        super(ConstantInputParameters, self).__init__(*args, **kwargs)
-        self.value = value
-        del self.at_options.valid_options['FIXED_ORDER']
-        self.at_options.valid_options['RESET_NAME'] = str
-        self._adjust_transpose = adjust_transpose
-        self._is_mutated = is_mutated
-        self._is_intermediate = is_intermediate
-        self._is_constant = True
-        self._is_global = True
-        self._always_copy = always_copy
-        self._use_compressed = False
-        self._qtype = qtype
-
-    def __call__(self, graph):
-        if graph.__class__.__name__ != 'NNGraph':
-            raise ValueError('expecting NNGraph as parameter')
-        return NNNodeRef(self, 0, graph)
-
-
-    def verify(self, G):
-        problems = []
-        for edge in G.in_edges(self.name):
-            problems.append(
-                f'constant input node {self.name} has input edge from {edge.from_node.name}:{edge.from_idx}')
-        for edge in G.out_edges(self.name):
-            if edge.from_idx > 0:
-                problems.append(f'constant input node {self.name} has output edge on idx {edge.from_idx} '
-                                f'to {edge.to_node.name}:{edge.to_idx}')
-        if self.value is None:
-            problems.append(f'constant node {self.name} has no value')
-        return problems
-
-    @property
-    def graph_anon_label(self):
-        return ['Constant']
-
-    @property
-    def qtype(self):
-        return self._qtype
-
-    @qtype.setter
-    def qtype(self, val):
-        self._qtype = val
-
-    @property
-    def dqvalue(self):
-        if self._qtype:
-            return self._qtype.dequantize(self.value)
-        return self.value
-
-    @dqvalue.setter
-    def dqvalue(self, val):
-        self._qtype = None
-        self.value = val
-
-    @property
-    def constant_store(self):
-        return self._constant_store
-
-    @property
-    def value(self):
-        if self._constant_store:
-            # compressed returns the real value with the error induced by the compression
-            value = self._constant_store.get(
-                self, 0, compressed=self._use_compressed)
-        else:
-            value = self._value
-
-        if self._always_copy and isinstance(value, np.ndarray):
-            return value.copy()
-        return value
-
-    @value.setter
-    def value(self, val):
-        if self._constant_store:
-            self._constant_store.set(self, 0, val)
-        else:
-            self._value = val
-
-    def value_as(self, qtype, generation=False):
-        # handles both None or both equal
-        if self._qtype == qtype:
-            return self.value
-        # need to quantize
-        if self._qtype is None:
-            return qtype.quantize(self.value)
-        # need to dequantize maybe need to quantize
-        return qtype.quantize(self.dqvalue) if qtype else self.dqvalue
-
-    @property
-    def always_copy(self):
-        return self._always_copy
-
-    @always_copy.setter
-    def always_copy(self, val):
-        self._always_copy = val
-
-    @property
-    def reset_name(self):
-        return self.at_options.reset_name
-
-    @reset_name.setter
-    def reset_name(self, val):
-        self.at_options.reset_name = val
-
-    @property
-    def adjust_transpose(self):
-        return self._adjust_transpose
-
-    @adjust_transpose.setter
-    def adjust_transpose(self, val):
-        self._adjust_transpose = val
-
-    @property
-    def is_compressed(self):
-        return self._use_compressed
-
-    @property
-    def use_compressed(self):
-        return self._use_compressed
-
-    @use_compressed.setter
-    def use_compressed(self, val):
-        self._use_compressed = val
-
-    @property
-    def is_constant(self):
-        return self._is_constant
-
-    @is_constant.setter
-    def is_constant(self, val):
-        self._is_constant = val
-
-    @property
-    def is_global(self):
-        return self._is_global
-
-    @is_global.setter
-    def is_global(self, val):
-        self._is_global = val
-
-    @property
-    def is_mutated(self):
-        return self._is_mutated
-
-    @is_mutated.setter
-    def is_mutated(self, val):
-        self._is_mutated = val
-
-    @property
-    def is_intermediate(self):
-        return self._is_intermediate
-
-    @is_intermediate.setter
-    def is_intermediate(self, val):
-        self._is_intermediate = val
-
-    def get_parameter_size(self):
-        if self._use_compressed and self._constant_store:
-            return self._constant_store.get_compressed_size(self, 0)
-        return self.dims.size()
-
-    def get_parameters(self):
-        return {'value': self.value}
-
-    def set_parameters(self, val):
-        self.value = val['value']
-
-    def __str__(self):
-        props = [param for param in ["is_mutated", "is_intermediate",
-                                     "is_compressed"] if getattr(self, param)]
-        return "Const {} {} {}".format(
-            self.dims,
-            " ".join(props),
-            self.at_options
-        )
 
 
 @cls_op_name('output')

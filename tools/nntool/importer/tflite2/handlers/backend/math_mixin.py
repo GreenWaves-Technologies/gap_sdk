@@ -14,11 +14,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import copy
-from graph.dim import Dim
 
-from graph.types.base import NNEdge
-from graph.types.input_output import ConstantInputParameters
-from graph.types.tensor_arithmetic import Broadcastable
+from graph.dim import Dim
+from graph.types import Broadcastable, ConstantInputParameters, NNEdge
 from importer.common.broadcast_mixin import BroadcastMixin
 from importer.common.constant_mixin import ConstantMixin
 from importer.tflite2.common import LOG
@@ -76,7 +74,7 @@ class ArithmeticMixin(ConstantMixin, BroadcastMixin):
             values = [cls.get_constant(inp) for inp in inputs]
             output_shapes = cls.implied_broadcast(inputs)
             params = ConstantInputParameters(node.name, value=constant_operation(*values),
-                                             dims=Dim.unnamed(output_shapes[0].known_shape), constant_store=G.constant_store)
+                                             dims=Dim.unnamed(output_shapes[0].known_shape))
         else:
             params = kwargs['params_class'](node.name, **params_args)
             output_shapes = cls.implied_broadcast(inputs)

@@ -52,8 +52,7 @@ class Transpose(ConstantMixin, BackendHandler):
                 logger.info("reducing %s to a constant %s", valid_name, x_val)
             else:
                 logger.info("reducing %s to a constant", valid_name)
-            params = ConstantInputParameters(valid_name, dims=Dim.unnamed(x_val.shape), value=x_val,
-                                             constant_store=G.constant_store)
+            params = ConstantInputParameters(valid_name, dims=Dim.unnamed(x_val.shape), value=x_val)
         else:
             transpose = [new_axes[axis] for axis in transpose if x_shape[axis] is not None]
             if transpose == sorted(transpose):
@@ -61,7 +60,7 @@ class Transpose(ConstantMixin, BackendHandler):
             else:
                 params = TransposeParameters(valid_name, transpose=transpose)
             G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
-        all_nodes[node.output[0]] = (params, 0, ProvisionalDim(pout_shape))
+        all_nodes[node.output[0]] = (params, 0, ProvisionalDim(pout_shape), x[3])
         return params
 
     @classmethod

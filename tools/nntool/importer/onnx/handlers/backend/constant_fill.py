@@ -36,9 +36,8 @@ class ConstantFill(BackendHandler):
         else:
             shape = node.attrs.get('shape')
         value = np.full(shape, value)
-        params = ConstantInputParameters(valid_name, dims=Dim.unnamed(value.shape), value=value,
-                                         constant_store=G.constant_store)
-        all_nodes[node.output[0]] = (params, 0, ProvisionalDim(value.shape))
+        params = ConstantInputParameters(valid_name, dims=Dim.unnamed(value.shape), value=value)
+        all_nodes[node.output[0]] = (params, 0, ProvisionalDim(value.shape), None)
         return params
 
     @classmethod

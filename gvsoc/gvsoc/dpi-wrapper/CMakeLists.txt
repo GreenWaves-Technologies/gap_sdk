@@ -8,7 +8,7 @@ set(GVSOC_DPI_INC_DIRS "ext/sv/include/questa/"
 
 add_library(gvsocdpi SHARED ${GVSOC_DPI_SRCS})
 target_include_directories(gvsocdpi PRIVATE ${GVSOC_DPI_INC_DIRS})
-target_link_libraries(gvsocdpi PUBLIC gvsoc)
+target_link_libraries(gvsocdpi PUBLIC gvsoc_sv)
 
 install(TARGETS gvsocdpi
         LIBRARY DESTINATION lib

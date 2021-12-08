@@ -40,7 +40,7 @@
 #include "event_groups.h"
 
 /* GAP9 handler includes. */
-#include "vega_it.h"
+#include "device/vega_it.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "printf.h"

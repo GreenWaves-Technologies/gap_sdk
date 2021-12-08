@@ -44,8 +44,7 @@ class Fill(BackendHandler):
 
             params = ConstantInputParameters(node.name,
                                             dims=Dim.unnamed(shape),
-                                            value=np.full(shape, val),
-                                            constant_store=G.constant_store)
+                                            value=np.full(shape, val))
             all_nodes[node.output[0]] = (params, 0, ProvisionalDim(shape))
             return params
         else:

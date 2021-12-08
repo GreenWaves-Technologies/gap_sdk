@@ -334,6 +334,7 @@ extern void ZeroPadCenter_Fix16(Windowing_T *Arg);
 extern void ZeroPadCenter_Fix32(Windowing_T *Arg);
 extern void ZeroPadCenter_f16(Windowing_T *Arg);
 extern void ZeroPadCenter_f32(Windowing_T *Arg);
+extern void InvWindowing_Fix16(Windowing_T *Arg);
 extern void WindowingReal2Cmplx_Fix16(Windowing_T *Arg);
 extern void WindowingReal2Cmplx_Fix32(Windowing_T *Arg);
 extern void WindowingReal2Cmplx_f32(Windowing_T *Arg);

@@ -251,6 +251,7 @@ KernelLib_T *KerLibMatch(
         int ParallelFeatures,		/**< If 0 one feature is evaluated by several cores, if not each core evaluates a different feature */
 	int FloatKer,			/**< If 1 kernel uses float arithmetic, int otherwise */
 	int HWCKer,			/**< If 1 kernel is based on HWC tensor, otherwise CHW */
+	int NE16Ker,			/**< If 1 kernel uses the NE16 */
         int I1_Type,			/**< Input1 data size in bytes or 0 if to be ignored */
 	int I2_Type,			/**< Input2 data size in bytes or 0 if to be ignored */
 	int I3_Type,			/**< Input3 data size in bytes or 0 if to be ignored */

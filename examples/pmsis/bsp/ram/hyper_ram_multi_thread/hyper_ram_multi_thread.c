@@ -32,7 +32,7 @@ void transfer_test(void *parameters)
     struct args_s *args = (struct args_s *) parameters;
     /* Write a buffer in ram, then read back from ram. */
     #if defined(ASYNC)
-    struct pi_task cb_tx = {0}, cb_rx = {0};
+    struct pi_task cb_tx, cb_rx;
     pi_task_block(&cb_rx);
     cb_rx.arg[1] = (uint32_t) args;
     pi_task_callback(&cb_tx, __end_of_tx, &cb_rx);

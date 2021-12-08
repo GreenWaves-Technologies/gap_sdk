@@ -84,3 +84,12 @@ To execute the application on the specific image contained in RGB.img, just type
 ~~~~~sh
 	make clean all run
 ~~~~~
+
+## Compile with cmake build alternative (freertos only)
+
+~~~~~sh
+  mkdir CMBUILD
+  cd CMBUILD
+  cmake -DCONFIG_GAP_SDK_HOME=$GAP_SDK_HOME .. -DCMAKE_MODULE_PATH=$GAP_SDK_HOME/utils/cmake -DCONFIG_CHIP=GAP9 -DCONFIG_CHIP_VERSION=2 -DCONFIG_PMSIS_OS=freertos
+  cmake --build .
+~~~~~

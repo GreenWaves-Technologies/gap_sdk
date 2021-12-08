@@ -162,6 +162,30 @@ void PreEmphasis_f32(PreEmphasis_f32_T *Arg)
 #endif
 }
 
+void InvWindowing_Fix16(Windowing_T *Arg)
+{
+        short int *__restrict__ Frame     = (short int *) Arg->Frame;
+        short int *__restrict__ OutFrame  = (short int *) Arg->OutFrame;
+        unsigned char *__restrict__ InvWindow = (unsigned char *) Arg->Window;
+        int                     FrameSize = Arg->FrameSize;
+        int                     FFT_Dim   = Arg->FFT_Dim;
+        unsigned int i, Chunk, First, Last, CoreId=gap_coreid();
+        Chunk = ChunkSize(FrameSize);
+        First = CoreId*Chunk; Last = Min(First + Chunk, FrameSize);
+
+        for (i=First; i<Last; i++) {
+                int InvSample = InvWindow[2*i], Shift = 8 - InvWindow[2*i+1];
+                if (Shift > 0) OutFrame[i] = (Frame[i] * InvSample) >> (+Shift);
+                else           OutFrame[i] = (Frame[i] * InvSample) << (-Shift);
+        }
+        gap_waitbarrier(0);
+#ifdef PRINTDEB
+        if (CoreId==0) {
+                printf("out_window_c = np.array([\n\t\t"); for(int i=0; i<FFT_Dim ; i++) printf("%d, ", OutFrame[i]); printf("])\n");
+        } gap_waitbarrier(0);
+#endif
+}
+
 void WindowingReal2Cmplx_Fix16(Windowing_T *Arg)
 {
         short int *__restrict__ Frame     = (short int *) Arg->Frame;

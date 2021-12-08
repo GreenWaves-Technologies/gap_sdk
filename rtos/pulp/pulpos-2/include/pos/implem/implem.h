@@ -185,4 +185,18 @@ extern unsigned char __l1_heap_size;
 
 #define rt_platform() __PLATFORM__
 
+/* Define this flag to enable assert, args check. */
+
+#if defined(DEBUG_ASSERT)
+#define IMPLEM_SPECIFIC_ASSERT(test)                                    \
+    if (!(test))                                                        \
+    {                                                                   \
+        printf("PI assertion error in func %s, %s:%d : %s.\n",          \
+               __func__, __FILE__, (unsigned int)__LINE__, #test);      \
+        pmsis_exit(-187);                                               \
+    }
+#else
+#define IMPLEM_SPECIFIC_ASSERT(test) ((void) 0)
+#endif  /* DEBUG_ASSERT */
+
 #endif

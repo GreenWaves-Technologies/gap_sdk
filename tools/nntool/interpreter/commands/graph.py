@@ -66,7 +66,7 @@ Select actuve graphs"""
     table_options(parser_show, default_width=180)
     parser_show.add_argument('step', nargs=(0, 1),
         help='step to show or nothing to show all.' + NODE_SELECTOR_HELP,
-        completer_method=NNToolShellBase.node_step_or_name_completer)
+        completer_method=NNToolShellBase.node_step_or_name_completer(allow_comma=True))
     parser_show.add_argument('-s', '--show_constants', action='store_true',
                              help='Show constant parameters nodes')
 
@@ -77,7 +77,7 @@ Select actuve graphs"""
 Display the structure of the graph"""
         self._check_graph()
         if args.step:
-            nodes, _ = self.get_node_step_or_name(args.step)
+            nodes, _ = self.get_node_step_or_name(args.step, allow_comma=True)
             if not nodes:
                 self.do_help('show')
                 return

@@ -13,7 +13,9 @@ TRC_MAKE=
 endif				# VERBOSE
 
 platform     ?= board
+PRINTF_FLOAT ?= ENABLE
 
+printf_float = $(PRINTF_FLOAT)
 chip=$(TARGET_CHIP_FAMILY)
 TARGET_CHIP_VERSION=
 ifeq ($(TARGET_CHIP), GAP8)
@@ -40,7 +42,7 @@ GWT_PMSIS           = $(GWT_TARGET)/pmsis
 GWT_LIBS            = $(GWT_TARGET)/libs
 GWT_DEVICE          = $(GWT_TARGET)/$(chip_lowercase)/src/device
 GWT_DRIVER          = $(GWT_TARGET)/$(chip_lowercase)/src/driver
-GWT_DEVICE_INC      = $(GWT_TARGET)/$(chip_lowercase)/include/device
+GWT_DEVICE_INC      = $(GWT_TARGET)/$(chip_lowercase)/include
 GWT_DRIVER_INC      = $(GWT_TARGET)/$(chip_lowercase)/include/driver
 GWT_PMSIS_BACKEND   = $(GWT_PMSIS)/backend
 GWT_PMSIS_IMPLEM    = $(GWT_TARGET)/$(chip_lowercase)/pmsis
@@ -65,6 +67,10 @@ RISCV_FLAGS         ?= $(APP_ARCH_CFLAGS)
 FREERTOS_FLAGS      += -D__riscv__ -D__GAP__ -D__$(chip)__ -D__RISCV_ARCH_GAP__=1 \
                        -DCHIP_VERSION=$(TARGET_CHIP_VERSION)
 
+
+ifneq ($(printf_float), ENABLE)
+	FREERTOS_FLAGS +=  -DPRINTF_DISABLE_SUPPORT_FLOAT -DPRINTF_DISABLE_SUPPORT_EXPONENTIAL
+endif
 
 # Main stack size in Bytes.
 MAIN_STACK_SIZE     ?= 2048
@@ -259,7 +265,7 @@ PRINTF_SRC          = $(GWT_LIBS)/printf/printf.c
 
 INC_PATH            = $(FREERTOS_SOURCE_DIR)/include
 INC_PATH           += $(FREERTOS_CONFIG_DIR) $(PORT_DIR)
-INC_PATH           += $(GWT_TARGET) $(GWT_DEVICE_INC) $(GWT_DRIVER_INC)
+INC_PATH           += $(GWT_TARGET) $(GWT_TARGET)/$(chip_lowercase)/include $(GWT_DEVICE_INC) $(GWT_DRIVER_INC)
 INC_PATH           += $(GWT_LIBS)/include
 INC_PATH           += $(GWT_LIBS)/printf
 
@@ -275,7 +281,7 @@ PMSIS_SRC          += $(PMSIS_BSP_SRCS)
 PMSIS_SRC          += $(PMSIS_RTOS_SRCS)
 
 PMSIS_INC_PATH      = $(GWT_PMSIS)/include/ $(GWT_PMSIS_API)/include/
-PMSIS_INC_PATH     += $(GWT_PMSIS_BACKEND)
+PMSIS_INC_PATH     += $(GWT_PMSIS_BACKEND)/include
 PMSIS_INC_PATH     += $(PMSIS_IMPLEM_DIR) $(PMSIS_IMPLEM_CHIP_INC)
 PMSIS_INC_PATH     += $(PMSIS_BSP_INC)
 PMSIS_INC_PATH     += $(PMSIS_RTOS_INC)

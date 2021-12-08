@@ -26,13 +26,13 @@ from generation.generators.globals.mult8_infos_generator import act_infos
 from generation.generators.kernels.autotiler_kernel import NewAutoTilerKernel
 from generation.new_generators.generator_base import (GeneratorBase, ktype,
                                                       paramstype)
-from graph.types import ActivationFusion, MatrixAddParameters
+from graph.types import ActivationFusion, MatrixAddParameters, BroadcastableActivationFusion
 from quantization.multiplicative.mulbias import set_add_in_scale
 from utils.node_id import NodeId
 
 LOG = logging.getLogger("nntool." + __name__)
 
-@paramstype(MatrixAddParameters, ActivationFusion)
+@paramstype(MatrixAddParameters, ActivationFusion, BroadcastableActivationFusion)
 @ktype("float")
 class MatAddSQ8Generator(GeneratorBase):
 
@@ -42,7 +42,7 @@ class MatAddSQ8Generator(GeneratorBase):
 
     @classmethod
     def bindings_generator(cls, gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
-        if isinstance(node, ActivationFusion):
+        if isinstance(node, (ActivationFusion, BroadcastableActivationFusion)):
             cnodes = node.contained_nodes()
             quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
             if isinstance(cnodes[0], MatrixAddParameters):
@@ -66,7 +66,7 @@ class MatAddSQ8Generator(GeneratorBase):
 
     @classmethod
     def kernel_generator(cls, gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
-        if isinstance(node, ActivationFusion):
+        if isinstance(node, (ActivationFusion, BroadcastableActivationFusion)):
             cnodes = node.contained_nodes()
             if isinstance(cnodes[0], MatrixAddParameters):
                 gen.kernels.append(MatAddKernel(node.name, cname, cnodes[0], cnodes[1], force_relu=gen.force_relu))

@@ -17,7 +17,7 @@ GWT_HEADER = '''
 
 @stringfunction
 # pylint: disable=unused-argument
-def generate_main_appl_template(G, gen, test_inputs=None, test_outputs=None):
+def generate_main_appl_template(G, gen, test_inputs=None, test_outputs=None, tolerance=0.0):
     '''
 ${GWT_HEADER}
 
@@ -47,7 +47,7 @@ static void cluster()
 
     ${gen.project_name}CNN(${gen.gen_inout_list()});
     printf("Runner completed\\n");
-${gen.generate_output_check(indent=1) if test_outputs else ""}
+${gen.generate_output_check(tolerance, indent=1) if test_outputs else ""}
 }
 
 int test_${gen.project_name}(void)
@@ -176,7 +176,7 @@ def generate_main_appl_make(G, gen, quantized, open_args=""):
 NNTOOL=nntool
 ${"MODEL_SQ8=1"  if gen.G.has_expressions or "SQ8" in gen.G.quantization.schemes_present or any(qrec.cache.get("ne16")  for qrec in G.quantization.values()) else "# MODEL_SQ8=1"}
 ${"MODEL_POW2=1" if "POW2" in gen.G.quantization.schemes_present else "# MODEL_POW2=1"}
-${"MODEL_FP16=1" if "FLOAT" in gen.G.quantization.schemes_present else "# MODEL_FP16=1"}
+${"MODEL_FP16=1" if any(qrec.ktype == "float"  for qrec in G.quantization.values()) else "# MODEL_FP16=1"}
 ${"MODEL_NE16=1" if any(qrec.cache.get("ne16")  for qrec in G.quantization.values()) else "# MODEL_NE16=1"}
 
 MODEL_SUFFIX?=

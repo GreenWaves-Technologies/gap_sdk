@@ -22,10 +22,10 @@ from graph.types import (ConstantInputParameters, HSigmoidActivationParameters,
                          MatrixBroadcastedLinearOpParameters,
                          MatrixMulParameters, NNEdge, ReluActivationParameters)
 from quantization.new_qrec import QRec
-from utils.graph import Edge, GraphView
+from utils.graph import GraphView
 from utils.node_id import NodeId
 
-from ..matcher import DefaultMatcher, Matcher, MatchNode, match_name, groups, description, run_before
+from ..matcher import Matcher, description, groups, match_name, run_before
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -45,52 +45,64 @@ def check_equals(G, node, val):
 
 # Matches filter -> mul with 1/6th constant
 
+
 @match_name('match_close_hsigmoid')
 @description('Match relu6 followed by matmul with 1/6 constant and replaces with hsigmoid activation')
 @groups('scaled')
 @run_before('fuse_gap_convs', 'fuse_gap_linear')
-class MatchCloseHSigmoid(DefaultMatcher):
+class MatchCloseHSigmoid(Matcher):
 
-    def match_function(self, G: GraphView):
-        sub = GraphView()
-        sub.add_node(MatchNode('0', matcher=lambda node:
-                               isinstance(node, ReluActivationParameters) and node.upper_bound == 6))
-        sub.add_node(MatchNode('1', matcher=lambda node:
-                               isinstance(node, MatrixMulParameters)))
-        sub.add_node(MatchNode('2', matcher=lambda node:
-                               isinstance(node, ConstantInputParameters) and check_equals(G, node, 1.0/6.0)))
-        sub.add_edge(Edge('0', '1', to_idx=0))
-        sub.add_edge(Edge('2', '1', to_idx=1))
+    def _match(self, G: GraphView, set_identity: bool = True, **kwargs):
+        something_changed = False
+        for relu_node in [node for node in G.nodes(node_classes=ReluActivationParameters) if node.upper_bound == 6]:
+            out_edges = G.out_edges(relu_node)
+            if len(out_edges) != 1 or not isinstance(out_edges[0].to_node, MatrixMulParameters):
+                continue
+            mul_node = out_edges[0].to_node
+            in_edges = G.in_edges(mul_node)
+            if len(in_edges) != 2:
+                continue
+            other_edge = (set(in_edges) - {out_edges[0]}).pop()
+            constant_node = other_edge.from_node
+            if len(G.out_edges(constant_node)) != 1:
+                continue
+            if (not isinstance(constant_node, ConstantInputParameters) or
+                    not check_equals(G, constant_node, 1.0/6.0)):
+                continue
 
-        return G.match_fragment(sub)
+            something_changed = True
+            activation = HSigmoidActivationParameters(
+                G.unique_name(f'{mul_node.name}_hsigmoid'), offset=0)
 
-    def replace_function(self, G: GraphView, subgraph: GraphView):
-        relu_node = None
-        constant_node = None
-        mul_node = None
-        for node in subgraph.nodes():
-            if isinstance(node, ReluActivationParameters):
-                relu_node = node
-            elif isinstance(node, ConstantInputParameters):
-                constant_node = node
-            elif isinstance(node, MatrixMulParameters):
-                mul_node = node
+            in_edges = G.in_edges(relu_node)
+            out_edges = G.out_edges(mul_node)
 
-        activation = HSigmoidActivationParameters(
-            mul_node.name + "_fused_close_hsigmoid", offset=0)
+            nodes_to_replace = [relu_node, mul_node, constant_node]
 
-        if G.quantization:
-            reluqrec = G.quantization[NodeId(relu_node)]
-            mulqrec = G.quantization[NodeId(mul_node)]
-            del G.quantization[NodeId(constant_node)]
-            pqrec = QRec.copy_ktype(
-                reluqrec, in_qs=reluqrec.in_qs, out_qs=mulqrec.out_qs)
-            G.quantization[NodeId(activation)] = pqrec
-        return activation, None, None
+            LOG.info(f'fusing {", ".join(node.name for node in nodes_to_replace)} into HSIGMOID {activation.name}')
+            G.remove_all(nodes_to_replace)
+
+            for in_edge in in_edges:
+                G.add_edge(NNEdge.clone(in_edge, to_node=activation, to_idx=0))
+            for out_edge in out_edges:
+                G.add_edge(NNEdge.clone(
+                    out_edge, from_node=activation, from_idx=0))
+
+            if G.quantization:
+                reluqrec = G.quantization[NodeId(relu_node)]
+                mulqrec = G.quantization[NodeId(mul_node)]
+                del G.quantization[NodeId(constant_node)]
+                pqrec = QRec.copy_ktype(
+                    reluqrec, in_qs=reluqrec.in_qs, out_qs=mulqrec.out_qs)
+                G.quantization[NodeId(activation)] = pqrec
+
+        return something_changed
 
 
 def look_back(G, node, state=None):
     # TODO - Pass through nodes that don't modify the tensor contents
+    if G.quantization is None:
+        return None
     if state is None:
         state = {'relu1': None, 'add': None,
                  'relu2': None, 'mul': None, 'relu3': None}
@@ -173,6 +185,7 @@ def process_rec(G, oprec):
         G.remove(oprec[node_type][0])
         del G.quantization[NodeId(oprec[node_type][2])]
         G.remove(oprec[node_type][2])
+
 
 @match_name('match_far_hsigmoid')
 @description('Looks for quantized HSigmoid - [Relu] -> Add 3 -> Relu6 -> Mul 1/6 -> [Relu]')

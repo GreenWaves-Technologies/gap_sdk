@@ -13,7 +13,7 @@
     "l2_read_fifo_size": 4
   },
 
-  "interfaces" : ["hyper", "aes", "sfu", "ffc", "i2s", "uart", "i2c"],
+  "interfaces" : ["hyper", "aes", "sfu", "ffc", "i2s", "uart", "i2c", "mram"],
 
   "spim": {
     "version"      : 4,
@@ -69,6 +69,19 @@
     "ids"          : [19],
     "offsets"      : ["0x980"],
     "is_slave"     : true
+  },
+
+  "mram": {
+    "version"      : 2,
+    "nb_channels"  : 1,
+    "ids"          : [21],
+    "offsets"      : ["0xA80"],
+    "events"       : {
+      "erase"      : [113],
+      "tx"         : [114],
+      "trim"       : [115],
+      "rx"         : [116]
+    }
   },
 
   "aes": {

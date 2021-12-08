@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/usr/bin/env bash
 
 trap "exit" INT TERM
 trap "kill 0" EXIT

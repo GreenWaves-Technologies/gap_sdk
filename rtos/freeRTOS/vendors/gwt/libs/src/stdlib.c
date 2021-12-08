@@ -30,12 +30,12 @@
 
 #include "stdlib.h"
 #if defined(__GAP8__)
-#include "system_gap8.h"
+#include "device/system_gap8.h"
 #else
 #if defined(__VEGA__)
-#include "system_vega.h"
+#include "device/system_vega.h"
 #else
-#include "system_gap9.h"
+#include "device/system_gap9.h"
 #endif
 #endif  /* __GAP8__ */
 

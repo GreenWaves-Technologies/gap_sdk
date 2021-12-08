@@ -59,8 +59,7 @@ class Flatten(ConstantMixin, BackendHandler):
             logger.info("reducing %s to a constant", valid_name)
             params = ConstantInputParameters(
                 valid_name,
-                value=cls.get_constant(x).reshape(shape),
-                constant_store=G.constant_store
+                value=cls.get_constant(x).reshape(shape)
             )
             pshape = ProvisionalDim(shape)
         else:
@@ -69,7 +68,7 @@ class Flatten(ConstantMixin, BackendHandler):
             pshape = ProvisionalDim(pshape)
             G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
 
-        all_nodes[node.output[0]] = (params, 0, pshape)
+        all_nodes[node.output[0]] = (params, 0, pshape, x[3])
         return params
 
     @classmethod

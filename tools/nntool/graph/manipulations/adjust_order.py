@@ -15,9 +15,11 @@
 
 import logging
 
+from graph.types import ConstantInputParameters
+
+from .adjust_base import AdjusterBase
 #pylint: disable=wildcard-import, unused-wildcard-import
 from .adjusts import *
-from .adjust_base import AdjusterBase
 from .dimensions import add_dimensions
 from .eliminate_transposes.eliminate_transposes import eliminate_transposes
 
@@ -28,6 +30,7 @@ def adjust_order(G, reshape_weights=True, postprocess=True, debug_function=None,
     opts = {'reshape_weights': reshape_weights}
     selector = AdjusterBase.get_all_handlers(opts)
     LOG.info("adding transposes to correct tensor order for AT kernels")
+    ConstantInputParameters.clear_compression_state(G)
     for node in G.nodes(node_classes=tuple(selector)):
         adjusters = selector[node.__class__]
         for adjuster, attrs in adjusters:

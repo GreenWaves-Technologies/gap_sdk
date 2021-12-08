@@ -96,6 +96,7 @@ int CNN_MM_ConvolutionNE16(
 
         KernelOper_T ActOper
         );
+
 int CNN_LinearAct_NE16(
         char *Name,
 
@@ -111,6 +112,25 @@ int CNN_LinearAct_NE16(
         int OutDim,
 
         KernelOper_T LinearOper,
+        KernelOper_T ActOper
+        );
+
+int CNN_MatMulAct_NE16(
+        char *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int In_DataSize,
+        int Out_DataSize,
+        int Bias_DataSize,
+        int Filter_DataSizeBits,
+
+        int ColM1,
+        int LineM1,
+        int ColM2,
+        int LineM2,
+
+        KernelOper_T MatMulOper,
         KernelOper_T ActOper
         );
 

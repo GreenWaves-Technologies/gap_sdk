@@ -22,7 +22,7 @@ void test_rtc_counter(void)
     uint8_t repeat_en = (repeat > 0) ? 1 : 0;
 
     /* Init & open RTC. */
-    struct pi_rtc_conf rtc_conf = {0};
+    struct pi_rtc_conf rtc_conf;
     pi_rtc_conf_init(&rtc_conf);
     rtc_conf.mode = PI_RTC_MODE_TIMER;
     rtc_conf.counter = (uint32_t) TIMER_SECONDS;
@@ -41,7 +41,7 @@ void test_rtc_counter(void)
 
     /* Binding RTC IRQ. */
     uint32_t arg = 0xabbadead;
-    struct pi_task task = {0};
+    struct pi_task task;
     pi_task_callback(&task, timer_irq_handler, &arg);
     pi_rtc_ioctl(&rtc, PI_RTC_TIMER_ATTACH_TASK, &task);
 

@@ -579,7 +579,7 @@ void KerPar_MM_Conv1x1_ReLU_HWC_SQ8(
 			unsigned char *pScN = ScaleN + First;
 
 			for (int i=0; i<(IterOut/4); i++) {
-				signed char *pIn0 = pI, *pIn1 = pIn0 + InFeat,
+				signed char *pIn0 = pI, *pIn1 = pIn0 + Sx*InFeat,
 					    *pC0 = pC, *pC1 = pC0+InFeat, *pC2 = pC1+InFeat, *pC3 = pC2+InFeat;
 				pC=pC3+InFeat;
 	                        int S00 = (*pBias)<<NormBias, S01 = S00; pBias++;
@@ -740,7 +740,7 @@ void Ker_MM_Conv1x1_ReLU_HWC_SQ8(
 			unsigned char *pScN = ScaleN;
 
 			for (int i=0; i<(OutFeat/4); i++) {
-				signed char *pIn0 = pI, *pIn1 = pIn0 + InFeat,
+				signed char *pIn0 = pI, *pIn1 = pIn0 + Sx*InFeat,
 					    *pC0 = pC, *pC1 = pC0+InFeat, *pC2 = pC1+InFeat, *pC3 = pC2+InFeat;
 				pC=pC3+InFeat;
 	                        int S00 = (*pBias)<<NormBias, S01 = S00; pBias++;
@@ -936,6 +936,116 @@ void KerPar_MM_Conv1D_HWC_SQ8(
 		PosL += Sy;
 	}
 }
+
+// void KerPar_MM_Conv1D_HWC_SQ8(
+// 	Ker_MM_Conv_SQ8_T *Arg
+// 	)
+
+// {
+// 	/*
+// 		For HWC weights (4D Tensor) are expected to be organized as [OutFeat x Fy x Fx x InFeat]
+// 	*/
+// 	signed char *__restrict__ In = Arg->In;
+// 	int W = Arg->W, H = Arg->H;
+// 	signed char *__restrict__ Filter = Arg->Filter;
+// 	int Fx = Arg->Fx, Sx = Arg->Sx, Sy = Arg->Sy;
+// 	int PadL = Arg->Pad[0];
+// 	int InFeat = Arg->InFeat, OutFeat = Arg->OutFeat;
+
+//         int * __restrict__ Bias = Arg->Bias;
+// 	int NormBias = Arg->Infos[AT_INF_BIASN];
+//         signed char * __restrict__ Out = Arg->Out;
+//         unsigned char * __restrict__ Scale = Arg->Scale;
+//         unsigned char * __restrict__ ScaleN = Arg->ScaleN;
+
+// 	int Wo = Arg->Wo, Ho = Arg->Ho;
+
+// 	/* ColBuff must be large enough to accomodate Align(Fx*InFeat, 8) elements */
+// 	unsigned int W_In1 = InFeat*Fx;
+// 	unsigned int CoreId = gap_coreid(), C = ChunkSize(InFeat), F = Min(CoreId*C, InFeat), L = Min(InFeat, F+C);
+// 	unsigned int ChunkCell = ChunkSize(OutFeat), First = CoreId*ChunkCell, Last  = Min(OutFeat, First+ChunkCell);
+//         unsigned int Iter = (Last>First)?(Last-First):0;
+
+// 	int PosL = 0;
+// 	int PosC = -PadL;
+// 	for (int c=0; c<Wo/4; c++) {
+// 		v4s * __restrict__ VIn1 = (v4s *) (In + (4*c  )*Sx*InFeat);
+// 		v4s * __restrict__ VIn2 = (v4s *) (In + (4*c+1)*Sx*InFeat);
+// 		v4s * __restrict__ VIn3 = (v4s *) (In + (4*c+2)*Sx*InFeat);
+// 		v4s * __restrict__ VIn4 = (v4s *) (In + (4*c+3)*Sx*InFeat);
+//                 for (int c_out=0; c_out<Iter/2; c_out++) {
+//                 	int col = First + 2*c_out;
+//                         v4s *VFilter1 = (v4s *) (&Filter[(col  )*W_In1]);
+//                         v4s *VFilter2 = (v4s *) (&Filter[(col+1)*W_In1]);
+//                         int S1 = (Bias[col  ]<<NormBias), S3=S1, S5=S1, S7=S1;
+//                         int S2 = (Bias[col+1]<<NormBias), S4=S2, S6=S2, S8=S2;
+//                         for (int i=0; i<(W_In1/4); i++) {
+//                                 S1 = gap_sumdotp4(VIn1[i], VFilter1[i], S1); S2 = gap_sumdotp4(VIn1[i], VFilter2[i], S2);
+//                                 S3 = gap_sumdotp4(VIn2[i], VFilter1[i], S3); S4 = gap_sumdotp4(VIn2[i], VFilter2[i], S4);
+//                                 S5 = gap_sumdotp4(VIn3[i], VFilter1[i], S5); S6 = gap_sumdotp4(VIn3[i], VFilter2[i], S6);
+//                                 S7 = gap_sumdotp4(VIn4[i], VFilter1[i], S7); S8 = gap_sumdotp4(VIn4[i], VFilter2[i], S8);
+//                         }
+//                         for (int i=(W_In1/4)*4; i<W_In1; i++) {
+//                         	S1 += In[(4*c  )*Sx*InFeat+i]*Filter[(col)*W_In1+i]; S2 += In[(4*c  )*Sx*InFeat+i]*Filter[(col+1)*W_In1+i];
+//                         	S3 += In[(4*c+1)*Sx*InFeat+i]*Filter[(col)*W_In1+i]; S4 += In[(4*c+1)*Sx*InFeat+i]*Filter[(col+1)*W_In1+i];
+//                         	S5 += In[(4*c+2)*Sx*InFeat+i]*Filter[(col)*W_In1+i]; S6 += In[(4*c+2)*Sx*InFeat+i]*Filter[(col+1)*W_In1+i];
+//                         	S7 += In[(4*c+3)*Sx*InFeat+i]*Filter[(col)*W_In1+i]; S8 += In[(4*c+3)*Sx*InFeat+i]*Filter[(col+1)*W_In1+i];
+//                         }
+//                         unsigned int Sc1 = Scale[col  ], ScN1 = ScaleN[col  ];
+//                         unsigned int Sc2 = Scale[col+1], ScN2 = ScaleN[col+1];
+// 			v2s R1 = gap_pack2(gap_clip(AT_SCALE(S1, Sc1, ScN1), 7), gap_clip(AT_SCALE(S2, Sc2, ScN2), 7));
+// 			v2s R2 = gap_pack2(gap_clip(AT_SCALE(S3, Sc1, ScN1), 7), gap_clip(AT_SCALE(S4, Sc2, ScN2), 7));
+// 			v2s R3 = gap_pack2(gap_clip(AT_SCALE(S5, Sc1, ScN1), 7), gap_clip(AT_SCALE(S6, Sc2, ScN2), 7));
+// 			v2s R4 = gap_pack2(gap_clip(AT_SCALE(S7, Sc1, ScN1), 7), gap_clip(AT_SCALE(S8, Sc2, ScN2), 7));
+//                         *((v2s *) (&Out[(4*c  )*OutFeat + (col)])) = R1;
+//                         *((v2s *) (&Out[(4*c+1)*OutFeat + (col)])) = R2;
+//                         *((v2s *) (&Out[(4*c+2)*OutFeat + (col)])) = R3;
+//                         *((v2s *) (&Out[(4*c+3)*OutFeat + (col)])) = R4;
+//                 }
+//                 if (Iter&0x1) {
+//                 	int col = Last-1;
+//                         v4s *VFilter1 = (v4s *) (&Filter[(col)*W_In1]);
+//                         int S1 = (Bias[col  ]<<NormBias), S3=S1, S5=S1, S7=S1;
+//                         for (int i=0; i<(W_In1/4); i++) {
+//                                 S1 = gap_sumdotp4(VIn1[i], VFilter1[i], S1);
+//                                 S3 = gap_sumdotp4(VIn2[i], VFilter1[i], S3);
+//                                 S5 = gap_sumdotp4(VIn3[i], VFilter1[i], S5);
+//                                 S7 = gap_sumdotp4(VIn4[i], VFilter1[i], S7);
+//                         }
+//                         for (int i=(W_In1/4)*4; i<W_In1; i++) {
+//                         	S1 += In[(4*c  )*Sx*InFeat+i]*Filter[(col)*W_In1+i];
+//                         	S3 += In[(4*c+1)*Sx*InFeat+i]*Filter[(col)*W_In1+i];
+//                         	S5 += In[(4*c+2)*Sx*InFeat+i]*Filter[(col)*W_In1+i];
+//                         	S7 += In[(4*c+3)*Sx*InFeat+i]*Filter[(col)*W_In1+i];
+//                         }
+//                         unsigned int Sc1 = Scale[col  ], ScN1 = ScaleN[col  ];
+// 			Out[(4*c  )*OutFeat + (col)] = gap_clip(AT_SCALE(S1, Sc1, ScN1), 7);
+// 			Out[(4*c+1)*OutFeat + (col)] = gap_clip(AT_SCALE(S3, Sc1, ScN1), 7);
+// 			Out[(4*c+2)*OutFeat + (col)] = gap_clip(AT_SCALE(S5, Sc1, ScN1), 7);
+// 			Out[(4*c+3)*OutFeat + (col)] = gap_clip(AT_SCALE(S7, Sc1, ScN1), 7);
+
+//                 }
+// 		gap_waitbarrier(0);
+// 	}
+// 	for (int c=(Wo/4)*4; c<Wo; c++) {
+// 		v4s * __restrict__ VBuff1 = (v4s *) (In + (c)*Sx*InFeat);
+//                 for (int c_out=First; c_out<Last; c_out++) {
+//                         v4s *VIn1 = (v4s *) (&Filter[c_out*W_In1]);
+//                         int S1 = (Bias[c_out]<<NormBias);
+//                         for (int i=0; i<(W_In1/4); i++) {
+//                                 v4s V1 = VIn1[i];
+// 				v4s C11 = VBuff1[i];
+//                                 S1 = gap_sumdotp4(V1, C11, S1);
+//                         }
+//                         for (int i=(W_In1/4)*4; i<W_In1; i++) {
+//                         	S1 += In[(c)*Sx*InFeat+i]*Filter[c_out*W_In1+i];
+//                         }
+//                         unsigned int Sc = Scale[c_out], ScN = ScaleN[c_out];
+//                         Out[(c)*OutFeat + c_out] = gap_clip(AT_SCALE(S1, Sc, ScN), 7);
+//                 }
+// 		gap_waitbarrier(0);
+// 	}
+// }
 
 void KerPar_MM_Conv1D_DxDy_SQ8(
 	Ker_MM_Conv_SQ8_T *Arg

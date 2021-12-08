@@ -141,11 +141,9 @@ public:
   vp::reg_1     step_mode;
   vp::reg_1     do_step;
 
-  vp::power_trace power_trace;
-
-  std::vector<vp::power_source> insn_groups_power;
-  vp::power_source clock_gated_power;
-  vp::power_source leakage_power;
+  std::vector<vp::power::power_source> insn_groups_power;
+  vp::power::power_source clock_gated_power;
+  vp::power::power_source leakage_power;
 
   vp::trace     state_event;
   vp::trace     pc_trace_event;

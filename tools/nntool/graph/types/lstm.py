@@ -68,7 +68,6 @@ class LSTMParameters(RNNBaseParameters):
         self.proj_clip = proj_clip
         self.at_options.valid_options['LSTM_OUTPUT_C_STATE'] = int
         self.at_options.valid_options['QUANT_C_STATE_WITH_STAT'] = int
-        self.lstm_output_c_state = (False, None)
         self.quant_c_state_with_stat = False
 
     def set_c_state_as_output(self, G):
@@ -92,9 +91,7 @@ class LSTMParameters(RNNBaseParameters):
 
     @lstm_output_c_state.setter
     def lstm_output_c_state(self, val_and_graph):
-        self.at_options.lstm_output_c_state = 1 if val_and_graph[0] else 0
-        if val_and_graph[0]:
-            self.set_c_state_as_output(val_and_graph[1])
+        self.at_options.lstm_output_c_state = val_and_graph
 
     @property
     def quant_c_state_with_stat(self):

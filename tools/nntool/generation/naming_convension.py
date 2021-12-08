@@ -13,15 +13,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from abc import ABC, abstractmethod
-from graph.types.input_output import InputParameters, OutputParameters
 import hashlib
+from abc import ABC, abstractmethod
 
 from graph.types import (ActivationFusionBase, ActivationParameters,
                          ConcatParameters, ConstantInputParameters,
                          Conv2DParameters, ConvFusionParameters, FcParameters,
-                         GlobalPoolingParameters, MatrixAddParameters,
-                         MatrixMulParameters, PoolingParameters,
+                         GlobalPoolingParameters, InputParameters,
+                         MatrixAddParameters, MatrixMulParameters,
+                         OutputParameters, PoolingParameters,
                          SoftMaxParameters)
 from utils.slugify import variablize
 

@@ -12,6 +12,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.conv2d import Conv2DParameters
+from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from graph.types.activations import HTanHActivationParameters, TanHActivationParameters
 import math
 import numpy as np
@@ -31,8 +33,7 @@ from graph.types import (ActivationFusionBase, ActivationParameters,LinearFusion
                          PaddedAddFusionParameters, PoolingParameters,
                          QuantizeParameters, ReluActivationParameters,
                          SigmoidActivationParameters, SoftMaxParameters)
-from quantization.multiplicative.mulbias import (compute_in_out_scale,
-                                                 set_add_in_scale)
+from quantization.multiplicative.mulbias import (compute_in_out_scale, set_add_in_scale)
 from quantization.qtype import QType
 from quantization.symmetric.kernels.activations import (
     hsigmoid_mult_gen_factors, hswish_mult_gen_factors,
@@ -44,69 +45,48 @@ from .global_names import *
 
 
 @generation_function("globals",
-                     (FilterParameters, ConvFusionParameters, LinearFusionParameters, ActivationParameters,
-                      GlobalAveragePoolParameters, GlobalMaxPoolParameters, GlobalSumPoolParameters, MatrixMulParameters,
-                      ActivationFusionBase, PoolingParameters, SoftMaxParameters, PaddedAddFusionParameters,
-                      MatMulOpFusionParameters, MatMulOpParameters),
+                     (ActivationParameters,
+                      MatrixMulParameters,
+                      ActivationFusionBase, SoftMaxParameters, PaddedAddFusionParameters),
                      qrec_types=(QREC_MULT8,))
 def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
     if fnode is not None:
         return False
-    if isinstance(pnode, FilterParameters):
-        for_ne16 = qrec.cache.get('ne16')
-        in_zero_point = qrec.in_qs[0].zero_point
-        act_infos(gen, pnode, pnode, None, None, extra1=0,
-                  for_ne16=for_ne16, in_zero_point=in_zero_point)
-    elif isinstance(pnode, (GlobalPoolingParameters, PoolingParameters)):
-        compute_in_out_scale(qrec)
-        act_infos(gen, pnode, pnode, None, qrec)
+    # if isinstance(pnode, Conv2DParameters):
+    #     for_ne16 = qrec.cache.get('ne16')
+    #     in_zero_point = qrec.in_qs[0].zero_point
+    #     conv_mul_bias = qrec.cache.get('mul_biases_q')
+    #     prenorm = conv_mul_bias.pre_normalization if isinstance(conv_mul_bias, MultMulBiasScaleQType) else 0
+    #     act_infos(gen, pnode, pnode, None, None, prenorm=prenorm, extra1=0,
+    #               for_ne16=for_ne16, in_zero_point=in_zero_point)
+    # elif isinstance(pnode, (GlobalPoolingParameters, PoolingParameters)):
+    #     compute_in_out_scale(qrec)
+    #     act_infos(gen, pnode, pnode, None, qrec)
     elif isinstance(pnode, ActivationParameters):
         act_infos(gen, pnode, pnode, pnode, gen.G.quantization[NodeId(pnode)])
-    elif isinstance(pnode, (ConvFusionParameters, LinearFusionParameters)):
-        cnodes = node.contained_nodes()
-        quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
-        for_ne16 = any([qrec.cache.get('ne16') for qrec in quants])
-        in_zero_point = quants[0].in_qs[0].zero_point
-        for qrec in quants:
-            compute_in_out_scale(qrec)
-        if node.fusion_type.startswith('linear') or node.fusion_type.startswith('conv') or node.fusion_type.startswith('pool'):
-            if node.fusion_type in ("pool_active"):
-                act_infos(gen, pnode, cnodes[0], cnodes[1], quants[1],
-                          extra1=0, for_ne16=for_ne16, in_zero_point=in_zero_point)
-            elif node.fusion_type in ("conv_active_pool", "conv_active", "linear_active"):
-                act_infos(gen, pnode, cnodes[0], cnodes[1], quants[1],
-                          extra1=0, for_ne16=for_ne16, in_zero_point=in_zero_point)
-            elif node.fusion_type == "conv_pool_active":
-                act_infos(gen, pnode, cnodes[0], cnodes[2], quants[2],
-                          extra1=0, for_ne16=for_ne16, in_zero_point=in_zero_point)
-            elif node.fusion_type == "conv_pool":
-                act_infos(gen, pnode, cnodes[0], None,
-                          None, extra1=0, for_ne16=for_ne16)
-    # elif isinstance(pnode, MatrixAddParameters):
-    #     set_add_in_scale(qrec)
-    #     act_infos(gen, pnode, pnode, None, None,
-    #               extra1=qrec.cache['scale_in_mul_biases_q'].qbiases[0],
-    #               extra2=qrec.cache['scale_in_mul_biases_q'].qnorms[0],
-    #               extra3=qrec.cache['scale_mul_biases_q'].qbiases[0],
-    #               extra4=qrec.cache['scale_mul_biases_q'].qnorms[0])
-    # elif isinstance(pnode, PaddedAddFusionParameters):
+    # elif isinstance(pnode, ConvFusionParameters):
     #     cnodes = node.contained_nodes()
     #     quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
+    #     for_ne16 = any([qrec.cache.get('ne16') for qrec in quants])
+    #     in_zero_point = quants[0].in_qs[0].zero_point
     #     for qrec in quants:
     #         compute_in_out_scale(qrec)
-    #     act_node = [cnode for cnode in cnodes if isinstance(
-    #         cnode, ActivationParameters)]
-    #     act_node = act_node[0] if act_node else None
-    #     act_qrec = quants[-1] if act_node else None
-    #     set_add_in_scale(quants[1])
-    #     act_infos(gen, pnode, pnode, act_node, act_qrec,
-    #               extra1=quants[1].cache['scale_in_mul_biases_q'].qbiases[0],
-    #               extra2=quants[1].cache['scale_in_mul_biases_q'].qnorms[0],
-    #               extra3=quants[1].cache['scale_mul_biases_q'].qbiases[0],
-    #               extra4=quants[1].cache['scale_mul_biases_q'].qnorms[0])
-    #     act_infos(gen, pnode, cnodes[0], act_node, act_qrec, extra_name="Pad",
-    #               extra1=quants[1].cache['scale_mul_biases_q'].qbiases[0],
-    #               extra2=quants[1].cache['scale_mul_biases_q'].qnorms[0])
+    #     if node.fusion_type.startswith('linear') or node.fusion_type.startswith('conv') or node.fusion_type.startswith('pool'):
+    #         if node.fusion_type in ("pool_active"):
+    #             act_infos(gen, pnode, cnodes[0], cnodes[1], quants[1],
+    #                       extra1=0, for_ne16=for_ne16, in_zero_point=in_zero_point)
+    #         else:
+    #             conv_mul_bias = quants[0].cache.get('mul_biases_q')
+    #             prenorm = conv_mul_bias.pre_normalization if isinstance(conv_mul_bias, MultMulBiasScaleQType) else 0
+    #             if node.fusion_type in ("conv_active_pool", "conv_active", "linear_active"):
+    #                 act_infos(gen, pnode, cnodes[0], cnodes[1], quants[1], prenorm=prenorm,
+    #                           extra1=0, for_ne16=for_ne16, in_zero_point=in_zero_point)
+    #             elif node.fusion_type == "conv_pool_active":
+    #                 act_infos(gen, pnode, cnodes[0], cnodes[2], quants[2], prenorm=prenorm,
+    #                           extra1=0, for_ne16=for_ne16, in_zero_point=in_zero_point)
+    #             elif node.fusion_type == "conv_pool":
+    #                 act_infos(gen, pnode, cnodes[0], None, None, prenorm=prenorm,
+    #                           extra1=0, for_ne16=for_ne16)
     elif isinstance(pnode, MatrixMulParameters):
         compute_in_out_scale(qrec, in_idx=(0, 1), out_idx=0)
         act_infos(gen, pnode, pnode, None, None,
@@ -114,23 +94,16 @@ def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
                   extra2=qrec.cache['scale_mul_biases_q'].qnorms[0])
     elif isinstance(pnode, SoftMaxParameters):
         act_infos(gen, pnode, pnode, pnode, qrec)
-    elif isinstance(pnode, ActivationFusionBase):
-        cnodes = node.contained_nodes()
-        quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
-        for qrec in quants:
-            compute_in_out_scale(qrec)
-        if isinstance(cnodes[0], (GlobalPoolingParameters, PoolingParameters)):
-            act_infos(gen, pnode, cnodes[0], cnodes[1], quants[1])
-        # elif isinstance(cnodes[0], MatrixAddParameters):
-        #     set_add_in_scale(quants[0])
-        #     act_infos(gen, pnode, cnodes[0], cnodes[1], quants[1],
-        #               extra1=quants[0].cache['scale_in_mul_biases_q'].qbiases[0],
-        #               extra2=quants[0].cache['scale_in_mul_biases_q'].qnorms[0],
-        #               extra3=quants[0].cache['scale_mul_biases_q'].qbiases[0],
-        #               extra4=quants[0].cache['scale_mul_biases_q'].qnorms[0])
-        else:
-            return False
-        return True
+    # elif isinstance(pnode, ActivationFusionBase):
+    #     cnodes = node.contained_nodes()
+    #     quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
+    #     for qrec in quants:
+    #         compute_in_out_scale(qrec)
+    #     if isinstance(cnodes[0], (GlobalPoolingParameters, PoolingParameters)):
+    #         act_infos(gen, pnode, cnodes[0], cnodes[1], quants[1])
+    #     else:
+    #         return False
+    #     return True
     elif isinstance(pnode, (MatMulOpParameters, MatMulOpFusionParameters)):
         if isinstance(pnode, MatMulOpFusionParameters):
             cnodes = node.contained_nodes()
@@ -209,7 +182,7 @@ def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
 
 def act_infos(gen, pnode, fnode, act_params, act_q,
               extra1=0, extra2=0, extra3=0, extra4=0, extra5=None, extra6=None,
-              extra_name='', for_ne16=False, in_zero_point=0):
+              prenorm=0, extra_name='', for_ne16=False, in_zero_point=0):
     if isinstance(pnode, FilterParameters):
         comment = str.format("BiasQ: {}", extra1)
     elif isinstance(pnode, MatrixAddParameters):
@@ -330,8 +303,10 @@ def act_infos(gen, pnode, fnode, act_params, act_q,
                             dtype=np.int8)
 
     contents = np.append(contents, [extra1, extra2, extra3, extra4])
-    if extra5 is not None or extra6 is not None:
-        contents = np.append(contents, [extra5, extra6])
+    if extra5 is not None:
+        contents = np.append(contents, [extra5])
+    if extra6 is not None:
+        contents = np.append(contents, [extra6])
 
     if for_ne16:
         # append weights_offset and pad_val for ne16
@@ -350,7 +325,7 @@ def act_infos(gen, pnode, fnode, act_params, act_q,
         w_offset4 = np.bitwise_and(w_offset, 0xFF000000) >> 24
 
         contents = np.append(
-            contents, [0, pad_value1, pad_value2, w_offset1, w_offset2, w_offset3, w_offset4])
+            contents, [[prenorm] if prenorm else [0], pad_value1, pad_value2, w_offset1, w_offset2, w_offset3, w_offset4])
 
     cname, file_name = gen_constant(gen, pnode, fnode, INFOS, extra_name)
     const_info = ConstantInfo(file_name, QType.Pow2(

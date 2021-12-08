@@ -1,12 +1,14 @@
 {
-  "type": "linear",
-  "unit": "pJ",
+  "dynamic": {
+    "type": "linear",
+    "unit": "pJ",
 
-  "values": {
-    "25": {
-      "1.2": {
-        "any": "2.124280487"
+    "values": {
+      "25": {
+        "1.2": {
+          "any": "2.124280487"
+        }
       }
     }
-  }   
+  }
 }

@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from graph.types.activations import HTanHActivationParameters
+from graph.types.activations import HTanHActivationParameters, TanHActivationParameters
 from ..backend_handler import BackendHandler
 from ..handler import onnx_op
 from .math_mixin import BasicMathMixin
@@ -25,8 +25,9 @@ class Tanh(BasicMathMixin, BackendHandler):
 
     @classmethod
     def _common(cls, node, **kwargs):
+        params_class = HTanHActivationParameters if kwargs['opts'].get('use_hard_tanh') else TanHActivationParameters
         return super(Tanh, cls)._common(node,
-                                        params_class=HTanHActivationParameters,
+                                        params_class=params_class,
                                         constant_operation=np.tanh,
                                         **kwargs)
 

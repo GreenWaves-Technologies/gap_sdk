@@ -73,8 +73,8 @@ static int l3_init()
 
 static void open_cl()
 {
-    struct pi_device cluster_dev = {0};
-    struct pi_cluster_conf cl_conf = {0};
+    struct pi_device cluster_dev;
+    struct pi_cluster_conf cl_conf;
 
     /* Init cluster configuration structure. */
     pi_cluster_conf_init(&cl_conf);

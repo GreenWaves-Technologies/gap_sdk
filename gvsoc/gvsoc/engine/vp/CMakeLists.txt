@@ -5,11 +5,6 @@ vp_model(NAME clock_domain_impl
     SOURCES "clock_domain_impl.cpp"
     )
 
-vp_model(NAME power_engine_impl
-    PREFIX ${VP_PREFIX}
-    SOURCES "power_engine_impl.cpp"
-    )
-
 vp_model(NAME time_domain_impl
    PREFIX ${VP_PREFIX}
     SOURCES "time_engine.cpp"

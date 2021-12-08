@@ -77,17 +77,17 @@ class Reshape(ConstantMixin, BackendHandler):
             if input_shape[0] is None and shape[0] == 1:
                 shape = np.array([None]+list(shape[1::]))
 
-        if cls.is_constant(inputs[0]):
+        inp = inputs[0]
+        if cls.is_constant(inp):
             # there should be no None in shape since a constant always has known size
             logger.info("reducing %s to a constant", valid_name)
             params = ConstantInputParameters(
                 valid_name,
-                value=cls.get_constant(inputs[0]).reshape(shape),
-                dims=Dim.unnamed(shape),
-                constant_store=G.constant_store
+                value=cls.get_constant(inp).reshape(shape),
+                dims=Dim.unnamed(shape)
             )
             pshape = ProvisionalDim(shape)
-            all_nodes[node.output[0]] = (params, 0, pshape)
+            all_nodes[node.output[0]] = (params, 0, pshape, inp[3])
             return params
 
         pshape = ProvisionalDim(shape)
@@ -95,9 +95,8 @@ class Reshape(ConstantMixin, BackendHandler):
         old_shape = Dim.unnamed(list(input_shape[input_shape != None]))
         shape = Dim.unnamed(list(shape[shape != None]))
         params = ReshapeParameters(valid_name, old_shape=old_shape, shape=shape)
-        inp = inputs[0]
         G.add_edge(NNEdge(from_node=inp[0], to_node=params, from_idx=inp[1], to_idx=0))
-        all_nodes[node.output[0]] = (params, 0, pshape)
+        all_nodes[node.output[0]] = (params, 0, pshape, inp[3])
         return params
 
 

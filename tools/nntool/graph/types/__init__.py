@@ -23,15 +23,17 @@ from graph.types.activations import (ActivationParameters,
                                      SoftMaxParameters,
                                      TanHActivationParameters)
 from graph.types.base import (EdgeParameters, FilterLikeParameters,
-                              FilterParameters, MultiplicativeBiasParameters,
-                              NNEdge, NodeOptions, Parameters,
+                              FilterParameters, InsensitiveToQuantization,
+                              MultiplicativeBiasParameters, NNEdge,
+                              NodeOptions, Parameters,
                               SameNumberOfDimensionsForInputs,
                               SensitiveToOrder, SingleInputAndOutput)
+from graph.types.constant_input import ConstantInputParameters
 from graph.types.conv2d import (BatchNormalizationParameters, Conv2DParameters,
                                 TransposeConv2DParameters)
-from graph.types.dsp_preprocessing import (MFCCPreprocessingParameters,
-                                           RFFT2DPreprocessingParameters,
-                                           DSPParameters)
+from graph.types.dsp_preprocessing import (DSPParameters,
+                                           MFCCPreprocessingParameters,
+                                           RFFT2DPreprocessingParameters)
 from graph.types.expression_fusion import ExpressionFusionParameters
 from graph.types.fusions import (ActivationFusion, ActivationFusionBase,
                                  BroadcastableActivationFusion,
@@ -44,11 +46,11 @@ from graph.types.fusions import (ActivationFusion, ActivationFusionBase,
                                  PaddedAddFusionParameters)
 from graph.types.global_pooling import (GlobalAveragePoolParameters,
                                         GlobalMaxPoolParameters,
+                                        GlobalMinPoolParameters,
                                         GlobalPoolingParameters,
                                         GlobalSumPoolParameters)
 from graph.types.image_formatter import ImageFormatParameters
-from graph.types.input_output import (ConstantInputParameters,
-                                      InputBaseParameters,
+from graph.types.input_output import (InputBaseParameters,
                                       InputOutputParameters, InputParameters,
                                       OutputParameters)
 from graph.types.linear import FcParameters
@@ -61,8 +63,9 @@ from graph.types.others import (BinaryOpParameters, ConcatParameters,
                                 NoOPParameters, PadParameters, PowOpParameters,
                                 QuantizeParameters, ReshapeParameters,
                                 ReverseParameters, SplitParameters,
-                                StridedSliceParameters, TransposeParameters,
-                                UnaryOpParameters, UnconvertedOpParameters,
+                                SqrtOpParameters, StridedSliceParameters,
+                                TransposeParameters, UnaryOpParameters,
+                                UnconvertedOpParameters,
                                 UnexecutableOpParameters, UnknownOpParameters)
 from graph.types.pooling import (AveragePoolParameters, MaxPoolParameters,
                                  PoolingParameters)
@@ -70,8 +73,9 @@ from graph.types.resizers import (BilinearResizerParameters,
                                   NearestNeighborResizerParameters,
                                   ResizerParameters)
 from graph.types.rnn import GRUParameters, RNNBaseParameters, RNNParameters
-from graph.types.ssd import SSDDetectorParameters
-from graph.types.tensor_arithmetic import (MatMulOpParameters,
+from graph.types.ssd import NMSParameters, SSDDetectorParameters
+from graph.types.tensor_arithmetic import (Broadcastable, MatMulOpParameters,
+                                           MatMulTransposedParameters,
                                            MatrixAddParameters,
                                            MatrixBroadcastedLinearOpParameters,
                                            MatrixDivParameters,

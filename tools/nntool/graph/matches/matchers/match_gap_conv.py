@@ -148,8 +148,7 @@ class MatchAllGapConv(Matcher):
             if G.quantization:
                 qrecs = G.quantization.get_all(pnode.contained_nodes())
                 if qrecs:
-                    # if there are quantization stats then clear them. They need to be created again
-                    G.quantization.stats = None
+                    # TODO - stats
                     prec = QRec.copy_ktype(
                         qrecs[0], in_qs=deepcopy(qrecs[0].in_qs), out_qs=deepcopy(qrecs[-1].out_qs))
                     for node in pnode.contained_nodes():

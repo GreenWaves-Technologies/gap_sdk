@@ -447,8 +447,11 @@ extern void Ker_MM_Conv2D_HWC_fp16(Ker_MM_Conv_fp16_T *Arg);
 extern void KerParReLU_fp16(KerActivation_fp16_T *Arg);
 extern void KerParReLUN_fp16(KerActivation_fp16_T *Arg);
 extern void KerParSwish_fp16(KerActivation_fp16_T *Arg);
+extern void KerParHSwish_fp16(KerActivation_fp16_T *Arg);
 extern void KerParTanh_fp16(KerActivation_fp16_T *Arg);
+extern void KerParHTanh_fp16(KerActivation_fp16_T *Arg);
 extern void KerParSigmoid_fp16(KerActivation_fp16_T *Arg);
+extern void KerParHSigmoid_fp16(KerActivation_fp16_T *Arg);
 extern void KerParLeakyReLU_fp16(KerActivation_fp16_T *Arg);
 
 /******************************************************************************************************************************/
@@ -503,8 +506,11 @@ extern void KerParLinearLayer_fp16(KerLinear_fp16_T *Arg);
 extern void KerParLinearLayerReLU_fp16(KerLinear_fp16_T *Arg);
 extern void KerParLinearLayerReLUN_fp16(KerLinear_fp16_T *Arg);
 extern void KerParLinearLayerSwish_fp16(KerLinear_fp16_T *Arg);
+extern void KerParLinearLayerHSwish_fp16(KerLinear_fp16_T *Arg);
 extern void KerParLinearLayerSigmoid_fp16(KerLinear_fp16_T *Arg);
+extern void KerParLinearLayerHSigmoid_fp16(KerLinear_fp16_T *Arg);
 extern void KerParLinearLayerTanh_fp16(KerLinear_fp16_T *Arg);
+extern void KerParLinearLayerHTanh_fp16(KerLinear_fp16_T *Arg);
 extern void KerParLinearLayerLeakyReLU_fp16(KerLinear_fp16_T *Arg);
 
 /******************************************************************************************************************************/
@@ -515,32 +521,74 @@ extern void KerParMatAdd_fp16(KerMat3_fp16_T *Arg);
 extern void KerParMatAddReLU_fp16(KerMat3_fp16_T *Arg);
 
 extern void KerParMatMul_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulNoBias_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposed_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedNoBias_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSxSy_fp16(KerMatMul_fp16_T *Arg);
 
 extern void KerParMatMulReLU_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulNoBiasReLU_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedReLU_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedNoBiasReLU_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSxSyReLU_fp16(KerMatMul_fp16_T *Arg);
 
 extern void KerParMatMulReLUN_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulNoBiasReLUN_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedReLUN_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedNoBiasReLUN_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSxSyReLUN_fp16(KerMatMul_fp16_T *Arg);
 
 extern void KerParMatMulSwish_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulNoBiasSwish_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedSwish_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedNoBiasSwish_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSwishSxSy_fp16(KerMatMul_fp16_T *Arg);
 
+extern void KerParMatMulHSwish_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulNoBiasHSwish_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedHSwish_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedNoBiasHSwish_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulHSwishSxSy_fp16(KerMatMul_fp16_T *Arg);
+
 extern void KerParMatMulSigmoid_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulNoBiasSigmoid_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedSigmoid_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedNoBiasSigmoid_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSigmoidSxSy_fp16(KerMatMul_fp16_T *Arg);
 
+extern void KerParMatMulHSigmoid_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulNoBiasHSigmoid_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedHSigmoid_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedNoBiasHSigmoid_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulHSigmoidSxSy_fp16(KerMatMul_fp16_T *Arg);
+
 extern void KerParMatMulTanh_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulNoBiasTanh_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedTanh_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedNoBiasTanh_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulTanhSxSy_fp16(KerMatMul_fp16_T *Arg);
 
+extern void KerParMatMulHTanh_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulNoBiasHTanh_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedHTanh_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedNoBiasHTanh_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulHTanhSxSy_fp16(KerMatMul_fp16_T *Arg);
+
 extern void KerParMatMulLeakyrelu_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulNoBiasLeakyrelu_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedLeakyrelu_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTransposedNoBiasLeakyrelu_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulLeakyreluSxSy_fp16(KerMatMul_fp16_T *Arg);
 
 extern void KerParMatMulSmallFeat_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSmallFeatReLU_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSmallFeatReLUN_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSwishSmallFeat_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulHSwishSmallFeat_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSigmoidSmallFeat_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulHSigmoidSmallFeat_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulTanhSmallFeat_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulHTanhSmallFeat_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulLeakyreluSmallFeat_fp16(KerMatMul_fp16_T *Arg);
 
 /******************************************************************************************************************************/

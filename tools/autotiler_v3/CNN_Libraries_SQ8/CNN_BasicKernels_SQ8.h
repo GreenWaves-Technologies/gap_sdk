@@ -38,9 +38,11 @@
 #define AT_INF_BIASN		5
 #define AT_INF_IN1SCALE		5
 #define AT_INF_SCALE		5
+#define AT_INF_GLOBAL_SUM_SCALE	5
 
 #define AT_INF_SCALEN		6
 #define AT_INF_IN1SCALEN	6
+#define AT_INF_GLOBAL_SUM_SCALEN 6
 
 #define AT_INF_OUTSCALE		7
 #define AT_INF_OUTSCALEN	8
@@ -909,6 +911,7 @@ extern void KerReductIO_CC_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg);
 extern void KerReductIO_CC_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg);
 
 /* HWC Layout */
+extern void KerParReduct_CC_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg);
 extern void KerParReduct_CC_ReLU_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg);
 extern void KerParReduct_CC_ReLUN_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg);
 extern void KerParReduct_CC_ReLUM_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg);
@@ -1048,6 +1051,13 @@ extern void KerParGlobalAvgPool_Reduct_ReLUN_SQ8(KerGlobalPool_SQ8_T *Arg);
 extern void KerParGlobalAvgPool_Reduct_ReLUM_SQ8(KerGlobalPool_SQ8_T *Arg);
 extern void KerParGlobalAvgPool_Reduct_ReLUMN_SQ8(KerGlobalPool_SQ8_T *Arg);
 
+extern void KerParGlobalSumPool_SQ8(KerGlobalPool_SQ8_T *Arg);
+extern void KerParGlobalSumPool_Reduct_SQ8(KerGlobalPool_SQ8_T *Arg);
+extern void KerParGlobalSumPool_Reduct_ReLU_SQ8(KerGlobalPool_SQ8_T *Arg);
+extern void KerParGlobalSumPool_Reduct_ReLUN_SQ8(KerGlobalPool_SQ8_T *Arg);
+extern void KerParGlobalSumPool_Reduct_ReLUM_SQ8(KerGlobalPool_SQ8_T *Arg);
+extern void KerParGlobalSumPool_Reduct_ReLUMN_SQ8(KerGlobalPool_SQ8_T *Arg);
+
 extern void KerParGlobalMaxPoolFullFeat_SQ8(KerGlobalPool_SQ8_T *Arg);
 extern void KerParGlobalMaxPoolFullFeat_ReLU_SQ8(KerGlobalPool_SQ8_T *Arg);
 extern void KerParGlobalMaxPoolFullFeat_ReLUN_SQ8(KerGlobalPool_SQ8_T *Arg);
@@ -1059,6 +1069,12 @@ extern void KerParGlobalAvgPoolFullFeat_ReLU_SQ8(KerGlobalPool_SQ8_T *Arg);
 extern void KerParGlobalAvgPoolFullFeat_ReLUN_SQ8(KerGlobalPool_SQ8_T *Arg);
 extern void KerParGlobalAvgPoolFullFeat_ReLUM_SQ8(KerGlobalPool_SQ8_T *Arg);
 extern void KerParGlobalAvgPoolFullFeat_ReLUMN_SQ8(KerGlobalPool_SQ8_T *Arg);
+
+extern void KerParGlobalSumPoolFullFeat_SQ8(KerGlobalPool_SQ8_T *Arg);
+extern void KerParGlobalSumPoolFullFeat_ReLU_SQ8(KerGlobalPool_SQ8_T *Arg);
+extern void KerParGlobalSumPoolFullFeat_ReLUN_SQ8(KerGlobalPool_SQ8_T *Arg);
+extern void KerParGlobalSumPoolFullFeat_ReLUM_SQ8(KerGlobalPool_SQ8_T *Arg);
+extern void KerParGlobalSumPoolFullFeat_ReLUMN_SQ8(KerGlobalPool_SQ8_T *Arg);
 
 /* Pooling Basic Kernels for HWC Layers layout */
 extern void KerParMaxPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg);
@@ -1132,19 +1148,36 @@ extern void KerParMatMulSxSyB16_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulSxSyB16_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
 
 extern void KerParMatMulB32_SQ8(KerMatMul_SQ8_T *Arg);
-extern void KerParMatMulB32_2x4_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulB32_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
-extern void KerParMatMulB32_2x4_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulB32_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
-extern void KerParMatMulTransposedB32_SQ8(KerMatMul_SQ8_T *Arg);
-extern void KerParMatMulTransposedB32_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
-extern void KerParMatMulTransposedB32_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
+
+extern void KerParMatMulB32_2x4_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB32_2x4_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
+
 extern void KerParMatMulB32_2x4_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
 extern void KerParMatMulB32_2x4_ReLU_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
 extern void KerParMatMulB32_2x4_ReLUN_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
-extern void KerParMatMulNoBias_2x4_SQ8(KerMatMul_PL_SQ8_T *Arg);
-extern void KerParMatMulNoBias_2x4_ReLU_SQ8(KerMatMul_PL_SQ8_T *Arg);
-extern void KerParMatMulNoBias_2x4_ReLUN_SQ8(KerMatMul_PL_SQ8_T *Arg);
+
+extern void KerParMatMulNoBias_2x4_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulNoBias_2x4_ReLU_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulNoBias_2x4_ReLUN_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+
+extern void KerParMatMulTransposedB32_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
+
+extern void KerParMatMulTransposedNoBias_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulTransposedNoBias_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulTransposedNoBias_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
+
+extern void KerParMatMulTransposedB32_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_ReLU_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_ReLUN_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+
+extern void KerParMatMulTransposedNoBias_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulTransposedNoBias_ReLU_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulTransposedNoBias_ReLUN_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+
 extern void KerParMatMulSxSyB32_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulSxSyB32_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulSxSyB32_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);

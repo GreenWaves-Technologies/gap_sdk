@@ -14,16 +14,20 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+import math
 
 import numpy as np
-from expressions.symbolic.basic import (Abs, Cos, Exp, Log, Max, Min, Neg, Pow,
-                                        RSqrt, Sin, Sqrt)
+from expressions.symbolic.basic import (Abs, Ceil, Cos, Exp, Log, Max, Min,
+                                        Neg, Pow, Round, RSqrt, Sin, Sqrt)
 from graph.dim import Dim
+
+from utils.real_transpose import real_transpose
 
 from .base import (CanFuseToExpression, ComparableParameters,
                    InsensitiveToQuantization, NNNodeRef,
                    NoSizeChangeParameters, Parameters, SensitiveToOrder,
-                   SingleInputAndOutput, cls_op_name, expression_op, nargs, not_generated)
+                   SingleInputAndOutput, cls_op_name, expression_op, nargs,
+                   not_generated)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -89,14 +93,7 @@ class TransposeParameters(Parameters, SingleInputAndOutput, InsensitiveToQuantiz
         return False
 
     def real_shape(self):
-        input_shape = self.in_dims[0].shape
-        cond_input_idx = [i for i, sz in enumerate(
-            self.in_dims[0].shape) if sz != 1]
-        real_transpose = [
-            i for i in self.transpose if i in cond_input_idx]
-        cond_input_shape = [input_shape[i] for i in cond_input_idx]
-        cond_transpose = [cond_input_idx.index(i) for i in real_transpose]
-        return tuple(cond_input_shape), tuple(cond_transpose)
+        return real_transpose(self.in_dims[0].shape, self.transpose)
 
     @property
     def transpose_dimension(self):
@@ -137,6 +134,7 @@ class CopyParameters(Parameters, InsensitiveToQuantization):
     def __str__(self):
         return ""
 
+
 @cls_op_name('expand')
 class ExpandParameters(Parameters, InsensitiveToQuantization):
     def __init__(self, *args, shape=None, **kwargs):
@@ -154,7 +152,8 @@ class ExpandParameters(Parameters, InsensitiveToQuantization):
         in_shape = list(in_dims[0].shape)
         exp_shape = list(self.shape)
         if len(in_shape) > len(exp_shape):
-            exp_shape = in_shape[:(len(in_shape) - len(exp_shape)):] + exp_shape
+            exp_shape = in_shape[:(
+                len(in_shape) - len(exp_shape)):] + exp_shape
         elif len(exp_shape) > len(in_shape):
             in_shape = exp_shape[:(len(exp_shape) - len(in_shape)):] + in_shape
         out_shape = []
@@ -164,13 +163,15 @@ class ExpandParameters(Parameters, InsensitiveToQuantization):
             elif exp_dim == 1:
                 out_shape.append(in_dim)
             elif in_dim != exp_dim:
-                raise ValueError(f'{self.name} invalid expand {in_dims[0]} {self.shape}')
+                raise ValueError(
+                    f'{self.name} invalid expand {in_dims[0]} {self.shape}')
             else:
                 out_shape.append(in_dim)
         return [Dim.unnamed(out_shape)]
 
     def __str__(self):
         return f"{self.shape}"
+
 
 @cls_op_name('quantize')
 class QuantizeParameters(Parameters):
@@ -305,6 +306,9 @@ class SplitParameters(Parameters, SensitiveToOrder):
         act_slices = []
         out_shapes = []
         if splits:
+            if in_shape[axis] is not None and any(split == -1 for split in splits):
+                rest_sz = sum(split for split in splits if split > 0)
+                splits = (split if split > 0 else in_shape[axis] - rest_sz for split in splits)
             for sz in splits:
                 act_slices.append([(in_idx, in_idx + sz, 1) if idx == axis else (0, shape, 1)
                                    for idx, shape in enumerate(in_shape)
@@ -399,7 +403,8 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParamet
 
         super(StridedSliceParameters, self).__init__(*args, **kwargs)
         self.act_slice = act_slice
-        self.out_shape = out_shape
+        self.slice_shape = tuple(int(abs(math.ceil((sl[1] - sl[0])/sl[2]))) for sl in self.act_slice)
+        self.out_shape = tuple(out_shape)
 
     @property
     def graph_label(self):
@@ -593,6 +598,18 @@ class UnaryOpParameters(CanFuseToExpression, Parameters):
         )
 
 
+@cls_op_name('round')
+@expression_op(Round)
+class RoundOpParameters(UnaryOpParameters):
+    pass
+
+
+@cls_op_name('ceil')
+@expression_op(Ceil)
+class CeilOpParameters(UnaryOpParameters):
+    pass
+
+
 @cls_op_name('sqrt')
 @expression_op(Sqrt)
 class SqrtOpParameters(UnaryOpParameters):
@@ -650,6 +667,9 @@ class ReshapeParameters(Parameters, SingleInputAndOutput, InsensitiveToQuantizat
             *args, **kwargs)
         if not isinstance(shape, Dim):
             shape = Dim.unnamed(shape)
+        if old_shape is not None and not isinstance(old_shape, Dim):
+            old_shape = Dim.unnamed(shape)
+        assert shape.is_ordered and (old_shape is None or old_shape.is_ordered)
         self._shape = shape
         self._old_shape = old_shape
 
@@ -712,7 +732,7 @@ class ReshapeParameters(Parameters, SingleInputAndOutput, InsensitiveToQuantizat
     def get_output_size(self, in_dims):
         assert len(in_dims) == 1
         in_dim = in_dims[0]
-        self._old_shape = in_dim
+        self.old_shape = in_dim
         if in_dim.size() != self.shape.size():
             raise NotImplementedError("bad reshape %s: in dim %s does not match reshape %s" %
                                       (self.name, in_dim, self.shape))
@@ -725,6 +745,7 @@ class ReshapeParameters(Parameters, SingleInputAndOutput, InsensitiveToQuantizat
 
     @shape.setter
     def shape(self, val):
+        assert val.is_ordered
         self._shape = val
 
     @property
@@ -733,6 +754,7 @@ class ReshapeParameters(Parameters, SingleInputAndOutput, InsensitiveToQuantizat
 
     @old_shape.setter
     def old_shape(self, val):
+        assert val.is_ordered
         self._old_shape = val
 
     @property

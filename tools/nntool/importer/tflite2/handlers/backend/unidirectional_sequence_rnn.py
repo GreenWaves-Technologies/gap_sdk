@@ -47,7 +47,6 @@ class UnidirectionalSequenceRNN(BackendHandler):
         params = RNNParameters(node.name,
                                in_dims_hint=[['sz', 'c']],
                                out_dims_hint=[['sz', 'c']],
-                               constant_store=G.constant_store,
                                n_input_cells=max_time,
                                n_cells=max_time,  # TF says max_time - we say cells
                                n_inputs=n_inputs,  # Input will be n_input_cells, n_inputs

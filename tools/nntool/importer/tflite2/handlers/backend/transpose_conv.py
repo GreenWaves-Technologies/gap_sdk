@@ -22,11 +22,14 @@ from importer.tflite2.tflite_schema_head.TransposeConvOptions import \
     TransposeConvOptions
 
 from ..backend_handler import BackendHandler
-from ..handler import tflite_op
+from ..handler import tflite_op, partial_support, ps_description
 from .filter_mixin import FilterMixin
 
 
 @tflite_op("TRANSPOSE_CONV")
+@partial_support(True)
+@ps_description('Transpose Conv is only imported. No kernels are implemented for it. We suggest'
+                'using a resizer followed by a normal convolution.')
 class TransposeConv(ConstantMixin, FilterMixin, BackendHandler):
 
     @classmethod
@@ -75,8 +78,7 @@ class TransposeConv(ConstantMixin, FilterMixin, BackendHandler):
                 stride_h, stride_w),
             padding=pad,
             in_dims_hint=[['h', 'w', 'c'], cls.TF_LITE_FILTER_ORDER.copy()],
-            out_dims_hint=[['h', 'w', 'c']],
-            constant_store=G.constant_store)
+            out_dims_hint=[['h', 'w', 'c']])
         G.add_edge(
             NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         G.add_edge(NNEdge(from_node=weights_node, to_node=params, to_idx=1))

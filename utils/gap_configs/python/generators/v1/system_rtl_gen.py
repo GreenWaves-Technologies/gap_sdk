@@ -22,7 +22,7 @@ import imp
 
 def get_config(tp):
 
-  chip              = tp.get_child_str('chip')
+  chip              = tp.get_child_str('chip/name')
 
   system = Component(
   )

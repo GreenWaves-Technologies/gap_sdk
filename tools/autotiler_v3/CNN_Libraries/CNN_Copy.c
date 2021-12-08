@@ -28,17 +28,12 @@ static int CoreCountDynamic = 1;
 static int ActiveCore = gap_ncore();
 
 #ifdef __EMUL__
-#include <math.h>
 float to_float(unsigned short v) {
 	float res = 0;
 	unsigned short * q = ((unsigned short *)&res);
 	q[1] = v;
 	return res;
 }
-#define MaxF2(a, b)	gap_pack2f16(fmax((a)[0], (b)[0]), fmax((a)[1], (b)[1]))
-#define MinF2(a, b)	gap_pack2f16(fmin((a)[0], (b)[0]), fmin((a)[1], (b)[1]))
-#define ClipF2(a, upper, lower) gap_pack2f16(fmax(fmin((a)[0], (upper)[0]), (lower)[0]), fmax(fmin((a)[1], (upper)[1]), (lower)[1]))
-#define ClipF(a, upper, lower) fmax(fmin((a), (upper)), (lower))
 #ifndef TO_FLOAT
 #define TO_FLOAT(x) to_float(*((unsigned short *)&x))
 #endif
@@ -46,13 +41,6 @@ float to_float(unsigned short v) {
 #ifndef TO_FLOAT
 #define TO_FLOAT(x) *((F16 *)&x)
 #endif
-#define AbsF2(a)	__builtin_pulp_f16altabs2((a))
-#define MaxF2(a, b)	__builtin_pulp_f16altmax2((a), (b))
-#define MinF2(a, b)	__builtin_pulp_f16altmin2((a), (b))
-#define MaxF(a, b)	__builtin_pulp_f16altmax((a), (b))
-#define MinF(a, b)	__builtin_pulp_f16altmin((a), (b))
-#define ClipF2(a, upper, lower) ((F16V)MaxF2(MinF2((a), (upper)), (lower)))
-#define ClipF(a, upper, lower) ((F16) MaxF(MinF((a), (upper)), (lower)))
 #endif
 
 static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int X)
@@ -1901,7 +1889,8 @@ void CNN_Float16Fps(CNN_Float16Fps_T * Arg)
 	signed char * pcOut = ((signed char *) pOut);
 	F16 * pcIn = (F16 *)(pIn);
 	for (int i=0; i<Iter%4; i++) {
-		*pcOut++ = (signed char) ClipF((*pcIn++ + zero_diff) * scale, 127.0F, -128.0F);
+		*pcOut++ = (signed char) ClipF((*pcIn + zero_diff) * scale, 127.0F, -128.0F);
+		pcIn++;
 	}
 	gap_waitbarrier(0);
 }
@@ -1937,7 +1926,8 @@ void CNN_Float16UFps(CNN_Float16UFps_T * Arg)
 	unsigned char * pcOut = ((unsigned char *) pOut);
 	F16 * pcIn = (F16 *)(pIn);
 	for (int i=0; i<Iter%4; i++) {
-		*pcOut++ = (unsigned char) ClipF((*pcIn++ + zero_diff) * scale, 255.0F, 0.0F);
+		*pcOut++ = (unsigned char) ClipF((*pcIn + zero_diff) * scale, 255.0F, 0.0F);
+		pcIn++;
 	}
 	gap_waitbarrier(0);
 }

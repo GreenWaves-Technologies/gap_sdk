@@ -163,10 +163,14 @@ void vp::component::reg_step_pre_start(std::function<void()> callback)
     this->pre_start_callbacks.push_back(callback);
 }
 
+void vp::component::register_build_callback(std::function<void()> callback)
+{
+    this->build_callbacks.push_back(callback);
+}
+
 void vp::component::post_post_build()
 {
     traces.post_post_build();
-    power.post_post_build();
 }
 
 void vp::component::final_bind()
@@ -1384,6 +1388,12 @@ void vp::component::build_instance(std::string name, vp::component *parent)
     this->pre_pre_build();
     this->pre_build();
     this->build();
+    this->power.build();
+
+    for (auto x : build_callbacks)
+    {
+        x();
+    }
 }
 
 
@@ -1620,6 +1630,19 @@ void vp::component::create_comps()
     }
 }
 
+
+
+void vp::component::dump_traces_recursive(FILE *file)
+{
+    this->dump_traces(file);
+
+    for (auto& x: this->get_childs())
+    {
+        x->dump_traces_recursive(file);
+    }
+}
+
+
 vp::component *vp::__gv_create(std::string config_path, struct gv_conf *gv_conf)
 {
     setenv("PULP_CONFIG_FILE", config_path.c_str(), 1);
@@ -1662,6 +1685,8 @@ vp::component *vp::__gv_create(std::string config_path, struct gv_conf *gv_conf)
     }
 
     vp::component *instance = constructor(js_config);
+
+    new vp::power::engine(instance);
 
     instance->set_vp_config(gv_config);
     instance->set_gv_conf(gv_conf);
@@ -1768,12 +1793,6 @@ void Gvsoc_proxy::proxy_loop()
         std::sregex_token_iterator it{s.begin(), s.end(), regex, -1};
         std::vector<std::string> words{it, {}};
 
-
-        for (auto x: words)
-        {
-            printf("%s\n", x.c_str());
-        }
-
         if (words.size() > 0)
         {
             if (words[0] == "stopped")
@@ -1794,6 +1813,9 @@ void Gvsoc_proxy::proxy_loop()
                 this->running = true;
                 this->cond.notify_all();
                 this->mutex.unlock();
+            }
+            else if (words[0] == "req=")
+            {
             }
             else
             {
@@ -1849,7 +1871,7 @@ int Gvsoc_proxy::open()
 
 void Gvsoc_proxy::run()
 {
-    dprintf(this->req_pipe[1], "run\n");
+    dprintf(this->req_pipe[1], "cmd=run\n");
 }
 
 
@@ -1857,7 +1879,7 @@ void Gvsoc_proxy::run()
 int64_t Gvsoc_proxy::pause()
 {
     int64_t result;
-    dprintf(this->req_pipe[1], "stop\n");
+    dprintf(this->req_pipe[1], "cmd=stop\n");
     std::unique_lock<std::mutex> lock(this->mutex);
     while (this->running)
     {
@@ -1872,14 +1894,14 @@ int64_t Gvsoc_proxy::pause()
 
 void Gvsoc_proxy::close()
 {
-    dprintf(this->req_pipe[1], "quit\n");
+    dprintf(this->req_pipe[1], "cmd=quit\n");
 }
 
 
 
 void Gvsoc_proxy::add_event_regex(std::string regex)
 {
-    dprintf(this->req_pipe[1], "event add %s\n", regex.c_str());
+    dprintf(this->req_pipe[1], "cmd=event add %s\n", regex.c_str());
 
 }
 
@@ -1887,21 +1909,21 @@ void Gvsoc_proxy::add_event_regex(std::string regex)
 
 void Gvsoc_proxy::remove_event_regex(std::string regex)
 {
-    dprintf(this->req_pipe[1], "event remove %s\n", regex.c_str());
+    dprintf(this->req_pipe[1], "cmd=event remove %s\n", regex.c_str());
 }
 
 
 
 void Gvsoc_proxy::add_trace_regex(std::string regex)
 {
-    dprintf(this->req_pipe[1], "trace add %s\n", regex.c_str());
+    dprintf(this->req_pipe[1], "cmd=trace add %s\n", regex.c_str());
 }
 
 
 
 void Gvsoc_proxy::remove_trace_regex(std::string regex)
 {
-    dprintf(this->req_pipe[1], "trace remove %s\n", regex.c_str());
+    dprintf(this->req_pipe[1], "cmd=trace remove %s\n", regex.c_str());
 }
 
 
@@ -2023,6 +2045,16 @@ int sc_main(int argc, char *argv[])
     return 0;
 }
 #endif
+
+
+void vp::fatal(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    if (vfprintf(stderr, fmt, ap) < 0) {}
+    va_end(ap);
+    abort();
+}
 
 
 extern "C" void *gv_chip_pad_bind(void *handle, char *name, int ext_handle)

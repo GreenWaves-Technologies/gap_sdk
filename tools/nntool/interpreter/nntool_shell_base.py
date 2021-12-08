@@ -17,11 +17,12 @@ import json
 import logging
 import os
 import re
-from argparse import OPTIONAL
+from argparse import OPTIONAL, Namespace
 from copy import deepcopy
 from itertools import chain
 from typing import Any
 
+import numpy as np
 from cmd2 import Cmd, Cmd2ArgumentParser, CompletionItem, plugin
 from execution.execution_progress import ExecutionProgress
 from importer.common.handler_options import HandlerOptions
@@ -62,6 +63,15 @@ def progress(step_idx, name):
     print("{}\r{} {}\r".format(" " * 70, step_idx, name), end="")
     return
 
+def small_ndarray_to_str(arr):
+    res = []
+    for elem in arr:
+        if isinstance(elem, np.ndarray):
+            res.append(small_ndarray_to_str(elem))
+        else:
+            res.append(str(elem))
+    return f"[{','.join(res)}]"
+
 
 class GraphNotReadyException(Exception):
     pass
@@ -89,14 +99,16 @@ class NNToolArguementParser(Cmd2ArgumentParser):
         pass
 
 
-
 class NNToolShellBase(NNToolShellSettings, Cmd):
     # commands to exclude from save state history
     EXCLUDE_FROM_HISTORY = ['help', 'py']
     STORE_ONCE_IN_HISTORY = []
     LOG_HANDLER_SET=False
 
-    def __init__(self, args, *rest, **kwargs):
+    #pylint: disable=no-member
+    def __init__(self, *args, **kwargs):
+        rest = args[1:]
+        args = args[0] if args else None
         self._graph_idx = 0
         self._graphs = [NO_GRAPH.copy()]
         self._cmd_history = [[]]
@@ -280,6 +292,14 @@ class NNToolShellBase(NNToolShellSettings, Cmd):
         if args.subs:
             subs = [f'{k}={v}' for k, v in args.subs.items()]
             command.append(f"--subs {' '.join(subs)}")
+        if args.out_ranges:
+            command.append(f"--out_ranges {args.out_ranges}")
+        if args.input_shapes:
+            inps = ' '.join([f'{k}={small_ndarray_to_str(v)}' for k, v in args.input_shapes.items()])
+            command.append(f"--input_shapes {inps}")
+        if args.fixed_inputs:
+            inps = ' '.join([f'{k}={small_ndarray_to_str(v)}' for k, v in args.fixed_inputs.items()])
+            command.append(f"--fixed_inputs {inps}")
         return " ".join(command)
 
     def execute_adjust_order(self):
@@ -327,7 +347,7 @@ class NNToolShellBase(NNToolShellSettings, Cmd):
         self._history_stats[self._graph_idx] = astats
 
     def perror(self, msg: Any = '', *, end: str = '\n', apply_style: bool = True):
-        if self._replaying_history:
+        if self._replaying_history and apply_style:
             if isinstance(msg, Exception):
                 raise msg
             raise StateFileReplayError(msg)
@@ -478,26 +498,38 @@ class NNToolShellBase(NNToolShellSettings, Cmd):
         except ValueError:
             return False
 
-    def node_step_or_name_completer(self, text: str, line: str, begidx: int, endidx: int):
-        self._check_graph()
-        if self.is_int(text) or text.endswith("*"):
-            return []
-        if self.G is None:
-            return []
-        range_match = text.split(':', maxsplit=2)
-        elem = range_match[-1]
-        if elem.isnumeric():
-            return []
-        if len(range_match) == 2:
-            first_node = self.find_node_from_index_or_name(range_match[0])
+    @staticmethod
+    def node_step_or_name_completer(allow_comma=False):
+        def completer(self, text: str, line: str, begidx: int, endidx: int):
+            self._check_graph()
+            if self.is_int(text) or text.endswith("*"):
+                return []
+            if self.G is None:
+                return []
+            if allow_comma:
+                text = text.split(',')
+                if len(text) > 1:
+                    first = ",".join(text[:-1]) + ","
+                else:
+                    first = ""
+                text = text[-1]
+            else:
+                first = ""
+            range_match = text.split(':', maxsplit=2)
+            elem = range_match[-1]
+            if elem.isnumeric():
+                return []
+            if len(range_match) == 2:
+                first_node = self.find_node_from_index_or_name(range_match[0])
+                if not elem:
+                    return [f'{first}{range_match[0]}:{node.name}' for node in self.G.nodes()
+                            if first_node is None or node.step_idx > first_node.step_idx]
+                return [f'{first}{range_match[0]}:{node.name}' for node in self.G.nodes()
+                        if node.name.startswith(elem) and (first_node is None or node.step_idx > first_node.step_idx)]
             if not elem:
-                return [f'{range_match[0]}:{node.name}' for node in self.G.nodes()
-                        if first_node is None or node.step_idx > first_node.step_idx]
-            return [f'{range_match[0]}:{node.name}' for node in self.G.nodes()
-                    if node.name.startswith(elem) and (first_node is None or node.step_idx > first_node.step_idx)]
-        if not elem:
-            return [node.name for node in self.G.nodes()]
-        return [node.name for node in self.G.nodes() if node.name.startswith(elem)]
+                return [f'{first}{node.name}' for node in self.G.nodes()]
+            return [f'{first}{node.name}' for node in self.G.nodes() if node.name.startswith(elem)]
+        return completer
 
     def find_node_from_index_or_name(self, idx_or_name: str):
         if self.is_int(idx_or_name):
@@ -511,38 +543,50 @@ class NNToolShellBase(NNToolShellSettings, Cmd):
             return self.G[idx_or_name]
         return None
 
-    def get_node_step_or_name(self, arg, show_errors=True, classes=None):
-        if arg == '*':
-            return self.G.nodes(node_classes=classes), 'all nodes'
-        elif arg.endswith('*'):
-            arg = arg[0:-1:]
-            return [node for node in self.G.nodes(node_classes=classes)
-                    if node.name.startswith(arg)], f'nodes starting with {arg}'
+    def get_node_step_or_name(self, text, show_errors=True, classes=None, allow_comma=False):
+        if allow_comma:
+            text = text.split(',')
+        else:
+            text = [text]
 
-        elems = arg.split(':', maxsplit=2)
-        nodes = [self.find_node_from_index_or_name(
-            elem) if elem else False for elem in elems]
-        if nodes[0] is None:
-            self.perror(f"can't find node {elems[0]}")
-            return [], ""
+        cur_nodes = []
+        cur_message = []
+        for arg in text:
+            if arg == '*':
+                return self.G.nodes(node_classes=classes), 'all nodes'
+            elif arg.endswith('*'):
+                arg = arg[0:-1:]
+                cur_nodes.extend([node for node in self.G.nodes(node_classes=classes)
+                        if node.name.startswith(arg)])
+                cur_message.append(f'nodes starting with {arg}')
+                continue
 
-        if not nodes[0]:
-            nodes[0] = self.G.graph_state.steps[0]['node']
-        if len(nodes) == 2:
-            if nodes[1] is None:
-                self.perror(f"can't find node {elems[1]}")
+            elems = arg.split(':', maxsplit=2)
+            nodes = [self.find_node_from_index_or_name(
+                elem) if elem else False for elem in elems]
+            if nodes[0] is None:
+                self.perror(f"can't find node {elems[0]}")
                 return [], ""
-            if not nodes[1]:
-                nodes[1] = self.G.graph_state.steps[-1]['node']
-            return ([node for node in self.G.nodes(node_classes=classes)
-                     if node.step_idx >= nodes[0].step_idx and node.step_idx <= nodes[1].step_idx],
-                    f"{nodes[0].name} -> {nodes[1].name}")
-        if classes and not isinstance(nodes[0], classes):
-            if show_errors:
-                self.perror(
-                    'selected node is not compatible with this command')
-            return [], ""
-        return [nodes[0]], nodes[0].name
+
+            if not nodes[0]:
+                nodes[0] = self.G.graph_state.steps[0]['node']
+            if len(nodes) == 2:
+                if nodes[1] is None:
+                    self.perror(f"can't find node {elems[1]}")
+                    return [], ""
+                if not nodes[1]:
+                    nodes[1] = self.G.graph_state.steps[-1]['node']
+                cur_nodes.extend([node for node in self.G.nodes(node_classes=classes)
+                        if node.step_idx >= nodes[0].step_idx and node.step_idx <= nodes[1].step_idx])
+                cur_message.append(f"{nodes[0].name} -> {nodes[1].name}")
+            if classes and not isinstance(nodes[0], classes):
+                if show_errors:
+                    self.perror(
+                        'selected node is not compatible with this command')
+                return [], ""
+            cur_nodes.append(nodes[0])
+            cur_message.append(nodes[0].name)
+        return cur_nodes, " and ".join(cur_message)
 
 
 #pylint: disable=invalid-name

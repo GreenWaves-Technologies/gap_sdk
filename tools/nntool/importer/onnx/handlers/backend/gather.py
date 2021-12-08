@@ -14,8 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from graph.types import GatherParameters, NNEdge
-from graph.types.input_output import ConstantInputParameters
+from graph.types import ConstantInputParameters, GatherParameters, NNEdge
 from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
 from importer.onnx.common import logger
@@ -43,13 +42,12 @@ class Gather(ConstantMixin, BackendHandler):
         if cls.is_constant(x):
             x_val = cls.get_constant(x)
             logger.info(f"reducing {valid_name} to a constant {cls.print_small(x_val)}")
-            params = ConstantInputParameters(valid_name, value=np.take(x_val, indices, axis=axis),
-                                             constant_store=G.constant_store)
+            params = ConstantInputParameters(valid_name, value=np.take(x_val, indices, axis=axis))
         else:
             axis = cls._trim_axis(axis, x_shape)
             params = GatherParameters(valid_name, axis=axis, indices=indices)
             G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
-        all_nodes[node.output[0]] = (params, 0, pshape)
+        all_nodes[node.output[0]] = (params, 0, pshape, x[3])
         return params
 
     @classmethod
@@ -58,4 +56,8 @@ class Gather(ConstantMixin, BackendHandler):
 
     @classmethod
     def version_11(cls, node, **kwargs):
+        return cls._common(node, **kwargs)
+
+    @classmethod
+    def version_13(cls, node, **kwargs):
         return cls._common(node, **kwargs)

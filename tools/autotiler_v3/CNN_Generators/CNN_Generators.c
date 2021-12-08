@@ -879,6 +879,10 @@ void LoadCNNLibrary()
 													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMul_fpd_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(2,2,4,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposed_fpd_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_TRANSPOSED), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(2,2,4,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedNoBias_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(2,2,0,0,2), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulSxSy_fpd_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(2,2,4,0,2), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulSmallFeat_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
@@ -4494,12 +4498,16 @@ int CNN_MatMul(
 	int OutLB, OutUB, ReluN = 6;
 	int ConsT0 = Scx;
 	int Nbuff;
-	Bias_DataSize = (MatMulOper == KOP_MATMUL_NOBIAS)?0:Bias_DataSize;
+	Bias_DataSize = ((MatMulOper==KOP_MATMUL_NOBIAS) || (MatMulOper==KOP_MATMUL_NOBIAS_TRANSPOSED))?0:Bias_DataSize;
+	int Transposed = (MatMulOper == KOP_MATMUL_TRANSPOSED) || (MatMulOper == KOP_MATMUL_NOBIAS_TRANSPOSED);
+        int SAxis = (MatMulOper == KOP_MATMUL)?LineO:ColO;
+        int TA = (MatMulOper == KOP_MATMUL)?T0:T1;
+        int TB = (MatMulOper == KOP_MATMUL)?T1:T0;
 
 	if (Ctrl) {
 		if (Ctrl->ReluN != -1) ReluN = Ctrl->ReluN;
 	}
-	if (!(MatMulOper == KOP_MATMUL||MatMulOper == KOP_MATMUL_NOBIAS)) GenTilingError("CNN_MatMul Kernel: %s, MatMulOper should be KOP_MATMUL or KOP_MATMUL_NOBIAS", Name);
+	if (!(MatMulOper == KOP_MATMUL || MatMulOper == KOP_MATMUL_NOBIAS || MatMulOper == KOP_MATMUL_NOBIAS_TRANSPOSED || MatMulOper == KOP_MATMUL_TRANSPOSED)) GenTilingError("CNN_MatMul Kernel: %s, MatMulOper should be KOP_MATMUL or KOP_MATMUL_NOBIAS or KOP_MATMUL_TRANSPOSED or KOP_MATMUL_NOBIAS_TRANSPOSED", Name);
 
 	if (!(ReLUOper == KOP_NONE || ReLUOper == KOP_RELU || ReLUOper == KOP_RELUN || ReLUOper == KOP_HSWISH || ReLUOper == KOP_HSIGMOID || ReLUOper == KOP_LEAKYRELU))
 		GenTilingError("CNN_MatMul Kernel: %s, ReLUOper should be KOP_NONE, KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID or KOP_LEAKYRELU", Name);
@@ -4550,6 +4558,10 @@ int CNN_MatMul(
 		// printf("Nb Oper : %lld\n", LayerOp);
 	}
 
+	int ObjCons = !Transposed?OBJ_CONSTRAINTS_TILE_VER:0;
+	if (Transposed) {
+		LineM2 = ColM2; ColM2 = ColM1;
+	}
 	Kernel_T *Kernel = UserKernel(Name,
 		KernelIterSpace(2, IterTiledSpace(T1), IterTiledSpace(T0)),
                 TILE_HOR,
@@ -4563,10 +4575,10 @@ int CNN_MatMul(
 			Call(MatMulKerName, LOC_LOOP,
 				Bindings(21,
 					K_Arg("In1",  KER_ARG_TILE), K_Arg("In1",  KER_ARG_TILE_W), K_Arg("In1",  KER_ARG_TILE_H),
-					K_Arg("In2",  KER_ARG_TILE), K_Arg("In2",  KER_ARG_TILE_W),
+					K_Arg("In2",  KER_ARG_TILE), Transposed?K_Arg("In2",  KER_ARG_TILE_H):K_Arg("In2",  KER_ARG_TILE_W),
 					Bias_DataSize?K_Arg("Bias",KER_ARG_TILE):AT_IGNORE_ARG_BINDING,  AT_IGNORE_ARG_BINDING,
 					K_Arg("Out", KER_ARG_TILE),  K_Arg("Out", KER_ARG_TILE_W), K_Arg(ColFirst?"In1":"In2",  KER_ARG_TILE_BASE),
-					K_Arg("KerBuff", KER_ARG_TILE),
+					!Transposed?K_Arg("KerBuff", KER_ARG_TILE):AT_IGNORE_ARG_BINDING,
 					Imm(OutLB),
 					(ReLUOper==KOP_HSWISH||ReLUOper==KOP_HSIGMOID)?
 					Imm(Out_Q):						/* Output fixed point format */
@@ -4584,17 +4596,17 @@ int CNN_MatMul(
 		),
 		ColFirst?
 		KerArgs(5,
-			KerArg("KerBuff",KerArgSpace(1, T1), O_BUFF|O_NTILED,    Nbuff*ColM1,  1,      In2_DataSize,  0, 0,                                                0, 0),
+	    !Transposed?KerArg("KerBuff",KerArgSpace(1, T1), O_BUFF|O_NTILED,    Nbuff*ColM1,  1,      In2_DataSize,  0, 0,                                                0, 0):AT_NO_KER_ARG,
 			KerArg("In1",    KerArgSpace(1, T0), O_IN|O_DB|O_CONST|In1L3,  ColM1,  LineM1, In1_DataSize,  0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
-			KerArg("In2",    KerArgSpace(1, T1), O_IN|O_DB|In2L3,          ColM2,  LineM2, In2_DataSize,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
-	  Bias_DataSize?KerArg("Bias",   KerArgSpace(1, T0), O_IN|O_DB|O_CONST|BiasL3,     1,  LineO,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
+			KerArg("In2",    KerArgSpace(1, T1), O_IN|O_DB|In2L3,          ColM2,  LineM2, In2_DataSize,  0, ObjCons|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
+	  Bias_DataSize?KerArg("Bias",   KerArgSpace(1, TA), O_IN|O_DB|O_CONST|BiasL3,     1,  SAxis,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
 			KerArg("Out",    KerArgSpace(1, T1), O_OUT|O_DB|OutL3,          ColO,  LineO,  Out_DataSize,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, 0, "Out")
 		):
 		KerArgs(5,
-			KerArg("KerBuff",KerArgSpace(1, T0), O_BUFF|O_NTILED,    Nbuff*ColM1,  1,      In2_DataSize,  0, 0,                                                0, 0),
+	    !Transposed?KerArg("KerBuff",KerArgSpace(1, T0), O_BUFF|O_NTILED,    Nbuff*ColM1,  1,      In2_DataSize,  0, 0,                                                0, 0):AT_NO_KER_ARG,
 			KerArg("In1",    KerArgSpace(1, T1), O_IN|O_DB|O_CONST|In1L3,  ColM1,  LineM1, In1_DataSize,  0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
-			KerArg("In2",    KerArgSpace(1, T0), O_IN|O_DB|In2L3,          ColM2,  LineM2, In2_DataSize,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
-	  Bias_DataSize?KerArg("Bias",   KerArgSpace(1, T1), O_IN|O_DB|O_CONST|BiasL3,     1,  LineO,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
+			KerArg("In2",    KerArgSpace(1, T0), O_IN|O_DB|In2L3,          ColM2,  LineM2, In2_DataSize,  0, ObjCons|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
+	  Bias_DataSize?KerArg("Bias",   KerArgSpace(1, TB), O_IN|O_DB|O_CONST|BiasL3,     1,  SAxis,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
 			KerArg("Out",    KerArgSpace(1, T1), O_OUT|O_DB|OutL3,          ColO,  LineO,  Out_DataSize,  0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Out")
 		)
 	);

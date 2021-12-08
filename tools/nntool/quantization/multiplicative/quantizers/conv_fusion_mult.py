@@ -29,7 +29,7 @@ from ..mult_quantization_handler import MultQuantizionHandler
 # TODO - Handle more NE16 types
 
 def check_filter_options(is_ne16, input_size, output_size):
-    def check_options(opts, params, **kwargs):
+    def check_options(params, opts=None, **kwargs):
         if not check_option(input_size, opts.get('force_input_size')):
             return False
         if not check_option(output_size, opts.get('force_output_size')):
@@ -43,22 +43,23 @@ def check_filter_options(is_ne16, input_size, output_size):
 
 
 @params_type(ConvFusionParameters, LinearFusionParameters)
-@in_qs_constraint({'dtype': set([np.int8, np.uint8])})
-@out_qs_constraint({'dtype': set([np.int8, np.uint8])})
+@in_qs_constraint({'dtype': {np.int8, np.int16, np.uint8, np.uint16}})
+@out_qs_constraint({'dtype': {np.int8, np.int16, np.uint8, np.uint16}})
 # @option_constraint(check_filter_options(False, input_size=set([8, None]), output_size=set([8, None])))
 @fusion_handler
 class ConvFusionMult(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         out_qs = kwargs['out_qs']
+        assert out_qs
         return QRec.scaled(in_qs=in_qs, out_qs=out_qs)
 
 # @params_type(ConvFusionParameters)
-# @in_qs_constraint({'dtype': {np.uint8, np.uint16}})
+# @in_qs_constraint({'dtype': {np.int8, np.uint8, np.uint8, np.uint16}})
 # @out_qs_constraint({'dtype': {np.int8, np.uint8, np.int16, np.uint16}})
-# @option_constraint(check_filter_options(True, input_size=set([16]), output_size=set([8, 16, None])))
+# @option_constraint(check_filter_options(True, input_size=set([8, 16, None]), output_size=set([8, 16, None])))
 # @fusion_handler
-# class Ne16ConvFusionMult(MultQuantizionHandler):
+# class Ne16ConvFusionMult(MultQuantizionHandler, LinearFusionParameters):
 #     @classmethod
 #     def _quantize(cls, params, in_qs, stats, **kwargs):
 #         out_qs = kwargs['out_qs']

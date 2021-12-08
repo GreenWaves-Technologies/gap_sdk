@@ -91,11 +91,11 @@ FORCE_EXTERNAL_SIZE_OPTION = {
 }
 
 SQBITS_OPTION_DEFAULT_8 = {
-        'name': 'sq_bits',
-        'type': int,
-        'choices': [8],
-        'help': 'bits for inputs and outputs of scaled kernels',
-        'default': 8
+    'name': 'sq_bits',
+    'type': int,
+    'choices': [8],
+    'help': 'bits for inputs and outputs of scaled kernels',
+    'default': 8
 }
 
 BITS_OPTION_DEFAULT_16 = {
@@ -135,4 +135,10 @@ BIAS_SIZE_OPTION = {
     'choices': [0, 8, 16, 32],
     'help': 'bits for filter biases - if set to 0 the same size as the output type will be used',
     'default': 0
+}
+
+QTYPE_IND_OPTION = {
+    'name': 'qtype_ind',
+    'type': None,
+    'default': None
 }

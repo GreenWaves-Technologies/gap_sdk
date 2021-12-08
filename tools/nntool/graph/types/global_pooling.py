@@ -17,7 +17,8 @@ import logging
 from copy import deepcopy
 
 from ..dim import Dim
-from .base import Parameters, SensitiveToOrder, SingleInputAndOutput, cls_op_name
+from .base import (Parameters, SensitiveToOrder, SingleInputAndOutput,
+                   cls_op_name)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -28,7 +29,9 @@ class GlobalPoolingParameters(Parameters, SingleInputAndOutput, SensitiveToOrder
     def __new__(cls, *args, pool_type="max", axis=None, keep_dims=None, **kwargs):
         if pool_type == 'max':
             return super(GlobalPoolingParameters, cls).__new__(GlobalMaxPoolParameters)
-        if pool_type == 'max':
+        if pool_type == 'min':
+            return super(GlobalPoolingParameters, cls).__new__(GlobalMinPoolParameters)
+        if pool_type == 'sum':
             return super(GlobalPoolingParameters, cls).__new__(GlobalSumPoolParameters)
         return super(GlobalPoolingParameters, cls).__new__(GlobalAveragePoolParameters)
 
@@ -110,6 +113,11 @@ class GlobalPoolingParameters(Parameters, SingleInputAndOutput, SensitiveToOrder
 @cls_op_name('global_max_pool')
 class GlobalMaxPoolParameters(GlobalPoolingParameters):
     POOL_TYPE = 'max'
+
+
+@cls_op_name('global_min_pool')
+class GlobalMinPoolParameters(GlobalPoolingParameters):
+    POOL_TYPE = 'min'
 
 
 @cls_op_name('global_average_pool')

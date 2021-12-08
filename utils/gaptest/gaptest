@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
+use Data::Dumper qw(Dumper);
 use 5.010;
 
 
@@ -16,6 +17,8 @@ use lib dirname(abs_path $0) . '/lib';
 
 use Time::Out qw(timeout) ;
 use YAML::Tiny;
+
+use gaptest::Loader;
 
 ### Implem
 
@@ -34,6 +37,7 @@ my $test_queue = Thread::Queue->new();
 my @test_failed : shared;
 my @test_passed : shared;
 my %test_time : shared;
+my $tests_job_counter = 0;
 my $tests_nb = 0;
 @test_failed = ();
 @test_passed = ();
@@ -70,8 +74,6 @@ sub push_test_result {
 
 ## Exec the run command
 sub exc_cmd_make {
-    my $args = shift;
-    @_ = @$args;
     my $os = shift;
     my $platform = shift;
     my $flags = shift;
@@ -114,15 +116,89 @@ sub exc_cmd_make {
     return $res;
 }
 
+
+## Exec the run command
+sub exc_cmd_cmake {
+    my $os = shift;
+    my $platform = shift;
+    my $flags = shift;
+    my $tags = shift;
+    my $pre = shift;
+    my $post = shift;
+    my $timeout = shift;
+    my $target_name = shift;
+    my $exec_dir = shift;
+    my $chip = shift;
+    my $chip_version = shift;
+    my $sdk_root_path = shift;
+    my $res = 0;
+    my $make_path = $basedir."/".$exec_dir;
+
+    $chip =~ tr/a-z/A-Z/;
+    my @split_flags = split / /, $flags;
+    my $cmake_flags = '';
+    for(sort @split_flags)
+    {
+        $cmake_flags = $cmake_flags." -D".$_;
+    }
+
+    chdir $exec_dir;
+    my ($seconds_before, $seconds_after);
+    timeout $timeout =>  sub {
+        $seconds_before = time();
+
+        say "CMAKE_GENERATOR=Ninja cmake -S $make_path -B $make_path/build".-$target_name."  -DCONFIG_GAP_SDK_HOME=$sdk_root_path -DCMAKE_MODULE_PATH=$sdk_root_path/utils/cmake -DCONFIG_CHIP=$chip -DCONFIG_CHIP_VERSION=$chip_version -DBOARD=$ENV{'BOARD_NAME'} $cmake_flags";
+        $res = system ("CMAKE_GENERATOR=Ninja cmake -S $make_path -B $make_path/build".-$target_name."  -DCONFIG_GAP_SDK_HOME=$sdk_root_path -DCMAKE_MODULE_PATH=$sdk_root_path/utils/cmake -DCONFIG_CHIP=$chip -DCONFIG_CHIP_VERSION=$chip_version -DBOARD=$ENV{'BOARD_NAME'} $cmake_flags");
+        say "cmake --build $make_path/build";
+        $res = system("cmake --build $make_path/build".-$target_name);
+        say "cmake --build $make_path/build --target run";
+        $res = system("cmake --build $make_path/build".-$target_name."  --target run");
+        $seconds_after = time();
+        $res = $res >>=8;
+        say $target_name." : Result is: ".$res;
+        if($post == 1)
+        {
+            $res = system("cmake --build build --target postrun");
+        }
+    };
+    my $seconds = $seconds_after - $seconds_before;
+    if ($@){
+        # operation timed-out
+        my $cwd = cwd;
+        say "Test ".cwd." variant: ".$target_name." failed with timeout";
+    }
+    push_test_result(!$res, $target_name,$seconds);
+
+    return $res;
+}
+
 sub cmd_runner {
     while (defined(my @args = $test_queue->dequeue())) {
-        exc_cmd_make(@args);
+        my $_args = pop(@args);
+        @_ = @$_args;
+        my $builder = pop(@_);
+        if ($builder eq 'make'){
+            exc_cmd_make(@_);
+        }
+        if ($builder eq 'cmake'){
+            exc_cmd_cmake(@_);
+        }
     }
 }
 
 sub check_len {
     my $config_len = shift;
     my $target_len = shift;
+
+    if(not defined $durations{$config_len})
+    {
+        die "Selected duration \"${config_len}\" is not valid\n";
+    }
+
+    if(not defined $durations{$target_len})
+    {
+        die "Variant duration \"${target_len}\" is not valid\n";
+    }
 
     if($durations{$config_len} >= $durations{$target_len})
     {
@@ -139,127 +215,101 @@ sub process_yml {
     my $config_os = shift;
     my $config_len = shift;
     my $config_tag = shift;
+    my $job_index = shift;
+    my $job_total = shift;
+    my $chip_version = shift;
+    my $builder = shift;
+    my $sdk_root_path = shift;
+
     # enter the test dir
     chdir $exec_dir;
-    my $chip_ok = 0;
-    my $platform_ok = 0;
-    my $os_ok = 0;
-    my $res = 0;
 
-    # now, read the yml file, and harvest informations
-    my $gaptest = YAML::Tiny->read( 'gaptest.yml' );
-    say $config_chip;
-    # take the whole list
-    my $target_name = $gaptest->[0]->{name};
-    my $target_timeout;
-    if(defined($gaptest->[0]->{timeout}))
+    # read the yml file, and harvest informations
+    my @test_variants = gaptest::Loader::load_file('gaptest.yml');
+
+    foreach my $test_variant (@test_variants)
     {
-        $target_timeout = $gaptest->[0]->{timeout};
-    }
-    else
-    {
-        say "Setting default timeout";
-        $target_timeout = 3600;
-    }
-    my @target_chips = @{$gaptest->[0]->{chips}};
-    if (grep( /^$config_chip$/, @target_chips )) {
-        $chip_ok = 1;
-    }
-    else
-    {
-        return -1;
-    }
-    # take the whole list
-    my @target_os = @{$gaptest->[0]->{os}};
-    if (grep( /^$config_os$/, @target_os )) {
-        $os_ok = 1;
-    }
-    else
-    {
-        return -1;
-    }
-    # take the whole list
-    my @target_platforms = @{$gaptest->[0]->{platforms}};
-    if (grep( /^$config_platform$/, @target_platforms )) {
-        $platform_ok = 1;
-    }
-    else
-    {
-        return -1;
-    }
-    if ($chip_ok && $os_ok && $platform_ok) {
-        my %variants = %{$gaptest->[0]->{variants}};
-        my $section = '';
-        foreach $section (keys %variants)
+        if(check_len($config_len, $test_variant->{duration})
+            && (grep( /^$config_tag$/, @{$test_variant->{tags}}))
+            && (grep( /^$config_os$/, @{$test_variant->{os}}))
+            && (grep( /^$config_chip$/, @{$test_variant->{chips}}))
+            && (grep( /^$config_platform$/, @{$test_variant->{platforms}})))
         {
-            $target_name = $target_name."_".$gaptest->[0]->{variants}->{$section}->{name};
-            my $target_flags = $gaptest->[0]->{variants}->{$section}->{flags};
-            my $target_len = $gaptest->[0]->{variants}->{$section}->{duration};
-            my @target_tags = @{$gaptest->[0]->{variants}->{$section}->{tags}};
+            # Only launch the test if it is belong to the job
+            if (($tests_job_counter % $job_total) ne ($job_index - 1))
+            {
+                $tests_job_counter++;
+                next;
+            }
+            $tests_job_counter++;
 
-            my @variant_os;
-            if(defined($gaptest->[0]->{variants}->{$section}->{os}))
+            if ($list_select_tests)
             {
-                @variant_os = @{$gaptest->[0]->{variants}->{$section}->{os}};
-            }
-            else
-            {
-                @variant_os = @target_os;
-            }
-            my @variant_chips;
-            if(defined($gaptest->[0]->{variants}->{$section}->{chips}))
-            {
-                @variant_chips = @{$gaptest->[0]->{variants}->{$section}->{chips}};
-            }
-            else
-            {
-                @variant_chips = @target_chips;
-            }
-            my @variant_platforms;
-            if(defined($gaptest->[0]->{variants}->{$section}->{platforms}))
-            {
-                @variant_platforms = @{$gaptest->[0]->{variants}->{$section}->{platforms}};
-            }
-            else
-            {
-                @variant_platforms = @target_platforms;
-            }
-            my $variant_timeout = $target_timeout;
-            if(defined($gaptest->[0]->{variants}->{$section}->{timeout}))
-            {
-                $variant_timeout = $gaptest->[0]->{variants}->{$section}->{timeout};
+                # list selected test without executing it
+                push(@test_list, $test_variant->{name});
+                next;
             }
 
-            if(check_len($config_len,$target_len) && (grep( /^$config_tag$/, @target_tags ))
-                && (grep( /^$config_os$/, @variant_os ))
-                && (grep( /^$config_chip$/, @variant_chips ))
-                && (grep( /^$config_platform$/, @variant_platforms )))
-            {
-                if ($list_select_tests)
-                {
-                    # list selected test without executing it
-                    push(@test_list, ${target_name});
-                    next;
-                }
+            $test_variant->{flags} = "DURATION=".$config_len." ".$test_variant->{flags};
 
-                if (!defined($target_flags)) {
-                    $target_flags = '';
-                }
-                $target_flags = $target_flags." DURATION=".$config_len;
-                # TODO: push in workqueue here
-                #my $exec_res = exc_cmd_make($config_os,$config_platform,$target_flags,'',0,0,$variant_timeout,$target_name);
-                #$res = $res || $exec_res;
-                my @arg = ($config_os,$config_platform,$target_flags,'',0,0,$variant_timeout,$target_name,$exec_dir);
-                $test_queue->enqueue(\@arg);
-                $tests_nb++;
-            }
+            # push in workqueue
+            my @arg = ($config_os,
+                $config_platform,
+                $test_variant->{flags},
+                '',
+                0,
+                0,
+                $test_variant->{timeout},
+                $test_variant->{name},
+                $exec_dir,
+                $config_chip,
+                $chip_version,
+                $sdk_root_path,
+                $builder);
+            $test_queue->enqueue(\@arg);
+            $tests_nb++;
         }
     }
-    return $res;
+}
+
+sub create_default_gaptest {
+    my $filename = "gaptest.yml";
+    # verify no gaptest.yml
+    if (not -e $filename)
+    {
+        # create file
+        open(my $FH,'>',$filename) or die "Could not create gaptest.yml";
+
+        # dump gaptest.yml
+        print $FH "name: TEST_NAME_TO_CHANGE\n";
+        print $FH "platforms:\n";
+        print $FH "    - gvsoc\n";
+        print $FH "os:\n";
+        print $FH "    - freertos\n";
+        print $FH "    - pulpos\n";
+        print $FH "chips:\n";
+        print $FH "    - gap8\n";
+        print $FH "    - gap9\n";
+        print $FH "variants:\n";
+        print $FH "    std:\n";
+        print $FH "        name: standard\n";
+        print $FH "        tags:\n";
+        print $FH "            - integration\n";
+        print $FH "            - release\n";
+        print $FH "        duration: standard\n";
+        print $FH "        flags: ~\n";
+
+        # close file
+        close($FH);
+    }
+    else
+    {
+        print "A file named \"gaptest.yml\" already exists\n";
+    }
 }
 
 sub gaptest_find_cb {
-    push @test_files_list, $File::Find::dir if /gaptest.yml/;
+    push @test_files_list, $File::Find::dir if /gaptest.yml$/;
 }
 
 sub print_help{
@@ -281,6 +331,13 @@ sub print_help{
     print("    --tag <tag>           : select a tag. (default: integration)\n");
     print("    --no-fail             : fail on first test.\n");
     print("    --nb-proc <nb>        : select the number of processors (default: 1)\n");
+    print("    --jobs <job>          : Divide the testsuite into multiple smaller testsuites\n");
+    print("                            <job> is a string formatted as \"X/N\" where X is the job index\n");
+    print("                            and N is the total number of jobs.\n");
+    print("                            This feature is useful to parallelize long testsuites, as you\n");
+    print("                            can launch a single testsuite on multiple test runners.\n");
+    print("\n");
+    print("    --init                : create a default \"gaptest.yml\" file and exit\n");
     print("    --list-selected       : list selected tests and exit\n");
     print("    --help                : display help and exit\n");
     print("\n");
@@ -314,13 +371,14 @@ sub dump_junit_report {
     my $timestamp = shift;
     lock(@test_failed);
     lock(@test_passed);
+    say "Dumping report at: ".cwd."/".$filename;
     open(REPORT,'>',$filename) or die $!;
     my $nb_test_failed = scalar(@test_failed);
     my $nb_test_passed = scalar(@test_passed);
     my $total = $nb_test_failed + $nb_test_passed;
     my $header_failed = "failures=\"".$nb_test_failed."\"";
     my $header_tests = "tests=\"".$total."\"";
-    # next two are unsuported and set at 0 
+    # next two are unsuported and set at 0
     my $header_errors =  "errors=\"0\"";
     my $header_skipped = "skipped=\"0\"";
     my $header_timestamp = "timestamp=\".$timestamp.\"";
@@ -337,6 +395,8 @@ sub dump_junit_report {
         print REPORT "</testcase>\n";
     }
     print REPORT "</testsuite>\n";
+    close(REPORT);
+    say "Report dumped";
 }
 
 ### ENTRY
@@ -351,6 +411,9 @@ sub dump_junit_report {
 # --list: list all tests which will be run with current config (and their paths)
 # --dry-run: prepare all comands, and dump them, without executing
 
+my $builder = 'make';
+my $sdk_root_path = '';
+my $chip_version = '';
 my $chip = '';
 my $tag = 'integration';
 my $board = '';
@@ -359,25 +422,39 @@ my $os = 'freertos';
 my $len = 'standard';
 my $threads = '';
 my $nb_proc = 1;
+my $jobs = '1/1'; # contains "X/N" where X = job index, N = total number of jobs
+my $test_init = 0;
 
 while (@ARGV) {
     my $arg = shift(@ARGV);
     # long options
     ($arg eq '--chip') && do { $chip = shift(@ARGV); next };
+    ($arg eq '--chip-version') && do { $chip_version = shift(@ARGV); next };
+    ($arg eq '--sdk-root-path') && do { $sdk_root_path = shift(@ARGV); next };
     ($arg eq '--os') && do { $os = shift(@ARGV); next };
     ($arg eq '--platform') && do { $platform = shift(@ARGV); next };
     ($arg eq '--tag') && do { $tag = shift(@ARGV); next};
     ($arg eq '--length') && do { $len = shift(@ARGV); next};
     ($arg eq '--no-fail') && do { $stop_first_fail = 1; next};
     ($arg eq '--nb-proc') && do { $nb_proc = shift(@ARGV); next};
+    ($arg eq '--jobs') && do { $jobs = shift(@ARGV); next};
     ($arg eq '--help') && do { print_help(); exit 0};
     ($arg eq '--list-selected') && do { $list_select_tests = 1; next};
+    ($arg eq '--init') && do { $test_init = 1; next};
+    ($arg eq '--builder') && do { $builder = shift(@ARGV); next };
     # short options
     ($arg eq '-c') && do { $chip = shift(@ARGV); next };
     ($arg eq '-t') && do { $tag = shift(@ARGV); next};
     ($arg eq '-b') && do { $board = shift(@ARGV); next};
     # unrecognized
     ($arg =~ m/^-.+/) && do { print "Unknown option: $arg\n"; &usage(); die};
+}
+
+if ($test_init)
+{
+    # create_default gaptest.yml
+    create_default_gaptest;
+    exit 0;
 }
 
 if($chip eq '')
@@ -395,36 +472,44 @@ for(my $i = 0; $i < $nb_proc; $i++)
 
 #$test_queue->limit = $nb_proc;
 
-## for now, open in current dir, TODO: should search recursively
-## TODO: add to workqueue instead of just executing
 find(\&gaptest_find_cb, '.');
-my $res = 0;
 my $cwd = cwd;
 $basedir = cwd;
-say "cwd: ".$cwd;
+
+# get the index and total number of jobs
+my $job_index = 1;
+my $job_total = 1;
+if ($jobs =~ /^([0-9]+)\/([0-9]+)$/) {
+
+    $job_index = int($1);
+    $job_total = int($2);
+    if ($job_index > $job_total or $job_index < 1)
+    {
+        die("Incorrect job index: ${job_index} should be between 1 and ${job_total}\n");
+    }
+}
+else {
+    die("Incorrect number of jobs: ${jobs}\n");
+}
 
 
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
 my $timestamp = (1900+$year)."-".(1+$mon)."-".$mday."T".$hour.":".$min.":".($sec%60);
 
-for (@test_files_list)
+for (sort @test_files_list)
 {
     chdir $cwd;
-    say $_;
-    my $process_res = process_yml($_,$platform,$chip,$board,$os,$len,$tag);
-    $res = $res || $process_res;
+    process_yml($_,$platform,$chip,$board,$os,$len,$tag,$job_index,$job_total,$chip_version,$builder,$sdk_root_path);
 }
 
-say "tests= ".(scalar(@test_failed) + scalar(@test_passed))." wished=".$tests_nb;
 while(nb_test_run() < $tests_nb)
 {
     sleep 1;
 }
 
 # go back to basedir
-chdir $cwd;
+chdir $basedir;
 
-print("\n\n");
 if($list_select_tests)
 {
     my $nb_test_total = scalar(@test_list);
@@ -473,7 +558,7 @@ else
         say "Testsuite succeeded (passed: ${nb_test_passed}/${nb_test_total})";
     }
     say "---------------------------------------------------------------------------";
-    
+
     dump_junit_report("./report.xml",$timestamp);
     exit scalar(@test_failed);
 }

@@ -92,7 +92,7 @@ private:
     std::vector<vp::trace *> init_traces;
     std::unordered_map<std::string, FILE *> trace_files;
 
-    vp::component *power_engine;
+    vp::component *time_engine;
     FILE *trace_file;
 };
 
@@ -129,42 +129,42 @@ trace_domain::trace_domain(js::config *config)
 
 void trace_domain::run()
 {
-    this->power_engine->run();
+    this->time_engine->run();
 }
 
 int64_t trace_domain::step(int64_t timestamp)
 {
-    return this->power_engine->step(timestamp);
+    return this->time_engine->step(timestamp);
 }
 
 void trace_domain::quit(int status)
 {
-    this->power_engine->quit(status);
+    this->time_engine->quit(status);
 }
 
 void trace_domain::pause()
 {
-    this->power_engine->pause();
+    this->time_engine->pause();
 }
 
 void trace_domain::stop_exec()
 {
-    this->power_engine->stop_exec();
+    this->time_engine->stop_exec();
 }
 
 void trace_domain::req_stop_exec()
 {
-    this->power_engine->req_stop_exec();
+    this->time_engine->req_stop_exec();
 }
 
 void trace_domain::register_exec_notifier(vp::Notifier *notifier)
 {
-    this->power_engine->register_exec_notifier(notifier);
+    this->time_engine->register_exec_notifier(notifier);
 }
 
 int trace_domain::join()
 {
-    return this->power_engine->join();
+    return this->time_engine->join();
 }
 
 void trace_domain::check_trace_active(vp::trace *trace, int event)
@@ -313,7 +313,7 @@ void trace_domain::pre_pre_build()
 
 int trace_domain::build()
 {
-    this->power_engine = this->new_component("", this->get_js_config(), "vp.power_engine_impl");
+    this->time_engine = this->new_component("", this->get_js_config(), "vp.time_domain_impl");
 
     js::config *config = get_js_config()->get("gvsoc");
 

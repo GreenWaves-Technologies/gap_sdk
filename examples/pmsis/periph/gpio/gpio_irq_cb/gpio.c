@@ -41,7 +41,7 @@ void test_gpio(void)
 {
     int32_t errors = 0;
     uint32_t value = 0;
-    struct pi_gpio_conf gpio_conf = {0};
+    struct pi_gpio_conf gpio_conf;
     pi_gpio_conf_init(&gpio_conf);
     pi_open_from_conf(&gpio, &gpio_conf);
     errors = pi_gpio_open(&gpio);
@@ -63,7 +63,7 @@ void test_gpio(void)
 
     /* Initialize cb. */
     uint32_t gpio_mask = (1 << (gpio_in & PI_GPIO_NUM_MASK));
-    pi_gpio_callback_t cb_gpio[3] = {0};
+    pi_gpio_callback_t cb_gpio[3];
     pi_gpio_callback_init(&cb_gpio[0], gpio_mask, __pi_cb_gpio, (void *) gpio_in);
     pi_gpio_callback_init(&cb_gpio[1], gpio_mask, __pi_cb_gpio_2, (void *) gpio_in);
     pi_gpio_callback_init(&cb_gpio[2], gpio_mask, __pi_cb_gpio_3, (void *) gpio_in);

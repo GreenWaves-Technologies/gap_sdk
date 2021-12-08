@@ -19,9 +19,9 @@ static void check_file(pi_fs_file_t *file)
     uint32_t size_total = 0;
     uint32_t count_done = 0;
     #if defined(USE_CLUSTER)
-    pi_cl_fs_req_t req = {0};
+    pi_cl_fs_req_t req;
     #else
-    pi_task_t task = {0};
+    pi_task_t task;
     pi_task_block(&task);
     #endif  /* USE_CLUSTER */
     for (count_done = 0; count_done < COUNT; count_done++)
@@ -81,7 +81,7 @@ void test_fs(void)
 {
     printf("Entering main controller\n");
 
-    pi_fs_file_t *file[NB_FILE] = {0};
+    pi_fs_file_t *file[NB_FILE];
     char *name[NB_FILE] = {"hello.txt"};//, "Makefile"};
 
     struct pi_device fs;
@@ -90,8 +90,8 @@ void test_fs(void)
 
     #if defined(USE_CLUSTER)
     printf("Use cluster\n");
-    struct pi_device cluster = {0};
-    struct pi_cluster_task cluster_task = {0};
+    struct pi_device cluster;
+    struct pi_cluster_task cluster_task;
     /* Init & open cluster if used. */
     struct pi_cluster_conf cluster_conf;
     pi_cluster_conf_init(&cluster_conf);
@@ -102,9 +102,8 @@ void test_fs(void)
         printf("Error cluster open !\n");
         pmsis_exit(-3);
     }
+    pi_cluster_task(&cluster_task, (void (*)(void *))check_file, NULL);
     cluster_task.stack_size = 1024;
-    cluster_task.entry = (void *) check_file;
-    cluster_task.arg = NULL;
     #endif  /* USE_CLUSTER */
 
     for (uint32_t i = 0; i < (uint32_t) NB_FILE; i++)

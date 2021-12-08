@@ -18,10 +18,9 @@ from copy import deepcopy
 
 import numpy as np
 from graph.types import PoolingParameters
-from graph.types.pooling import MaxPoolParameters
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
-from quantization.quantizer_options import HWC_OPTION
+from quantization.quantizer_options import FORCE_NE16_OPTION, HWC_OPTION, USE_NE16_OPTION
 from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        options,
                                                        out_qs_constraint,
@@ -99,18 +98,8 @@ class PoolingMult(MultQuantizionHandler):
 
 
 @options(
-    {
-        'name': 'use_ne16',
-        'type': bool,
-        'help': 'enable use of NE16 kernels (if supported) on this layer',
-        'default': False
-    },
-    {
-        'name': 'force_ne16',
-        'type': bool,
-        'help': 'force use of NE16 kernels on this layer - may not be supported for model generation',
-        'default': False
-    }
+    USE_NE16_OPTION,
+    FORCE_NE16_OPTION
 )
 @params_type(PoolingParameters)
 @in_qs_constraint({'dtype': set([np.uint8, np.int16, np.uint16])})

@@ -38,7 +38,9 @@ class MatchDuplicateConstants(Matcher):
             LOG.info('node %s has more than one out edge and will be duplicated', node.name)
             idx = 1
             for out_edge in out_edges[1::]:
-                new_constant = ConstantInputParameters(f'{node.name}_{idx}', dims=Dim.unnamed(node.dims.shape), value=node.value.copy())
+                new_constant = ConstantInputParameters(
+                    f'{node.name}_{idx}', dims=Dim.unnamed(node.dims.shape),
+                    value=node.value.copy())
                 G.remove_edge(out_edge)
                 G.add_edge(NNEdge(from_node=new_constant, to_node=out_edge.to_node, to_idx=out_edge.to_idx))
                 idx += 1

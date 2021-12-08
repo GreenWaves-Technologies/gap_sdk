@@ -17,8 +17,7 @@ from functools import reduce
 
 import numpy as np
 from graph.dim import Dim
-from graph.types import NNEdge, ReshapeParameters
-from graph.types.input_output import ConstantInputParameters
+from graph.types import ConstantInputParameters, NNEdge, ReshapeParameters
 from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.common import LOG
@@ -85,8 +84,7 @@ class Reshape(BackendHandler, ConstantMixin):
             LOG.info("reducing %s to a constant", node.name)
             val = np.reshape(cls.get_constant(x), new_shape)
             params = ConstantInputParameters(node.name, value=val,
-                                             dims=Dim.unnamed(val.shape),
-                                             constant_store=G.constant_store)
+                                             dims=Dim.unnamed(val.shape))
         else:
             pnew_shape = ProvisionalDim(new_shape)
             old_shape = Dim.unnamed(

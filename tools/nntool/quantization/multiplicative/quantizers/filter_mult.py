@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.constant_input import ConstantInputParameters
+from graph.types.tensor_arithmetic import MatMulOpParameters, MatMulTransposedParameters
 import logging
 from copy import deepcopy
 
@@ -47,22 +49,26 @@ AT_NE16_KER_IN_ORDER = [['h', 'w', 'c'], [
 AT_NE16_KER_OUT_ORDER = [['h', 'w', 'c']]
 
 
-def can_ne16(fusion, params):
-    if not isinstance(params, (Conv2DParameters, FcParameters)):
+def can_ne16(fusion, params, G):
+    if not isinstance(params, (Conv2DParameters, FcParameters, MatMulTransposedParameters)):
         return False
-    if fusion:
-        if fusion.fusion_type in ['conv_active_pool', 'conv_active']:
-            if any(not isinstance(node, (Conv2DParameters, ReluActivationParameters, PoolingParameters))
-                    for node in fusion.contained_nodes()):
-                return False
-        else:
-            return False
+    # if fusion:
+    #     if fusion.fusion_type in ['conv_active_pool', 'conv_active']:
+    #         if any(not isinstance(node, (Conv2DParameters, ReluActivationParameters, PoolingParameters))
+    #                 for node in fusion.contained_nodes()):
+    #             return False
+    #     else:
+    #         return False
     if isinstance(params, Conv2DParameters):
         # if (params.filter.w != params.filter.h or (params.filter.w != 1 and params.filter.w != 3)):
         #     return False
         if (params.is_depthwise_conv() and (params.filter.w != 3 or params.filter.h != 3)):
             return False
         if (params.stride.size() != 1 and params.stride.shape != [2, 2]) and not ((params.filter.w == 1 or params.filter.h == 1)):
+            return False
+    elif isinstance(params, MatMulTransposedParameters):
+        in_nodes = [edge.from_node for edge in G.in_edges(params)]
+        if not isinstance(in_nodes[1], ConstantInputParameters):
             return False
     return True
 
@@ -74,7 +80,7 @@ def check_option(option, val):
 
 
 def check_filter_options(is_ne16, input_size, output_size):
-    def check_options(opts, params, **kwargs):
+    def check_options(params, opts=None, **kwargs):
         if not check_option(input_size, opts.get('force_input_size')):
             return False
         if not check_option(output_size, opts.get('force_output_size')):
@@ -84,7 +90,7 @@ def check_filter_options(is_ne16, input_size, output_size):
             return is_ne16
         if not opts.get('use_ne16'):
             return not is_ne16
-        return is_ne16 == can_ne16(fusion, params)
+        return is_ne16 == can_ne16(fusion, params, kwargs["G"])
     return check_options
 
 
@@ -177,7 +183,7 @@ class FilterSWMultBase(FilterMultBase):
         in_qs = in_qs.copy()
         opts = kwargs['opts']
         fusion = kwargs.get('fusion', None)
-        LOG.info('selecting SQ8 software kernel filter quantizer')
+        LOG.debug('selecting SQ8 software kernel filter quantizer')
         force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
         force_out_q = force_out_qs and force_out_qs[0]
         G = kwargs['G']
@@ -310,6 +316,7 @@ class FilterMultNE16Base(FilterMultBase):
                                         dtype=np.uint8,
                                         narrow_range=True,
                                         bit_pack=opts['weight_bits'],
+                                        no_compression=True,
                                         bits=opts['weight_bits'])
 
         in_q = in_qs[0]
@@ -380,7 +387,7 @@ class FilterMultNE16Base(FilterMultBase):
                                       stats['range_in'][idx]['max'],
                                       dtype=in_dtype,
                                       asymmetric=len(stats['range_in'][idx]) == 1)
-                if dim is not None else None
+                if dim is not None and stats['range_in'][idx] else None
                 for idx, dim in enumerate(params.in_dims)]
 
 

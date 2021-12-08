@@ -72,6 +72,12 @@ void bsp_hm0360_conf_init(struct pi_hm0360_conf *conf);
 int bsp_hm0360_open(struct pi_hm0360_conf *conf);
 #endif
 
+#if defined(CONFIG_EPEAS_CIS001)
+#include "bsp/camera/epeas_cis001.h"
+void bsp_epeas_cis001_conf_init(struct pi_epeas_cis001_conf *conf);
+int bsp_epeas_cis001_open(struct pi_epeas_cis001_conf *conf);
+#endif
+
 #if defined(CONFIG_OV7670)
 #include "bsp/camera/ov7670.h"
 void bsp_ov7670_conf_init(struct pi_ov7670_conf *conf);

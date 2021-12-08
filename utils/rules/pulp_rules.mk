@@ -219,7 +219,7 @@ $(T_OBJECTS_C) : $(BUILDDIR)/%.o : %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(PULP_CFLAGS) $(TCFLAGS) $< $(INC_PATH) -MD -MF $(basename $@).d -o $@
 
-$(BUILDDIR)/pulp-os/conf.o: $(GAP_SDK_HOME)/rtos/pulp/pulp-os/kernel/conf.c
+$(BUILDDIR)/pulp-os/conf.o: $(GAP_SDK_HOME)/gap8/rtos/pulp/pulp-os/kernel/conf.c
 	@mkdir -p $(dir $@)
 	$(CC) $(PULP_CFLAGS) $(TCFLAGS) $< $(INC_PATH) -MD -MF $(basename $@).d -o $@
 

@@ -149,6 +149,15 @@ class QuantizationSet(MutableMapping, JsonSerializable):
             return [self.qset[NodeId(node)] for node in nodes]
         return None
 
+    def get_all_stats(self, nodes: Sequence[Parameters]) -> Sequence[QRec]:
+        """Get all the stats records for a sequence of nodes"""
+        if self.stats is None:
+            return None
+        all_stats = [self.stats.get(NodeId(node)) for node in nodes]
+        if any(stat is None for stat in all_stats):
+            return None
+        return all_stats
+
     def all_have_quantization(self, nodes: Sequence[Parameters]) -> bool:
         """Check that a sequence of nodes all have quantization records"""
         return all(NodeId(node) in self.qset for node in nodes)
@@ -170,9 +179,12 @@ class QuantizationSet(MutableMapping, JsonSerializable):
 
     def move_to_fusion(self, node: Parameters, new_pnode: Parameters):
         nid = NodeId(node)
+        fnid = NodeId(new_pnode, node)
         if nid in self.qset:
-            self.qset[NodeId(new_pnode, node)] = self.qset[nid]
+            self.qset[fnid] = self.qset[nid]
             del self.qset[nid]
+        if self.stats and nid in self.stats:
+            self.stats[fnid] = self.stats[nid]
 
     def move_to_node(self, node: Parameters, new_pnode: Parameters):
         nid = NodeId(node)

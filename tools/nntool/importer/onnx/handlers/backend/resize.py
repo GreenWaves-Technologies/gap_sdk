@@ -55,8 +55,7 @@ class Resize(ConstantMixin, BackendHandler):
             sizes.insert(-1, 1)
 
         if nearest_mode != 'round_prefer_ceil':
-            logger.warning(
-                'only round_prefer_ceil is supported for nearest mode')
+            logger.warning(f'{valid_name} - only round_prefer_ceil is supported for nearest mode not {nearest_mode}')
 
         if spatial_size != 2 and spatial_size != 1:
             raise ValueError('resize only supports 4D tensor in NCHW mode or 3D tensor in NCF mode'
@@ -68,7 +67,7 @@ class Resize(ConstantMixin, BackendHandler):
 
         mode = node.attrs.get('mode', 'nearest')
         if mode != 'nearest' and mode != 'linear':
-            raise ValueError('resize only supports nearest and linear modes')
+            raise ValueError(f'{valid_name} - resize only supports nearest and linear modes not {mode}')
 
         params_class = BilinearResizerParameters if mode == 'linear' else NearestNeighborResizerParameters
 
@@ -100,7 +99,7 @@ class Resize(ConstantMixin, BackendHandler):
             G.add_edge(
                 NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
 
-        all_nodes[node.output[0]] = (params, 0, pout_dims)
+        all_nodes[node.output[0]] = (params, 0, pout_dims, x[3])
         return params
 
     @classmethod
@@ -120,7 +119,7 @@ class Resize(ConstantMixin, BackendHandler):
             'coordinate_transformation_mode', 'half_pixel')
         if coord_transmode != 'align_corners':
             logger.warning(
-                'only align_corners is supported as coordinate_transformation_mode')
+                f'only align_corners is supported as coordinate_transformation_mode not {coord_transmode}')
 
         scales_inp = inputs[2]
         scales_shape = scales_inp[2].shape if scales_inp else None

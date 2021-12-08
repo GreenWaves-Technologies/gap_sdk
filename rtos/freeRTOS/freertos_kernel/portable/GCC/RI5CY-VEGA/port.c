@@ -32,7 +32,7 @@
 /* Scheduler includes. */
 #include "FreeRTOS.h"
 #include "task.h"
-#include "system_vega.h"
+#include "device/system_vega.h"
 
 /* Macro definitions. */
 #include "chip_specific_extensions/vega/freertos_risc_v_chip_specific_extensions.h"

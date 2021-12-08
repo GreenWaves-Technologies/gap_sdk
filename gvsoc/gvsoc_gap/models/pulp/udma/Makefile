@@ -79,12 +79,6 @@ pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_SRCS += pulp/udma/i2s/u
 endif
 
 
-
-ifeq '$(udma/mram/version)' '1'
-pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_CFLAGS += -DHAS_MRAM
-pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_SRCS += pulp/udma/mram/udma_mram_v1.cpp
-endif
-
 ifeq '$(udma/tcdm/version)' '1'
 pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_CFLAGS += -DHAS_TCDM
 pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_SRCS += pulp/udma/tcdm/udma_tcdm_v1.cpp

@@ -13,23 +13,22 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.input_output import ConstantInputParameters
-from generation.helpers.gen_constant import gen_constant
-from quantization.qtype import QType
 import logging
-import numpy as np
 
+import numpy as np
+from generation.at_types.constant_info import ConstantInfo
 from generation.at_types.gen_ctrl import GenCtrl
-from generation.bindings import (CommentBindingList, GNodeArgEdge, GNodeArgNode,
-                                 NodeBindingList)
+from generation.at_types.tc_arg_info import GlobalArgInfo
+from generation.bindings import (CommentBindingList, GNodeArgEdge,
+                                 GNodeArgNode, NodeBindingList)
 from generation.generators.kernels.autotiler_kernel import NewAutoTilerKernel
+from generation.helpers.gen_constant import gen_constant
 from generation.new_generators.generator_base import (GeneratorBase, ktype,
                                                       paramstype)
-from generation.at_types.constant_info import ConstantInfo
-from generation.at_types.tc_arg_info import GlobalArgInfo
 from graph.types import SSDDetectorParameters
 from quantization.multiplicative.mulbias import set_ssd_scales
 from quantization.multiplicative.mult_utils import compute_mul_bias
+from quantization.qtype import QType
 
 LOG = logging.getLogger("nntool." + __name__)
 

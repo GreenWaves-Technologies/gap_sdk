@@ -58,6 +58,8 @@
 #else
 	#define	LEAK_CONSTANT	((float)0.1)
 #endif
+#define ClipF2(a, upper, lower) ((F16V)MaxF2(MinF2((a), (upper)), (lower)))
+#define ClipF(a, upper, lower) ((F16) MaxF(MinF((a), (upper)), (lower)))
 
 /* Float Activation Functions */
 #ifdef FLOAT_LUT_ACTIVATIONS

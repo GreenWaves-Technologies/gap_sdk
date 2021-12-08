@@ -19,8 +19,8 @@ from quantization.qtype import DTYPE_GAP_CTYPE
 from scipy.special import expit
 
 from .function import Function
-from .symbol import (Constant, Rational, c_headers, environment, handles,
-                     handlesr, nargs)
+from .symbol import (Constant, Rational, c_headers, copy_props, environment,
+                     handles, handlesr, nargs)
 
 
 @nargs(2)
@@ -77,6 +77,7 @@ class Sub(Function):
 @handles('__floordiv__', is_floor=True)
 @handlesr('__rdiv__')
 @handlesr('__rfloordiv__', is_floor=True)
+@copy_props('is_floor')
 class Div(Function):
     def __init__(self, *args, is_floor=False, **kwargs) -> None:
         super(Div, self).__init__(*args, **kwargs)
@@ -176,6 +177,18 @@ class Abs(Function):
 class GapAbs(Abs):
     def _c_expr(self, *args, **kwargs):
         return "gap_abs(%s)" % (args[0])
+
+@nargs(1)
+class Round(Function):
+
+    def _impl(self, *args, **kwargs):
+        return np.floor(args[0], dtype=self.dtype)
+
+    def _py_expr(self, *args, **kwargs):
+        return "np.round(%s)" % args[0]
+
+    def _c_expr(self, *args, **kwargs):
+        return "round(%s)" % args[0]
 
 
 @nargs(1)
@@ -403,10 +416,15 @@ class Sigmoid(Function):
 
 
 @nargs(1)
+@copy_props('cast_dtype')
 class Cast(Function):
     def __init__(self, *args, dtype=None, **kwargs):
         self._cast_dtype = dtype
         super().__init__(*args, dtype=dtype, **kwargs)
+
+    @property
+    def cast_dtype(self):
+        return self._cast_dtype
 
     def _eval(self, *args, **kwargs):
         if isinstance(args[0], Constant):
@@ -469,7 +487,7 @@ class CompoundFunction(Function):
         raise ValueError('should not be called')
 
     def _py_expr(self, *args, **kwargs):
-        return self._inner_function.py_expr
+        return self._inner_function.py_expr(*args, **kwargs)
 
     def _c_expr(self, *args, **kwargs):
         return self._inner_function.c_expr(*args, **kwargs)
@@ -490,11 +508,20 @@ class HSigmoid(CompoundFunction):
 
 
 @nargs(1)
+@copy_props('upper_bound', 'lower_bound')
 class Relu(CompoundFunction):
     def __init__(self, *args, upper_bound=None, lower_bound=0, **kwargs):
         self._upper_bound = upper_bound
         self._lower_bound = lower_bound
         super().__init__(*args, **kwargs)
+
+    @property
+    def upper_bound(self):
+        return self._upper_bound
+
+    @property
+    def lower_bound(self):
+        return self._lower_bound
 
     def _eval(self, *args, **kwargs):
         if self._upper_bound is not None:
@@ -510,11 +537,20 @@ class Relu(CompoundFunction):
 
 
 @nargs(1)
+@copy_props('_from_qrec', '_to_qrec')
 class ConvertFloatScaled(CompoundFunction):
     def __init__(self, *args, from_qrec=None, to_qrec=None, **kwargs):
         self._from_qrec = from_qrec
         self._to_qrec = to_qrec
         super().__init__(*args, **kwargs)
+
+    @property
+    def from_qrec(self):
+        return self._from_qrec
+
+    @property
+    def to_qrec(self):
+        return self._to_qrec
 
     def _eval_float_to_quant(self, *args, **kwargs):
         raise NotImplementedError()

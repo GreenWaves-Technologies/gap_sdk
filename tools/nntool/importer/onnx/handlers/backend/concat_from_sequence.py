@@ -46,8 +46,8 @@ class ConcatFromSequence(ConcatMixin, BackendHandler):
         if all(cls.is_constant(inp) for inp in inputs):
             logger.info("reducing %s to a constant", valid_name)
             value = np.concatenate([cls.get_constant(inp) for inp in inputs], axis=axis)
-            params = ConstantInputParameters(valid_name, value=value, constant_store=G.constant_store)
-            all_nodes[node.output[0]] = (params, 0, ProvisionalDim(value.shape))
+            params = ConstantInputParameters(valid_name, value=value)
+            all_nodes[node.output[0]] = (params, 0, ProvisionalDim(value.shape), inputs[0][3])
             return params
 
         # add the axis into the shape
@@ -64,7 +64,7 @@ class ConcatFromSequence(ConcatMixin, BackendHandler):
                 old_shape=old_shape,
                 shape=shape)
             G.add_edge(NNEdge(from_node=inp[0], to_node=rparams, from_idx=inp[1], to_idx=0))
-            inputs[idx] = (rparams, 0, ProvisionalDim(new_shape))
+            inputs[idx] = (rparams, 0, ProvisionalDim(new_shape), inp[3])
 
         return cls.gen_concat(node, inputs, axis)
 

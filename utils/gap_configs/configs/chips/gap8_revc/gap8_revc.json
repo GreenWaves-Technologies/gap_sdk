@@ -2,6 +2,10 @@
   "config_type": "generator",
   "@generator@": "generators/v1/config_gen",
 
+  "chip": {
+    "name": "gap8_revc"
+  },
+
   "board": {
     "devices": {
       "uart": {
@@ -31,7 +35,6 @@
   },
 
 
-  "chip": "gap8_revc",
   "chip_family": "gap",
   
   "padframe": {
