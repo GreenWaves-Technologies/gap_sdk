@@ -13,11 +13,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from copy import deepcopy
 import logging
+from copy import deepcopy
 
-from ..dim import PoolFilterDim
-from .base import FilterLikeParameters, cls_op_name, SensitiveToOrder
+from ..dim import Dim, PoolFilterDim
+from .base import FilterLikeParameters, SensitiveToOrder, cls_op_name
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -70,9 +70,13 @@ class PoolingParameters(FilterLikeParameters, SensitiveToOrder):
             self.padding.calculate_same(in_dims, self.filter, self.stride)
 
         pad = self.padding.height_width()
-        out_dim = ((in_dims - self.filter + pad)//self.stride) + 1
 
-        out_dim.c = in_dims.c
+        h = ((in_dims.h - self.filter.h + pad.h)//self.stride.h) + 1
+        w = ((in_dims.w - self.filter.w + pad.w)//self.stride.w) + 1
+        if h < 0 or w < 0:
+            raise ValueError(f'{self.name}dimension calculation invalid {h}, {w}')
+
+        out_dim = Dim.named_ordered(c=in_dims.c, h=h, w=w)
         out_dim.impose_order(in_dims.order)
 
         return [out_dim]

@@ -47,22 +47,42 @@ class ConvMixin(BroadcastMixin, PadMixin, ConstantMixin):
         x = inputs[0]
         x_rank = len(x[2].shape)
         x_shape = x[2].shape
-        if x_shape[0] is not None and x_shape[0] > 1:
-            batch = x_shape[0]
-            logger.warning(
-                f"{valid_name} has a non 1 batch dimension of {batch} -"
-                " this is not supported by nntool or autotiler kernels")
+
+        if x_shape[0] is not None:
+            real_in_shape = tuple(x_shape.copy())
+            if x_shape[0] > 1:
+                # support for multi batch is very limited
+                batch = x_shape[0]
+                logger.warning(
+                    f"{valid_name} has a non 1 batch dimension of {batch} -"
+                    " this is not supported by nntool or autotiler kernels")
+            else:
+                # if the batch is specified but is 1 then the input will be reshaped
+                # and the output will have the batch dim set as unknown.
+                batch = None
         else:
+            real_in_shape = tuple(x_shape[1:])
             batch = None
-        real_in_shape = deepcopy(x_shape)
-        #conv_shape = [x if idx > 0 and x is not None else 1 for idx, x in enumerate(x_shape)]
-        conv_shape = x_shape
-        if None in x_shape:
-            real_in_shape.remove(None)
+
         spatial_size = x_rank - 2
         assert spatial_size == 2 or spatial_size == 1, "only 1D and 2D convolutions supported"
+
+        # Input error checking
+        undefined = []
+        if x_shape[1] is None:
+            # cope with swapped batch and channel due to bad initial reshape
+            if x_shape[0] == 1:
+                batch = None
+                x_shape = [x_shape[1], x_shape[0]] + list(x_shape[2:])
+                real_in_shape = x_shape[1:]
+            else:
+                undefined.append(f"input channel size of filter {valid_name} must be defined.")
+
         if not all(dim is not None for dim in x_shape[-spatial_size:]):
-            raise ValueError(f"input spatial size {x_shape} of filter {valid_name} must be defined. You may need to override input dimensions.")
+            undefined.append(f"input spatial size {x_shape} of filter {valid_name} must be defined.")
+        if undefined:
+            raise ValueError(f"{' '.join(undefined)}. You may need to override input dimensions.")
+
         # M x C/group x kH x kW
         weights_idx = 3 if quantized else 1
         weights_node = inputs[weights_idx][0]
@@ -70,15 +90,15 @@ class ConvMixin(BroadcastMixin, PadMixin, ConstantMixin):
         weights = cls.get_constant(inputs[weights_idx])
         out_c = weights.shape[0]
         group = node.attrs.get("group", 1)
-        in_c = conv_shape[-spatial_size -
-                          1] if conv_shape[-spatial_size-1] is not None else 1
+        in_c = x_shape[1]
         filt_in_c = in_c // group
         if in_c != weights.shape[1] * group:
             raise ValueError(f'node {valid_name} has incorrect input channel '
                              f'dimension {in_c} expecting {weights.shape[1] * group}')
         if spatial_size == 1:
             filt_w = weights.shape[-1]
-            filt_h = 1
+            filt_h = h = 1
+            w = x_shape[-1]
             # create a new constant node since we are changing the shape
             weights = np.reshape(weights, (out_c, filt_in_c, filt_h, filt_w))
             weights_node = ConstantInputParameters(f'{valid_name}_weights', value=weights,
@@ -88,9 +108,14 @@ class ConvMixin(BroadcastMixin, PadMixin, ConstantMixin):
         else:
             filt_h = weights.shape[-2]
             filt_w = weights.shape[-1]
-        h = 1 if spatial_size == 1 else (
-            conv_shape[-2] if conv_shape[-2] is not None else 1)
-        w = conv_shape[-1] if conv_shape[-1] is not None else 1
+            h = x_shape[-2]
+            w = x_shape[-1]
+
+        conv_in_shape = (in_c, h, w)
+
+        # h = 1 if spatial_size == 1 else (
+        #     x_shape[-2] if x_shape[-2] is not None else 1)
+        # w = x_shape[-1] if x_shape[-1] is not None else 1
 
         filt_dim = Conv2DFilterDim(filt_h, filt_w,
                                    out_c, in_c=filt_in_c)
@@ -174,48 +199,86 @@ class ConvMixin(BroadcastMixin, PadMixin, ConstantMixin):
                           to_node=params, from_idx=0, to_idx=1))
         G.add_edge(NNEdge(from_node=biases_node,
                           to_node=params, from_idx=0, to_idx=2))
-        if conv_shape != real_in_shape:
-            # insert reshape from [xx,None,xx,xx] -> [None, xx, xx, xx]
-            rbatch_params = ReshapeParameters(f'{valid_name}_reshape_batchdim',
-                                              old_shape=Dim.unnamed(
-                                                  conv_shape),
-                                              shape=Dim.unnamed(real_in_shape))
-            G.add_edge(
-                NNEdge(from_node=x[0], to_node=rbatch_params, from_idx=x[1], to_idx=0))
-            prev_node = rbatch_params
-            prev_idx = 0
-        else:
-            prev_node = x[0]
-            prev_idx = x[1]
 
+        # check if input needs a reshape
+        if conv_in_shape != real_in_shape:
+            r1_params = ReshapeParameters(f'{valid_name}_reshape_in',
+                                          old_shape=Dim.unnamed(real_in_shape),
+                                          shape=Dim.unnamed(conv_in_shape))
+            G.add_edge(
+                NNEdge(from_node=x[0], to_node=r1_params, from_idx=x[1], to_idx=0))
+            G.add_edge(NNEdge(from_node=r1_params,
+                              to_node=params, from_idx=0, to_idx=0))
+        else:
+            G.add_edge(
+                NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
+
+        # check if output needs a reshape
         if spatial_size == 1:
             if batch is not None:
-                oned_in_shape = [batch, in_c, w]
-                twod_in_shape = [batch, in_c, 1, w]
                 oned_out_shape = [batch, out_dims[0].c, out_dims[0].w]
                 pout_dims = ProvisionalDim(oned_out_shape)
             else:
-                oned_in_shape = [in_c, w]
-                twod_in_shape = [in_c, 1, w]
                 oned_out_shape = [out_dims[0].c, out_dims[0].w]
-                pout_dims = ProvisionalDim([conv_shape[0]] + oned_out_shape)
-            r1_params = ReshapeParameters(f'{valid_name}_reshape2d',
-                                          old_shape=Dim.unnamed(oned_in_shape),
-                                          shape=Dim.unnamed(twod_in_shape))
-            r2_params = ReshapeParameters(f'{valid_name}_reshape1d',
+                pout_dims = ProvisionalDim([None] + oned_out_shape)
+
+            r2_params = ReshapeParameters(f'{valid_name}_reshape_out',
                                           old_shape=out_dims[0],
                                           shape=Dim.unnamed(oned_out_shape))
-            G.add_edge(
-                NNEdge(from_node=prev_node, to_node=r1_params, from_idx=prev_idx, to_idx=0))
-            G.add_edge(NNEdge(from_node=r1_params,
-                              to_node=params, from_idx=0, to_idx=0))
             G.add_edge(NNEdge(from_node=params,
                               to_node=r2_params, from_idx=0, to_idx=0))
-            all_nodes[node.output[0]] = (r2_params, 0, pout_dims, o_qtype)
-            return r2_params
+            params = r2_params
         else:
-            pout_dims = ProvisionalDim([conv_shape[0]] + out_dims[0].shape)
-            G.add_edge(
-                NNEdge(from_node=prev_node, to_node=params, from_idx=prev_idx, to_idx=0))
-            all_nodes[node.output[0]] = (params, 0, pout_dims, o_qtype)
-            return params
+            pout_dims = ProvisionalDim([batch] + out_dims[0].shape)
+
+        all_nodes[node.output[0]] = (params, 0, pout_dims, o_qtype)
+        return params
+
+        
+            
+
+
+        # #     # insert reshape from [xx,None,xx,xx] -> [None, xx, xx, xx]
+        # #     rbatch_params = ReshapeParameters(f'{valid_name}_reshape_batchdim',
+        # #                                       old_shape=Dim.unnamed(
+        # #                                           conv_shape),
+        # #                                       shape=Dim.unnamed(real_in_shape))
+        # #     G.add_edge(
+        # #         NNEdge(from_node=x[0], to_node=rbatch_params, from_idx=x[1], to_idx=0))
+        # #     prev_node = rbatch_params
+        # #     prev_idx = 0
+        # # else:
+        # #     prev_node = x[0]
+        # #     prev_idx = x[1]
+
+        # if spatial_size == 1:
+        #     if batch is not None:
+        #         oned_in_shape = [batch, in_c, w]
+        #         twod_in_shape = [batch, in_c, 1, w]
+        #         oned_out_shape = [batch, out_dims[0].c, out_dims[0].w]
+        #         pout_dims = ProvisionalDim(oned_out_shape)
+        #     else:
+        #         oned_in_shape = [in_c, w]
+        #         twod_in_shape = [in_c, 1, w]
+        #         oned_out_shape = [out_dims[0].c, out_dims[0].w]
+        #         pout_dims = ProvisionalDim([conv_shape[0]] + oned_out_shape)
+        #     r1_params = ReshapeParameters(f'{valid_name}_reshape2d',
+        #                                   old_shape=Dim.unnamed(oned_in_shape),
+        #                                   shape=Dim.unnamed(twod_in_shape))
+        #     r2_params = ReshapeParameters(f'{valid_name}_reshape1d',
+        #                                   old_shape=out_dims[0],
+        #                                   shape=Dim.unnamed(oned_out_shape))
+        #     G.add_edge(
+        #         NNEdge(from_node=prev_node, to_node=r1_params, from_idx=prev_idx, to_idx=0))
+        #     G.add_edge(NNEdge(from_node=r1_params,
+        #                       to_node=params, from_idx=0, to_idx=0))
+        #     G.add_edge(NNEdge(from_node=params,
+        #                       to_node=r2_params, from_idx=0, to_idx=0))
+        #     all_nodes[node.output[0]] = (r2_params, 0, pout_dims, o_qtype)
+        #     return r2_params
+        # else:
+        #     pout_dims = ProvisionalDim([conv_shape[0]] + out_dims[0].shape)
+        #     G.add_edge(
+        #         NNEdge(from_node=prev_node, to_node=params, from_idx=prev_idx, to_idx=0))
+        #     all_nodes[node.output[0]] = (params, 0, pout_dims, o_qtype)
+        #     return params

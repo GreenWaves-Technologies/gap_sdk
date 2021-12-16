@@ -24,6 +24,7 @@ from .base import (InsensitiveToQuantization, NNNodeRef, Parameters,
 
 LOG = logging.getLogger("nntool." + __name__)
 
+
 @not_generated
 class InputOutputParameters(Parameters):
 
@@ -44,7 +45,8 @@ class InputOutputParameters(Parameters):
 
     @property
     def graph_label(self):
-        shape = self.out_dims[0] if self.out_dims and self.out_dims[0] else "No Shape!"
+        shape = (self.out_dims[0] if self.out_dims and
+                 self.out_dims[0] is not None else "No Shape!")
         if self.fixed_order:
             return [self.name, f'{shape}', "Frozen Order"]
         return [self.name, f'{shape}']
@@ -129,7 +131,6 @@ class InputParameters(InputBaseParameters, InsensitiveToQuantization):
             raise ValueError('expecting NNGraph as parameter')
         return NNNodeRef(self, 0, graph)
 
-
     def verify(self, G):
         problems = []
         for edge in G.in_edges(self.name):
@@ -151,9 +152,6 @@ class InputParameters(InputBaseParameters, InsensitiveToQuantization):
                     ex)
             ).with_traceback(trace_back)
         self.output_value = value
-
-
-
 
 
 @cls_op_name('output')

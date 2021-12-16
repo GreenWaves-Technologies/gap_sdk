@@ -281,3 +281,88 @@ void KerResizeNearestNeighborSigned_Q16(KerResizeSigned16_ArgT *Arg)
         }
         gap_waitbarrier(0);
 }
+
+#ifdef __gap9__
+void KerResizeBilinear_fp16(KerResize_fp16_ArgT *Arg)
+
+{
+        F16 * __restrict__ In       = Arg->In;
+        unsigned int Win            = Arg->Win;
+        unsigned int Hin            = Arg->Hin;
+        F16 * __restrict__ Out      = Arg->Out;
+        unsigned int Wout           = Arg->Wout;
+        unsigned int Hout           = Arg->Hout;
+        unsigned int HTileOut       = Arg->HTileOut;
+        unsigned int FirstLineIndex = Arg->FirstLineIndex;
+
+        unsigned int CoreId = gap_coreid();
+        unsigned int ChunkCell = ChunkSize(Wout);
+        unsigned int First = CoreId*ChunkCell, Last  = Min(Wout, First+ChunkCell);
+
+        F16 WStep = ((F16) (Win-1))/Wout;
+        F16 HStep = ((F16) (Hin-1))/Hout;
+
+        unsigned int x, y;
+        F16 hCoeff = ((F16) HStep)*FirstLineIndex;
+        F16 BaseY = hCoeff;
+        for (y = 0 ; y < HTileOut ; y++) {
+                int offsetY = (int) (hCoeff - BaseY);
+                F16 hc2 = hCoeff;
+                F16 hc1 = 1.0 - hc2;
+                // unsigned int wCoeff = 0;
+                F16 wCoeff = First*WStep;
+
+                // for (x = 0 ; x < Wout ; x++) {
+                for (x = First ; x < Last ; x++) {
+                        int offsetX = (int) wCoeff;
+                        F16 wc2 = wCoeff;
+                        F16 wc1 = 1.0 - wc2;
+                        F16 P1 = In[offsetY*Win       + offsetX    ];
+                        F16 P2 = In[(offsetY + 1)*Win + offsetX    ];
+                        F16 P3 = In[offsetY*Win       + offsetX + 1];
+                        F16 P4 = In[(offsetY + 1)*Win + offsetX + 1];
+
+                        Out[y*Wout + x] = ((P1*hc1 + P2*hc2)*wc1 + (P3*hc1 + P4*hc2)*wc2);
+                        wCoeff += WStep;
+                }
+                hCoeff += HStep;
+        }
+        gap_waitbarrier(0);
+}
+
+void KerResizeNearestNeighbor_fp16(KerResize_fp16_ArgT *Arg)
+
+{
+        F16 * __restrict__ In       = Arg->In;
+        unsigned int Win            = Arg->Win;
+        unsigned int Hin            = Arg->Hin;
+        F16 * __restrict__ Out      = Arg->Out;
+        unsigned int Wout           = Arg->Wout;
+        unsigned int Hout           = Arg->Hout;
+        unsigned int HTileOut       = Arg->HTileOut;
+        unsigned int FirstLineIndex = Arg->FirstLineIndex;
+
+        unsigned int CoreId = gap_coreid();
+        unsigned int ChunkCell = ChunkSize(Wout);
+        unsigned int First = CoreId*ChunkCell, Last  = Min(Wout, First+ChunkCell);
+
+        F16 WStep = ((F16) (Win-1))/(Wout-1);
+        F16 HStep = ((F16) (Hin-1))/(Hout-1);
+
+        unsigned int x, y;
+        F16 hCoeff = HStep*FirstLineIndex;
+        F16 BaseY = hCoeff;
+        for (y = 0 ; y < HTileOut ; y++) {
+                int h_rounded = (int) (hCoeff - BaseY + 0.5);
+                F16 wCoeff = First*WStep;
+                for (x = First ; x < Last ; x++) {
+                        int w_rounded = (int) (wCoeff + 0.5);
+
+                        Out[y*Wout + x] = In[h_rounded*Win + w_rounded];
+                        wCoeff += WStep;
+                }
+                hCoeff += HStep;
+        }
+        gap_waitbarrier(0);
+}
+#endif

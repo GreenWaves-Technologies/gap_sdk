@@ -174,7 +174,7 @@ FREERTOS_FLAGS     += -DMAIN_APP_STACK_SIZE=$(MAIN_APP_STACK_SIZE)
 GCC_OPTIM_LEVEL     = -Os	# Optimize for size.
 
 COMMON              = $(RISCV_FLAGS) \
-                      -c -g -ffunction-sections -fdata-sections \
+                      -c -gdwarf-2 -gstrict-dwarf -ffunction-sections -fdata-sections \
                       -fno-delete-null-pointer-checks -fomit-frame-pointer \
                       -fno-tree-loop-distribute-patterns -fno-jump-tables \
                       $(FEATURE_FLAGS) $(FREERTOS_FLAGS)
@@ -345,6 +345,11 @@ OBJS_DEP            = $(patsubst %.o, %.d, $(OBJS))
 APP                ?= test
 BIN                 = $(BUILDDIR)/$(APP)
 
+
+ifneq ($(wsl),)
+WSL_ENV=--wsl=$(wsl)
+endif
+
 # Makefile targets :
 # Build objects (*.o) amd associated dependecies (*.d) with disassembly (*.dump).
 #------------------------------------------
@@ -410,7 +415,7 @@ image: $(BIN)
 	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --image --binary=$(BIN) $(runner_args)
 
 run: $(BIN)
-	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec-prepare --exec --binary=$(BIN) $(runner_args)
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec-prepare --exec --binary=$(BIN) $(runner_args) $(WSL_ENV)
 
 traces:
 	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec --binary=$(BIN) --no-run --extend-traces $(runner_args)

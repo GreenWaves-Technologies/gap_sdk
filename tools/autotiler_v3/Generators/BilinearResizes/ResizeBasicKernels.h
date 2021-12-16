@@ -12,6 +12,11 @@
 
 #include "Gap.h"
 
+#ifdef __gap9__
+#include "CNN_Defines_fp16.h"
+#include "CNN_FloatType.h"
+#endif
+
 #ifndef Max
 	#define Max(a, b)               (((a)>(b))?(a):(b))
 #endif
@@ -73,6 +78,22 @@ typedef struct {
 	unsigned int HTileOut;
 	unsigned int FirstLineIndex;
 } KerResizeSigned16_ArgT;
+
+#ifdef __gap9__
+typedef struct {
+	F16 * __restrict__ In;
+	unsigned int Win;
+	unsigned int Hin;
+	F16 * __restrict__ Out;
+	unsigned int Wout;
+	unsigned int Hout;
+	unsigned int HTileOut;
+	unsigned int FirstLineIndex;
+} KerResize_fp16_ArgT;
+
+void KerResizeBilinear_fp16(KerResize_fp16_ArgT *Arg);
+void KerResizeNearestNeighbor_fp16(KerResize_fp16_ArgT *Arg);
+#endif
 
 void KerResizeBilinear(KerResizeBilinear_ArgT *Arg);
 void KerResizeNearestNeighbor(KerResizeNearestNeighbor_ArgT *Arg);

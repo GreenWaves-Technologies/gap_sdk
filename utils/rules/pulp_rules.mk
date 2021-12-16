@@ -233,8 +233,12 @@ ifdef LFS_ROOT_DIR
 override config_args += --config-opt=flash/content/partitions/lfs/root_dir=$(LFS_ROOT_DIR)
 endif
 
+ifneq ($(wsl),)
+WSL_ENV="--wsl=$(wsl)"
+endif
+
 flash:
-	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --flash --force --binary=$(BIN) $(runner_args)
+	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --flash --force --binary=$(BIN) $(runner_args) 
 
 flash_fs:
 	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --flash --binary=$(BIN) $(runner_args)
@@ -246,10 +250,10 @@ run.prepare:
 	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec-prepare --binary=$(BIN) $(runner_args)
 
 run.exec:
-	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec --binary=$(BIN) $(runner_args)
+	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec --binary=$(BIN) $(runner_args) $(WSL_ENV)
 
 run:
-	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec-prepare --exec --binary=$(BIN) $(runner_args)
+	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec-prepare --exec --binary=$(BIN) $(runner_args) $(WSL_ENV)
 
 
 #$(INSTALL_DIR)/runner/run_gapuino.sh $(BUILDDIR) $(BIN) $(RAW_IMAGE_PLPBRIDGE_FLAGS)  $(PLPBRIDGE_FLAGS) $(PLPBRIDGE_EXTRA_FLAGS)

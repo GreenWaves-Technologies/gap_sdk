@@ -52,22 +52,11 @@ AT_NE16_KER_OUT_ORDER = [['h', 'w', 'c']]
 def can_ne16(fusion, params, G):
     if not isinstance(params, (Conv2DParameters, FcParameters, MatMulTransposedParameters)):
         return False
-    # if fusion:
-    #     if fusion.fusion_type in ['conv_active_pool', 'conv_active']:
-    #         if any(not isinstance(node, (Conv2DParameters, ReluActivationParameters, PoolingParameters))
-    #                 for node in fusion.contained_nodes()):
-    #             return False
-    #     else:
-    #         return False
     if isinstance(params, Conv2DParameters):
-        # if (params.filter.w != params.filter.h or (params.filter.w != 1 and params.filter.w != 3)):
-        #     return False
         if (params.is_depthwise_conv() and (params.filter.w != 3 or params.filter.h != 3)):
             return False
-        if (params.stride.size() != 1 and params.stride.shape != [2, 2]) and not ((params.filter.w == 1 or params.filter.h == 1)):
-            return False
     elif isinstance(params, MatMulTransposedParameters):
-        in_nodes = [edge.from_node for edge in G.in_edges(params)]
+        in_nodes = [edge.from_node for edge in G.indexed_in_edges(params)]
         if not isinstance(in_nodes[1], ConstantInputParameters):
             return False
     return True

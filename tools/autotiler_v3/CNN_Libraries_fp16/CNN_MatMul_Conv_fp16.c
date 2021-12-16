@@ -17,7 +17,7 @@ static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
         return Chunk;
 }
 
-static int FirstDefinedOutput(unsigned int F, unsigned int Pad, unsigned int Stride)
+static int FirstDefinedOutput(int F, int Pad, int Stride)
 
 {
         // k*S - (F-1)/2 >=0 => k >= (((F-1)/2) + S-1)/S
@@ -25,12 +25,12 @@ static int FirstDefinedOutput(unsigned int F, unsigned int Pad, unsigned int Str
         return ((Pad+Stride-1)/Stride);
 }
 
-static int LastDefinedOutput(unsigned int DimIn, unsigned int F, unsigned int PadL, unsigned int Stride)
+static int LastDefinedOutput(int DimIn, int F, int PadL, int Stride, int D)
 
 {
         // k*S + ((F-1)/2 - PadL + F/2) < Dim  => k < (Dim-((F-1)/2 - PadL + (F/2)) + S-1)/S
 
-        return ((DimIn - ((F-1)/2 - PadL + (F/2)) + Stride-1)/Stride);
+        return ((DimIn - ((F-1)/2*D - PadL + (F/2)*D) + Stride-1)/Stride);
 }
 
 void KerPar_MM_Conv1D_fp16(
@@ -266,6 +266,7 @@ void KerPar_MM_Conv1D_HWC_fp16(
 	int PosL = 0;
 	int Iter = L-F;
 	int Iter1 = Iter*Fx;
+	int IterOut = Last - First;
 	for (int l=0; l<Ho; l++) {
 		int PosC = -PadL;
 		for (int c=0; c<Wo; c++) {
@@ -280,17 +281,53 @@ void KerPar_MM_Conv1D_HWC_fp16(
 			} else for (int i=Lb; i<Rb; i++) ColBuff[(i+Off)*InFeat + F] = In[PosL*W*InFeat + i*InFeat + F];
 			PosC += Sx;
 			gap_waitbarrier(0);
-	                for (int Line=First; Line<Last; Line++) {
-	                        F16V *VIn1 = (F16V *) (&Filter[Line*W_In1 + 0]);
-	                        F16V S0 = (F16V){Bias[Line],0.0}, S1 = (F16V) 0;
-	                        for (int i=0; i<((W_In1+3)/4); i++) {
-	                                F16V V0 = VIn1[2*i], V1 = VIn1[2*i+1];
-					F16V C0 = VBuff[2*i], C1 = VBuff[2*i+1];
-	                                S0 += V0 * C0;
-	                                S1 += V1 * C1;
+
+	                // for (int Line=First; Line<Last; Line++) {
+			F16 *pBias = Bias + First;
+			F16 *pC = Filter + W_In1*First;
+			F16 *pOut0 = Out+l*Wo*OutFeat + (c+0)*OutFeat+First;
+	                for (int Line=0; Line<IterOut/4; Line++) {
+				F16 *pC0 = pC, *pC1 = pC0+W_In1, *pC2 = pC1+W_In1, *pC3 = pC2+W_In1;
+				pC=pC3+W_In1;
+	                        F16V S0 = (F16V){*pBias,0.0}; pBias++;
+	                        F16V S1 = (F16V){*pBias,0.0}; pBias++;
+	                        F16V S2 = (F16V){*pBias,0.0}; pBias++;
+	                        F16V S3 = (F16V){*pBias,0.0}; pBias++;
+				F16 *pIn = ColBuff;
+	                        for (int i=0; i<(W_In1/2); i++) {
+					F16V V0 = *((F16V *)pIn), C0 = *((F16V *)pC0), C1 = *((F16V *)pC1), C2 = *((F16V *)pC2), C3 = *((F16V *)pC3);
+					S0 += V0*C0;
+					S1 += V0*C1;
+					S2 += V0*C2;
+					S3 += V0*C3;
+					pIn+=2; pC0+=2; pC1+=2; pC2+=2; pC3+=2;
 	                        }
-	                        Out[l*Wo*OutFeat + c*OutFeat + Line] = S0[0]+S0[1]+S1[0]+S1[1];
+				if (W_In1&0x1) {
+					F16V V0 = (F16V){*pIn,0.0}, C0 = *((F16V *)pC0), C1 = *((F16V *)pC1), C2 = *((F16V *)pC2), C3 = *((F16V *)pC3);
+					S0 += V0*C0;
+					S1 += V0*C1;
+					S2 += V0*C2;
+					S3 += V0*C3;
+				}
+				*pOut0 = S0[0]+S0[1]; pOut0++;
+				*pOut0 = S1[0]+S1[1]; pOut0++;
+				*pOut0 = S2[0]+S2[1]; pOut0++;
+				*pOut0 = S3[0]+S3[1]; pOut0++;
 	                }
+			for (int i=4*(IterOut/4); i<IterOut; i++) {
+				F16 *pIn = ColBuff;
+	                        F16V S0 = (F16V){*pBias,0.0}; pBias++;
+	                        for (int i=0; i<(W_In1/2); i++) {
+					F16V V0 = *((F16V *)pIn), C0 = *((F16V *)pC);
+					S0 += V0*C0;
+					pIn+=2; pC+=2;
+				}
+				if (W_In1&0x1) {
+					F16V V0 = (F16V){*pIn,0.0}, C0 = *((F16V *)pC);
+					S0 += V0*C0;
+				}
+				*pOut0 = S0[0]+S0[1]; pOut0++;
+			}
 			gap_waitbarrier(0);
 		}
 		PosL += Sy;
@@ -395,44 +432,80 @@ void KerPar_MM_Conv1D_DxDy_HWC_fp16(
 	((int *)ColBuff)[Tail-1] = 0; ((int *)ColBuff)[Tail-2] = 0;
 	
 	int DFx = Dx*(Fx-1)+1;
-	int Prec=10;
-	int InvDx = ((1<<Prec)+Dx-1)/Dx;
 
 	int PosL = 0;
 	int Iter = L-F;
 	int Iter1 = Iter*Fx;
+	int IterOut = Last - First;
 	for (int l=0; l<Ho; l++) {
 		int PosC = -PadL;
 		for (int c=0; c<Wo; c++) {
 			for (int i=0; i<(Iter1/2); i++) ((int *)(ColBuff+F*Fx))[i]=0;
 			if (Iter1&0x1) ((short int *)(ColBuff+F*Fx))[Iter1-1]=0;
-			int Lb = Max(PosC, 0), Rb = Min(PosC+DFx, W);
-			int OffBuffX = Max(0, gap_mulsN(-PosC+Dx-1, InvDx, Prec));
-			int OffInX = OffBuffX?(Dx*OffBuffX+PosC):0;
-			int IterX = gap_mulsN(Rb-Lb-1, InvDx, Prec) + 1;
+			int Lb = PosC, Rb = PosC+DFx;
 			if (Iter>=2) {
 				for (int f=0; f<(Iter/2); f++)
-					for (int i=0; i<IterX; i++)
-						((int *)(ColBuff+(i+OffBuffX)*InFeat+F))[f] = ((int *)(In+PosL*W*InFeat + (i*Dx+OffInX+Lb)*InFeat+F))[f];
+				       	for (int i=Lb, ii=0; i<Rb; i+=Dx, ii++)
+				       		if (i>=0 && i<W) 
+							((int *) (ColBuff + ii*InFeat + F))[f] = ((int *)(In+i*InFeat + F))[f];
 				if (Iter&0x1)
-					for (int i=0; i<IterX; i++)
-						((short int *)(ColBuff+(i+OffBuffX)*InFeat+F))[Iter-1] = ((short int *)(In+PosL*W*InFeat + (i*Dx+OffInX+Lb)*InFeat+F))[Iter-1];
-			} else
-				for (int i=0; i<IterX; i++)
-					ColBuff[(i+OffBuffX)*InFeat + F] = In[PosL*W*InFeat + (i*Dx+OffInX+Lb)*InFeat + F];
+				       	for (int i=Lb, ii=0; i<Rb; i+=Dx, ii++)
+				       		if (i>=0 && i<W) 
+							((short int *) (ColBuff + ii*InFeat + F))[Iter-1] = ((short int *)(In+i*InFeat + F))[Iter-1];
+			} else {
+			       	for (int i=Lb, ii=0; i<Rb; i+=Dx, ii++)
+			       		if (i>=0 && i<W) 
+						ColBuff[ii*InFeat + F] = In[i*InFeat + F];
+			}
 			PosC += Sx;
 			gap_waitbarrier(0);
-	                for (int Line=First; Line<Last; Line++) {
-	                        F16V *VIn1 = (F16V *) (&Filter[Line*W_In1 + 0]);
-	                        F16V S0 = (F16V){Bias[Line],0.0}, S1 = (F16V) 0;
-	                        for (int i=0; i<((W_In1+3)/4); i++) {
-	                                F16V V0 = VIn1[2*i], V1 = VIn1[2*i+1];
-					F16V C0 = VBuff[2*i], C1 = VBuff[2*i+1];
-	                                S0 += V0 * C0;
-	                                S1 += V1 * C1;
+
+	                // for (int Line=First; Line<Last; Line++) {
+			F16 *pBias = Bias + First;
+			F16 *pC = Filter + W_In1*First;
+			F16 *pOut0 = Out+l*Wo*OutFeat + (c+0)*OutFeat+First;
+	                for (int Line=0; Line<IterOut/4; Line++) {
+				F16 *pC0 = pC, *pC1 = pC0+W_In1, *pC2 = pC1+W_In1, *pC3 = pC2+W_In1;
+				pC=pC3+W_In1;
+	                        F16V S0 = (F16V){*pBias,0.0}; pBias++;
+	                        F16V S1 = (F16V){*pBias,0.0}; pBias++;
+	                        F16V S2 = (F16V){*pBias,0.0}; pBias++;
+	                        F16V S3 = (F16V){*pBias,0.0}; pBias++;
+				F16 *pIn = ColBuff;
+	                        for (int i=0; i<(W_In1/2); i++) {
+					F16V V0 = *((F16V *)pIn), C0 = *((F16V *)pC0), C1 = *((F16V *)pC1), C2 = *((F16V *)pC2), C3 = *((F16V *)pC3);
+					S0 += V0*C0;
+					S1 += V0*C1;
+					S2 += V0*C2;
+					S3 += V0*C3;
+					pIn+=2; pC0+=2; pC1+=2; pC2+=2; pC3+=2;
 	                        }
-	                        Out[l*Wo*OutFeat + c*OutFeat + Line] = S0[0]+S0[1]+S1[0]+S1[1];
+				if (W_In1&0x1) {
+					F16V V0 = (F16V){*pIn,0.0}, C0 = *((F16V *)pC0), C1 = *((F16V *)pC1), C2 = *((F16V *)pC2), C3 = *((F16V *)pC3);
+					S0 += V0*C0;
+					S1 += V0*C1;
+					S2 += V0*C2;
+					S3 += V0*C3;
+				}
+				*pOut0 = S0[0]+S0[1]; pOut0++;
+				*pOut0 = S1[0]+S1[1]; pOut0++;
+				*pOut0 = S2[0]+S2[1]; pOut0++;
+				*pOut0 = S3[0]+S3[1]; pOut0++;
 	                }
+			for (int i=4*(IterOut/4); i<IterOut; i++) {
+				F16 *pIn = ColBuff;
+	                        F16V S0 = (F16V){*pBias,0.0}; pBias++;
+	                        for (int i=0; i<(W_In1/2); i++) {
+					F16V V0 = *((F16V *)pIn), C0 = *((F16V *)pC);
+					S0 += V0*C0;
+					pIn+=2; pC+=2;
+				}
+				if (W_In1&0x1) {
+					F16V V0 = (F16V){*pIn,0.0}, C0 = *((F16V *)pC);
+					S0 += V0*C0;
+				}
+				*pOut0 = S0[0]+S0[1]; pOut0++;
+			}
 			gap_waitbarrier(0);
 		}
 		PosL += Sy;
@@ -1156,55 +1229,86 @@ void KerPar_MM_Conv2D_DxDy_HWC_fp16(
 	((int *)ColBuff)[Tail-1] = 0; ((int *)ColBuff)[Tail-2] = 0;
 	int PosL = Arg->FirstTile?(-PadT):0;
 	int DFx = Dx*(Fx-1)+1, DFy =  Dy*(Fy-1)+1;
-	int Prec=10;
-	int InvDx = ((1<<Prec)+Dx-1)/Dx;
-	int InvDy = ((1<<Prec)+Dy-1)/Dy;
+	// int Prec=10;
+	// int InvDx = ((1<<Prec)+Dx-1)/Dx;
+	// int InvDy = ((1<<Prec)+Dy-1)/Dy;
 	int Iter = L-F;
 	int Iter1 = Iter*FS;
+	int IterOut = Last - First;
 
 	for (int l=0; l<Ho; l++) {
 		int PosC = -PadL;
-		int Tb = Max(PosL, 0), Db = Min(PosL+DFy, H);
-		int OffLBuffY = Max(0, gap_mulsN(-PosL+Dy-1, InvDy, Prec));
-		int OffLInY = OffLBuffY?(Dy*OffLBuffY+PosL):0;
+		int Tb = PosL, Db = PosL+DFy;
 		for (int c=0; c<Wo; c++) {
 			for (int i=0; i<(Iter1/2); i++) ((int *)(ColBuff+F*FS))[i]=0;
 			if (Iter1&0x1) ((short int *)(ColBuff+F*FS))[Iter1-1]=0;
-			int Lb = Max(PosC, 0), Rb = Min(PosC+DFx, W);
-			int OffCBuffX = (Lb==0)?Max(0, gap_mulsN(-PosC+Dx-1, InvDx, Prec)):0;
-			int OffCInX = OffCBuffX?(Dx*OffCBuffX+PosC):0;
-			int IterY = gap_mulsN(Db-Tb-1, InvDy, Prec) + 1;
-			int IterX = gap_mulsN(Rb-Lb-1, InvDx, Prec) + 1;
-                        if (Iter>=2) {
-                                for (int f=0; f<(Iter/2); f++)
-					for (int j=Tb; j<Db; j++)
-                                        	for (int i=Lb; i<Rb; i++)
-							((int *)(ColBuff+(j+OffLBuffY)*InFeat*Fx+(i+OffCBuffX)*InFeat+F))[f] =
-								((int *)(In+(Tb+j*Dy+OffLInY)*W*InFeat + (Lb+i*Dx+OffCInX)*InFeat+F))[f];
-                                if (Iter&0x1)
-					for (int j=Tb; j<Db; j++)
-						for (int i=Lb; i<Rb; i++)
-							((short int *)(ColBuff+(j+OffLBuffY)*InFeat*Fx+(i+OffCBuffX)*InFeat+F))[Iter-1] =
-								((short int *)(In+(Tb+j*Dy+OffLInY)*W*InFeat + (Lb+i*Dx+OffCInX)*InFeat+F))[Iter-1];
-                        } else
-				for (int j=Tb; j<Db; j++) 
-					for (int i=Lb; i<Rb; i++)
-						ColBuff[(j+OffLBuffY)*InFeat*Fx+(i+OffCBuffX)*InFeat + F] =
-							In[(Tb+j*Dy+OffLInY)*W*InFeat + (Lb+i*Dx+OffCInX)*InFeat + F];
-
+			int Lb = PosC, Rb = PosC+DFx;
+			if (Iter>=2) {
+				for (int f=0; f<(Iter/2); f++)
+					for (int j=Tb, jj=0; j<Db; j+=Dy, jj++)
+					       	for (int i=Lb, ii=0; i<Rb; i+=Dx, ii++)
+					       		if (j>=0 && j<H && i>=0 && i<W) 
+								((int *) (ColBuff + jj*InFeat*Fx+ii*InFeat + F))[f] = ((int *)(In+j*W*InFeat + i*InFeat + F))[f];
+				if (Iter&0x1)
+					for (int j=Tb, jj=0; j<Db; j+=Dy, jj++)
+					       	for (int i=Lb, ii=0; i<Rb; i+=Dx, ii++)
+					       		if (j>=0 && j<H && i>=0 && i<W) 
+								((short int *) (ColBuff + jj*InFeat*Fx+ii*InFeat + F))[Iter-1] = ((short int *)(In+j*W*InFeat + i*InFeat + F))[Iter-1];
+			} else {
+				for (int j=Tb, jj=0; j<Db; j+=Dy, jj++)
+				       	for (int i=Lb, ii=0; i<Rb; i+=Dx, ii++)
+				       		if (j>=0 && j<H && i>=0 && i<W) 
+							ColBuff[jj*InFeat*Fx+ii*InFeat + F] = In[j*W*InFeat + i*InFeat + F];
+			}
 			PosC += Sx;
 			gap_waitbarrier(0);
-	                for (int Line=First; Line<Last; Line++) {
-	                        F16V *VIn1 = (F16V *) (&Filter[Line*W_In1 + 0]);
-	                        F16V S0 = (F16V){Bias[Line],0.0};
-	                        for (int i=0; i<((W_In1+3)/4); i++) {
-	                                F16V V0 = VIn1[2*i], V1 = VIn1[2*i+1];
-					F16V C0 = VBuff[2*i], C1 = VBuff[2*i+1];
-	                                S0 += V0 * C0;
-	                                S0 += V1 * C1;
+
+	                // for (int Line=First; Line<Last; Line++) {
+			F16 *pBias = Bias + First;
+			F16 *pC = Filter + W_In1*First;
+			F16 *pOut0 = Out+l*Wo*OutFeat + (c+0)*OutFeat+First;
+	                for (int Line=0; Line<IterOut/4; Line++) {
+				F16 *pC0 = pC, *pC1 = pC0+W_In1, *pC2 = pC1+W_In1, *pC3 = pC2+W_In1;
+				pC=pC3+W_In1;
+	                        F16V S0 = (F16V){*pBias,0.0}; pBias++;
+	                        F16V S1 = (F16V){*pBias,0.0}; pBias++;
+	                        F16V S2 = (F16V){*pBias,0.0}; pBias++;
+	                        F16V S3 = (F16V){*pBias,0.0}; pBias++;
+				F16 *pIn = ColBuff;
+	                        for (int i=0; i<(W_In1/2); i++) {
+					F16V V0 = *((F16V *)pIn), C0 = *((F16V *)pC0), C1 = *((F16V *)pC1), C2 = *((F16V *)pC2), C3 = *((F16V *)pC3);
+					S0 += V0*C0;
+					S1 += V0*C1;
+					S2 += V0*C2;
+					S3 += V0*C3;
+					pIn+=2; pC0+=2; pC1+=2; pC2+=2; pC3+=2;
 	                        }
-	                        Out[l*Wo*OutFeat + c*OutFeat + Line] = S0[0]+S0[1];
+				if (W_In1&0x1) {
+					F16V V0 = (F16V){*pIn,0.0}, C0 = *((F16V *)pC0), C1 = *((F16V *)pC1), C2 = *((F16V *)pC2), C3 = *((F16V *)pC3);
+					S0 += V0*C0;
+					S1 += V0*C1;
+					S2 += V0*C2;
+					S3 += V0*C3;
+				}
+				*pOut0 = S0[0]+S0[1]; pOut0++;
+				*pOut0 = S1[0]+S1[1]; pOut0++;
+				*pOut0 = S2[0]+S2[1]; pOut0++;
+				*pOut0 = S3[0]+S3[1]; pOut0++;
 	                }
+			for (int i=4*(IterOut/4); i<IterOut; i++) {
+				F16 *pIn = ColBuff;
+	                        F16V S0 = (F16V){*pBias,0.0}; pBias++;
+	                        for (int i=0; i<(W_In1/2); i++) {
+					F16V V0 = *((F16V *)pIn), C0 = *((F16V *)pC);
+					S0 += V0*C0;
+					pIn+=2; pC+=2;
+				}
+				if (W_In1&0x1) {
+					F16V V0 = (F16V){*pIn,0.0}, C0 = *((F16V *)pC);
+					S0 += V0*C0;
+				}
+				*pOut0 = S0[0]+S0[1]; pOut0++;
+			}
 			gap_waitbarrier(0);
 		}
 		PosL += Sy;

@@ -19,6 +19,10 @@
 
 #include <stdint.h>
 
+#ifndef PI_INLINE_I2S_LVL_0
+#define PI_INLINE_I2S_LVL_0
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -756,8 +760,29 @@ void pi_i2s_channel_conf_init(struct pi_i2s_channel_conf *conf);
  * @retval 0 If successful.
  * @retval -1 An error occured.
  */
-int pi_i2s_channel_conf_set(struct pi_device *dev, int channel,
+PI_INLINE_I2S_LVL_0 int pi_i2s_channel_conf_set(struct pi_device *dev, int channel,
     struct pi_i2s_channel_conf *conf);
+
+/**
+ * \brief Configure a channel of a frame in TDM mode.
+ *
+ * A frame is a set of channels gathered together so that they can be controlled
+ * all together in terms of data transfer.
+ * This function can be used to configure a channel which is part of a frame.
+ * In TDM mode, the same interface is time-multiplexed to transmit data
+ * for multiple channels, and each channel can have a specific
+ * configuration. This function can be used to give the configuration
+ * of one channel.
+ * @param dev Pointer to the device structure for the driver instance.
+ * @param frame A bitfield containing the channels of the part (one bit per channel).
+ * @param channel ID of the slot, from 0 to the number of channels minus 1.
+ * @param conf A pointer to the I2S channel configuration.
+ *
+ * @retval 0 If successful.
+ * @retval -1 An error occured.
+ */
+PI_INLINE_I2S_LVL_0 int pi_i2s_frame_channel_conf_set(struct pi_device *dev,
+    uint32_t frame, int channel, struct pi_i2s_channel_conf *conf);
 
 
 /**
@@ -899,8 +924,8 @@ int pi_i2s_slots_stop(struct pi_device *dev, uint32_t slots);
  *
  * @retval 0 If successful, -1 if not.
  */
-int pi_i2s_channel_read(struct pi_device *dev, int channel, void **mem_block,
-    size_t *size);
+int pi_i2s_channel_read(struct pi_device *dev, int channel,
+    void **mem_block, size_t *size);
 
 /**
  * @brief Read data asynchronously from the RX queue of a channel in TDM mode.
@@ -929,8 +954,77 @@ int pi_i2s_channel_read(struct pi_device *dev, int channel, void **mem_block,
  *
  * @retval 0 If successful, -1 if not.
  */
-int pi_i2s_channel_read_async(struct pi_device *dev, int channel,
-    pi_task_t *task);
+int pi_i2s_channel_read_async(struct pi_device *dev,
+    int channel, pi_task_t *task);
+
+/**
+ * @brief Read data from the RX queue of a frame channel in TDM mode.
+ *
+ * Data received by the I2S interface is stored in the RX queue consisting
+ * of two memory blocks preallocated by the user and given to the driver in
+ * the configuration. Calling this function will return the next available
+ * buffer to the caller, which has to use it before the sampling for this buffer
+ * starts again.
+ *
+ * The data is read in chunks equal to the size of the memory block.
+ *
+ * This will return data for the specified channel and must only be used in
+ * TDM mode.
+ *
+ * If there is no data in the RX queue the function will block waiting for
+ * the next RX memory block to fill in.
+ *
+ * This function is reading for the whole frame. The returned buffer contains
+ * the samples for the whole frame, but the size is the size of one channel.
+ *
+ * Due to hardware constraints, the address of the buffer must be aligned on
+ * 4 bytes.
+ *
+ * @param dev Pointer to the device structure for the driver instance.
+ * @param frame A bitfield containing the channels of the part (one bit per channel).
+ * @param channel ID of the slot, from 0 to the number of channels minus 1.
+ * @param mem_block Pointer to the variable storing the address of the RX memory
+ *   block containing received data.
+ * @param size Pointer to the variable storing the number of bytes read.
+ *
+ * @retval 0 If successful, -1 if not.
+ */
+PI_INLINE_I2S_LVL_0 int pi_i2s_frame_read(struct pi_device *dev, uint32_t frame,
+    void **mem_block, size_t *size);
+
+/**
+ * @brief Read data asynchronously from the RX queue of a frame channel in TDM mode.
+ *
+ * Data received by the I2S interface is stored in the RX queue consisting
+ * of two memory blocks preallocated by the user and given to the driver in
+ * the configuration. Calling this function will return the next available
+ * buffer to the caller, which has to use it before the sampling for this buffer
+ * starts again.
+ *
+ * The data is read in chunks equal to the size of the memory block.
+ *
+ * This will return data for the specified channel and must only be used in
+ * TDM mode.
+ *
+ * The specified task will be pushed as soon as data is ready in the RX queue,
+ * and the information about the memory block and the size will be available
+ * in the task.
+ *
+ * This function is reading for the whole frame. The returned buffer contains
+ * the samples for the whole frame, but the size is the size of one channel.
+ *
+ * Due to hardware constraints, the address of the buffer must be aligned on
+ * 4 bytes.
+ *
+ * @param dev Pointer to the device structure for the driver instance.
+ * @param frame A bitfield containing the channels of the part (one bit per channel).
+ * @param channel ID of the slot, from 0 to the number of channels minus 1.
+ * @param task        The task used to notify the end of transfer.
+ *
+ * @retval 0 If successful, -1 if not.
+ */
+PI_INLINE_I2S_LVL_0 int pi_i2s_frame_read_async(struct pi_device *dev,
+    uint32_t frame, pi_task_t *task);
 
 /**
  * @brief Read the status of an asynchronous read.
@@ -979,8 +1073,8 @@ int pi_i2s_read_status(pi_task_t *task, void **mem_block, size_t *size);
  * @retval 0 If successful.
  * @retval -1 An error occured.
  */
-int pi_i2s_channel_write(struct pi_device *dev, int channel, void *mem_block,
-    size_t size);
+int pi_i2s_channel_write(struct pi_device *dev, int channel,
+    void *mem_block, size_t size);
 
 /**
  * @brief Write data asynchronously to the TX queue of a channel in TDM mode.
@@ -1013,8 +1107,83 @@ int pi_i2s_channel_write(struct pi_device *dev, int channel, void *mem_block,
  * @retval 0 If successful.
  * @retval -1 An error occured.
  */
-int pi_i2s_channel_write_async(struct pi_device *dev, int channel,
-    void *mem_block, size_t size, pi_task_t *task);
+int pi_i2s_channel_write_async(struct pi_device *dev,
+    int channel, void *mem_block, size_t size, pi_task_t *task);
+
+/**
+ * @brief Write data to the TX queue of a frame channel in TDM mode.
+ *
+ * Data to be sent by the I2S interface is stored first in the TX queue
+ * consisting of memory blocks preallocated by the user with either pingpong
+ * buffers or a memory slab allocator.
+ *
+ * In pingpong mode, the driver will automatically alternate between 2 buffers
+ * and the user code is supposed to call this function to notify the driver
+ * that the specified buffer is ready to be sent. This is used by the driver
+ * to report when an underrun or an overrun occurs.
+ *
+ * In memory slab allocator mode, the user has to allocate buffers from the
+ * memory slab allocator and pass them to the driver by calling this function
+ * when they are ready to be sent.
+ *
+ * This fonction will block until the specified buffer has been transfered.
+ *
+ * This function is writing for the whole frame. The buffer must contain
+ * the samples for the whole frame, but the size is the size of one channel.
+ *
+ * This will sent data to the specified channel and must only be used in
+ * TDM mode.
+ *
+ * @param dev Pointer to the device structure for the driver instance.
+ * @param frame A bitfield containing the channels of the part (one bit per channel).
+ * @param channel ID of the slot, from 0 to the number of channels minus 1.
+ * @param mem_block Pointer to the TX memory block containing data to be sent.
+ * @param size Number of bytes to write. This value has to be equal or smaller
+ *        than the size of the memory block.
+ *
+ * @retval 0 If successful.
+ * @retval -1 An error occured.
+ */
+PI_INLINE_I2S_LVL_0 int pi_i2s_frame_write(struct pi_device *dev, uint32_t frame,
+    void *mem_block, size_t size);
+
+/**
+ * @brief Write data asynchronously to the TX queue of a frame channel in TDM mode.
+ *
+ * Data to be sent by the I2S interface is stored first in the TX queue
+ * consisting of memory blocks preallocated by the user with either pingpong
+ * buffers or a memory slab allocator.
+ *
+ * In pingpong mode, the driver will automatically alternate between 2 buffers
+ * and the user code is supposed to call this function to notify the driver
+ * that the specified buffer is ready to be sent. This is used by the driver
+ * to report when an underrun or an overrun occurs.
+ *
+ * In memory slab allocator mode, the user has to allocate buffers from the
+ * memory slab allocator and pass them to the driver by calling this function
+ * when they are ready to be sent.
+ *
+ * This will sent data to the specified channel and must only be used in
+ * TDM mode.
+ *
+ * This function is writing for the whole frame. The buffer must contain
+ * the samples for the whole frame, but the size is the size of one channel.
+ *
+ * The specified task will be pushed as soon as data is has been transfered.
+ *
+ * @param dev Pointer to the device structure for the driver instance.
+ * @param frame A bitfield containing the channels of the part (one bit per channel).
+ * @param channel ID of the slot, from 0 to the number of channels minus 1.
+ * @param mem_block Pointer to the TX memory block containing data to be sent.
+ * @param size Number of bytes to write. This value has to be equal or smaller
+ *        than the size of the memory block.
+ * @param task        The task used to notify the end of transfer.
+ *
+ * @retval 0 If successful.
+ * @retval -1 An error occured.
+ */
+PI_INLINE_I2S_LVL_0 int pi_i2s_frame_write_async(struct pi_device *dev,
+    uint32_t frame, void *mem_block, size_t size, pi_task_t *task);
 
 /**
  * @brief Read the status of an asynchronous write.

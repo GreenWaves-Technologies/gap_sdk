@@ -67,6 +67,99 @@ extern void LoadCNNLibrary_fp16();
 
  */
 
+Kernel_T *CNN_MM_ConvolutionPoolAct_fp16_Internal(
+        char         *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int InFeat,
+        int OutFeat,
+        int Width,
+        int Height,
+
+        KernelOper_T ConvOper,
+        int Fcx,
+        int Fcy,
+        int Dcx,
+        int Dcy,
+        int Scx,
+        int Scy,
+        int ConvPad,
+
+        KernelOper_T PoolOper,
+        int Fpx,
+        int Fpy,
+        int Dpx,
+        int Dpy,
+        int Spx,
+        int Spy,
+        int PoolPad,
+
+        KernelOper_T ActOper
+        );
+
+Kernel_T *CNN_HWC_DWConvolutionPoolAct_fp16_Internal(
+        char         *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int InFeat,
+        int OutFeat,
+        int Width,
+        int Height,
+
+        KernelOper_T ConvOper,
+        int Fcx,
+        int Fcy,
+        int Dcx,
+        int Dcy,
+        int Scx,
+        int Scy,
+        int ConvPad,
+
+        KernelOper_T PoolOper,
+        int Fpx,
+        int Fpy,
+        int Dpx,
+        int Dpy,
+        int Spx,
+        int Spy,
+        int PoolPad,
+
+        KernelOper_T ActOper
+        );
+
+Kernel_T *CNN_ConvolutionPoolAct_fp16_Internal(
+        char         *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int InFeat,
+        int OutFeat,
+        int Width,
+        int Height,
+
+        KernelOper_T ConvOper,
+        int Fcx,
+        int Fcy,
+        int Dcx,
+        int Dcy,
+        int Scx,
+        int Scy,
+        int ConvPad,
+
+        KernelOper_T PoolOper,
+        int Fpx,
+        int Fpy,
+        int Dpx,
+        int Dpy,
+        int Spx,
+        int Spy,
+        int PoolPad,
+
+        KernelOper_T ActOper
+        );
+
 extern int CNN_ConvolutionPoolAct_fp16(
 	char         *Name,
 
@@ -84,7 +177,7 @@ extern int CNN_ConvolutionPoolAct_fp16(
 	int Dcy,
 	int Scx,
 	int Scy,
-	int          ConvPad,
+	int ConvPad,
 
 	KernelOper_T PoolOper,
 	int Fpx,
@@ -93,7 +186,7 @@ extern int CNN_ConvolutionPoolAct_fp16(
 	int Dpy,
 	int Spx,
 	int Spy,
-	int          PoolPad,
+	int PoolPad,
 
        	KernelOper_T ActOper
 	);
@@ -200,6 +293,28 @@ extern int CNN_GroupedConvolutionPoolAct_fp16(
 
  */
 
+Kernel_T *CNN_PoolAct_fp16_Internal(
+        char *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int InFeat,
+        int OutFeat,
+        int Width,
+        int Height,
+
+        KernelOper_T PoolOper,
+        int Fpx,
+        int Fpy,
+        int Dpx,
+        int Dpy,
+        int Spx,
+        int Spy,
+        int PoolPad,
+
+        KernelOper_T ActOper
+        );
+
 extern int CNN_PoolAct_fp16(
 	char         *Name,
 
@@ -276,6 +391,18 @@ extern int CNN_GlobalPoolAct_fp16(
 
 *********************************************************************************************************************************************************************/
 
+Kernel_T *CNN_Act_fp16_Internal(
+        char *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int Feat,
+        int Width,
+        int Height,
+
+        KernelOper_T ActOper
+        );
+
 extern int CNN_Act_fp16(
         char *Name,
 
@@ -308,6 +435,18 @@ extern int CNN_Act_fp16(
     \param    Signature:      Name(In, Filter, Bias, Out)
 
 */
+
+Kernel_T *CNN_LinearAct_fp16_Internal(
+        char *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int InDim,
+        int OutDim,
+
+        KernelOper_T LinearOper,
+        KernelOper_T ActOper
+        );
 
 extern int CNN_LinearAct_fp16(
         char *Name,
@@ -456,7 +595,27 @@ extern int CNN_MatAddPaddedAct_fp16(
 
     \param    Signature:      Name(In2, In1, Bias, Out)
 */
-        
+
+Kernel_T *CNN_MatMulAct_fp16_Internal(
+        char *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int ColM1,
+        int LineM1,
+        int ColM2,
+        int LineM2,
+
+        int Width,
+        int Height,
+        int Scx,
+        int Scy,
+
+        KernelOper_T MatMulOper,
+        KernelOper_T ActOper,
+        int InvertInputs
+        );
+
 extern int CNN_MatMulAct_fp16(
         char *Name,
 
@@ -508,6 +667,25 @@ extern int CNN_MatMulAct_fp16(
         CNN_MatMulSmallM1Act_fp16
 
 *********************************************************************************************************************************************************************/
+
+Kernel_T *CNN_MatMulSmallM1Act_fp16_Internal(
+        char *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int ColM1,
+        int LineM1,
+        int ColM2,
+        int LineM2,
+
+        int Width,
+        int Height,
+        int Scx,
+        int Scy,
+
+        KernelOper_T MatMulOper,
+        KernelOper_T ActOper
+);
 
 extern int CNN_MatMulSmallM1Act_fp16(
         char *Name,

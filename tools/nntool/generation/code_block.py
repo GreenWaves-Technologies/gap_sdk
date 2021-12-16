@@ -62,7 +62,11 @@ class CodeBlock():
 
     def comment(self, fmt, *args):
         fmt = self.get_indent() + '// ' + fmt
-        self._lines.append(fmt.format(*args))
+        if args:
+            self._lines.append(fmt.format(*args))
+        else:
+            self._lines.append(fmt)
+
         return self
 
     def __str__(self):

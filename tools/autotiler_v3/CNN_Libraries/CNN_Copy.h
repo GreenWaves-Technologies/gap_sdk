@@ -310,6 +310,78 @@ typedef struct {
     signed char *__restrict__ Infos;
 } CNN_UFpsFloat16_T;
 
+// float32 -> signed short
+typedef struct {
+	float *__restrict__ In;
+	short int *__restrict__ Out;
+	unsigned short int W;
+	unsigned short int H;
+    signed char *__restrict__ Infos;
+} CNN_Float32Fp_T;
+
+// float32 -> unsigned short
+typedef struct {
+	float *__restrict__ In;
+	unsigned short int *__restrict__ Out;
+	unsigned short int W;
+	unsigned short int H;
+    signed char *__restrict__ Infos;
+} CNN_Float32UFp_T;
+
+// float32 -> signed char
+typedef struct {
+	float *__restrict__ In;
+	signed char *__restrict__ Out;
+	unsigned short int W;
+	unsigned short int H;
+    signed char *__restrict__ Infos;
+} CNN_Float32Fps_T;
+
+// float32 -> unsigned char
+typedef struct {
+	float *__restrict__ In;
+	unsigned char *__restrict__ Out;
+	unsigned short int W;
+	unsigned short int H;
+    signed char *__restrict__ Infos;
+} CNN_Float32UFps_T;
+
+// signed short -> float32
+typedef struct {
+	short int *__restrict__ In;
+	float *__restrict__ Out;
+	unsigned short int W;
+	unsigned short int H;
+    signed char *__restrict__ Infos;
+} CNN_FpFloat32_T;
+
+// unsigned short -> float32
+typedef struct {
+	unsigned short int *__restrict__ In;
+	float *__restrict__ Out;
+	unsigned short int W;
+	unsigned short int H;
+    signed char *__restrict__ Infos;
+} CNN_UFpFloat32_T;
+
+// signed char -> float32
+typedef struct {
+	signed char *__restrict__ In;
+	float *__restrict__ Out;
+	unsigned short int W;
+	unsigned short int H;
+    signed char *__restrict__ Infos;
+} CNN_FpsFloat32_T;
+
+// unsigned char -> float32
+typedef struct {
+	unsigned char *__restrict__ In;
+	float *__restrict__ Out;
+	unsigned short int W;
+	unsigned short int H;
+    signed char *__restrict__ Infos;
+} CNN_UFpsFloat32_T;
+
 #define AT_INF_QUANT_ZERO_DIFF		0
 #define AT_INF_QUANT_SCALE			4
 #define AT_INF_QUANT_NORM			6
@@ -404,6 +476,16 @@ extern void CNN_FpFloat16(CNN_FpFloat16_T * Arg);
 extern void CNN_UFpFloat16(CNN_UFpFloat16_T * Arg);
 extern void CNN_FpsFloat16(CNN_FpsFloat16_T * Arg);
 extern void CNN_UFpsFloat16(CNN_UFpsFloat16_T * Arg);
+
+extern void CNN_FpFloat32(CNN_FpFloat32_T * Arg);
+extern void CNN_UFpFloat32(CNN_UFpFloat32_T * Arg);
+extern void CNN_FpsFloat32(CNN_FpsFloat32_T * Arg);
+extern void CNN_UFpsFloat32(CNN_UFpsFloat32_T * Arg);
+
+extern void CNN_Float32Fp(CNN_Float32Fp_T * Arg);
+extern void CNN_Float32UFp(CNN_Float32UFp_T * Arg);
+extern void CNN_Float32Fps(CNN_Float32Fps_T * Arg);
+extern void CNN_Float32UFps(CNN_Float32UFps_T * Arg);
 
 #endif
 

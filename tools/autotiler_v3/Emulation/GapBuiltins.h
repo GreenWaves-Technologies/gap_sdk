@@ -230,6 +230,16 @@ static inline unsigned int ExtInsMaskSafe(unsigned int Size, unsigned int Offset
 #define gap_norm(x, scale)			__builtin_pulp_addN((x), 0, (scale))
 #define gap_norm_reg(x, scale)			__builtin_pulp_addN_r((x), 0, (scale))
 
+/* Floating point */
+#define gap_f32min(a,b)				__builtin_pulp_f32min((a), (b))
+#define gap_f32max(a,b)				__builtin_pulp_f32max((a), (b))
+#define gap_f32sqrt(a)				__builtin_pulp_f32sqrt((a))
+#define gap_f32abs(a)				__builtin_pulp_f32abs((a))
+#define gap_f32rmm(a)				__builtin_pulp_rintsf2((a))
+#define gap_f32rdn(a)				__builtin_pulp_rdownsf2((a))
+#define gap_f32rup(a)				__builtin_pulp_rupsf2((a))
+
+
 #else
 /* Emulation */
 
@@ -451,6 +461,17 @@ static int _VitT0_Flag, _VitT1_Flag;
 #define gap_normu_reg(x, scale)			((unsigned int)(x)>>(scale))
 #define gap_norm(x, scale)			((int)(x)>>(scale))
 #define gap_norm_reg(x, scale)			((int)(x)>>(scale))
+
+/* Floating point */
+#include <math.h>
+#define gap_f32min(a,b)		fminf((a), (b))
+#define gap_f32max(a,b)		fmaxf((a), (b))
+#define gap_f32sqrt(a)		sqrtf((a))
+#define gap_f32abs(a)		fabsf((a))
+#define gap_f32rmm(a)		(((a)>=0)?((int)((a)+0.5f)):(-((int)(-(a)+0.5f))))
+#define gap_f32rdn(a)		floorf((a))
+#define gap_f32rup(a)		ceilf((a))
+
 
 #endif
 

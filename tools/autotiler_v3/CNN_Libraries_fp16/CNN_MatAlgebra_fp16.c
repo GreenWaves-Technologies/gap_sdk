@@ -6799,7 +6799,7 @@ void KerParMatMulSmallFeatReLUN_fp16(KerMatMul_fp16_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParMatMulSwishSmallFeat_fp16(KerMatMul_fp16_T *Arg)
+void KerParMatMulSmallFeatSwish_fp16(KerMatMul_fp16_T *Arg)
 
 {
 	F16 * __restrict__ In1 = Arg->In1;
@@ -6833,7 +6833,7 @@ void KerParMatMulSwishSmallFeat_fp16(KerMatMul_fp16_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParMatMulHSwishSmallFeat_fp16(KerMatMul_fp16_T *Arg)
+void KerParMatMulSmallFeatHSwish_fp16(KerMatMul_fp16_T *Arg)
 
 {
 	F16 * __restrict__ In1 = Arg->In1;
@@ -6867,7 +6867,7 @@ void KerParMatMulHSwishSmallFeat_fp16(KerMatMul_fp16_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParMatMulSigmoidSmallFeat_fp16(KerMatMul_fp16_T *Arg)
+void KerParMatMulSmallFeatSigmoid_fp16(KerMatMul_fp16_T *Arg)
 
 {
 	F16 * __restrict__ In1 = Arg->In1;
@@ -6901,7 +6901,7 @@ void KerParMatMulSigmoidSmallFeat_fp16(KerMatMul_fp16_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParMatMulHSigmoidSmallFeat_fp16(KerMatMul_fp16_T *Arg)
+void KerParMatMulSmallFeatHSigmoid_fp16(KerMatMul_fp16_T *Arg)
 
 {
 	F16 * __restrict__ In1 = Arg->In1;
@@ -6936,7 +6936,7 @@ void KerParMatMulHSigmoidSmallFeat_fp16(KerMatMul_fp16_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParMatMulTanhSmallFeat_fp16(KerMatMul_fp16_T *Arg)
+void KerParMatMulSmallFeatTanh_fp16(KerMatMul_fp16_T *Arg)
 
 {
 	F16 * __restrict__ In1 = Arg->In1;
@@ -6970,7 +6970,7 @@ void KerParMatMulTanhSmallFeat_fp16(KerMatMul_fp16_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParMatMulHTanhSmallFeat_fp16(KerMatMul_fp16_T *Arg)
+void KerParMatMulSmallFeatHTanh_fp16(KerMatMul_fp16_T *Arg)
 
 {
 	F16 * __restrict__ In1 = Arg->In1;
@@ -7004,7 +7004,7 @@ void KerParMatMulHTanhSmallFeat_fp16(KerMatMul_fp16_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParMatMulLeakyreluSmallFeat_fp16(KerMatMul_fp16_T *Arg)
+void KerParMatMulSmallFeatLeakyrelu_fp16(KerMatMul_fp16_T *Arg)
 
 {
 	F16 * __restrict__ In1 = Arg->In1;

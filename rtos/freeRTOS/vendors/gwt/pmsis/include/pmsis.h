@@ -72,4 +72,9 @@
 /* Hal includes. */
 #include "pmsis/implem/hal/hal.h"
 
+/* GVSOC proxy includes. */
+#if defined(__PLATFORM_GVSOC__)
+#include "pmsis/platforms/gvsoc.h"
+#endif  /* __PLATFORM_GVSOC__ */
+
 #endif  /* __PMSIS_H__ */

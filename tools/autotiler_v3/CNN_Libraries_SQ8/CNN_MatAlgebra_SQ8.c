@@ -3205,11 +3205,39 @@ void KerParMatMulB32_SF_SQ8(KerMatMul_SQ8_T *Arg)
 	for (int i=0; i<Iter/4; i++) {
 		int l2 = 4*i+First;
 		v4s *pIn2_0 = (v4s *) (In2 + (l2+0)*W_In2), *pIn2_1 = (v4s *) (In2 + (l2+1)*W_In2), *pIn2_2 = (v4s *) (In2 + (l2+2)*W_In2), *pIn2_3 = (v4s *) (In2 + (l2+3)*W_In2);
-		for (int l1=0; l1<H_In1; l1++) {
-			v4s *pIn1 = (v4s *) (In1 + l1*W_In1);
+		for (int j=0; j<H_In1/2; j++) {
+			int l1 = 2*j;
+			v4s *pIn1_0 = (v4s *) (In1 + l1*W_In1);
+			v4s *pIn1_1 = (v4s *) (In1 + (l1+1)*W_In1);
+			int S0 = Bias[l1]  <<NormBias, S1=S0, S2=S0, S3=S0;
+			int S4 = Bias[l1+1]<<NormBias, S5=S4, S6=S4, S7=S4;
+			for (int c=0; c<W_In1/4; c++) {
+				v4s C0 = pIn1_0[c], V0 = pIn2_0[c], V1 = pIn2_1[c], V2 = pIn2_2[c], V3 = pIn2_3[c];
+				S0 = gap_sumdotp4(C0, V0, S0); S1 = gap_sumdotp4(C0, V1, S1); S2 = gap_sumdotp4(C0, V2, S2); S3 = gap_sumdotp4(C0, V3, S3);
+				v4s C1 = pIn1_1[c];
+				S4 = gap_sumdotp4(C1, V0, S4); S5 = gap_sumdotp4(C1, V1, S5); S6 = gap_sumdotp4(C1, V2, S6); S7 = gap_sumdotp4(C1, V3, S7);
+			}
+			for (int c=(W_In1/4)*4; c<W_In1; c++) {
+				int C0 = In1[l1*W_In1+c];
+				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c]; S2 += C0 * In2[(l2+2)*W_In2+c]; S3 += C0 * In2[(l2+3)*W_In2+c];
+				int C1 = In1[(l1+1)*W_In1+c];
+				S4 += C1 * In2[(l2+0)*W_In2+c]; S5 += C1 * In2[(l2+1)*W_In2+c]; S6 += C1 * In2[(l2+2)*W_In2+c]; S7 += C1 * In2[(l2+3)*W_In2+c];
+			}
+			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
+			v4s R = gap_pack4(gap_clip(AT_SCALE(S0, Sc, ScN), 7), gap_clip(AT_SCALE(S1, Sc, ScN), 7),
+					  gap_clip(AT_SCALE(S2, Sc, ScN), 7), gap_clip(AT_SCALE(S3, Sc, ScN), 7));
+			*((v4s *) (Out+l1*H_In2 + l2)) = R;
+			unsigned int Sc1 = Scale[l1+1], ScN1 = ScaleN[l1+1];
+			v4s R1 = gap_pack4(gap_clip(AT_SCALE(S4, Sc1, ScN1), 7), gap_clip(AT_SCALE(S5, Sc1, ScN1), 7),
+					   gap_clip(AT_SCALE(S6, Sc1, ScN1), 7), gap_clip(AT_SCALE(S7, Sc1, ScN1), 7));
+			*((v4s *) (Out+(l1+1)*H_In2 + l2)) = R1;
+		}
+		if (H_In1&0x1) {
+			int l1 = H_In1 - 1;
+			v4s *pIn1_0 = (v4s *) (In1 + l1*W_In1);
 			int S0 = Bias[l1]<<NormBias, S1=S0, S2=S0, S3=S0;
 			for (int c=0; c<W_In1/4; c++) {
-				v4s C0 = pIn1[c], V0 = pIn2_0[c], V1 = pIn2_1[c], V2 = pIn2_2[c], V3 = pIn2_3[c];
+				v4s C0 = pIn1_0[c], V0 = pIn2_0[c], V1 = pIn2_1[c], V2 = pIn2_2[c], V3 = pIn2_3[c];
 				S0 = gap_sumdotp4(C0, V0, S0); S1 = gap_sumdotp4(C0, V1, S1); S2 = gap_sumdotp4(C0, V2, S2); S3 = gap_sumdotp4(C0, V3, S3);
 			}
 			for (int c=(W_In1/4)*4; c<W_In1; c++) {

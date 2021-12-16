@@ -62,6 +62,9 @@ PULP_APP = mnist
 APP = mnist
 APP_SRCS += $(MODEL_PREFIX).c $(MODEL_GEN_C) $(MODEL_COMMON_SRCS) $(CNN_LIB)
 
+ifeq '$(TARGET_CHIP_FAMILY)' 'GAP8'
+        APP_CFLAGS += -march=rv32imcxgap8
+endif
 APP_CFLAGS += -g -O3 -mno-memcpy -fno-tree-loop-distribute-patterns
 APP_CFLAGS += -I. -I$(MODEL_COMMON_INC) -I$(TILER_EMU_INC) -I$(TILER_INC) $(CNN_LIB_INCLUDE) -I$(MODEL_BUILD)
 APP_CFLAGS += -DPERF -DAT_MODEL_PREFIX=$(MODEL_PREFIX) $(MODEL_SIZE_CFLAGS)

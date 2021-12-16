@@ -31,7 +31,7 @@ def create_parser():
 	parser.add_argument('--name_suffix', default="", type=str)
 	parser.add_argument('--frame_size', required="--params_json" not in sys.argv, type=int,
 						help="size in number of samples of one frame")
-	parser.add_argument('--frame_step', required="--params_json" not in sys.argv, type=int,
+	parser.add_argument('--frame_step', type=int, default=0,
 						help="step in number of samples between two consecutive frames")
 	parser.add_argument('--win_func', default="hanning", type=str,
 						help="numpy window function (e.g. hanning)")

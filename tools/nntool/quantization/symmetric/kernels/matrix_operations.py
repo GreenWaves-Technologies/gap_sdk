@@ -204,7 +204,8 @@ class MatMulScaled(KernelBase):
         if len(in_tensors) > 2:
             biases = in_tensors[2]
             if len(biases.shape) == 1:
-                biases = np.expand_dims(biases, 1 if mat2.shape[1] == 1 else 0)
+                if biases.shape[0] == mat1.shape[0]:
+                    biases = np.expand_dims(biases, -1)
         else:
             biases = 0
 
@@ -235,7 +236,8 @@ class MatMulSymmetric(KernelBase):
         if len(in_tensors) > 2:
             biases = in_tensors[2]
             if len(biases.shape) == 1:
-                biases = np.expand_dims(biases, 1 if mat2.shape[1] == 1 else 0)
+                if biases.shape[0] == mat1.shape[0]:
+                    biases = np.expand_dims(biases, -1)
         else:
             biases = 0
 

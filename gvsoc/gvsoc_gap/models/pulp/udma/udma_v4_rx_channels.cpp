@@ -186,8 +186,7 @@ void Udma_rx_channels::handle_pending(void *__this, vp::clock_event *event)
 
                 if (addr == 0)
                 {
-                    fflush(NULL);
-                    abort();
+                    _this->top->trace.fatal("UDMA trying to access NULL\n");
                 }
 
                 if (err == vp::IO_REQ_OK)

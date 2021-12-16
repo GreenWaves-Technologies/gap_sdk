@@ -15,7 +15,7 @@
 
 import logging
 
-from ..dim import DilationDim, Dim2D
+from ..dim import DilationDim, Dim, Dim2D
 from .base import (ComparableParameters, FilterLikeParameters, FilterParameters,
                    MultiplicativeBiasParameters, NoSizeChangeParameters,
                    SingleInputAndOutput, cls_op_name, SensitiveToOrder, nargs)
@@ -167,8 +167,11 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Compa
 
         pad = self.padding.height_width()
 
-        out_dim = ((in_dim - filter_d + pad)//self.stride) + 1
-        out_dim.c = self.filter.out_c
+        h = ((in_dim.h - filter_d.h + pad.h)//self.stride.h) + 1
+        w = ((in_dim.w - filter_d.w + pad.w)//self.stride.w) + 1
+        if h < 0 or w < 0:
+            raise ValueError(f'{self.name}dimension calculation invalid {h}, {w}')
+        out_dim = Dim.named_ordered(h=h, w=w, c=self.filter.out_c)
         out_dim.impose_order(in_dim.order)
         if self.batch is not None:
             out_dim.insert_axis(0, new_name='n')

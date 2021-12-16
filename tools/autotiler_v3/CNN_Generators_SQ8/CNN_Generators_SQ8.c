@@ -730,6 +730,10 @@ void LoadCNN_SQ8_Library()
 											CNN_Match(CNN_OperList(1, KOP_MM_CONV), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 1,1,1,1,-1,-1));
 	LibKernel("KerPar_MM_Conv1x1_ReLU_HWC_SQ8", CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Conv_SQ8_T",
 											CNN_Match(CNN_OperList(1, KOP_MM_CONV), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,4,0,1), 1,1,1,1,-1,-1));
+	LibKernel("Ker_MM_Conv1x1_HWC_SQ8", CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Conv_SQ8_T",
+											CNN_Match(CNN_OperList(1, KOP_MM_CONV), CNN_OperList(1, KOP_NONE), 0, CNN_Type(1,1,4,0,1), 1,1,1,1,-1,-1));
+	LibKernel("Ker_MM_Conv1x1_ReLU_HWC_SQ8", CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Conv_SQ8_T",
+											CNN_Match(CNN_OperList(1, KOP_MM_CONV), CNN_OperList(1, KOP_RELU), 0, CNN_Type(1,1,4,0,1), 1,1,1,1,-1,-1));
 	LibKernel("KerPar_MM_Conv1D_HWC_SQ8", CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Conv_SQ8_T",
 											CNN_Match(CNN_OperList(1, KOP_MM_CONV), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), -1,1,1,1,-1,-1));
 	LibKernel("KerPar_MM_Conv1D_DxDy_HWC_SQ8", CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Conv_SQ8_T",
@@ -1140,7 +1144,7 @@ void LoadCNN_SQ8_Library()
 
 *********************************************************************************************************************************************************************/
 
-int CNN_MM_ConvolutionPoolAct_SQ8(
+static Kernel_T *CNN_MM_ConvolutionPoolAct_SQ8_Internal(
 	char         *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -1177,9 +1181,9 @@ int CNN_MM_ConvolutionPoolAct_SQ8(
 {
 	if (ConvOper==KOP_NONE) {
 		if (PoolOper!=KOP_NONE)
-			return CNN_PoolAct_SQ8(Name, Ctrl, InFeat, Width, Height, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+			return CNN_PoolAct_SQ8_Internal(Name, Ctrl, InFeat, Width, Height, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
 		else if (ActOper!=KOP_NONE)
-			return CNN_Act_SQ8(Name, Ctrl, InFeat, Width, Height, ActOper);
+			return CNN_Act_SQ8_Internal(Name, Ctrl, InFeat, Width, Height, ActOper);
 		else GenTilingError("CNN_MM_ConvolutionPoolAct_SQ8 Kernel: %s, All requested operations are KOP_NONE", Name);
 	}
 
@@ -1197,6 +1201,10 @@ int CNN_MM_ConvolutionPoolAct_SQ8(
 		if (Ctrl->HWC) HWC = 1;
 		if (Ctrl->ParallelFeatures != -1) ParFeatConv = Ctrl->ParallelFeatures;
 	}
+
+	if (HWC && Fcy==1 && Fcx==1 && Scy==1 && Scx==1 && Dcy==1 && Dcx==1)
+		return CNN_MatMulAct_SQ8_Internal(Name, Ctrl, Bias_DataSize, Scale_DataSize, InFeat, Height*Width, OutFeat, InFeat, 0,0,0,0, KOP_MATMUL_TRANSPOSED, ActOper, 0);
+
 	if (ParFeatConv == 2 && HWC && Fcy>1 && (InFeat < 8))
 		ParFeatConv = 0;
 	else
@@ -1253,7 +1261,7 @@ int CNN_MM_ConvolutionPoolAct_SQ8(
 	int BuffS = ALIGN(InFeat*Fcx*Fcy, 3);
 	if (HWC) {
 		if (Fcx==1&&Fcy==1) BuffS = 1;
-		else if (ParFeatConv) BuffS = ALIGN(InFeat*Fcx*Fcy, 3);
+		else if (ParFeatConv) BuffS = 2*ALIGN(InFeat*Fcx*Fcy, 3);
 		else BuffS = 2 * InFeat*Fcx*Fcy*8;
 	}
 
@@ -1453,11 +1461,11 @@ int CNN_MM_ConvolutionPoolAct_SQ8(
 				      PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PadInp,
 				      ActOper);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 
-int CNN_HWC_DWConvolutionPoolAct_SQ8(
+static Kernel_T *CNN_HWC_DWConvolutionPoolAct_SQ8_Internal(
 	char         *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -1494,9 +1502,9 @@ int CNN_HWC_DWConvolutionPoolAct_SQ8(
 {
 	if (ConvOper==KOP_NONE) {
 		if (PoolOper!=KOP_NONE)
-			return CNN_PoolAct_SQ8(Name, Ctrl, InFeat, Width, Height, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+			return CNN_PoolAct_SQ8_Internal(Name, Ctrl, InFeat, Width, Height, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
 		else if (ActOper!=KOP_NONE)
-			return CNN_Act_SQ8(Name, Ctrl, InFeat, Width, Height, ActOper);
+			return CNN_Act_SQ8_Internal(Name, Ctrl, InFeat, Width, Height, ActOper);
 		else GenTilingError("CNN_HWC_DWConvolutionPoolAct_SQ8: %s, All requested operations are KOP_NONE", Name);
 	}
 
@@ -1606,7 +1614,7 @@ int CNN_HWC_DWConvolutionPoolAct_SQ8(
 	}
 
 	if (Log) {
-		printf("InFeat: %d, OutFeat: %d%s\n", InFeat, OutFeat, HWC?", HWC":", CHW");
+		printf("InFeat: %d, OutFeat: %d%s - TileOrientation: %s\n", InFeat, OutFeat, HWC?", HWC":", CHW", TileOrientation==TILE_HOR?"TILE_HOR":"TILE_VER");
         	printf("Conv => W:  %d, Pad:[%d,%d] PadT:[%d,%d] => Wc: %d, Filter:[%d,%d]\n", Width,  PadInc[0], PadInc[1], PadIncT[0], PadIncT[1], Wc, Fcx, Fcy);
         	printf("     => H:  %d, Pad:[%d,%d] PadT:[%d,%d] => Hc: %d\n", Height, PadInc[2], PadInc[3], PadIncT[2], PadIncT[3], Hc);
         	printf("Pool => Wc: %d, Pad:[%d,%d] => Wo: %d, Filter:[%d,%d]\n", Wc, PadInp[0], PadInp[1], Wo, Fpx, Fpy);
@@ -1744,7 +1752,7 @@ int CNN_HWC_DWConvolutionPoolAct_SQ8(
 				      PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PadInp,
 				      ActOper);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 /*********************************************************************************************************************************************************************
@@ -1790,7 +1798,7 @@ int CNN_HWC_DWConvolutionPoolAct_SQ8(
 	
 *********************************************************************************************************************************************************************/
 
-int CNN_ConvolutionPoolAct_SQ8(
+Kernel_T *CNN_ConvolutionPoolAct_SQ8_Internal(
 	char         *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -1850,31 +1858,31 @@ int CNN_ConvolutionPoolAct_SQ8(
         }
 	if (ConvOper==KOP_NONE) {
 		if (PoolOper!=KOP_NONE)
-			return CNN_PoolAct_SQ8(Name, Ctrl, InFeat, Width, Height, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+			return CNN_PoolAct_SQ8_Internal(Name, Ctrl, InFeat, Width, Height, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
 		else if (ActOper!=KOP_NONE)
-			return CNN_Act_SQ8(Name, Ctrl, InFeat, Width, Height, ActOper);
+			return CNN_Act_SQ8_Internal(Name, Ctrl, InFeat, Width, Height, ActOper);
 		else GenTilingError("CNN_ConvolutionPoolAct_SQ8 Kernel: %s, All requested operations are KOP_NONE", Name);
 	} else if (HWC) {
 		if (ConvOper == KOP_CONV_DW)
-			return CNN_HWC_DWConvolutionPoolAct_SQ8(Name, Ctrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width, Height,
+			return CNN_HWC_DWConvolutionPoolAct_SQ8_Internal(Name, Ctrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width, Height,
 								ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad,
 								PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
 		else
-			return CNN_MM_ConvolutionPoolAct_SQ8(Name, Ctrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width, Height,
+			return CNN_MM_ConvolutionPoolAct_SQ8_Internal(Name, Ctrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width, Height,
 							     ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad,
 							     PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
 	} else if (ConvOper==KOP_CONV && ((Fcx > 1 && Fcy == 1))) {
-		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
-		int Ok = CNN_MM_ConvolutionPoolAct_SQ8(Name, Ctrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width, Height,
+		// AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+		Kernel_T *Ok = CNN_MM_ConvolutionPoolAct_SQ8_Internal(Name, Ctrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width, Height,
 						       ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad,
 				      		       PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
-		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
-		if (Ok) return Ok;
+		// AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+		if (Ok!=0) return Ok;
 		if (Log) printf("No solution found for im2col scheme, reverting to standard implementation\n");
 	}
 	if (Fcx==1 && Fcy==1 && Scx==1 && Scy==1 && Dcx==1 && Dcy==1 && Height==1 && Width==1) {
 		printf("This is a pointwise on 1x1 input --> Mapping to CNN_Linear_NE16\n");
-		return CNN_LinearAct_SQ8(Name, Ctrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, KOP_LINEAR, ActOper);
+		return CNN_LinearAct_SQ8_Internal(Name, Ctrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, KOP_LINEAR, ActOper);
 	}
 
 	if (PoolOper==KOP_NONE) {
@@ -1997,12 +2005,12 @@ int CNN_ConvolutionPoolAct_SQ8(
 		// if ((InFeat+OutFeat)<80) {
 		if ((InFeat+OutFeat)<100 && (Scx==1) && (Scy==1)) {
 			if (Log) printf("Mapping this convolution to matrix multiplication with small first operand\n");
-			int Ok = CNN_MatMulSmallM1Act_SQ8(Name, 0, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width*Height, InFeat, Width, Height, Scx, Scy, KOP_MATMUL_SM1, ActOper);
+			Kernel_T *Ok = CNN_MatMulSmallM1Act_SQ8_Internal(Name, 0, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width*Height, InFeat, Width, Height, Scx, Scy, KOP_MATMUL_SM1, ActOper);
 			if (!Ok&&Log) printf("Mapping this convolution to matrix multiplication with small first operand FAILED, trying with standard mult implementation\n");
 			if (Ok) return Ok;
 		}
 		if (Log) printf("Mapping this convolution to matrix multiplication\n");
-		int Ok = CNN_MatMulAct_SQ8(Name, 0, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width*Height, InFeat, Width, Height, Scx, Scy, KOP_MATMUL, ActOper);
+		Kernel_T *Ok = CNN_MatMulAct_SQ8_Internal(Name, 0, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width*Height, InFeat, Width, Height, Scx, Scy, KOP_MATMUL, ActOper, 1);
 		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
 		if (Ok) return Ok;
 		if (Log) printf("Mapping this convolution to matrix multiplication FAILED, reverting to standard implementation\n");
@@ -2159,7 +2167,7 @@ int CNN_ConvolutionPoolAct_SQ8(
 				      PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PadInp,
 				      ActOper);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 /*********************************************************************************************************************************************************************
@@ -2345,7 +2353,7 @@ int CNN_GroupedConvolutionPoolAct_SQ8(
 		
 *********************************************************************************************************************************************************************/
 
-int CNN_PoolAct_SQ8(
+Kernel_T * CNN_PoolAct_SQ8_Internal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -2367,7 +2375,7 @@ int CNN_PoolAct_SQ8(
 	)
 
 {
-	if (PoolOper==KOP_NONE && ActOper!=KOP_NONE) return CNN_Act_SQ8(Name, Ctrl, Feat, Width, Height, ActOper);
+	if (PoolOper==KOP_NONE && ActOper!=KOP_NONE) return CNN_Act_SQ8_Internal(Name, Ctrl, Feat, Width, Height, ActOper);
 
 	Tile_Orientation_T TileOrientation = TILE_HOR;
 	int ParFeat = 1, HWC = 0;
@@ -2524,8 +2532,9 @@ int CNN_PoolAct_SQ8(
 
 		AT_PrepareForTest_SQ8(Name, Feat, Feat, Width, Height, 1, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PadInp, 0, 0,0,0,0,0,0,(v4s) 0, ActOper);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
+
 
 
 /*********************************************************************************************************************************************************************
@@ -2549,7 +2558,7 @@ int CNN_PoolAct_SQ8(
 		
 *********************************************************************************************************************************************************************/
 
-int CNN_Act_SQ8(
+Kernel_T * CNN_Act_SQ8_Internal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -2626,8 +2635,9 @@ int CNN_Act_SQ8(
 
 		AT_PrepareForTest_SQ8(Name, Feat,Feat,Width,Height, 1, ActOper, 0,0,0,0,0,0,(v4s) 0, 0, 0,0,0,0,0,0,(v4s) 0, KOP_NONE);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
+
 
 /*********************************************************************************************************************************************************************
  	Generator for Global Pooling (Max or Average) with tensor centric scaling and optional activation
@@ -2652,7 +2662,7 @@ int CNN_Act_SQ8(
 		
 *********************************************************************************************************************************************************************/
 
-int CNN_GlobalPoolAct_SQ8(
+static Kernel_T *CNN_GlobalPoolAct_SQ8_Interal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -2843,9 +2853,8 @@ int CNN_GlobalPoolAct_SQ8(
 
 		AT_PrepareForTest_SQ8(Name, Feat,Feat,Width,Height, 1, PoolOper, 0,0,0,0,0,0, (v4s)0, 0, 0,0,0,0,0,0,(v4s) 0, ActOper);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
-
 
 /*********************************************************************************************************************************************************************
  	Generator for Linear layers followed wth channel centric scaling followed by an optional activation
@@ -2870,7 +2879,7 @@ int CNN_GlobalPoolAct_SQ8(
 	
 *********************************************************************************************************************************************************************/
 
-int CNN_LinearAct_SQ8(
+Kernel_T * CNN_LinearAct_SQ8_Internal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -3074,7 +3083,7 @@ int CNN_LinearAct_SQ8(
 
 		AT_PrepareForTest_SQ8(Name, InDim,OutDim,1,1, Bias_DataSize, LinearOper, 0,0,0,0,0,0,(v4s)0, 0, 0,0,0,0,0,0,(v4s)0, ActOper);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 /*********************************************************************************************************************************************************************
@@ -3096,7 +3105,7 @@ int CNN_LinearAct_SQ8(
                 a different code. By definition Output contains value is the [0.0 .. 1.0] range with sum(Output)=1.0. Results are always represented in Q15
 *********************************************************************************************************************************************************************/
 
-int CNN_SoftMax_SQ8(
+static Kernel_T * CNN_SoftMax_SQ8_Internal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -3158,10 +3167,10 @@ int CNN_SoftMax_SQ8(
 
 		AT_PrepareForTest_SQ8(Name, Dim,Dim,1,1, 1, SoftMaxOper, 0,0,0,0,0,0,(v4s)0, 0, 0,0,0,0,0,0,(v4s)0, 0);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
-int CNN_SoftMax2D_SQ8(
+static Kernel_T * CNN_SoftMax2D_SQ8_Internal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -3231,7 +3240,7 @@ int CNN_SoftMax2D_SQ8(
 
 		AT_PrepareForTest_SQ8(Name, Dim,Dim,1,1, 1, SoftMaxOper, 0,0,0,0,0,0,(v4s)0, 0, 0,0,0,0,0,0,(v4s)0, 0);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 /*********************************************************************************************************************************************************************
@@ -3255,7 +3264,7 @@ int CNN_SoftMax2D_SQ8(
 	
 *********************************************************************************************************************************************************************/
 
-int CNN_MatAddAct_SQ8(
+static Kernel_T * CNN_MatAddAct_SQ8_Internal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -3350,7 +3359,7 @@ int CNN_MatAddAct_SQ8(
 
 		AT_PrepareForTest_SQ8(Name, Feat,Feat,Width,Height, 1, AddMatOper, 0,0,0,0,0,0,(v4s)0, 0, 0,0,0,0,0,0,(v4s)0, ActOper);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 /*********************************************************************************************************************************************************************
@@ -3711,7 +3720,7 @@ int CNN_TensorVectMultAct_SQ8(
 	
 *********************************************************************************************************************************************************************/
 
-int CNN_MatMulAct_SQ8(
+Kernel_T *CNN_MatMulAct_SQ8_Internal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -3730,7 +3739,8 @@ int CNN_MatMulAct_SQ8(
 	int Scy,
 
         KernelOper_T MatMulOper,
-        KernelOper_T ActOper
+        KernelOper_T ActOper,
+        int InvertInputs
 	)
 
 {
@@ -3804,8 +3814,8 @@ int CNN_MatMulAct_SQ8(
 		KernelIterSpace(2, IterTiledSpace(T1), IterTiledSpace(T0)),
                 TILE_HOR,
                 CArgs(7,
-                      TCArg(CNN_ArgDataType(1,1,1),  "In2"),
-                      TCArg(CNN_ArgDataType(1,1,1),  "In1"),
+                      TCArg(CNN_ArgDataType(1,1,1),  InvertInputs?"In2":"In1"),
+                      TCArg(CNN_ArgDataType(1,1,1),  InvertInputs?"In1":"In2"),
                       Bias_DataSize?TCArg(CNN_ArgDataType(Bias_DataSize,1,1), "Bias"):AT_NO_C_ARG,
                       TCArg(CNN_ArgDataType(1,1,1),  "Out"),
                       !ScaleScalar?TCArg(CNN_ArgDataTypeUns(1,1,1),"Scale"):AT_NO_C_ARG,
@@ -3879,7 +3889,7 @@ int CNN_MatMulAct_SQ8(
 
 		AT_PrepareForTest_SQ8(Name, ColM1,LineM1,Width,Height, Bias_DataSize, MatMulOper, 1,1,1,1,Scx,Scy,(v4s)0, 0, 0,0,0,0,0,0,(v4s)0, ActOper);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 /*********************************************************************************************************************************************************************
@@ -3920,7 +3930,7 @@ int CNN_MatMulAct_SQ8(
 	
 *********************************************************************************************************************************************************************/
 
-int CNN_MatMulSmallM1Act_SQ8(
+Kernel_T * CNN_MatMulSmallM1Act_SQ8_Internal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -4077,7 +4087,295 @@ int CNN_MatMulSmallM1Act_SQ8(
 
 		AT_PrepareForTest_SQ8(Name, ColM1,LineM1,Width,Height, Bias_DataSize, MatMulOper, 1,1,1,1,Scx,Scy,(v4s)0, 0, 0,0,0,0,0,0,(v4s)0, ActOper);
 	}
-	return (Kernel!=0);
+	return Kernel;
 
+}
+
+/* ============================================================================================================================================================== */
+/* ============================================================================================================================================================== */
+/* ============================================================================================================================================================== */
+/* ============================================================================================================================================================== */
+/* ============================================================================================================================================================== */
+/* ============================================================================================================================================================== */
+/* ============================================================================================================================================================== */
+
+int CNN_MM_ConvolutionPoolAct_SQ8(
+	char         *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+	int Bias_DataSize,
+	int Scale_DataSize,
+
+       	int InFeat,
+       	int OutFeat,
+       	int Width,
+       	int Height,
+
+	KernelOper_T ConvOper,
+       	int Fcx,
+       	int Fcy,
+	int Dcx,
+	int Dcy,
+	int Scx,
+	int Scy,
+	int ConvPad,
+
+	KernelOper_T PoolOper,
+	int Fpx,
+	int Fpy,
+	int Dpx,
+	int Dpy,
+	int Spx,
+	int Spy,
+	int PoolPad,
+
+	KernelOper_T ActOper
+	)
+{
+	Kernel_T *Ker = 0, *Sol1 = 0, *Sol2 = 0;
+        float K = 0.9;
+        Tile_Orientation_T TileOrientation = TILE_HOR;
+        if (Ctrl) {
+		if (Ctrl->TileOrientation != -1) {
+			printf("TileOrientation set by user\n");
+			Ker = CNN_MM_ConvolutionPoolAct_SQ8_Internal(Name, Ctrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+			if (Ker!=0) return 1;
+			else GenTilingError("CNN_MM_ConvolutionPoolAct_SQ8: %s, Failed to gen with set tiling orientation, try to let the Autotiler set it for you", Name);
+		}
+	}
+
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+
+	CNN_GenControl_T InternalCtrl;
+	if (!Ctrl) CNN_InitGenCtrl(&InternalCtrl);
+    	else 	   InternalCtrl = *Ctrl;
+
+	printf("\n\n=============================== Trying Tile Orientation: TILE_HOR ===============================\n\n");
+    	CNN_SetGenCtrl(&InternalCtrl, "TILEORIENTATION", AT_OPT_VAL(0));
+        Ker = CNN_MM_ConvolutionPoolAct_SQ8_Internal(Name, &InternalCtrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+        if (Ker) Sol1 = CopyAndPopUserKernel(Ker);
+
+	printf("\n=============================== Trying Tile Orientation: TILE_VER ===============================\n\n");
+    	CNN_SetGenCtrl(&InternalCtrl, "TILEORIENTATION", AT_OPT_VAL(1));
+        Ker = CNN_MM_ConvolutionPoolAct_SQ8_Internal(Name, &InternalCtrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+        if (Ker) Sol2 = CopyAndPopUserKernel(Ker);
+
+        if (Sol1 && Sol2) {
+		int TakeSol1 = ((K*Sol1->Cost->TileOverhead) < Sol2->Cost->TileOverhead);  // K close to 1.0if (TakeSol1) {
+		printf(">>>>>>>>>>>>>>>>>> %s is better: %.3f vs %.3f \n\n\n", TakeSol1?"TILE_HOR":"TILE_VER", Sol1->Cost->TileOverhead, Sol2->Cost->TileOverhead);
+		if (TakeSol1) {
+                    PushBackUserKernel(Sol1); ReleaseUserKerne(Sol2);
+                } else {
+                    PushBackUserKernel(Sol2); ReleaseUserKerne(Sol1);
+                }
+        } else if (Sol1) {
+                PushBackUserKernel(Sol1); ReleaseUserKerne(Sol2);
+	} else if (Sol2) {
+                PushBackUserKernel(Sol2); ReleaseUserKerne(Sol1);
+	} else {
+		GenTilingError("Failed to Generate code for Kernel: %s", Name);
+	}
+        AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+        return 1;
+}
+
+int CNN_HWC_DWConvolutionPoolAct_SQ8(
+	char         *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+	int Bias_DataSize,
+	int Scale_DataSize,
+
+       	int InFeat,
+       	int OutFeat,
+       	int Width,
+       	int Height,
+
+	KernelOper_T ConvOper,
+       	int Fcx,
+       	int Fcy,
+	int Dcx,
+	int Dcy,
+	int Scx,
+	int Scy,
+	int ConvPad,
+
+	KernelOper_T PoolOper,
+	int Fpx,
+	int Fpy,
+	int Dpx,
+	int Dpy,
+	int Spx,
+	int Spy,
+	int PoolPad,
+
+	KernelOper_T ActOper
+	)
+{
+	Kernel_T *Ker = 0, *Sol1 = 0, *Sol2 = 0;
+        float K = 0.9;
+        Tile_Orientation_T TileOrientation = TILE_HOR;
+        if (Ctrl) {
+		if (Ctrl->TileOrientation != -1) {
+			printf("TileOrientation set by user\n");
+			Ker = CNN_HWC_DWConvolutionPoolAct_SQ8_Internal(Name, Ctrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+			if (Ker!=0) return 1;
+			else GenTilingError("CNN_MM_ConvolutionPoolAct_SQ8: %s, Failed to gen with set tiling orientation, try to let the Autotiler set it for you", Name);
+		}
+	}
+
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+
+	CNN_GenControl_T InternalCtrl;
+	if (!Ctrl) CNN_InitGenCtrl(&InternalCtrl);
+    	else 	   InternalCtrl = *Ctrl;
+
+	printf("\n\n=============================== Trying Tile Orientation: TILE_HOR ===============================\n\n");
+    	CNN_SetGenCtrl(&InternalCtrl, "TILEORIENTATION", AT_OPT_VAL(0));
+        Ker = CNN_HWC_DWConvolutionPoolAct_SQ8_Internal(Name, &InternalCtrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+        if (Ker) Sol1 = CopyAndPopUserKernel(Ker);
+
+	printf("\n=============================== Trying Tile Orientation: TILE_VER ===============================\n\n");
+    	CNN_SetGenCtrl(&InternalCtrl, "TILEORIENTATION", AT_OPT_VAL(1));
+        Ker = CNN_HWC_DWConvolutionPoolAct_SQ8_Internal(Name, &InternalCtrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+        if (Ker) Sol2 = CopyAndPopUserKernel(Ker);
+
+        if (Sol1 && Sol2) {
+		int TakeSol1 = ((K*Sol1->Cost->TileOverhead) < Sol2->Cost->TileOverhead);  // K close to 1.0if (TakeSol1) {
+		printf(">>>>>>>>>>>>>>>>>> %s is better: %.3f vs %.3f \n\n\n", TakeSol1?"TILE_HOR":"TILE_VER", Sol1->Cost->TileOverhead, Sol2->Cost->TileOverhead);
+		if (TakeSol1) {
+                    PushBackUserKernel(Sol1); ReleaseUserKerne(Sol2);
+                } else {
+                    PushBackUserKernel(Sol2); ReleaseUserKerne(Sol1);
+                }
+        } else if (Sol1) {
+                PushBackUserKernel(Sol1); ReleaseUserKerne(Sol2);
+	} else if (Sol2) {
+                PushBackUserKernel(Sol2); ReleaseUserKerne(Sol1);
+	} else {
+		GenTilingError("Failed to Generate code for Kernel: %s", Name);
+	}
+        AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+        return 1;
+}
+
+int CNN_ConvolutionPoolAct_SQ8(
+	char         *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+	int Bias_DataSize,
+	int Scale_DataSize,
+
+       	int InFeat,
+       	int OutFeat,
+       	int Width,
+       	int Height,
+
+	KernelOper_T ConvOper,
+       	int Fcx,
+       	int Fcy,
+	int Dcx,
+	int Dcy,
+	int Scx,
+	int Scy,
+	int ConvPad,
+
+	KernelOper_T PoolOper,
+	int Fpx,
+	int Fpy,
+	int Dpx,
+	int Dpy,
+	int Spx,
+	int Spy,
+	int PoolPad,
+
+	KernelOper_T ActOper
+	)
+{
+	Kernel_T *Ker = 0, *Sol1 = 0, *Sol2 = 0;
+        float K = 0.9;
+        Tile_Orientation_T TileOrientation = TILE_HOR;
+        if (Ctrl) {
+		if (Ctrl->TileOrientation != -1) {
+			printf("TileOrientation set by user\n");
+			Ker = CNN_ConvolutionPoolAct_SQ8_Internal(Name, Ctrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+			if (Ker!=0) return 1;
+			else GenTilingError("CNN_ConvolutionPoolAct_SQ8: %s, Failed to gen with set tiling orientation, try to let the Autotiler set it for you", Name);
+		}
+	}
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+
+	CNN_GenControl_T InternalCtrl;
+	if (!Ctrl) CNN_InitGenCtrl(&InternalCtrl);
+    	else 	   InternalCtrl = *Ctrl;
+
+	printf("\n\n=============================== Trying Tile Orientation: TILE_HOR ===============================\n\n");
+    	CNN_SetGenCtrl(&InternalCtrl, "TILEORIENTATION", AT_OPT_VAL(0));
+        Ker = CNN_ConvolutionPoolAct_SQ8_Internal(Name, &InternalCtrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+        if (Ker) Sol1 = CopyAndPopUserKernel(Ker);
+
+	printf("\n=============================== Trying Tile Orientation: TILE_VER ===============================\n\n");
+    	CNN_SetGenCtrl(&InternalCtrl, "TILEORIENTATION", AT_OPT_VAL(1));
+        Ker = CNN_ConvolutionPoolAct_SQ8_Internal(Name, &InternalCtrl, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+        if (Ker) Sol2 = CopyAndPopUserKernel(Ker);
+
+        if (Sol1 && Sol2) {
+		int TakeSol1 = ((K*Sol1->Cost->TileOverhead) < Sol2->Cost->TileOverhead);  // K close to 1.0if (TakeSol1) {
+		printf(">>>>>>>>>>>>>>>>>> %s is better: %.3f vs %.3f \n\n\n", TakeSol1?"TILE_HOR":"TILE_VER", Sol1->Cost->TileOverhead, Sol2->Cost->TileOverhead);
+		if (TakeSol1) {
+                    PushBackUserKernel(Sol1); ReleaseUserKerne(Sol2);
+                } else {
+                    PushBackUserKernel(Sol2); ReleaseUserKerne(Sol1);
+                }
+        } else if (Sol1) {
+                PushBackUserKernel(Sol1); ReleaseUserKerne(Sol2);
+	} else if (Sol2) {
+                PushBackUserKernel(Sol2); ReleaseUserKerne(Sol1);
+	} else {
+		GenTilingError("Failed to Generate code for Kernel: %s", Name);
+	}
+        AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+        return 1;
+}
+
+int CNN_PoolAct_SQ8(char *Name, CNN_GenControl_T *Ctrl, int Feat, int Width, int Height, KernelOper_T PoolOper, int Fpx, int Fpy, int Dpx, int Dpy, int Spx, int Spy, int PoolPad, KernelOper_T ActOper)
+{
+	return (CNN_PoolAct_SQ8_Internal(Name, Ctrl, Feat, Width, Height, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper)!=0);
+}
+
+int CNN_Act_SQ8(char *Name, CNN_GenControl_T *Ctrl, int Feat, int Width, int Height,KernelOper_T ActOper) {
+	return (CNN_Act_SQ8_Internal(Name, Ctrl, Feat, Width, Height, ActOper)!=0);
+}
+
+int CNN_GlobalPoolAct_SQ8(char *Name, CNN_GenControl_T *Ctrl, int Feat, int Width, int Height, KernelOper_T PoolOper, KernelOper_T ActOper) {
+	return (CNN_GlobalPoolAct_SQ8_Interal(Name, Ctrl, Feat, Width, Height, PoolOper, ActOper)!=0);
+}
+
+int CNN_LinearAct_SQ8(char *Name, CNN_GenControl_T *Ctrl, int Bias_DataSize, int Scale_DataSize, int InDim, int OutDim, KernelOper_T LinearOper, KernelOper_T ActOper)
+{
+	return (CNN_LinearAct_SQ8_Internal(Name, Ctrl, Bias_DataSize, Scale_DataSize, InDim, OutDim, LinearOper, ActOper)!=0);
+}
+
+int CNN_SoftMax_SQ8(char *Name, CNN_GenControl_T *Ctrl, int Dim, KernelOper_T SoftMaxOper) {
+	return (CNN_SoftMax_SQ8_Internal(Name, Ctrl, Dim, SoftMaxOper)!=0);
+}
+
+int CNN_SoftMax2D_SQ8(char *Name, CNN_GenControl_T *Ctrl, int Dim, int N, KernelOper_T SoftMaxOper) {
+	return (CNN_SoftMax2D_SQ8_Internal(Name, Ctrl, Dim, N, SoftMaxOper)!=0);
+}
+
+int CNN_MatAddAct_SQ8(char *Name, CNN_GenControl_T *Ctrl, int Feat, int Width, int Height, KernelOper_T AddMatOper, KernelOper_T ActOper) {
+	return (CNN_MatAddAct_SQ8_Internal(Name, Ctrl, Feat, Width, Height, AddMatOper, ActOper)!=0);
+}
+
+int CNN_MatMulAct_SQ8(char *Name, CNN_GenControl_T *Ctrl, int Bias_DataSize, int Scale_DataSize, int ColM1, int LineM1, int ColM2, int LineM2, int Width, int Height, int Scx, int Scy, KernelOper_T MatMulOper, KernelOper_T ActOper) {
+	return (CNN_MatMulAct_SQ8_Internal(Name, Ctrl, Bias_DataSize, Scale_DataSize, ColM1, LineM1, ColM2, LineM2, Width, Height, Scx, Scy, MatMulOper, ActOper, 1)!=0);
+}
+
+int CNN_MatMulSmallM1Act_SQ8(char *Name, CNN_GenControl_T *Ctrl, int Bias_DataSize, int Scale_DataSize, int ColM1, int LineM1, int ColM2, int LineM2, int Width, int Height, int Scx, int Scy, KernelOper_T MatMulOper, KernelOper_T ActOper) {
+	return (CNN_MatMulSmallM1Act_SQ8_Internal(Name, Ctrl, Bias_DataSize, Scale_DataSize, ColM1, LineM1, ColM2, LineM2, Width, Height, Scx, Scy, MatMulOper, ActOper)!=0);
 }
 

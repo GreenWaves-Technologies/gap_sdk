@@ -215,7 +215,11 @@ class MatMulOpParameters(Parameters, SensitiveToOrder):
         return 0
 
     def compute_load(self):
-        return self.out_dims[0].size() * 2
+        line_m1 = self.in_dims[0].shape[-2]
+        col_m1 = self.in_dims[0].shape[-1]
+        col_m2 = self.in_dims[1].shape[-2] if isinstance(self, MatMulTransposedParameters) else self.in_dims[1].shape[-1]
+        n_mat = np.prod(self.in_dims[1].shape[:-2])
+        return n_mat * (line_m1 * col_m1 * col_m2)
 
     def get_output_size(self, in_dims):
         x_shape = list(in_dims[0].shape).copy()
@@ -260,7 +264,7 @@ class MatMulTransposedParameters(MatMulOpParameters):
             remove_last = True
         else:
             remove_last = False
-        y_shape = y_shape[::-1]
+        y_shape = y_shape[:-2] + y_shape[-2:][::-1]
         x_chans = x_shape[:-2:]
         y_chans = y_shape[:-2:]
         out_chans = Dim.npbroadcast([x_chans, y_chans])

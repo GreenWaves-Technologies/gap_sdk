@@ -137,7 +137,8 @@ class MatMulFloat32(KernelBase):
         if len(in_tensors) > 2:
             biases = in_tensors[2]
             if len(biases.shape) == 1:
-                biases = np.expand_dims(biases, 1 if mat2.shape[1] == 1 else 0)
+                if biases.shape[0] == mat1.shape[0]:
+                    biases = np.expand_dims(biases, -1)
         else:
             biases = 0
 
@@ -201,6 +202,7 @@ class ExpressionFloat32(KernelBase):
 
 
 class BinaryOpFloat32(KernelBase):
+    @staticmethod
     def FUNC(x, y): return x
 
     @classmethod
@@ -293,4 +295,5 @@ class SqrtFloat32(UnaryOpFloat32):
 @params_type(RSqrtOpParameters)
 @qrec_type('float')
 class RSqrtFloat32(UnaryOpFloat32):
+    @staticmethod
     def FUNC(x): return 1.0/np.sqrt(x)

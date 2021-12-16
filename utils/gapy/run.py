@@ -125,6 +125,10 @@ def appendArgs(top_parser: argparse.ArgumentParser, parser: argparse.ArgumentPar
                         action = "store_true",
                         help = "Launch gtkwave")
 
+    parser.add_argument("--wsl", dest = "wsl",
+                        action = None,
+                        help = "Launch command in wsl environment")
+
     [args, otherArgs] = top_parser.parse_known_args()
 
     if args.platform is not None:
@@ -164,6 +168,7 @@ def operationFunc(args, config = None, system = None):
         #if args.target is None:
         #    raise InputError('The target must be specified')
         config.set('runner/platform', args.platform)
+        config.set('runner/wsl', args.wsl)
 
         if args.binary is not None:
             config.set('runner/boot-loader', args.binary)

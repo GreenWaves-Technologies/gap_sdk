@@ -59,7 +59,7 @@ int CNN_ConvolutionNE16(
         KernelOper_T ActOper
         );
 
-int CNN_MM_ConvolutionNE16(
+Kernel_T *CNN_MM_ConvolutionNE16(
         char         *Name,
 
         CNN_GenControl_T *Ctrl,

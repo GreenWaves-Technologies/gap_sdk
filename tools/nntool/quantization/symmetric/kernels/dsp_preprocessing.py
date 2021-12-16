@@ -130,9 +130,9 @@ class Rfft2DSymmetric(DSPKernelBasePow2):
                 qrec: QRec,
                 **kwargs):
         in_data = in_tensors[0]
-        fft_twiddles = in_tensors[2]
+        fft_twiddles = np.stack([in_tensors[2][::2], in_tensors[2][1::2]], axis=0)
         swap_table = in_tensors[3]
-        rfft_twiddles = in_tensors[4]
+        rfft_twiddles = np.stack([in_tensors[4][::2], in_tensors[4][1::2]], axis=0)
 
         spectrograms = []
         for frame_idx in range(params.n_frames):
@@ -164,9 +164,9 @@ class Mfcc2DSymmetric(DSPKernelBasePow2):
                 in_tensors,
                 qrec: QRec,
                 **kwargs):
-        fft_twiddles = in_tensors[2]
+        fft_twiddles = np.stack([in_tensors[2][::2], in_tensors[2][1::2]], axis=0)
         swap_table = in_tensors[3]
-        rfft_twiddles = in_tensors[4]
+        rfft_twiddles = np.stack([in_tensors[4][::2], in_tensors[4][1::2]], axis=0)
 
         mel_filterbank_sparsity_mat = in_tensors[5]
         mel_filterbank_coeff = in_tensors[6]

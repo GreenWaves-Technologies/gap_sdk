@@ -110,5 +110,6 @@
 	#define Cvt_v2h_v2ah(a) (v2ah) (a)
 	#define Cvt_v2ah_v2h(a) (v2h) (a)
 #endif //__gap9__
+#define Clipf32(a, upper, lower) ((float) Maxf32(Minf32((a), (upper)), (lower)))
 
 #endif

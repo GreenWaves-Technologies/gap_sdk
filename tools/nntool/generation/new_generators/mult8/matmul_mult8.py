@@ -136,13 +136,15 @@ def set_matmul_bindings(gen, in_eparams, out_eparams, cname, node, node_q, out_q
             "Node {} inq {} outq {}", node.name,
             str(node_q.in_qs[0]), str(out_q.out_qs[0]))
     )
+    idx_0 = 0 if node_q.cache.get("ne16") else 1
+    idx_1 = 1 if node_q.cache.get("ne16") else 0
     if len(node.in_dims) == 3:
         if len(node_q.in_qs[1].scale) > 1:
             gen.bindings.append(
                 NodeBindingList(
                     cname,
-                    GNodeArgEdge(in_eparams[1]),
-                    GNodeArgEdge(in_eparams[0]),
+                    GNodeArgEdge(in_eparams[idx_0]),
+                    GNodeArgEdge(in_eparams[idx_1]),
                     GNodeArgEdge(in_eparams[2]),
                     GNodeArgEdge(out_eparams[0], "GNA_OUT"),
                     GNodeArgNode(node, MULSCALE),
@@ -152,8 +154,8 @@ def set_matmul_bindings(gen, in_eparams, out_eparams, cname, node, node_q, out_q
             gen.bindings.append(
                 NodeBindingList(
                     cname,
-                    GNodeArgEdge(in_eparams[1]),
-                    GNodeArgEdge(in_eparams[0]),
+                    GNodeArgEdge(in_eparams[idx_0]),
+                    GNodeArgEdge(in_eparams[idx_1]),
                     GNodeArgEdge(in_eparams[2]),
                     GNodeArgEdge(out_eparams[0], "GNA_OUT"),
                     GNodeArgNode(node, INFOS)))
@@ -162,8 +164,8 @@ def set_matmul_bindings(gen, in_eparams, out_eparams, cname, node, node_q, out_q
             gen.bindings.append(
                 NodeBindingList(
                     cname,
-                    GNodeArgEdge(in_eparams[1]),
-                    GNodeArgEdge(in_eparams[0]),
+                    GNodeArgEdge(in_eparams[idx_0]),
+                    GNodeArgEdge(in_eparams[idx_1]),
                     GNodeArgEdge(out_eparams[0], "GNA_OUT"),
                     GNodeArgNode(node, MULSCALE),
                     GNodeArgNode(node, MULSHIFT),
@@ -172,8 +174,8 @@ def set_matmul_bindings(gen, in_eparams, out_eparams, cname, node, node_q, out_q
             gen.bindings.append(
                 NodeBindingList(
                     cname,
-                    GNodeArgEdge(in_eparams[1]),
-                    GNodeArgEdge(in_eparams[0]),
+                    GNodeArgEdge(in_eparams[idx_0]),
+                    GNodeArgEdge(in_eparams[idx_1]),
                     GNodeArgEdge(out_eparams[0], "GNA_OUT"),
                     GNodeArgNode(node, INFOS)))
 

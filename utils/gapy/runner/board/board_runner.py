@@ -95,6 +95,15 @@ class Runner(runner.default_runner.Runner):
         script = self.config.get_str('openocd/script')
         binary = self.config.get_str('runner/boot-loader')
 
+        wsl    = self.config.get_str('runner/wsl')
+        if wsl is None:
+            wsl_bin = binary
+        else:
+            path_header = '\\"//wsl$/' + wsl
+            path_footer = '\\"'
+            wsl_bin = path_header + binary + path_footer
+            script = os.environ.get('OPENOCD_CHIP_TARGET') 
+
         with open(binary, 'rb') as file:
             elffile = ELFFile(file)
             entry = elffile.header['e_entry']
@@ -138,9 +147,9 @@ class Runner(runner.default_runner.Runner):
             else:
                 platform = self.config.get_str('runner/platform')
                 if chip_family == 'vega' or chip_family == 'gap9_v2':
-                    cmd = '%s -d0 -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; load_and_start_binary %s 0x%x"' % (openocd, cable, script, binary, entry)
+                    cmd = '%s -d0 -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -f "%s" -f "%s" -c "load_and_start_binary %s 0x%x"' % (openocd, cable, script, wsl_bin, entry)
                 else:
-                    cmd = "%s -d0 -c 'gdb_port disabled; telnet_port disabled; tcl_port disabled' -f %s -f %s -f tcl/jtag_boot_entry.tcl -c 'gap8_jtag_load_binary_and_start \"%s\" elf 0x%x'" % (openocd, cable, script, binary, entry)
+                    cmd = "%s -d0 -c 'gdb_port disabled; telnet_port disabled; tcl_port disabled' -f %s -f %s -f tcl/jtag_boot_entry.tcl -c 'gap8_jtag_load_binary_and_start \"%s\" elf 0x%x'" % (openocd, cable, script, wsl_bin, entry)
 
             os.chdir(self.config.get_str('gapy/work_dir'))
 

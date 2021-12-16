@@ -52,14 +52,12 @@ class GenQuantizeParameters(GeneratorBase):
         qrec.cache['float_conversion'] = float_conversion = in_q.is_floating or out_q.is_floating
         qrec.cache['bit_conversion'] = bit_conversion = in_q.bits != out_q.bits
         if float_conversion:
-            if in_q.dtype in [bfloat16, np.float16]:
+            if in_q.is_floating:
                 qrec.cache['kernel_type'] = 'KOP_CONVERT_FL_FP'
-                qrec.cache['in_at_size'] = 2
-                qrec.cache['out_at_size'] = at_bits(out_q)
             else:
                 qrec.cache['kernel_type'] = 'KOP_CONVERT_FP_FL'
-                qrec.cache['in_at_size'] = at_bits(in_q)
-                qrec.cache['out_at_size'] = 2
+            qrec.cache['in_at_size'] = at_bits(in_q)
+            qrec.cache['out_at_size'] = at_bits(out_q)
             return True
         else:
             qrec.cache['in_at_size'] = at_bits(in_q)
@@ -107,7 +105,7 @@ class GenQuantizeParameters(GeneratorBase):
             else:
                 offset = (int(math.pow(2, bits)) - in_q.zero_point[0] +
                           out_q.zero_point[0]).astype(out_q.dtype)
-            contents = np.array(list(offset.tobytes()) + ([0] * 6), dtype=np.uint8)
+            contents = np.array(list(offset.tobytes()) + ([0] * 7), dtype=np.uint8)
         elif qrec.cache['kernel_type'] == 'KOP_CONVERT_FP_FP':
             # no infos needed
             return True
@@ -133,15 +131,15 @@ class GenQuantizeParameters(GeneratorBase):
             qbias = list(scale_adjust.qbiases.tobytes())
             qbias = qbias + [0] * (2 - len(qbias))
             qnorm = list(scale_adjust.qnorms.tobytes())
-            contents = np.array(zero_adjust + qbias + qnorm, dtype=np.int8)
+            contents = np.array(zero_adjust + qbias + qnorm + [0], dtype=np.int8)
         elif qrec.cache['kernel_type'] == 'KOP_CONVERT_FL_FP':
-            qbias = list((1/out_q.scale).astype(in_q.dtype).tobytes())
-            zero_adjust = list((out_q.zero_point.astype(np.int32) * out_q.scale).astype(in_q.dtype).tobytes())
-            contents = np.array(zero_adjust + [0, 0] + qbias + [0], dtype=np.int8)
+            qbias = list((1/out_q.scale).astype(np.float32).tobytes())
+            zero_adjust = list((out_q.zero_point.astype(np.int32) * out_q.scale).astype(np.float32).tobytes())
+            contents = np.array(zero_adjust + qbias, dtype=np.int8)
         elif qrec.cache['kernel_type'] == 'KOP_CONVERT_FP_FL':
-            qbias = list((in_q.scale).astype(out_q.dtype).tobytes())
-            zero_adjust = list((-in_q.zero_point.astype(np.int32)).astype(out_q.dtype).tobytes())
-            contents = np.array(zero_adjust + [0, 0] + qbias + [0], dtype=np.int8)
+            qbias = list((in_q.scale).astype(np.float32).tobytes())
+            zero_adjust = list((-in_q.zero_point.astype(np.int32)).astype(np.float32).tobytes())
+            contents = np.array(zero_adjust + qbias, dtype=np.int8)
         else:
             raise ValueError(f"strange dtype change in {pnode.name}")
         cname, file_name = gen_constant(gen, pnode, pnode, INFOS)

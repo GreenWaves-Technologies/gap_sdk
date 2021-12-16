@@ -64,6 +64,8 @@ class MoreThanOneInputError(DimError):
 class Dim():
     def __init__(self, shape=None, names=None, is_ordered=False, is_unknown=False):
         set_shape = shape if shape is not None else [] if names is None else [None] * len(names)
+        if any(dim is not None and dim < 0 for dim in set_shape):
+            raise ValueError('invalid dim')
         super().__setattr__('_shape', set_shape)
         super().__setattr__('_names', names)
         super().__setattr__('_is_ordered', is_ordered)
@@ -486,6 +488,8 @@ class Dim():
             res = self.clone()
             for k in self.keys:
                 setattr(res, k, op(getattr(res, k), other))
+            if any(dim is not None and dim < 0 for dim in self.shape):
+                raise ValueError('invalid dim')
             return res
 
         if isinstance(other, Dim):
@@ -500,6 +504,8 @@ class Dim():
                         setattr(res, k, getattr(other, k))
                     elif getattr(other, k) is not None:
                         setattr(res, k, op(getattr(self, k), getattr(other, k)))
+            if any(dim is not None and dim < 0 for dim in self.shape):
+                raise ValueError('invalid dim')
             return res
 
         raise TypeError("Inapropriate types for operation")

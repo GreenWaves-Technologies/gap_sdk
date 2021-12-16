@@ -26,7 +26,7 @@ from .eliminate_transposes.eliminate_transposes import eliminate_transposes
 LOG = logging.getLogger("nntool." + __name__)
 
 
-def adjust_order(G, reshape_weights=True, postprocess=True, debug_function=None, one_cycle=False):
+def adjust_order(G, reshape_weights=True, postprocess=True, debug_function=None, one_cycle=False, single_step=False):
     opts = {'reshape_weights': reshape_weights}
     selector = AdjusterBase.get_all_handlers(opts)
     LOG.info("adding transposes to correct tensor order for AT kernels")
@@ -55,5 +55,5 @@ def adjust_order(G, reshape_weights=True, postprocess=True, debug_function=None,
     if debug_function:
         debug_function(G)
     if postprocess:
-        eliminate_transposes(G, debug_function=debug_function, one_cycle=one_cycle)
+        eliminate_transposes(G, debug_function=debug_function, one_cycle=one_cycle, single_step=single_step)
         add_dimensions(G)

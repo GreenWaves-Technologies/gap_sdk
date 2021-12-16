@@ -12,7 +12,7 @@ RESIZE_KER_PATH = $(TILER_BILINEAR_RESIZE_KERNEL_PATH)
 APP_SRCS += Bilinear_Resize.c ImgIO.c
 APP_SRCS += ResizeKernels.c $(RESIZE_KER_PATH)/ResizeBasicKernels.c
 
-APP_INC += . $(TILER_EMU_INC) $(TILER_INC) $(RESIZE_KER_PATH)
+APP_INC += . $(TILER_EMU_INC) $(TILER_INC) $(RESIZE_KER_PATH) $(TILER_DSP_KERNEL_PATH) $(TILER_CNN_KERNEL_PATH_FP16)
 
 APP_CFLAGS += -O3 -mno-memcpy -fno-tree-loop-distribute-patterns $(USER_FLAGS)
 APP_CFLAGS +=  -Wno-maybe-uninitialized -Wno-unused-but-set-variable -Wno-unused-variable

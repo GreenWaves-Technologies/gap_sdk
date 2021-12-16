@@ -35,6 +35,10 @@
 #include "pmsis/backend/implementation_specific_defines.h"
 #include "pmsis/backend/pmsis_backend_native_task_api.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
@@ -289,5 +293,9 @@ static inline void pi_os_reboot(void)
 #endif  /* __VEGA__ */
 
 #endif  /* __GAP8__ */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* __PI_RTOS_IMPLEM_OS_H__ */

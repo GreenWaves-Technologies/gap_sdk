@@ -1206,7 +1206,10 @@ extern void KerParMatMulB32_ReLUN_SF_SQ8(KerMatMul_SQ8_T *Arg);
 
 extern void KerPar_MM_Conv1x1_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 extern void KerPar_MM_Conv1x1_ReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+
+extern void Ker_MM_Conv1x1_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 extern void Ker_MM_Conv1x1_ReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+
 extern void KerPar_MM_Conv1D_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 extern void KerPar_MM_Conv1D_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 extern void KerPar_MM_Conv1D_ReLU_SQ8(Ker_MM_Conv_SQ8_T *Arg);
