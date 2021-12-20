@@ -668,7 +668,7 @@ class ReshapeParameters(Parameters, SingleInputAndOutput, InsensitiveToQuantizat
         if not isinstance(shape, Dim):
             shape = Dim.unnamed(shape)
         if old_shape is not None and not isinstance(old_shape, Dim):
-            old_shape = Dim.unnamed(shape)
+            old_shape = Dim.unnamed(old_shape)
         assert shape.is_ordered and (old_shape is None or old_shape.is_ordered)
         self._shape = shape
         self._old_shape = old_shape

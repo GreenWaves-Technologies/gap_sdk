@@ -949,19 +949,23 @@ def delete_step_idx(G, action: DeleteTransposeAction):
     return G.in_edges(action.node)[0].from_node.step_idx
 
 
-def eliminate_transposes(G, debug_function=None, one_cycle=False, single_step=False, do_silly=True):
+def eliminate_transposes(G, debug_function=None, steps=None, single_step=False, do_silly=True):
     info("eliminating unnecessary transposes")
     found_results = True
     pass_count = 0
     while found_results:
+        if steps is not None:
+            if pass_count >= steps:
+                break
+        else:
+            if pass_count >= 50:
+                raise ValueError(
+                    "Sorry, eliminate transposes seems to be stuck in a loop. Please report to GreenWaves.")
         pass_count += 1
-        if pass_count > (200 if single_step else 50):
-            raise ValueError(
-                "Sorry, eliminate transposes is stuck in a loop. Please report to GreenWaves.")
         found_results = False
         visited_nodes = set()
         actions = []
-        info(f"search for transposes +++ PASS {pass_count}")
+        info(f"search for transposes +++ STEP {pass_count}")
         transposes = G.nodes(node_classes=TransposeParameters)
         while transposes:
             transpose_node = transposes.pop(0)
@@ -1037,7 +1041,7 @@ def eliminate_transposes(G, debug_function=None, one_cycle=False, single_step=Fa
                 actions += cur_actions_up
                 visited_nodes |= set(cur_visited_up.nodes)
                 visited_nodes.add(transpose_node)
-                if single_step:
+                if single_step or steps is not None:
                     break
             # if transpose cannot be removed upwards movement push the transpose down if it actually moved
             elif down_count > 0 or (down_count == 0 and transpose_moved(G, cur_actions_down)):
@@ -1047,7 +1051,7 @@ def eliminate_transposes(G, debug_function=None, one_cycle=False, single_step=Fa
                 actions += cur_actions_down
                 visited_nodes |= set(cur_visited_down.nodes)
                 visited_nodes.add(transpose_node)
-                if single_step:
+                if single_step or steps is not None:
                     break
             else:
                 info(
@@ -1065,7 +1069,4 @@ def eliminate_transposes(G, debug_function=None, one_cycle=False, single_step=Fa
         G.add_dimensions()
         if debug_function:
             debug_function(G)
-        if one_cycle:
-            LOG.info("cycle complete")
-            break
     LOG.info("no further transpose sequences found")

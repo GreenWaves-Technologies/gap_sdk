@@ -151,6 +151,7 @@ public:
   vp::trace     inline_trace_event;
   vp::trace     line_trace_event;
   vp::trace     file_trace_event;
+  vp::trace     binaries_trace_event;
   vp::trace     pcer_trace_event[32];
   vp::trace     insn_trace_event;
 

@@ -110,6 +110,7 @@ groups = {
             Group('PulpOS:kernel', ['pos_kernel.*', 'pos_soc_.*', 'pos_cbsys_.*']),
             Group('PulpOS:fll', ['pos_fll.*', 'pos_freq.*', 'pi_freq_.*']),
             Group('PulpOS:cpi', ['pos_cpi.*', 'pi_cpi_.*']),
+            Group('PulpOS:i2s', ['pos_i2s.*', 'pi_i2s_.*']),
             Group('PulpOS:mram', ['pos_mram.*']),
             Group('PulpOS:rtc', ['pos_rtc.*']),
             Group('PulpOS:cluster', ['pos_cluster.*', 'pi_cluster_.*']),

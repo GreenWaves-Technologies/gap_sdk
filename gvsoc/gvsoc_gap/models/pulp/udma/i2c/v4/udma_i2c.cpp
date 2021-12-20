@@ -141,6 +141,9 @@ void I2c_periph::reset(bool active)
 {
     Udma_periph::reset(active);
 
+    this->foll_rx_channel->reset(active);
+    this->foll_tx_channel->reset(active);
+
     if (active)
     {
     }

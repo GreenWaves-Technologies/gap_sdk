@@ -508,6 +508,9 @@ void Mram_periph::reset(bool active)
 
     this->read_fifo->reset(active);
 
+    this->rx_channel->reset(active);
+    this->tx_channel->reset(active);
+
     if (!active)
     {
         this->pending_transfer_size = 0;

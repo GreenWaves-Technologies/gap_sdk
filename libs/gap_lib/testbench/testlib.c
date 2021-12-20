@@ -185,6 +185,7 @@ void i2s_slot_deinit(i2s_slot_test_t *i2s_slot)
         struct pi_i2s_channel_conf i2s_conf;
         pi_i2s_channel_conf_init(&i2s_conf);
         i2s_conf.options = PI_I2S_OPT_DISABLED | (i2s_slot->is_rx ? PI_I2S_OPT_IS_RX: PI_I2S_OPT_IS_TX);
+
         if (i2s_slot->frame)
         {
             pi_i2s_frame_channel_conf_set(i2s_slot->i2s, i2s_slot->frame, i2s_slot->slot, &i2s_conf);
@@ -237,11 +238,11 @@ int i2s_slot_init(i2s_test_t *test, i2s_slot_test_t *i2s_slot, struct pi_device 
 
         if (slot_config->is_rx)
         {
-            i2s_conf.options = PI_I2S_OPT_PINGPONG | PI_I2S_OPT_IS_RX | PI_I2S_OPT_ENABLED;
+            i2s_conf.options = PI_I2S_OPT_IS_RX | PI_I2S_OPT_ENABLED;
         }
         else
         {
-            i2s_conf.options = PI_I2S_OPT_PINGPONG | PI_I2S_OPT_IS_TX | PI_I2S_OPT_ENABLED;
+            i2s_conf.options = PI_I2S_OPT_IS_TX | PI_I2S_OPT_ENABLED;
         }
 
         if (slot_config->slab)
@@ -315,10 +316,12 @@ int i2s_slot_init(i2s_test_t *test, i2s_slot_test_t *i2s_slot, struct pi_device 
 
         if (slot_config->slab)
         {
+            i2s_conf.options |= PI_I2S_OPT_MEM_SLAB;
             i2s_conf.mem_slab = &i2s_slot->slab;
         }
         else
         {
+            i2s_conf.options |= PI_I2S_OPT_PINGPONG;
             i2s_conf.pingpong_buffers[0] = i2s_slot->buffers[0];
             i2s_conf.pingpong_buffers[1] = i2s_slot->buffers[1];
         }

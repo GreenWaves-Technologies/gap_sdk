@@ -13,11 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.tensor_arithmetic import MatMulTransposedParameters
 import numpy as np
 from graph.dim import Dim, FcFilterDim
 from graph.types import (ConstantInputParameters, FcParameters,
-                         MatMulOpParameters, NNEdge, ReshapeParameters,
+                         MatMulTransposedParameters, NNEdge, ReshapeParameters,
                          TransposeParameters)
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.common import check
@@ -42,13 +41,14 @@ class FullyConnected(FilterMixin, BackendHandler):
         all_nodes = kwargs['all_nodes']
 
         keep_dims = node_opts.KeepNumDims()
-        check(not keep_dims,
-              f'keep dims on Fully Connected {node.name} is not supported')
+        # check(not keep_dims,
+        #       f'keep dims on Fully Connected {node.name} is not supported')
 
         inputs = [all_nodes[t] if t is not None else None for t in node.input]
 
         x = inputs[0]
-        x_known_shape = x[2].known_shape
+        x_shape = x[2]
+        x_known_shape = x_shape.known_shape
         inp_sz = np.prod(np.array(x_known_shape))
         weights = inputs[1]
         weights_node = weights[0]
@@ -57,6 +57,20 @@ class FullyConnected(FilterMixin, BackendHandler):
               f'bad filter shape {weights_shape} in {node.name}')
         out_c = weights_shape[0]
         batch_size = inp_sz // weights_shape[1]
+
+        keep_dims = node_opts.KeepNumDims()
+        if keep_dims:
+            if x_shape.shape[-1] != weights_shape[1]:
+                raise ValueError(
+                    f'Keep dims set on {node.name} but last input dimension does not match weights')
+            out_shape = x_shape.shape.copy()
+            out_shape[-1] = out_c
+        elif batch_size > 1:
+            out_shape = (batch_size, out_c)
+        else:
+            out_shape = (None, out_c)
+        real_out_shape = tuple(dim for dim in out_shape if dim is not None)
+
         filt_dim = FcFilterDim(weights_shape[0], weights_shape[1])
 
         node.input[1].used = True
@@ -70,7 +84,7 @@ class FullyConnected(FilterMixin, BackendHandler):
             bias_node = ConstantInputParameters(f'{node.name}_bias',
                                                 dims=Dim.unnamed([out_c]),
                                                 value=np.zeros([out_c],
-                                                dtype=np.float32))
+                                                               dtype=np.float32))
 
         if batch_size > 1:
             # add a reshape to force the size of the input to batch * in_c
@@ -91,12 +105,15 @@ class FullyConnected(FilterMixin, BackendHandler):
             cls.new_load_filter_parameters(G, params, weights_shape, 0,
                                            node.input[0], weights_node,
                                            bias_node, node.output[0], opts)
-            trans2 = TransposeParameters(G.unique_name(f'{node.name}_tin2'), transpose=(1, 0))
-            G.add_edge(NNEdge(from_node=link[0], to_node=params, from_idx=link[1]))
-            G.add_edge(NNEdge(from_node=weights_node, to_node=params, to_idx=1))
+            trans2 = TransposeParameters(G.unique_name(
+                f'{node.name}_tin2'), transpose=(1, 0))
+            G.add_edge(
+                NNEdge(from_node=link[0], to_node=params, from_idx=link[1]))
+            G.add_edge(NNEdge(from_node=weights_node,
+                              to_node=params, to_idx=1))
             #G.add_edge(NNEdge(from_node=trans2, to_node=params, to_idx=1))
             G.add_edge(NNEdge(from_node=bias_node, to_node=params, to_idx=2))
-            out_shape = [batch_size, out_c]
+            fc_shape = (batch_size, out_c)
         else:
             ker_in_order = None
             ker_out_order = None
@@ -116,12 +133,17 @@ class FullyConnected(FilterMixin, BackendHandler):
             G.add_edge(NNEdge(from_node=bias_node, to_node=params, to_idx=2))
             G.add_edge(NNEdge(from_node=link[0], to_node=params,
                               from_idx=link[1], to_idx=0))
-
-            out_shape = [None, out_c]
+            fc_shape = (out_c,)
 
         pout_dims = ProvisionalDim(out_shape)
-
         aparams = cls.fuse_activation(node_opts, node.name, params, **kwargs)
+
+        if real_out_shape != fc_shape:
+            rparams = ReshapeParameters(G.unique_name(f'{node.name}_keepdims'),
+                                        old_shape=fc_shape, shape=real_out_shape)
+            G.add_edge(NNEdge(from_node=aparams, to_node=rparams))
+            aparams = rparams
+
         all_nodes[node.output[0]] = (aparams, 0, pout_dims)
         return params
 

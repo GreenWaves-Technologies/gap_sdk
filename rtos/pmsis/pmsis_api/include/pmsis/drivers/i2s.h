@@ -524,25 +524,38 @@ struct pi_i2s_conf
  * \struct pi_i2s_channel_conf
  *
  * \brief Interface channel configuration options. This configuration has to be
- * used when configuring a channel in TDM mode.
+ * used when configuring a channel in TDM mode. This can also be used to configure
+ * channels when they are part of a frame. Be careful in that case that some fields
+ * are not specific restrictions in this case.
  */
 struct pi_i2s_channel_conf
 {
     size_t block_size;          /*!< Size of one RX/TX memory block(buffer) in bytes.
                                   On some chips, this size may have to be set under a
-                                  maximum size, check the chip-specific section. */
-    pi_mem_slab_t *mem_slab;    /*!< memory slab to store RX/TX data. */
+                                  maximum size, check the chip-specific section.
+                                  In frame-based mode, this field should be the same for
+                                  all channels. */
+    pi_mem_slab_t *mem_slab;    /*!< memory slab to store RX/TX data.
+                                  In frame-based mode, this field should be the same for
+                                  all channels. */
     void *pingpong_buffers[2];  /*!< Pair of buffers used in double-bufferin
-                                  mode to capture the incoming samples.  */
+                                  mode to capture the incoming samples.
+                                  In frame-based mode, this field should be the same for
+                                  all channels.  */
     pi_i2s_fmt_t format;        /*!< Data stream format as defined by PI_I2S_FMT_* constants. */
     uint8_t word_size;          /*!< Number of bits representing one data word. */
     int8_t mem_word_size;       /*!< Number of bits representing one data word in memory.
-                                  If it is -1, this is equal to word_size. */
+                                  If it is -1, this is equal to word_size.
+                                  In frame-based mode, this field should be the same for
+                                  all channels. */
     pi_i2s_opt_t options;       /*!< Configuration options as defined by PI_I2S_OPT_* constants. */
     int8_t asrc_channel;        /*!< If different from -1, this redirect the specified
                                   stream(can be input or output) to/from the ASRC block with
-                                  the channel specified here. */
-    uint8_t ts_evt_id;           /*!< UDMA Config Event ID for generating the timestamp */
+                                  the channel specified here. 
+                                  In frame-based mode, this field should be -1.*/
+    uint8_t ts_evt_id;           /*!< UDMA Config Event ID for generating the timestamp.
+                                  In frame-based mode, this field should be the same for
+                                  all channels.  */
     uint8_t slot_enable;        /*!< Specifies if the corresponding slot must be enabled or not.
         It is by default set to 1. */
 };

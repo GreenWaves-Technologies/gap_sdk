@@ -1300,6 +1300,7 @@ int iss_wrapper::build()
   traces.new_trace_event_string("func", &func_trace_event);
   traces.new_trace_event_string("inline_func", &inline_trace_event);
   traces.new_trace_event_string("file", &file_trace_event);
+  traces.new_trace_event_string("binaries", &binaries_trace_event);
   traces.new_trace_event("line", &line_trace_event, 32);
 
   traces.new_trace_event_real("ipc_stat", &ipc_stat_event);
@@ -1423,6 +1424,13 @@ void iss_wrapper::start()
     iss_register_debug_info(this, x->get_str().c_str());
   }
 
+  if (this->get_js_config()->get("**/binaries") != NULL)
+  {
+    for (auto x:this->get_js_config()->get("**/binaries")->get_elems())
+    {
+      this->binaries_trace_event.event_string("static enable " + x->get_str());
+    }
+  }
 
   trace.msg("ISS start (fetch: %d, is_active: %d, boot_addr: 0x%lx)\n", fetch_enable_reg.get(), is_active_reg.get(), get_config_int("boot_addr"));
 

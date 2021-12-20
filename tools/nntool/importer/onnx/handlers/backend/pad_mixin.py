@@ -13,9 +13,28 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from itertools import chain
+
 from graph.dim import PadDim
 
+
 class PadMixin(object):
+    @classmethod
+    def mix_pads(cls, val):
+        if len(val) == 0:
+            pads_start = [0, 0]
+            pads_end = [0, 0]
+        elif len(val) == 2:
+            pads_start = [0, val[0]]
+            pads_end = [0, val[1]]
+        elif len(val) == 4:
+            pads_start = val[:2]
+            pads_end = val[2:]
+        else:
+            raise ValueError('unexpected pad lenght')
+
+        return list(chain(*zip(pads_start, pads_end)))
+
     @classmethod
     def pad_start_with(cls, val, pad_val, dlen):
         return pad_val * (dlen - len(val)) + val
@@ -23,9 +42,7 @@ class PadMixin(object):
     @classmethod
     def calc_pad_dim(cls, node, expected_len):
         if "auto_pad" not in node.attrs or node.attrs["auto_pad"] == "NOTSET":
-            pads = cls.pad_start_with(node.attrs.get("pads", []), [0], expected_len)
-            pads = pads if len(pads) < 4 else [pads[0], pads[2], pads[1], pads[3]]
-            pad_dim = PadDim(*pads)
+            pad_dim = PadDim(*cls.mix_pads(node.attrs.get("pads", [])))
         elif node.attrs["auto_pad"] == "VALID":
             pad_dim = PadDim.valid()
         elif node.attrs["auto_pad"] == "SAME_UPPER":

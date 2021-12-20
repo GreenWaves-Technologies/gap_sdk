@@ -34,7 +34,9 @@ class Iss(st.Component):
     riscv_dbg_unit : bool, optional
         True if a riscv debug unit should be included, False otherwise (default: False).
     debug_binaries : list, optional
-        A list of path to riscv binaries which can be used to get debug symbols for the assembly trace (default: []).
+        A list of path to riscv binaries debug info which can be used to get debug symbols for the assembly trace (default: []).
+    binaries : list, optional
+        A list of path to riscv binaries (default: []).
     debug_handler : int, optional
         The address where the core should jump when switching to debug mode (default: 0).
     power_models : dict, optional
@@ -62,6 +64,7 @@ class Iss(st.Component):
             first_external_pcer: int=0,
             riscv_dbg_unit: bool=False,
             debug_binaries: list=[],
+            binaries: list=[],
             debug_handler: int=0,
             power_models: dict={},
             power_models_file: str=None,
@@ -82,6 +85,7 @@ class Iss(st.Component):
             'first_external_pcer': first_external_pcer,
             'riscv_dbg_unit': riscv_dbg_unit,
             'debug_binaries': debug_binaries,
+            'binaries': binaries,
             'debug_handler': debug_handler,
             'power_models': power_models,
             'cluster_id': cluster_id,

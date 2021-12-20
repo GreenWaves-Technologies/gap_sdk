@@ -178,7 +178,7 @@ void trace_domain::check_trace_active(vp::trace *trace, int event)
     {
         for (auto &x : events_path_regex)
         {
-            if (x.second->is_path || regexec(x.second->regex, full_path.c_str(), 0, NULL, 0) == 0)
+            if ((x.second->is_path && x.second->path == full_path) || regexec(x.second->regex, full_path.c_str(), 0, NULL, 0) == 0)
             {
                 std::string file_path = x.second->file_path;                
                 vp::Event_trace *event_trace;
@@ -462,6 +462,7 @@ void trace_domain::conf_trace(int event, std::string path_str, bool enabled)
     const char *file_path = "all.vcd";
     const char *path = path_str.c_str();
     char *delim = (char *)::index(path, '@');
+
     if (delim)
     {
         *delim = 0;

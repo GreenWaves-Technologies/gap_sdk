@@ -36,11 +36,10 @@ class GRU(RNNMixin, ConstantMixin, BackendHandler):
         input_shapes = [inp[2].shape if inp else None for inp in inputs]
         x = inputs[0]
 
-        seq_len = input_shapes[0][0]
+        seq_len = input_shapes[0][1] if node.attrs.get("layout", 0) else input_shapes[0][0]
         if seq_len is None:
-            logger.warning("sequence length is variable in size. forcing to 20. "
-                           "reexport your graph with sequence length set to the maxmimum sequence size")
-            seq_len = 20
+            seq_len = 1
+
         input_size = input_shapes[0][2]
         hidden_size = node.attrs["hidden_size"]
         direction = node.attrs.get("direction", "forward")
