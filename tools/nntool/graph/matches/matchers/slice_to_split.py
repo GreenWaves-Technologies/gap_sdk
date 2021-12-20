@@ -202,7 +202,7 @@ class SliceToSplitMatch(Matcher):
             diff_slices = [sl for idx, sl in enumerate(
                 slices) if idx in diff_axes]
             axis_lengths = in_edge[0].out_dims[in_edge[1]].shape
-            if min(not_diff_axes) < max(diff_axes):
+            if not_diff_axes and min(not_diff_axes) < max(diff_axes):
                 transpose_from = tuple(range(len(slices)))
                 transpose_to = tuple(diff_axes + not_diff_axes)
                 axis_lengths = [axis_lengths[idx] for idx in transpose_to]

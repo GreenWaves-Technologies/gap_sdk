@@ -162,7 +162,9 @@ static uint8_t __pi_i2s_enqueue(struct i2s_itf_data_s *itf_data)
             itf_data->pending_size = 0;
         }
         /* Enqueue first in HW fifo. */
-        hal_i2s_enqueue(device_id, itf_data->i2s_id, buffer, size_enqueue, itf_data->udma_cfg);
+        I2S_TRACE("i2s(%d): enqueue l2_buf=%lx, size=%ld, cfg=%lx\n",
+               itf_data->i2s_id, buffer, size_enqueue, itf_data->udma_cfg);
+        hal_i2s_enqueue(device_id, itf_data->i2s_id << 4, buffer, size_enqueue, itf_data->udma_cfg);
     }
     return done;
 }
@@ -238,7 +240,7 @@ static void __pi_i2s_clock_enable(struct i2s_itf_data_s *itf_data)
     if ((itf_data->clk & PI_I2S_OPT_EXT_CLK) == 0)
     {
         uint16_t clk_div = __pi_i2s_clk_div(itf_data->frequency);
-        I2S_TRACE("I2S(%d) clk_div = %d\n", device_id, clk_div);
+        I2S_TRACE("I2S(%ld) clk_div = %d\n", device_id, clk_div);
         switch (itf_data->clk & 0x1)
         {
         case 0 :

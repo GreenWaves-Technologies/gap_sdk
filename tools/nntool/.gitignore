@@ -16,3 +16,6 @@ importer/tflite
 .env
 gsync
 tempdir/
+notebooks/
+utils_nocheckin/
+graphs_nocheckin/

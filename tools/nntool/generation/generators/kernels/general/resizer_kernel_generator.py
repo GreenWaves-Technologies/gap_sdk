@@ -26,7 +26,7 @@ RESIZE_KOP = {"bilinear": "KOP_BILINEAR_RESIZE",
               "nearest_neighbor": "KOP_NEAREST_NEIGHBOR_RESIZE"}
 
 
-def gen_at_resizer(code_block, name, in_dim, new_shape, inout_t, resize_kop, q16mode):
+def gen_at_resizer(code_block, name, in_dim, new_shape, inout_t, resize_kop, q16mode, fp16):
     if in_dim.has_key('w') and in_dim.has_key('h'):
         in_dim_w, in_dim_h, in_dim_c = in_dim.w, in_dim.h, in_dim.c
     else:
@@ -47,7 +47,10 @@ def gen_at_resizer(code_block, name, in_dim, new_shape, inout_t, resize_kop, q16
             # If both HW change from 1x1 to HxW this is not going to work
             LOG.warning(f"Resize Node {name} has 1x1xc input but resizes both HW dimension, could not work in autotiler")
 
-    GenKernel = "GenerateResizeMultiChannelQ16" if q16mode else "GenerateResizeMultiChannel"
+    if fp16:
+        GenKernel = "GenerateResizeMultiChannel_fp16"
+    else:
+        GenKernel = "GenerateResizeMultiChannelQ16" if q16mode else "GenerateResizeMultiChannel"
     code_block.write('{}("{}", {}, {}, {}, {}, {}, {}, {});', GenKernel,
                      name, win, hin, wout, hout, chin, inout_t, resize_kop)
 
@@ -67,7 +70,8 @@ class ResizeKernel(AutotilerKernel):
         self.inout_type = "SIGNED_INOUT" if qrec.in_qs[0].signed else "UNSIGNED_INOUT"
         self.type = params.op_name
         self.new_shape = params.new_shape
-        self.q16 = True if qrec.in_qs[0].dtype_bits == 16 else False
+        self.q16 = qrec.in_qs[0].dtype_bits == 16
+        self.fp16 = qrec.in_qs[0].is_floating
 
     def code(self, code_block=None):
         if code_block is None:
@@ -76,5 +80,6 @@ class ResizeKernel(AutotilerKernel):
         code_block.comment("generator for {}", self.node_name)
 
         gen_at_resizer(code_block, self.cname, self.in_dim,
-                       self.new_shape, self.inout_type, RESIZE_KOP[self.type], self.q16)
+                       self.new_shape, self.inout_type, RESIZE_KOP[self.type],
+                       self.q16, self.fp16)
         return code_block

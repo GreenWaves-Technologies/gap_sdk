@@ -290,9 +290,10 @@ class NNGraph(Graph):
             else:
                 yield (step_idx, node, None, None)
 
-    def adjust_order(self, reshape_weights=True, postprocess=True, debug_function=None, one_cycle=False):
+    def adjust_order(self, reshape_weights=True, postprocess=True, debug_function=None, steps=None, single_step=False):
         adjust_order(self, reshape_weights=reshape_weights,
-                     postprocess=postprocess, debug_function=debug_function, one_cycle=one_cycle)
+                     postprocess=postprocess, debug_function=debug_function,
+                     steps=steps, single_step=single_step)
         LOG.info("adjusted order")
         self.graph_identity.is_adjusted = True
 
@@ -376,3 +377,10 @@ class NNGraph(Graph):
         renderer = TextTableRenderer(150)
         tab.render(renderer)
         return renderer.get_output()
+
+    def total_ops(self):
+        tot_ops = 0
+        for node in self.nodes():
+            ops = node.compute_load()
+            tot_ops += ops if ops else 0
+        return tot_ops

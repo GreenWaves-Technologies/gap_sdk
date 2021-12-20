@@ -50,7 +50,7 @@ static int fs_write_from_L3(void *file, void *data, int size_total, struct pi_de
         if(rest_size >= INTER_BUFF_SIZE)
             size = INTER_BUFF_SIZE;
         else
-            size = INTER_BUFF_SIZE - rest_size;
+            size = rest_size;
 
         pi_ram_read(ram, (_l3_buff+l3_index), _tmp_buffer, (uint32_t) size);
         pi_fs_write(file, _tmp_buffer, size);
@@ -58,6 +58,8 @@ static int fs_write_from_L3(void *file, void *data, int size_total, struct pi_de
         l3_index += size;
         rest_size = rest_size - size;
     } while (rest_size);
+
+    pmsis_l2_malloc_free(_tmp_buffer, (uint32_t) INTER_BUFF_SIZE);
 
     return 0;
 }

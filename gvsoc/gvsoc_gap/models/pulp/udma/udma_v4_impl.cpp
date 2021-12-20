@@ -709,6 +709,14 @@ void udma::start()
 
 void udma::reset(bool active)
 {
+    for (auto x: this->periphs)
+    {
+        if (x)
+        {
+            x->reset(active);
+        }
+    }
+
     for (auto x: this->addrgen_linear)
     {
         x->reset(active);

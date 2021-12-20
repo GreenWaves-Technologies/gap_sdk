@@ -18,7 +18,8 @@ from graph.types import (ActivationParameters, ConcatParameters,
                          Conv2DParameters, FcParameters, GlobalPoolingParameters,
                          MatrixAddParameters, MatrixMulParameters, NNEdge,
                          PoolingParameters, ReluActivationParameters,
-                         ReshapeParameters, TransposeParameters)
+                         ReshapeParameters, TransposeParameters, MatMulTransposedParameters)
+from graph.types.others import ReverseParameters, StridedSliceParameters
 from graph.types.tensor_arithmetic import MatMulOpParameters
 from utils.graph import GraphView
 from utils.node_id import NodeId
@@ -128,35 +129,21 @@ class MoveNodeUpMatcher(Matcher):
         return has_modified_graph
 
 
-@groups('scaled')
-@match_name("move_activations_scale8")
+@groups('*')
+@match_name("move_activations_up")
 @description("Tries to move activations so they are after layers that they can be fused with."
-             "Should be run before match_gap_ * fusions. Compatible with AutoTiler SQ8 kernels.")
+             "Should be run before match_gap_ * fusions.")
 @needs_valid_dimension(True)
-@run_before('fuse_gap_convs', 'fuse_gap_linear', 'fuse_gap_pool', 'fuse_op_activation_scale8')
+@run_before('fuse_gap_convs', 'fuse_gap_linear', 'fuse_gap_pool', 'fuse_op_activation_scale8', 'fuse_op_activation_pow2')
 class MoveActivationsMatcherScale8(MoveNodeUpMatcher):
 
-    ValidNodesToPass = (ReshapeParameters,
+    ValidNodesToPass = (ReshapeParameters, StridedSliceParameters, ReverseParameters,
                         TransposeParameters, ConcatParameters)
-    ValidFusions = (Conv2DParameters, FcParameters, PoolingParameters, PoolingParameters,
-                    GlobalPoolingParameters, MatrixAddParameters, MatrixMulParameters, MatMulOpParameters)
+    ValidFusions = (Conv2DParameters, FcParameters, PoolingParameters,
+                    GlobalPoolingParameters, MatrixAddParameters, MatrixMulParameters,
+                    MatMulOpParameters, MatMulTransposedParameters)
 
     ValidNodes = (ActivationParameters,)
-
-
-@groups('symmetric')
-@match_name("move_activations_pow2")
-@description("Tries to move activations so they are after layers that they can be fused with."
-             "Should be run before match_gap_ * fusions. Compatible with AutoTiler POW2 kernels.")
-@needs_valid_dimension(True)
-@run_before('fuse_gap_convs', 'fuse_gap_linear', 'fuse_gap_pool', 'fuse_op_activation_pow2')
-class MoveActivationsMatcherPow2(MoveNodeUpMatcher):
-
-    ValidNodesToPass = (ReshapeParameters,
-                        TransposeParameters, ConcatParameters)
-    ValidFusions = (Conv2DParameters, FcParameters, PoolingParameters)
-    ValidNodes = (ActivationParameters,)
-
 
 @groups('scaled')
 @match_name("move_pooling_scale8")

@@ -36,20 +36,20 @@ class RNNMixin(object):
     @classmethod
     def extract_weights(cls, weights, hidden_size, keys, num_directions):
         return {
-            'forward' if dir == 0 else 'backward':
+            'forward' if direction == 0 else 'backward':
                 {keys[i]: arr.reshape((hidden_size, -1))
                  for i, arr in enumerate(np.split(dir_arr, len(keys), axis=1))}
-            for dir, dir_arr in enumerate(np.split(weights, num_directions, axis=0))
+            for direction, dir_arr in enumerate(np.split(weights, num_directions, axis=0))
         }
 
     @classmethod
     def extract_biases(cls, biases, hidden_size, keys, num_directions):
         biases = biases.reshape((num_directions, len(keys), hidden_size))
         return {
-            'forward' if dir == 0 else 'backward':
+            'forward' if direction == 0 else 'backward':
                 {keys[i]: arr.reshape((hidden_size))
                  for i, arr in enumerate(np.split(dir_arr, len(keys), axis=1))}
-            for dir, dir_arr in enumerate(np.split(biases, num_directions, axis=0))
+            for direction, dir_arr in enumerate(np.split(biases, num_directions, axis=0))
         }
 
     @classmethod

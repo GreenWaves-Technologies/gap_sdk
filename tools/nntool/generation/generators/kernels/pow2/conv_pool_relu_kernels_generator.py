@@ -236,7 +236,7 @@ CNN_PoolReLU("{cname}", {gen_ctrl},
                     "only homogenious operations are supported at present")
             LOG.debug("%s: pool relu inq %s outq %s control block",
                       node_name, in_q, out_q)
-            if at_pool_params.PoolOper == 'KOP_NONE' and not in_dim.is_named and in_dim.has_keys(['c', 'w', 'h']):
+            if at_pool_params.PoolOper == 'KOP_NONE' and (not in_dim.is_named or not in_dim.has_keys(['c', 'w', 'h'])):
                 in_shape = in_dim.shape + ([1] * (3 - len(in_dim.shape)))
                 in_c, in_h, in_w = in_shape[0], in_shape[1], in_shape[2]
             else:

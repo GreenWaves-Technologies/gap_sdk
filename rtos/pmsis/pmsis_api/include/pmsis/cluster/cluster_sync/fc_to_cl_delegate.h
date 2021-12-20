@@ -207,7 +207,7 @@ static inline int pi_cluster_send_task_async(struct pi_device *device,
 
 int pi_cluster_send_task_to_cl(struct pi_device *device, struct pi_cluster_task *task);
 int pi_cluster_send_task_to_cl_async(struct pi_device *device, struct pi_cluster_task *cluster_task, pi_task_t *task);
-int pi_cluster_send_tasklet_to_cl_async(struct pi_device *device, struct pi_cluster_task *cluster_task, pi_task_t *task);
+void pi_cluster_send_tasklet_to_cl(struct pi_device *device, struct pi_cluster_task *cluster_task);
 
 static inline int pi_cluster_send_task(struct pi_device *device, struct pi_cluster_task *task)
 {

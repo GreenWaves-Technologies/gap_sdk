@@ -83,7 +83,7 @@ void Udma_tx_channel::get_data(int size, int channel)
 {
     this->requested_size_queue.push_back(size);
     this->requested_size += size;
-    if (this->requested_size_queue.size() == 1 && this->is_active() && !this->enqueued)
+    if (this->requested_size_queue.size() > 0 && this->is_active() && !this->enqueued)
     {
         this->top->tx_channels->push_ready_channel(this);
         this->check_state();
@@ -243,7 +243,7 @@ void Udma_tx_channels::handle_pending(void *__this, vp::clock_event *event)
             channel->requested_size_queue.push_front(requested_size_queue - size);
         }
 
-        if (channel->requested_size_queue.size() && !channel->enqueued)
+        if (channel->requested_size_queue.size() && !channel->enqueued && channel->is_active())
         {
             _this->push_ready_channel(channel);
         }
@@ -307,7 +307,6 @@ void Udma_tx_channels::check_state()
 {
     if (!this->send_reqs_event->is_enqueued())
     {
-        if (!this->pending_channels.empty() && !this->l2_free_reqs->is_empty())
         if (!this->pending_channels.empty() && !this->l2_free_reqs->is_empty() && this->pending_channels.front()->is_active())
         {
             this->top->event_enqueue(this->send_reqs_event, 1);

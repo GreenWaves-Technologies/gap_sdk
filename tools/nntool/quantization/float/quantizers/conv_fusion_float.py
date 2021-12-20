@@ -14,6 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from copy import deepcopy
+from quantization.float.quantizers.filter_float import AT_HWC_KER_IN_ORDER, AT_HWC_KER_OUT_ORDER, AT_CHW_KER_IN_ORDER, AT_CHW_KER_OUT_ORDER
+from quantization.quantizer_options import HWC_OPTION
 
 import numpy as np
 from bfloat16 import bfloat16
@@ -24,9 +26,11 @@ from quantization.new_qrec import QRec
 from quantization.unified_quantization_handler import (fusion_handler,
                                                        in_qs_constraint,
                                                        out_qs_constraint,
-                                                       params_type)
+                                                       params_type, options)
 
-
+@options(
+    HWC_OPTION
+)
 @params_type(ConvFusionParameters, LinearFusionParameters)
 @in_qs_constraint({'dtype': set([np.float16, np.float32, bfloat16])})
 @out_qs_constraint({'dtype': set([np.float16, np.float32, bfloat16])})
@@ -36,4 +40,9 @@ class FilterFusionFloat(FloatQuantizionHandler):
     def _quantize(cls, params, in_qs, stats, **kwargs):
         _, dtype = cls.get_float_opts(**kwargs)
         out_qs = [deepcopy(in_qs[0])]
+        opts = kwargs['opts']
+        if opts['hwc']:
+            cls.check_order(params, AT_HWC_KER_IN_ORDER, AT_HWC_KER_OUT_ORDER)
+        else:
+            cls.check_order(params, AT_CHW_KER_IN_ORDER, AT_CHW_KER_OUT_ORDER)
         return QRec.float(in_qs=in_qs, out_qs=out_qs, float_dtype=dtype)

@@ -26,34 +26,35 @@ from .eliminate_transposes.eliminate_transposes import eliminate_transposes
 LOG = logging.getLogger("nntool." + __name__)
 
 
-def adjust_order(G, reshape_weights=True, postprocess=True, debug_function=None, one_cycle=False):
-    opts = {'reshape_weights': reshape_weights}
-    selector = AdjusterBase.get_all_handlers(opts)
-    LOG.info("adding transposes to correct tensor order for AT kernels")
-    ConstantInputParameters.clear_compression_state(G)
-    for node in G.nodes(node_classes=tuple(selector)):
-        adjusters = selector[node.__class__]
-        for adjuster, attrs in adjusters:
-            if attrs:
-                not_selected = False
-                for attr, val in attrs.items():
-                    if not hasattr(node, attr):
-                        not_selected = True
-                        break
-                    if callable(val):
-                        if not val(getattr(node, attr)):
+def adjust_order(G, reshape_weights=True, postprocess=True, debug_function=None, steps=None, single_step=False):
+    if steps is None:
+        opts = {'reshape_weights': reshape_weights}
+        selector = AdjusterBase.get_all_handlers(opts)
+        LOG.info("adding transposes to correct tensor order for AT kernels")
+        ConstantInputParameters.clear_compression_state(G)
+        for node in G.nodes(node_classes=tuple(selector)):
+            adjusters = selector[node.__class__]
+            for adjuster, attrs in adjusters:
+                if attrs:
+                    not_selected = False
+                    for attr, val in attrs.items():
+                        if not hasattr(node, attr):
                             not_selected = True
                             break
-                    elif getattr(node, attr) != val:
-                        not_selected = True
-                        break
-                if not_selected:
-                    continue
-            adjuster.adjust(G, node)
-            break
-    add_dimensions(G)
+                        if callable(val):
+                            if not val(getattr(node, attr)):
+                                not_selected = True
+                                break
+                        elif getattr(node, attr) != val:
+                            not_selected = True
+                            break
+                    if not_selected:
+                        continue
+                adjuster.adjust(G, node)
+                break
+        add_dimensions(G)
     if debug_function:
         debug_function(G)
-    if postprocess:
-        eliminate_transposes(G, debug_function=debug_function, one_cycle=one_cycle)
-        add_dimensions(G)
+    if steps is not None or postprocess:
+        eliminate_transposes(G, debug_function=debug_function, steps=steps, single_step=single_step)
+        # add_dimensions(G)

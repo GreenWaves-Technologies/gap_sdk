@@ -132,6 +132,15 @@ typedef struct pi_cluster_pe_task_s
     uint8_t nb_done_cores;
 } pi_cluster_pe_task_t;
 
+
+struct pi_mem_slab {
+    uint32_t num_blocks;
+    size_t block_size;
+    char *buffer;
+    char *free_list;
+    uint32_t num_used;
+};
+
 #endif
 
 

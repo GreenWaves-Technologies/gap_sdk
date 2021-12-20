@@ -120,6 +120,7 @@ def gen_config(args, config):
 
         for binary in debug_binaries:
             full_config.set('**/debug_binaries', binary + '.debugInfo')
+            full_config.set('**/binaries', binary)
 
 
     gvsoc_config_path = os.path.join(config.get_str('gapy/work_dir'), 'gvsoc_config.json')

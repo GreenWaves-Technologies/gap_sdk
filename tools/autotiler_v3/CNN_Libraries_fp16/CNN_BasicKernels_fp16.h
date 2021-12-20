@@ -583,13 +583,13 @@ extern void KerParMatMulLeakyreluSxSy_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSmallFeat_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSmallFeatReLU_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSmallFeatReLUN_fp16(KerMatMul_fp16_T *Arg);
-extern void KerParMatMulSwishSmallFeat_fp16(KerMatMul_fp16_T *Arg);
-extern void KerParMatMulHSwishSmallFeat_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulSmallFeatSwish_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulSmallFeatHSwish_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSigmoidSmallFeat_fp16(KerMatMul_fp16_T *Arg);
-extern void KerParMatMulHSigmoidSmallFeat_fp16(KerMatMul_fp16_T *Arg);
-extern void KerParMatMulTanhSmallFeat_fp16(KerMatMul_fp16_T *Arg);
-extern void KerParMatMulHTanhSmallFeat_fp16(KerMatMul_fp16_T *Arg);
-extern void KerParMatMulLeakyreluSmallFeat_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulSmallFeatHSigmoid_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulSmallFeatTanh_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulSmallFeatHTanh_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulSmallFeatLeakyrelu_fp16(KerMatMul_fp16_T *Arg);
 
 /******************************************************************************************************************************/
 /******************* SOFT MAX *************************************************************************************************/

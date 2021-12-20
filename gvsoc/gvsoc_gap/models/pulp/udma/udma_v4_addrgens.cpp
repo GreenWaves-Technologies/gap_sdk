@@ -75,7 +75,7 @@ void Udma_addrgen_linear::check_pending_transfer()
 {
     if (!this->active_transfer && this->nb_pending_transfers)
     {
-        trace.msg(vp::trace::LEVEL_TRACE, "Starting new buffer (addr: 0x%x, size: 0x%x)\n", this->pending_addr, this->pending_size);
+        trace.msg(vp::trace::LEVEL_TRACE, "Starting new buffer (addr: 0x%x, size: 0x%x, pending: %d)\n", this->pending_addr, this->pending_size, this->nb_pending_transfers);
 
         this->nb_pending_transfers--;
         this->set_active_transfer(true);
@@ -101,17 +101,25 @@ void Udma_addrgen_linear::cfg_ctrl_req(uint64_t reg_offset, int size, uint8_t *v
         }
         else if (this->regmap.cfg_ctrl.en_get())
         {
+            this->trace.msg(vp::trace::LEVEL_TRACE, "Enqeueing transfer (pending: %d)\n", this->nb_pending_transfers);
 
-            if (this->nb_pending_transfers > 0)
+            if (this->nb_pending_transfers == 1)
             {
-                this->remaining_size -= this->pending_size;
+                this->trace.force_warning("Trying to enqueue while alreay 2 transfers are enqueued\n");
             }
+            else
+            {
+                if (this->nb_pending_transfers > 0)
+                {
+                    this->remaining_size -= this->pending_size;
+                }
 
-            this->pending_addr = this->regmap.cfg_sa_buf0.get();
-            this->pending_size = this->regmap.cfg_size.get();
-            this->remaining_size += this->pending_size;
+                this->pending_addr = this->regmap.cfg_sa_buf0.get();
+                this->pending_size = this->regmap.cfg_size.get();
+                this->remaining_size += this->pending_size;
 
-            this->nb_pending_transfers++;
+                this->nb_pending_transfers++;
+            }
 
             this->check_pending_transfer();
 

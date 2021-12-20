@@ -83,6 +83,8 @@ Hyper_periph::Hyper_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
     this->read_req_waiting = new Udma_queue<Hyper_read_request>(-1);
     this->read_req_ready = new Udma_queue<Hyper_read_request>(-1);
 
+    memset((void *)&this->ca, 0, sizeof(this->ca));
+
 }
 
 
@@ -190,6 +192,9 @@ vp::io_req_status_e Hyper_periph::custom_req(vp::io_req *req, uint64_t offset)
 void Hyper_periph::reset(bool active)
 {
     Udma_periph::reset(active);
+
+    this->rx_channel->reset(active);
+    this->tx_channel->reset(active);
 
     if (!active)
     {

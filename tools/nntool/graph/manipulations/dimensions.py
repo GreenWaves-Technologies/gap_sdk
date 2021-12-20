@@ -33,7 +33,7 @@ def set_out_edges_multi(G, node: Parameters, dims: Sequence[Dim], step_idx: int,
                         naming_convension: NamingConvension, edge_type: str = "in_out"):
     # clone the dims first so that the edge dims are the same objects as the node output dims
     dims = node.set_output_size(dims)
-    out_edges = G.indexed_out_edges(node.name)
+    out_edges = G.indexed_out_edges(node)
     is_multi_out = len(out_edges) > 1
     for edge_idx, edge_group in enumerate(out_edges):
         if not edge_group:

@@ -155,11 +155,11 @@ class DSPParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
         else:
             win_lut = None
         fft_twiddles = ConstantInputParameters(self.name + "_FFT_Twiddles", value=gen_fft_twiddles_lut(
-            self.n_cfft, rad4=is_rad4), dims=Dim.unnamed([2, n_fft_lut]))
+            self.n_cfft, rad4=is_rad4), dims=Dim.unnamed([2*n_fft_lut]))
         swaptable = ConstantInputParameters(self.name + "_SwapTable", value=gen_fft_swaptable_lut(
             self.n_cfft, rad4=is_rad4), dims=Dim.unnamed([self.n_cfft]))
         rfft_twiddles = ConstantInputParameters(self.name + "_RFFT_Twiddles", value=gen_rfft_twiddles_lut(
-            self.n_fft), dims=Dim.unnamed([2, self.n_fft//2]))
+            self.n_fft), dims=Dim.unnamed([2*self.n_fft//2]))
         return win_lut, fft_twiddles, swaptable, rfft_twiddles
 
 @cls_op_name("RFFT2D")
@@ -352,8 +352,8 @@ class MFCCPreprocessingParameters(DSPParameters):
         return melfilt_coeff_sparse_node, melfilt_sparsity_node
 
     def get_melfilter_size(self):
-        melfilt_sparsity, melfilt_coeff = self.gen_melfilter()
-        return melfilt_sparsity.dqvalue.size, melfilt_coeff.dqvalue.size
+        melfilt_coeff, melfilt_sparsity = self.gen_melfilter()
+        return melfilt_coeff.dqvalue.size, melfilt_sparsity.dqvalue.size
 
     def gen_dct_matrix(self):
         norm_factor = np.ones((self.n_dct, self.n_dct))

@@ -35,6 +35,7 @@
 #define PI_INLINE_CL_TEAM_1 static inline
 #define PI_INLINE_HYPER_LVL_0 static inline
 #define PI_INLINE_OCTOSPI_LVL_0 static inline
+#define PI_INLINE_I2S_LVL_0 static inline
 
 #if defined(__GAP9__)
 #include "pmsis/chips/gap8/perf.h"
@@ -57,6 +58,7 @@
 #include "pmsis/rtos/malloc/cl_l1_malloc.h"
 #include "pmsis/rtos/malloc/l2_malloc.h"
 #include "pmsis/rtos/malloc/fc_l1_malloc.h"
+#include "pmsis/mem_slab.h"
 #include "pmsis/drivers/perf.h"
 #include "pmsis/drivers/hyperbus.h"
 #include "pmsis/drivers/octospi.h"

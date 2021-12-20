@@ -27,8 +27,12 @@ from graph.types.others import ReshapeParameters, TransposeParameters
 from utils.node_id import NodeId
 
 LOG = logging.getLogger("nntool." + __name__)
-LOGL = LOG.info
 
+def info(msg):
+    LOG.info(msg)
+
+def debug(msg):
+    LOG.debug(msg)
 
 class Action(ABC):
     def __init__(self, node) -> None:
@@ -50,7 +54,7 @@ class DebugActionBase(Action):
         self.message = message
 
     def _execute(self, node, G):
-        LOGL("%s", str(self))
+        info(f"{self}")
 
 
 class StartAction(DebugActionBase):
@@ -116,7 +120,7 @@ class InsertTransposeAction(InsertNodeAction):
         self.reshape_to = reshape_to
 
     def _execute(self, node, G):
-        LOGL("%s", str(self))
+        info(f"{self}")
         direction = self.direction
         if self.reshape_from is not None:
             params = ReshapeParameters(G.unique_name(
@@ -150,7 +154,7 @@ class InsertReshapeAction(InsertNodeAction):
             self.out_shape = out_shape.clone() if out_shape is not None else None
 
     def _execute(self, node, G):
-        LOGL("%s", str(self))
+        info(f"{self}")
         params = ReshapeParameters(G.unique_name(
             f'{node.name}_reshape'), old_shape=self.in_shape, shape=self.out_shape)
         self.do_insert(node, G, params)
@@ -158,15 +162,21 @@ class InsertReshapeAction(InsertNodeAction):
     def __str__(self) -> str:
         return f"insert reshape at {self.node.name}:{self.direction}_{self.idx} in {self.in_shape} out {self.out_shape}"
 
+def make_dim(shape):
+    if shape is None:
+        return shape
+    if isinstance(shape, Dim):
+        return shape.clone()
+    return Dim.unnamed(shape)
 
 class SetReshapeAction(Action):
     def __init__(self, node, in_shape=None, out_shape=None) -> None:
         super(SetReshapeAction, self).__init__(node)
-        self.in_shape = in_shape.clone() if in_shape is not None else None
-        self.out_shape = out_shape.clone() if out_shape is not None else None
+        self.in_shape = make_dim(in_shape)
+        self.out_shape = make_dim(out_shape)
 
     def _execute(self, node, G):
-        LOGL("%s", str(self))
+        info(f"{self}")
         if self.in_shape is not None:
             node.old_shape = self.in_shape
         if self.out_shape is not None:
@@ -178,7 +188,7 @@ class SetReshapeAction(Action):
 
 class SwitchBatchLinearAction(Action):
     def _execute(self, node, G):
-        LOGL("%s", str(self))
+        info(f"{self}")
         self.node.batch_minor = not self.node.batch_minor
 
     def __str__(self) -> str:
@@ -195,7 +205,7 @@ class TransposeSlidedSlice(Action):
             self.transpose_out = tuple(transpose_out)
 
     def _execute(self, node, G):
-        LOGL("%s", str(self))
+        info(f"{self}")
         node.act_slice = [node.act_slice[idx] for idx in self.transpose_in]
         node.out_shape = [node.out_shape[idx] for idx in self.transpose_out]
 
@@ -209,7 +219,7 @@ class TransposePad(Action):
         self.transpose = tuple(transpose)
 
     def _execute(self, node, G):
-        LOGL("%s", str(self))
+        info(f"{self}")
         node.padding = [node.padding[idx] for idx in self.transpose]
         node.pad_vals = [node.pad_vals[idx] for idx in self.transpose]
 
@@ -223,7 +233,7 @@ class TransposeReverse(Action):
         self.transpose = tuple(transpose)
 
     def _execute(self, node, G):
-        LOGL("%s", str(self))
+        info(f"{self}")
         node.axis = self.transpose[node.axis]
 
     def __str__(self) -> str:
@@ -254,7 +264,7 @@ class TransposeInputBase(Action):
 
 class ReorderInputDims(TransposeInputBase):
     def _execute(self, node, G):
-        LOGL("%s", str(self))
+        info(f"{self}")
         node.dims.transpose(self.transpose)
         if node.out_dims_hint:
             node.out_dims_hint[0] = [node.out_dims_hint[0][idx]
@@ -267,7 +277,7 @@ class ReorderInputDims(TransposeInputBase):
 
 class ReorderConstantInput(TransposeInputBase):
     def _execute(self, node, G):
-        LOGL("%s", str(self))
+        info(f"{self}")
         if G.quantization:
             qrec = G.quantization.get(NodeId(node), None)
         else:
@@ -293,7 +303,7 @@ class ReorderConstantInput(TransposeInputBase):
 class DeleteReshapeAction(Action):
 
     def _execute(self, node, G):
-        LOGL("%s", str(self))
+        info(f"{self}")
         if node.name not in G:
             return
         G.remove_and_reconnect(node, edge_class=NNEdge)
@@ -308,7 +318,7 @@ class DeleteTransposeAction(Action):
         self.reshape = reshape
 
     def _execute(self, node, G):
-        LOGL("%s", str(self))
+        info(f"{self}")
         if node.name not in G:
             return
         if self.reshape:
@@ -342,7 +352,7 @@ class SetTransposeAction(Action):
         pass
 
     def _execute(self, node, G):
-        LOGL("%s", str(self))
+        info(f"{self}")
         node.transpose = self.transpose
 
     def __str__(self) -> str:
@@ -358,31 +368,28 @@ class ReorderLinearAction(Action):
         self.qrec = qrec
 
     @classmethod
-    def out_from_history(cls, node, history, qrec):
+    def from_history(cls, node, history, qrec, dir):
         # Find the first entry in the transpose history that actually has a transpose
         first_valid_entry = next(iter([rec
                                        for rec in reversed(history)
-                                       if rec.from_transpose]))
-        # in outwards direction the from_shape is the shape before the transpose and we
-        # want to apply the transpose to get to the shape
-        return cls(node, "out", tuple(first_valid_entry.from_transpose),
-                   tuple(first_valid_entry.from_shape), qrec=qrec)
+                                       if rec.transpose]))
+        # arriving from the top the transpose is in the down direction and from the
+        # bottom in the up direction so in both cases we need to reverse it
+        transpose = tuple(reverse_transpose(first_valid_entry.transpose))
+        # shape closest to the node
+        shape = tuple(first_valid_entry.to_shape)
+        return cls(node, dir, transpose, shape, qrec=qrec)
+
+    @classmethod
+    def out_from_history(cls, node, history, qrec):
+        return cls.from_history(node, history, qrec, "out")
 
     @classmethod
     def in_from_history(cls, node, history, qrec):
-        # Find the first entry in the transpose history that actually has a transpose
-        first_valid_entry = next(iter([rec
-                                       for rec in reversed(history)
-                                       if rec.from_transpose]))
-        # in down direction we are pushing the transpose into the FC so
-        # the from_shape is the shape with the transpose applied and
-        # we want to reverse the from_transpose to get back to the shape before it
-        transpose = tuple(reverse_transpose(first_valid_entry.from_transpose))
-        shape = tuple(first_valid_entry.from_shape)
-        return cls(node, "in", transpose, shape, qrec=qrec)
+        return cls.from_history(node, history, qrec, "in")
 
     def _execute(self, node, G):
-        LOGL("%s", str(self))
+        info(f"{self}")
         filter_node = node.contained_filters()[0] if isinstance(node, LinearFusionParameters) else node
         in_edges = G.indexed_in_edges(node.name)
         weights_node = in_edges[1].from_node

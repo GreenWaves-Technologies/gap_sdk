@@ -13,12 +13,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from collections import Counter
 from functools import reduce
 
 import numpy as np
 from graph.dim import Dim
 from graph.types import ConcatParameters, ConstantInputParameters, NNEdge
-from graph.types.others import ReshapeParameters
+from graph.types.others import CopyParameters, ReshapeParameters
 from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.common import LOG
@@ -63,10 +64,16 @@ class Concatenation(ConstantMixin, BackendHandler):
 
         buffer_idxes = [tensor.buffer_idx for tensor in node.input]
         non_zero_idxes = [idx for idx in buffer_idxes if idx != 0]
-        if len(set(non_zero_idxes)) != len(non_zero_idxes):
-            raise NotImplementedError(
-                "concats with multiple versions of the same input are not supported. "
-                "This is normally a graph design problem.")
+        duplicates = [idx for idx, count in Counter(non_zero_idxes).items() if count > 1]
+        if duplicates:
+            LOG.warning(f'concat {node.name} has duplicate inputs. Inserting copies but this is not very efficient.')
+            for idx in duplicates:
+                dup_idxes = [i for i, x in enumerate(buffer_idxes) if x == idx]
+                for dup_idx in dup_idxes[1:]:
+                    cparams = CopyParameters(G.unique_name(f'{node.name}_dup_{dup_idxes[0]}_{dup_idx}'))
+                    dup_inp = inputs[dup_idx]
+                    G.add_edge(NNEdge(from_node=dup_inp[0], from_idx=dup_inp[1], to_node=cparams))
+                    inputs[dup_idx] = tuple([cparams, 0] + list(dup_inp[2:]))
 
         axis = node_opts.Axis()
         if any(inp_shape[axis] is None for inp_shape in inp_shapes):

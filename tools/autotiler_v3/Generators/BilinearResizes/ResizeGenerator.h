@@ -57,6 +57,7 @@ Generate Resizing for a given set of parameters
 */
 int GenerateResizeMultiChannel(char *Name, unsigned int Win, unsigned int Hin, unsigned int Wout, unsigned int Hout, unsigned int Channels, InOut_t InOut_Type, resize_kop_t Type);
 int GenerateResizeMultiChannelQ16(char *Name, unsigned int Win, unsigned int Hin, unsigned int Wout, unsigned int Hout, unsigned int Channels, InOut_t InOut_Type, resize_kop_t Type);
+int GenerateResizeMultiChannel_fp16(char *Name, unsigned int Win, unsigned int Hin, unsigned int Wout, unsigned int Hout, unsigned int Channels, InOut_t InOut_Type, resize_kop_t Type);
 
 #define GenerateResizeNew(Name, Win, Hin, Wout, Hout, Type) GenerateResizeMultiChannel(Name, Win, Hin, Wout, Hout, 1, UNSIGNED_INOUT, Type)
 #define GenerateResize(Name, Win, Hin, Wout, Hout)  GenerateResizeNew(Name, Win, Hin, Wout, Hout, KOP_BILINEAR_RESIZE)

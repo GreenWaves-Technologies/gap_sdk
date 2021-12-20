@@ -244,7 +244,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 
 	int PadL = Arg->Pad[0], PadR = Arg->Pad[1], PadT = Arg->Pad[2], PadB = Arg->Pad[3];
 	int Nb_KI	= Tile_InFeat/16 + (Tile_InFeat%16?1:0);
-	int Nb_LoadedKI = Arg->TotalInFeatures/16 + (Arg->TotalInFeatures%16?1:0);
+	int Nb_LoadedKI = Arg->TotalInFeatures/(Mode16?8:16) + (Arg->TotalInFeatures%(Mode16?8:16)?1:0);
 	int Rem_KI	= Tile_InFeat%16?Tile_InFeat%16:16;
 	int Nb_KO	= Tile_OutFeat/32 + (Tile_OutFeat%32?1:0);
 	int Rem_KO	= Tile_OutFeat%32?Tile_OutFeat%32:32;
@@ -289,7 +289,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 					SetNE16_InPointer     ((void *) Max((unsigned int) In, (unsigned int) InPointer + Tile_InFeat*(subfilter_i*Dx + w*Sx-PadL + Tile_InW*(Ho_F*Sy-PadT + subfilter_j*Dy))));
 					SetNE16_OutPointer    (Out + Tile_OutFeat*(w + Ho_F*Tile_OutW));
 					// TODO - checkme I think here you need the total number of loaded chin
-					SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
+					SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*Fx*subfilter_j);
 					SetNE16_Reminders     (1, Rem_H_Subtiles, Rem_KI, Rem_KO, 1, Rem_H_Subtiles);
 					SetNE16_Dim           (Nb_KI, Nb_KO, 1, H_SubTiles);
 					SetNE16_GenConfig     (Gen_Cfg);
@@ -332,7 +332,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 					SetNE16_InPointer     (InPointer + Tile_InFeat*(w*Sx-PadL + subfilter_i*Dx + Tile_InW*(Ho_F*Sy-PadT + subfilter_j*Dy)));
 					SetNE16_OutPointer    (Out + Tile_OutFeat*(w + Ho_F*Tile_OutW));
 					// TODO - checkme I think here you need the total number of loaded chin
-					SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
+					SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*Fx*subfilter_j);
 					SetNE16_Reminders     (1, Rem_H_Subtiles, Rem_KI, Rem_KO, 1, Rem_H_Subtiles);
 					SetNE16_Dim           (Nb_KI, Nb_KO, 1, H_SubTiles);
 					SetNE16_GenConfig     (Gen_Cfg);
@@ -375,7 +375,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 					SetNE16_InPointer     ((void *) Max((unsigned int) InPointer, (unsigned int) InPointer + Tile_InFeat*(Wo_F*Sx-PadL + subfilter_i*Dx + (subfilter_j*Dy+h*Sy-PadT)*Tile_InW)));
 					SetNE16_OutPointer    (Out + Tile_OutFeat*(Wo_F + h*Tile_OutW));
 					// TODO - checkme I think here you need the total number of loaded chin
-					SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
+					SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*Fx*subfilter_j);
 					SetNE16_Reminders     (Rem_W_Subtiles, 1, Rem_KI, Rem_KO, Rem_W_Subtiles, 1);
 					SetNE16_Dim           (Nb_KI, Nb_KO, W_SubTiles, 1);
 					SetNE16_GenConfig     (Gen_Cfg);
@@ -418,7 +418,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 					SetNE16_InPointer     (InPointer + Tile_InFeat*(Wo_F*Sx-PadL + subfilter_i*Dx + (subfilter_j*Dy+h*Sy-PadT)*Tile_InW));
 					SetNE16_OutPointer    (Out + Tile_OutFeat*(Wo_F + h*Tile_OutW));
 					// TODO - checkme I think here you need the total number of loaded chin
-					SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
+					SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*Fx*subfilter_j);
 					SetNE16_Reminders     (Rem_W_Subtiles, 1, Rem_KI, Rem_KO, Rem_W_Subtiles, 1);
 					SetNE16_Dim           (Nb_KI, Nb_KO, W_SubTiles, 1);
 					SetNE16_GenConfig     (Gen_Cfg);
@@ -463,7 +463,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 						SetNE16_InPointer     ((void *) Max((unsigned int) In, (unsigned int) InPointer + Tile_InFeat*(subfilter_i*Dx + w*Sx - PadL + (subfilter_j*Dy+h*Sy-PadT)*Tile_InW)));
 						SetNE16_OutPointer    (Out + Tile_OutFeat*(w + h*Tile_OutW));
 						// TODO - checkme I think here you need the total number of loaded chin
-						SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
+						SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*Fx*subfilter_j);
 						SetNE16_Reminders     (1, 1, Rem_KI, Rem_KO, 1, 1);
 						SetNE16_Dim           (Nb_KI, Nb_KO, 1, 1);
 						SetNE16_GenConfig     (Gen_Cfg);
@@ -509,7 +509,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 						SetNE16_InPointer     ((void *) Max((unsigned int) In, (unsigned int) InPointer + Tile_InFeat*(subfilter_i*Dx + (w*Sx-PadL) + (subfilter_j*Dy+h*Sy-PadT)*Tile_InW)));
 						SetNE16_OutPointer    (Out + Tile_OutFeat*(w + h*Tile_OutW));
 						// TODO - checkme I think here you need the total number of loaded chin
-						SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
+						SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*Fx*subfilter_j);
 						SetNE16_Reminders     (1, 1, Rem_KI, Rem_KO, 1, 1);
 						SetNE16_Dim           (Nb_KI, Nb_KO, 1, 1);
 						SetNE16_GenConfig     (Gen_Cfg);
@@ -555,7 +555,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 						SetNE16_InPointer     ((void *) Max((unsigned int) In, (unsigned int) InPointer + Tile_InFeat*(subfilter_i*Dx + w*Sx - PadL + (subfilter_j*Dy+h*Sy-PadT)*Tile_InW)));
 						SetNE16_OutPointer    (Out + Tile_OutFeat*(h*Tile_OutW + w));
 						// TODO - checkme I think here you need the total number of loaded chin
-						SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
+						SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*Fx*subfilter_j);
 						SetNE16_Reminders     (1, 1, Rem_KI, Rem_KO, 1, 1);
 						SetNE16_Dim           (Nb_KI, Nb_KO, 1, 1);
 						SetNE16_GenConfig     (Gen_Cfg);
@@ -601,7 +601,7 @@ void NE16_ComputeBorders(KerConv_NE16_T *Arg, int Wo_F, int Wo_L, int Wo, int Ho
 						SetNE16_InPointer     (InPointer + Tile_InFeat*(subfilter_i*Dx + w*Sx-PadL + (subfilter_j*Dy+h*Sy-PadT)*Tile_InW));
 						SetNE16_OutPointer    (Out + Tile_OutFeat*(h*Tile_OutW + w));
 						// TODO - checkme I think here you need the total number of loaded chin
-						SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*Fx*subfilter_j);
+						SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*subfilter_i + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*Fx*subfilter_j);
 						SetNE16_Reminders     (1, 1, Rem_KI, Rem_KO, 1, 1);
 						SetNE16_Dim           (Nb_KI, Nb_KO, 1, 1);
 						SetNE16_GenConfig     (Gen_Cfg);
@@ -1034,14 +1034,6 @@ void KerConv3x3Stride2_NE16(KerConv_NE16_T *Arg)
 	SetNE16_WOffset       (Arg->W_Offset);
 	SetNE16_GenConfig     (Gen_Cfg);
 
-	subtile_j_major ++;
-	if(subtile_j_major==W_subtiles) {
-		subtile_j_major = 0;
-		subtile_i_major ++;
-		IsLastSubtileH = subtile_i_major>=(H_subtiles-1);
-	}
-	IsLastSubtileW = subtile_j_major==(W_subtiles-1);
-
 	// already commit and trigger NE16 computation, while programming the next one
 	NE16_WRITE_CMD(NE16_COMMIT_AND_TRIGGER, NE16_TRIGGER_CMD);
 	if (IsLastSubtileH && IsLastSubtileW) {
@@ -1051,6 +1043,14 @@ void KerConv3x3Stride2_NE16(KerConv_NE16_T *Arg)
 		NE16_SETPRIORITY_CORE();
 		return;
 	}
+
+	subtile_j_major ++;
+	if(subtile_j_major==W_subtiles) {
+		subtile_j_major = 0;
+		subtile_i_major ++;
+		IsLastSubtileH = subtile_i_major>=(H_subtiles-1);
+	}
+	IsLastSubtileW = subtile_j_major==(W_subtiles-1);
 
 	// acquire second job
 	NE16_BARRIER_ACQUIRE(job_id);
@@ -1104,14 +1104,6 @@ void KerConv3x3Stride2_NE16(KerConv_NE16_T *Arg)
 	SetNE16_WOffset       (Arg->W_Offset);
 	SetNE16_GenConfig     (Gen_Cfg);
 
-	subtile_j_major ++;
-	if(subtile_j_major==W_subtiles) {
-		subtile_j_major = 0;
-		subtile_i_major ++;
-		IsLastSubtileH = subtile_i_major>=(H_subtiles-1);
-	}
-	IsLastSubtileW = subtile_j_major==(W_subtiles-1);
-
 	// already commit and trigger NE16 computation, while programming the next one
 	NE16_WRITE_CMD(NE16_COMMIT_AND_TRIGGER, NE16_TRIGGER_CMD);
 	if (IsLastSubtileH && IsLastSubtileW) {
@@ -1121,6 +1113,14 @@ void KerConv3x3Stride2_NE16(KerConv_NE16_T *Arg)
 		NE16_SETPRIORITY_CORE();
 		return;
 	}
+
+	subtile_j_major ++;
+	if(subtile_j_major==W_subtiles) {
+		subtile_j_major = 0;
+		subtile_i_major ++;
+		IsLastSubtileH = subtile_i_major>=(H_subtiles-1);
+	}
+	IsLastSubtileW = subtile_j_major==(W_subtiles-1);
 
 	// main iteration strided conv iteration loop (does not need ne16_c0_config any more)
 	do {
@@ -1283,14 +1283,6 @@ void KerConvDW3x3Stride2_NE16(KerConv_NE16_T *Arg)
 	SetNE16_WOffset       (Arg->W_Offset);
 	SetNE16_GenConfig     (Gen_Cfg);
 
-	subtile_j_major ++;
-	if(subtile_j_major==W_subtiles) {
-		subtile_j_major = 0;
-		subtile_i_major ++;
-		IsLastSubtileH = subtile_i_major==(H_subtiles-1);
-	}
-	IsLastSubtileW = subtile_j_major==(W_subtiles-1);
-
 	// already commit and trigger NE16 computation, while programming the next one
 	NE16_WRITE_CMD(NE16_COMMIT_AND_TRIGGER, NE16_TRIGGER_CMD);
 	if (IsLastSubtileH && IsLastSubtileW) {
@@ -1300,6 +1292,14 @@ void KerConvDW3x3Stride2_NE16(KerConv_NE16_T *Arg)
 		NE16_SETPRIORITY_CORE();
 		return;
 	}
+
+	subtile_j_major ++;
+	if(subtile_j_major==W_subtiles) {
+		subtile_j_major = 0;
+		subtile_i_major ++;
+		IsLastSubtileH = subtile_i_major>=(H_subtiles-1);
+	}
+	IsLastSubtileW = subtile_j_major==(W_subtiles-1);
 
 	// acquire second job
 	NE16_BARRIER_ACQUIRE(job_id);
@@ -1353,14 +1353,6 @@ void KerConvDW3x3Stride2_NE16(KerConv_NE16_T *Arg)
 	SetNE16_WOffset       (Arg->W_Offset);
 	SetNE16_GenConfig     (Gen_Cfg);
 
-	subtile_j_major ++;
-	if(subtile_j_major==W_subtiles) {
-		subtile_j_major = 0;
-		subtile_i_major ++;
-		IsLastSubtileH = subtile_i_major==(H_subtiles-1);
-	}
-	IsLastSubtileW = subtile_j_major==(W_subtiles-1);
-
 	// already commit and trigger NE16 computation, while programming the next one
 	NE16_WRITE_CMD(NE16_COMMIT_AND_TRIGGER, NE16_TRIGGER_CMD);
 	if (IsLastSubtileH && IsLastSubtileW) {
@@ -1371,13 +1363,21 @@ void KerConvDW3x3Stride2_NE16(KerConv_NE16_T *Arg)
 		return;
 	}
 
+	subtile_j_major ++;
+	if(subtile_j_major==W_subtiles) {
+		subtile_j_major = 0;
+		subtile_i_major ++;
+		IsLastSubtileH = subtile_i_major>=(H_subtiles-1);
+	}
+	IsLastSubtileW = subtile_j_major==(W_subtiles-1);
+
 	// main iteration strided conv iteration loop (does not need ne16_c0_config any more)
 	do {
 	        // acquire second job
 	        NE16_BARRIER_ACQUIRE(job_id);
 
-		IsLastSubtileH = subtile_i_major==(H_subtiles-1);
-		IsLastSubtileW = subtile_j_major==(W_subtiles-1);
+		IsLastSubtileH = subtile_i_major>=(H_subtiles-1);
+		IsLastSubtileW = subtile_j_major>=(W_subtiles-1);
 		// update input / output pointers
 		if(IsLastSubtileH && IsLastSubtileW) {
 			Rem_HO = Last_Rem_HO;  Rem_WO = Last_Rem_WO;
@@ -1508,7 +1508,7 @@ void KerConv1D_StrideS_NE16(KerConv_NE16_T *Arg)
 
 		unsigned char *pIn   = In + Tile_InFeat*(w*Sx - Arg->Pad[0] + subfilter_i*Dx);
 		unsigned char *pOut  = Out    + OutBytes*Tile_OutFeat*w;
-		unsigned char *pFilt = Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*subfilter_i;
+		unsigned char *pFilt = Filter + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*subfilter_i;
 		if (LastSubtileW) {
 			Rem_HI = LastSubtileHeight;
 			w += LastSubtileSize;
@@ -1628,7 +1628,7 @@ void KerConvNxMDxDy_StrideSxSy_NE16(KerConv_NE16_T *Arg)
 			// update input / output pointers
 			SetNE16_InPointer     (In + Tile_InFeat*(Wo_F*Sx - Arg->Pad[0] + subfilter_i*Dx + Tile_InW*(Ho_F*Sy - Arg->Pad[2] + subfilter_j*Dy)));
 			SetNE16_OutPointer    (Out + OutBytes*Tile_OutFeat*(Wo_F + Tile_OutW*Ho_F));
-			SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?8:16)*Nb_LoadedKI*(subfilter_i + Fx*subfilter_j));
+			SetNE16_WeightsPointer(Filter + Tile_OutFeat*(Mode16?1:2)*Arg->Qw*Nb_LoadedKI*(subfilter_i + Fx*subfilter_j));
 			SetNE16_Reminders     (Rem_WO, Rem_HO, Rem_KI, Rem_KO, Rem_WO, Rem_HO);
 			SetNE16_Dim           (Nb_KI, Nb_KO, Nb_WO, Nb_HO);
 			SetNE16_GenConfig     (Gen_Cfg);
@@ -2176,7 +2176,7 @@ void KerLinear_16a_NE16(KerLinear_NE16_T *Arg)
 		NE16_BARRIER_ACQUIRE(job_id);
 		// load configuration for the layer
 		SetNE16_OutPointer    (Out);
-		SetNE16_WeightsPointer(Filter+subtile_ki*256*Tile_OutFeat);
+		SetNE16_WeightsPointer(Filter+subtile_ki*256*Tile_OutFeat*Arg->Qw/8);
 		SetNE16_BiasPointer   (Bias);
 		SetNE16_ScalePointer  (Scale);
 		SetNE16_ScaleNPointer (ScaleN);
@@ -2433,7 +2433,7 @@ void KerMatMul_8a_NE16(KerMatMul_NE16_T *Arg)
 }
 
 void Ker_MM_Conv2D_NE16(
-	Ker_MM_Conv_NE16_T *Arg
+	KerConv_MM_NE16_T *Arg
 	)
 
 {
@@ -2443,14 +2443,13 @@ void Ker_MM_Conv2D_NE16(
 	int Fx = Arg->Fx, Sx = Arg->Sx;
 	int Fy = Arg->Fy, Sy = Arg->Sy;
 	int FS = Fx*Fy;
-	int PadL = Arg->Pad[0], PadT = Arg->Pad[2];
+	int PadL = Arg->Pad[0], PadT = Arg->Pad[2], Pad_Val = Arg->Pad_Val;
 	int InFeat = Arg->Tile_InFeat, OutFeat = Arg->Tile_OutFeat;
         int * __restrict__ Bias = Arg->Bias;
         signed char * __restrict__ Out = Arg->Out;
         unsigned char * __restrict__ Scale = Arg->Scale;
         unsigned char * __restrict__ ScaleN = Arg->ScaleN;
         unsigned char * __restrict__ ColBuff1 = Arg->ColBuff;
-        unsigned char * __restrict__ ColBuff2 = Arg->ColBuff + InFeat*FS;
 	int Wo = Arg->Tile_OutW, Ho = Arg->Tile_OutH;
 	unsigned int * Semaphores = Arg->Semaphores;
 
@@ -2469,6 +2468,7 @@ void Ker_MM_Conv2D_NE16(
 
 	int ColBuffSize = ((W_In1+15)/16)*16;
 	int Tail = ColBuffSize / 4;
+        unsigned char * __restrict__ ColBuff2 = Arg->ColBuff + ColBuffSize;
 	((int *)ColBuff1)[Tail-1] = 0; ((int *)ColBuff1)[Tail-2] = 0; ((int *)ColBuff1)[Tail-3] = 0; ((int *)ColBuff1)[Tail-4] = 0;
 	((int *)ColBuff2)[Tail-1] = 0; ((int *)ColBuff2)[Tail-2] = 0; ((int *)ColBuff2)[Tail-3] = 0; ((int *)ColBuff2)[Tail-4] = 0;
 	int PosL = Arg->FirstTile?(-PadT):0;
@@ -2518,9 +2518,9 @@ void Ker_MM_Conv2D_NE16(
 				gap_waitbarrier(0);
 
 				/* Im2Col */
-				for (int i=0; i<(Iter1/4); i++) ((int *)(ColBuff+F*FS))[i]=0;
-				if (Iter1&0x2) ((short int *)(ColBuff+F*FS))[Iter1/2-1]=0;
-				if (Iter1&0x1) ((signed char *)(ColBuff+F*FS))[Iter1-1]=0;
+				for (int i=0; i<(Iter1/4); i++) ((int *)(ColBuff+F*FS))[i]=Pad_Val;
+				if (Iter1&0x2) ((short int *)(ColBuff+F*FS))[Iter1/2-1]=Pad_Val;
+				if (Iter1&0x1) ((signed char *)(ColBuff+F*FS))[Iter1-1]=Pad_Val;
 				int Lb = Max(PosC, 0), Rb = Min(PosC+Fx, W);
 				int OffC = -Lb - Min(PosC, 0);
 				int Size = Rb-Lb;

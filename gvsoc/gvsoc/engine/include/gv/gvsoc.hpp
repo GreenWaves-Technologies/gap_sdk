@@ -200,7 +200,7 @@ namespace gv {
          * @param id ID of the VCD event.
          * @param value The new value.
          */
-        virtual void event_update_logical(int64_t timestamp, int id, uint8_t value) = 0;
+        virtual void event_update_logical(int64_t timestamp, int id, uint64_t value) = 0;
 
         /**
          * Called by GVSOC to update the value of a bitfield VCD event.

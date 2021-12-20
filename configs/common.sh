@@ -139,3 +139,7 @@ else
         export XCSIM_PLATFORM=$XCSIM_PATH
     fi
 fi
+
+if [ -f "$GAP_SDK_HOME/configs/wsl.sh" ]; then
+    source $GAP_SDK_HOME/configs/wsl.sh
+fi

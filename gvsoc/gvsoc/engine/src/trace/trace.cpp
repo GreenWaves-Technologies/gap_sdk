@@ -83,6 +83,8 @@ void vp::component_trace::new_trace_event_string(std::string name, trace *trace)
     trace->name = name;
     trace->path = top.get_path() + "/" + name;
 
+    trace->width = 0;
+    trace->is_real = false;
     trace->is_string = true;
     trace->pending_timestamp = -1;
     trace->bytes = 0;
@@ -409,15 +411,33 @@ void vp::trace_engine::flush_event_traces(int64_t timestamp)
             }
             else if (current->is_string)
             {
-                //this->vcd_user->event_update_logical(int id, uint8_t *value, uint8_t *flags);
+                this->vcd_user->event_update_string(timestamp, current->id, (char *)current->buffer);
             }
-            else if (current->width > 1)
+            else if (current->width > 8)
             {
+                if (current->width <= 16)
+                {
+                    this->vcd_user->event_update_logical(timestamp, current->id, *(uint16_t *)current->buffer);
+                }
+                else if (current->width <= 32)
+                {
+                    this->vcd_user->event_update_logical(timestamp, current->id, *(uint32_t *)current->buffer);
+                }
+                else if (current->width <= 64)
+                {
+                    this->vcd_user->event_update_logical(timestamp, current->id, *(uint64_t *)current->buffer);
+                }
+                else
+                {
+                    // Use bitfield
+                }
 
             }
             else
             {
-                this->vcd_user->event_update_logical(timestamp, current->id, *current->buffer);
+                uint64_t value = (uint64_t)*(current->buffer);
+
+                this->vcd_user->event_update_logical(timestamp, current->id, value);
             }
         }
         else

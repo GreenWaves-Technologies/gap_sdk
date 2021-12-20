@@ -595,7 +595,7 @@ void LoadCNNLibrary_fp16()
 
 *********************************************************************************************************************************************************************/
 
-int CNN_MM_ConvolutionPoolAct_fp16(
+Kernel_T *CNN_MM_ConvolutionPoolAct_fp16_Internal(
 	char         *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -629,20 +629,21 @@ int CNN_MM_ConvolutionPoolAct_fp16(
 {
 	if (ConvOper==KOP_NONE) {
 		if (PoolOper!=KOP_NONE)
-			return CNN_PoolAct_fp16(Name, Ctrl, InFeat, OutFeat, Width, Height, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+			return CNN_PoolAct_fp16_Internal(Name, Ctrl, InFeat, OutFeat, Width, Height, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
 		else if (ActOper!=KOP_NONE)
-			return CNN_Act_fp16(Name, Ctrl, InFeat, Width, Height, ActOper);
+			return CNN_Act_fp16_Internal(Name, Ctrl, InFeat, Width, Height, ActOper);
 		else GenTilingError("CNN_MM_ConvolutionPoolAct_fp16 Kernel: %s, All requested operations are KOP_NONE", Name);
 	}
 
 	int ParFeat = 1, HWC = 0, ParFeatConv = 2;
         float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
-	Tile_Orientation_T TileOrientation = Height>1?TILE_HOR:TILE_VER;
+	Tile_Orientation_T TileOrientation = TILE_HOR;
 	AT_PadType PadType = PAD_BALANCED_LEFT;
 	if (PoolOper==KOP_NONE) {
 		Fpx=1; Dpx=1; Spx=1; Fpy=1; Dpy=1; Spy=1;
 	}
 	if (Ctrl) {
+		if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
 		if (Ctrl->PadType != -1) PadType = Ctrl->PadType;
 		if (Ctrl->HWC) HWC = 1;
 		if (Ctrl->ParallelFeatures != -1) ParFeatConv = Ctrl->ParallelFeatures;
@@ -742,7 +743,7 @@ int CNN_MM_ConvolutionPoolAct_fp16(
 	}
 
 	if (Log) {
-		printf("InFeat: %d, OutFeat: %d%s%s\n", InFeat, OutFeat, HWC?", HWC":", CHW", ParFeatConv?", Out Chan Parallel":", H Parallel");
+		printf("InFeat: %d, OutFeat: %d%s - TileOrientation: %s\n", InFeat, OutFeat, HWC?", HWC":", CHW", TileOrientation==TILE_HOR?"TILE_HOR":"TILE_VER");
         	printf("Conv => W:  %d, Pad:[%d,%d] PadT:[%d,%d] => Wc: %d, Filter:[%d,%d]\n", Width,  PadInc[0], PadInc[1], PadIncT[0], PadIncT[1], Wc, Fcx, Fcy);
         	printf("     => H:  %d, Pad:[%d,%d] PadT:[%d,%d] => Hc: %d\n", Height, PadInc[2], PadInc[3], PadIncT[2], PadIncT[3], Hc);
         	printf("Pool => Wc: %d, Pad:[%d,%d] => Wo: %d, Filter:[%d,%d]\n", Wc, PadInp[0], PadInp[1], Wo, Fpx, Fpy);
@@ -881,11 +882,11 @@ int CNN_MM_ConvolutionPoolAct_fp16(
                                   Fcx, Fcy, Scx, Scy, Dcx, Dcy, PadInc, Fpx, Fpy, Spx, Spy, Dpx, Dpy, PadInp, KernelOper,
                                   0, 0);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 
-int CNN_HWC_DWConvolutionPoolAct_fp16(
+Kernel_T *CNN_HWC_DWConvolutionPoolAct_fp16_Internal(
 	char         *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -919,9 +920,9 @@ int CNN_HWC_DWConvolutionPoolAct_fp16(
 {
 	if (ConvOper==KOP_NONE) {
 		if (PoolOper!=KOP_NONE)
-			return CNN_PoolAct_fp16(Name, Ctrl, InFeat, OutFeat, Width, Height, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+			return CNN_PoolAct_fp16_Internal(Name, Ctrl, InFeat, OutFeat, Width, Height, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
 		else if (ActOper!=KOP_NONE)
-			return CNN_Act_fp16(Name, Ctrl, InFeat, Width, Height, ActOper);
+			return CNN_Act_fp16_Internal(Name, Ctrl, InFeat, Width, Height, ActOper);
 		else GenTilingError("CNN_HWC_DWConvolutionPoolAct_fp16: %s, All requested operations are KOP_NONE", Name);
 	}
 
@@ -933,6 +934,7 @@ int CNN_HWC_DWConvolutionPoolAct_fp16(
 		Fpx=1; Dpx=1; Spx=1; Fpy=1; Dpy=1; Spy=1;
 	}
 	if (Ctrl) {
+		if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
 		if (Ctrl->PadType != -1) PadType = Ctrl->PadType;
                 if (Ctrl->ReluN != -1) UB = Ctrl->ReluN;
 	}
@@ -1024,7 +1026,7 @@ int CNN_HWC_DWConvolutionPoolAct_fp16(
 	}
 
 	if (Log) {
-		printf("InFeat: %d, OutFeat: %d%s\n", InFeat, OutFeat, HWC?", HWC":", CHW");
+		printf("InFeat: %d, OutFeat: %d%s - TileOrientation: %s\n", InFeat, OutFeat, HWC?", HWC":", CHW", TileOrientation==TILE_HOR?"TILE_HOR":"TILE_VER");
         	printf("Conv => W:  %d, Pad:[%d,%d] PadT:[%d,%d] => Wc: %d, Filter:[%d,%d]\n", Width,  PadInc[0], PadInc[1], PadIncT[0], PadIncT[1], Wc, Fcx, Fcy);
         	printf("     => H:  %d, Pad:[%d,%d] PadT:[%d,%d] => Hc: %d\n", Height, PadInc[2], PadInc[3], PadIncT[2], PadIncT[3], Hc);
         	printf("Pool => Wc: %d, Pad:[%d,%d] => Wo: %d, Filter:[%d,%d]\n", Wc, PadInp[0], PadInp[1], Wo, Fpx, Fpy);
@@ -1046,7 +1048,7 @@ int CNN_HWC_DWConvolutionPoolAct_fp16(
 	UserSymbols(1, US_Float("UB", UB));
         Kernel_T *Kernel = UserKernel(Name,
 		KernelIterSpace(2, IterTiledSpace(T0), IterParSpace(D0, InFeat, 8)),
-                TILE_HOR,
+                TileOrientation,
                 CArgs(4,
                       TCArg(CNN_ArgDataTypeF(2,1,1), "In"),
                       TCArg(CNN_ArgDataTypeF(2,1,1), "Filter"),
@@ -1154,7 +1156,7 @@ int CNN_HWC_DWConvolutionPoolAct_fp16(
                                   Fcx, Fcy, Scx, Scy, Dcx, Dcy, PadInc, Fpx, Fpy, Spx, Spy, Dpx, Dpy, PadInp, KernelOper,
                                   0, 0);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 /*********************************************************************************************************************************************************************
@@ -1196,36 +1198,36 @@ int CNN_HWC_DWConvolutionPoolAct_fp16(
 	
 *********************************************************************************************************************************************************************/
 
-int CNN_ConvolutionPoolAct_fp16(
-			char         *Name,
+Kernel_T *CNN_ConvolutionPoolAct_fp16_Internal(
+	char         *Name,
 
-			CNN_GenControl_T *Ctrl,
+	CNN_GenControl_T *Ctrl,
 
-                        int InFeat,
-                        int OutFeat,
-                        int Width,
-                        int Height,
+        int InFeat,
+        int OutFeat,
+        int Width,
+        int Height,
 
-			KernelOper_T ConvOper,
-                        int Fcx,
-                        int Fcy,
-			int Dcx,
-			int Dcy,
-			int Scx,
-			int Scy,
-			int ConvPad,
+	KernelOper_T ConvOper,
+        int Fcx,
+        int Fcy,
+	int Dcx,
+	int Dcy,
+	int Scx,
+	int Scy,
+	int ConvPad,
 
-			KernelOper_T PoolOper,
-			int Fpx,
-			int Fpy,
-			int Dpx,
-			int Dpy,
-			int Spx,
-			int Spy,
-			int PoolPad,
+	KernelOper_T PoolOper,
+	int Fpx,
+	int Fpy,
+	int Dpx,
+	int Dpy,
+	int Spx,
+	int Spy,
+	int PoolPad,
 
-			KernelOper_T ActOper
-			)
+	KernelOper_T ActOper
+	)
 
 {
         int Log=1;
@@ -1255,29 +1257,32 @@ int CNN_ConvolutionPoolAct_fp16(
 
         if (ConvOper==KOP_NONE) {
                 if (PoolOper!=KOP_NONE)
-                        return CNN_PoolAct_fp16(Name, Ctrl, InFeat, OutFeat, Width, Height, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+                        return CNN_PoolAct_fp16_Internal(Name, Ctrl, InFeat, OutFeat, Width, Height, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
                 else if (ActOper!=KOP_NONE)
-                        return CNN_Act_fp16(Name, Ctrl, InFeat, Width, Height, ActOper);
+                        return CNN_Act_fp16_Internal(Name, Ctrl, InFeat, Width, Height, ActOper);
                 else GenTilingError("CNN_ConvolutionPoolAct_fp16 Kernel: %s, All requested operations are KOP_NONE", Name);
         } else if (HWC) {
                 if (ConvOper == KOP_CONV_DW)
-                        return CNN_HWC_DWConvolutionPoolAct_fp16(Name, Ctrl, InFeat, OutFeat, Width, Height,
+                        return CNN_HWC_DWConvolutionPoolAct_fp16_Internal(Name, Ctrl, InFeat, OutFeat, Width, Height,
                                                                  ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad,
                                                                  PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
                 else
-                        return CNN_MM_ConvolutionPoolAct_fp16(Name, Ctrl, InFeat, OutFeat, Width, Height,
+                        return CNN_MM_ConvolutionPoolAct_fp16_Internal(Name, Ctrl, InFeat, OutFeat, Width, Height,
                                                               ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad,
                                                               PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
         } else if (ConvOper==KOP_CONV && ((Fcx > 1 && Fcy == 1))) {
-                AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
-                int Ok = CNN_MM_ConvolutionPoolAct_fp16(Name, Ctrl, InFeat, OutFeat, Width, Height,
+                //AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+                Kernel_T *Ok = CNN_MM_ConvolutionPoolAct_fp16_Internal(Name, Ctrl, InFeat, OutFeat, Width, Height,
                                                         ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad,
                                                         PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
-                AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
-                if (Ok) return Ok;
+                //AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+                if (Ok!=0) return Ok;
                 if (Log) printf("Mapping this convolution to im2col scheme failed, reverting to standard implementation\n");
         }
-
+	if (Fcx==1 && Fcy==1 && Scx==1 && Scy==1 && Dcx==1 && Dcy==1 && Height==1 && Width==1) {
+		printf("This is a pointwise on 1x1 input --> Mapping to CNN_Linear_NE16\n");
+		return CNN_LinearAct_fp16_Internal(Name, Ctrl, InFeat, OutFeat, KOP_LINEAR, ActOper);
+	}
 
         if (PoolOper==KOP_NONE) {
                 Fpx=1; Dpx=1; Spx=1; Fpy=1; Dpy=1; Spy=1;
@@ -1363,7 +1368,7 @@ int CNN_ConvolutionPoolAct_fp16(
                 if (ActKerName==0) GenTilingError("CNN_ConvolutionPoolAct_fp16 Kernel: %s, Can't find a matching Activation basic kernel", Name);
         }
         if (Log) {
-                printf("InFeat: %d, OutFeat: %d\n", InFeat, OutFeat);
+		printf("InFeat: %d, OutFeat: %d%s - TileOrientation: %s\n", InFeat, OutFeat, HWC?", HWC":", CHW", TileOrientation==TILE_HOR?"TILE_HOR":"TILE_VER");
                 printf("Conv => W:  %d, Pad:[%d,%d] PadT:[%d,%d] => Wc: %d, Filter:[%d,%d]\n", Width,  PadInc[0], PadInc[1], PadIncT[0], PadIncT[1], Wc, Fcx, Fcy);
                 printf("     => H:  %d, Pad:[%d,%d] PadT:[%d,%d] => Hc: %d\n", Height, PadInc[2], PadInc[3], PadIncT[2], PadIncT[3], Hc);
                 printf("Pool => Wc: %d, Pad:[%d,%d] => Wo: %d, Filter:[%d,%d]\n", Wc, PadInp[0], PadInp[1], Wo, Fpx, Fpy);
@@ -1384,12 +1389,12 @@ int CNN_ConvolutionPoolAct_fp16(
                 AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
                 if ((InFeat+OutFeat)<100) {
                         if (Log) printf("Mapping this convolution to matrix multiplication with small first operand\n");
-                        int Ok = CNN_MatMulSmallM1Act_fp16(Name, 0, InFeat, OutFeat, Width*Height, InFeat, Width, Height, Scx, Scy, KOP_MATMUL_SM1, ActOper);
+                        Kernel_T *Ok = CNN_MatMulSmallM1Act_fp16_Internal(Name, 0, InFeat, OutFeat, Width*Height, InFeat, Width, Height, Scx, Scy, KOP_MATMUL_SM1, ActOper);
                         if (!Ok&&Log) printf("Mapping this convolution to matrix multiplication with small first operand FAILED, trying with standard mult implementation\n");
                         if (Ok) return Ok;
                 }
                 if (Log) printf("Mapping this convolution to matrix multiplication\n");
-                int Ok = CNN_MatMulAct_fp16(Name, 0, InFeat, OutFeat, Width*Height, InFeat, Width, Height, Scx, Scy, KOP_MATMUL, ActOper);
+                Kernel_T *Ok = CNN_MatMulAct_fp16_Internal(Name, 0, InFeat, OutFeat, Width*Height, InFeat, Width, Height, Scx, Scy, KOP_MATMUL, ActOper, 1);
                 AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
                 if (Ok) return Ok;
                 if (Log) printf("Mapping this convolution to matrix multiplication FAILED, reverting to standard implementation\n");
@@ -1519,7 +1524,7 @@ int CNN_ConvolutionPoolAct_fp16(
 				  Fcx, Fcy, Scx, Scy, Dcx, Dcy, PadInc, Fpx, Fpy, Spx, Spy, Dpx, Dpy, PadInp, KernelOper,
 				  0, 0);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 /*********************************************************************************************************************************************************************
@@ -1692,30 +1697,30 @@ int CNN_GroupedConvolutionPoolAct_fp16(
 		
 *********************************************************************************************************************************************************************/
 
-int CNN_PoolAct_fp16(
-			char *Name,
+Kernel_T *CNN_PoolAct_fp16_Internal(
+	char *Name,
 
-			CNN_GenControl_T *Ctrl,
+	CNN_GenControl_T *Ctrl,
 
-                        int InFeat,
-                        int OutFeat,
-                        int Width,
-                        int Height,
+        int InFeat,
+        int OutFeat,
+        int Width,
+        int Height,
 
-			KernelOper_T PoolOper,
-			int Fpx,
-			int Fpy,
-			int Dpx,
-			int Dpy,
-			int Spx,
-			int Spy,
-			int PoolPad,
+	KernelOper_T PoolOper,
+	int Fpx,
+	int Fpy,
+	int Dpx,
+	int Dpy,
+	int Spx,
+	int Spy,
+	int PoolPad,
 
-			KernelOper_T ActOper
-			)
+	KernelOper_T ActOper
+	)
 
 {
-        if (PoolOper==KOP_NONE && ActOper!=KOP_NONE) return CNN_Act_fp16(Name, Ctrl, InFeat, Width, Height, ActOper);
+        if (PoolOper==KOP_NONE && ActOper!=KOP_NONE) return CNN_Act_fp16_Internal(Name, Ctrl, InFeat, Width, Height, ActOper);
 
         Tile_Orientation_T TileOrientation = TILE_HOR;
         int ParFeat = 1, HWC = 0;
@@ -1875,7 +1880,7 @@ int CNN_PoolAct_fp16(
 				  KernelOper,
 				  0, 0);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 
@@ -1901,19 +1906,19 @@ int CNN_PoolAct_fp16(
 		
 *********************************************************************************************************************************************************************/
 
-int CNN_GlobalPoolAct_fp16(
-			char *Name,
+static Kernel_T *CNN_GlobalPoolAct_fp16_Internal(
+	char *Name,
 
-			CNN_GenControl_T *Ctrl,
+	CNN_GenControl_T *Ctrl,
 
-                        int InFeat,
-                        int OutFeat,
-                        int Width,
-                        int Height,
+	int InFeat,
+	int OutFeat,
+	int Width,
+	int Height,
 
-			KernelOper_T PoolOper,
-			KernelOper_T ActOper
-			)
+	KernelOper_T PoolOper,
+	KernelOper_T ActOper
+	)
 
 {
 	Tile_Orientation_T TileOrientation = TILE_HOR;
@@ -2017,7 +2022,7 @@ int CNN_GlobalPoolAct_fp16(
 				  KernelOper,
 				  0, 0);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 /*********************************************************************************************************************************************************************
@@ -2040,7 +2045,7 @@ int CNN_GlobalPoolAct_fp16(
 
 *********************************************************************************************************************************************************************/
 
-int CNN_Act_fp16(
+Kernel_T *CNN_Act_fp16_Internal(
         char *Name,
 
         CNN_GenControl_T *Ctrl,
@@ -2130,7 +2135,7 @@ int CNN_Act_fp16(
 				  ActOper,
 				  0, 0);
         }
-        return (Kernel!=0);
+        return Kernel;
 }
 
 /*********************************************************************************************************************************************************************
@@ -2154,7 +2159,7 @@ int CNN_Act_fp16(
 	
 *********************************************************************************************************************************************************************/
 
-int CNN_LinearAct_fp16(
+Kernel_T *CNN_LinearAct_fp16_Internal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -2360,7 +2365,7 @@ int CNN_LinearAct_fp16(
 				  0,
 				  (2==1)?7:15);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 /*********************************************************************************************************************************************************************
@@ -2384,7 +2389,7 @@ int CNN_LinearAct_fp16(
 	
 *********************************************************************************************************************************************************************/
 
-int CNN_SoftMax_fp16(
+static Kernel_T *CNN_SoftMax_fp16_Internal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -2448,10 +2453,10 @@ int CNN_SoftMax_fp16(
 				  KernelOper,
 				  0, 0);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
-int CNN_SoftMax2D_fp16(
+static Kernel_T *CNN_SoftMax2D_fp16_Internal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -2517,7 +2522,7 @@ int CNN_SoftMax2D_fp16(
 				  KernelOper,
 				  0, 0);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 
@@ -2544,7 +2549,7 @@ int CNN_SoftMax2D_fp16(
 *********************************************************************************************************************************************************************/
 
 
-int CNN_MatAddAct_fp16(
+static Kernel_T *CNN_MatAddAct_fp16_Internal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -2642,7 +2647,7 @@ int CNN_MatAddAct_fp16(
 				  KernelOper,
 				  0, 0);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 /*********************************************************************************************************************************************************************
@@ -2684,7 +2689,7 @@ int CNN_MatAddPaddedAct_fp16(
 
 {
         if (PadBot == 0 && PadTop == 0) return CNN_MatAddAct_fp16(Name, Ctrl, Feat, Feat, Width, Height, AddMatOper, ActOper);
-        if (PadTop + PadBot > Feat) GenTilingError("int CNN_MatAddPaddedAct_SQ8 Kernel: %s, Padding exceeds channel size", Name);
+        if (PadTop + PadBot > Feat) GenTilingError("int CNN_MatAddPaddedAct_fp16 Kernel: %s, Padding exceeds channel size", Name);
         int FeatBody = Feat - PadTop - PadBot;
         int Ok = 1;
 
@@ -2799,7 +2804,7 @@ int CNN_MatAddPaddedAct_fp16(
 	
 *********************************************************************************************************************************************************************/
 
-int CNN_MatMulAct_fp16(
+Kernel_T *CNN_MatMulAct_fp16_Internal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -2815,7 +2820,8 @@ int CNN_MatMulAct_fp16(
 	int Scy,
 
         KernelOper_T MatMulOper,
-        KernelOper_T ActOper
+        KernelOper_T ActOper,
+        int InvertInputs
 )
 
 {
@@ -2891,8 +2897,8 @@ int CNN_MatMulAct_fp16(
 		KernelIterSpace(2, IterTiledSpace(T1), IterTiledSpace(T0)),
                 TILE_HOR,
                 CArgs(4,
-                      TCArg(CNN_ArgDataTypeF(2,1,1),  "In2"),
-                      TCArg(CNN_ArgDataTypeF(2,1,1),  "In1"),
+                      TCArg(CNN_ArgDataTypeF(2,1,1),  InvertInputs?"In2":"In1"),
+                      TCArg(CNN_ArgDataTypeF(2,1,1),  InvertInputs?"In1":"In2"),
                       !NoBias?TCArg(CNN_ArgDataTypeF(2,1,1), "Bias"):AT_NO_C_ARG,
                       TCArg(CNN_ArgDataTypeF(2,1,1),  "Out")
                 ),
@@ -2959,7 +2965,7 @@ int CNN_MatMulAct_fp16(
 			  	KernelOper,
 			  	0, 0);
 	}
-	return (Kernel!=0);
+	return Kernel;
 }
 
 /*********************************************************************************************************************************************************************
@@ -2995,7 +3001,7 @@ int CNN_MatMulAct_fp16(
 	
 *********************************************************************************************************************************************************************/
 
-int CNN_MatMulSmallM1Act_fp16(
+Kernel_T *CNN_MatMulSmallM1Act_fp16_Internal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -3146,7 +3152,287 @@ int CNN_MatMulSmallM1Act_fp16(
 			  	KernelOper,
 			  	0, 0);
 	}
-	return (Kernel!=0);
+	return Kernel;
 
+}
+
+
+/* ============================================================================================================================================================== */
+/* ============================================================================================================================================================== */
+/* ============================================================================================================================================================== */
+/* ============================================================================================================================================================== */
+/* ============================================================================================================================================================== */
+/* ============================================================================================================================================================== */
+/* ============================================================================================================================================================== */
+
+int CNN_MM_ConvolutionPoolAct_fp16(
+	char         *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+       	int InFeat,
+       	int OutFeat,
+       	int Width,
+       	int Height,
+
+	KernelOper_T ConvOper,
+       	int Fcx,
+       	int Fcy,
+	int Dcx,
+	int Dcy,
+	int Scx,
+	int Scy,
+	int ConvPad,
+
+	KernelOper_T PoolOper,
+	int Fpx,
+	int Fpy,
+	int Dpx,
+	int Dpy,
+	int Spx,
+	int Spy,
+	int PoolPad,
+
+	KernelOper_T ActOper
+	)
+{
+	Kernel_T *Ker = 0, *Sol1 = 0, *Sol2 = 0;
+        float K = 0.9;
+        Tile_Orientation_T TileOrientation = TILE_HOR;
+        if (Ctrl) {
+		if (Ctrl->TileOrientation != -1) {
+			printf("TileOrientation set by user\n");
+			Ker = CNN_MM_ConvolutionPoolAct_fp16_Internal(Name, Ctrl, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+			if (Ker!=0) return 1;
+			else GenTilingError("CNN_MM_ConvolutionPoolAct_fp16: %s, Failed to gen with set tiling orientation, try to let the Autotiler set it for you", Name);
+		}
+	}
+
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+
+	CNN_GenControl_T InternalCtrl;
+	if (!Ctrl) CNN_InitGenCtrl(&InternalCtrl);
+    	else 	   InternalCtrl = *Ctrl;
+
+	printf("\n\n=============================== Trying Tile Orientation: TILE_HOR ===============================\n\n");
+    	CNN_SetGenCtrl(&InternalCtrl, "TILEORIENTATION", AT_OPT_VAL(0));
+        Ker = CNN_MM_ConvolutionPoolAct_fp16_Internal(Name, &InternalCtrl, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+        if (Ker) Sol1 = CopyAndPopUserKernel(Ker);
+
+	printf("\n=============================== Trying Tile Orientation: TILE_VER ===============================\n\n");
+    	CNN_SetGenCtrl(&InternalCtrl, "TILEORIENTATION", AT_OPT_VAL(1));
+        Ker = CNN_MM_ConvolutionPoolAct_fp16_Internal(Name, &InternalCtrl, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+        if (Ker) Sol2 = CopyAndPopUserKernel(Ker);
+
+        if (Sol1 && Sol2) {
+		int TakeSol1 = ((K*Sol1->Cost->TileOverhead) < Sol2->Cost->TileOverhead);  // K close to 1.0if (TakeSol1) {
+		printf(">>>>>>>>>>>>>>>>>> %s is better: %.3f vs %.3f \n\n\n", TakeSol1?"TILE_HOR":"TILE_VER", Sol1->Cost->TileOverhead, Sol2->Cost->TileOverhead);
+		if (TakeSol1) {
+                    PushBackUserKernel(Sol1); ReleaseUserKerne(Sol2);
+                } else {
+                    PushBackUserKernel(Sol2); ReleaseUserKerne(Sol1);
+                }
+        } else if (Sol1) {
+                PushBackUserKernel(Sol1); ReleaseUserKerne(Sol2);
+	} else if (Sol2) {
+                PushBackUserKernel(Sol2); ReleaseUserKerne(Sol1);
+	} else {
+		GenTilingError("Failed to Generate code for Kernel: %s", Name);
+	}
+        AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+        return 1;
+}
+
+int CNN_HWC_DWConvolutionPoolAct_fp16(
+	char         *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+       	int InFeat,
+       	int OutFeat,
+       	int Width,
+       	int Height,
+
+	KernelOper_T ConvOper,
+       	int Fcx,
+       	int Fcy,
+	int Dcx,
+	int Dcy,
+	int Scx,
+	int Scy,
+	int ConvPad,
+
+	KernelOper_T PoolOper,
+	int Fpx,
+	int Fpy,
+	int Dpx,
+	int Dpy,
+	int Spx,
+	int Spy,
+	int PoolPad,
+
+	KernelOper_T ActOper
+	)
+{
+	Kernel_T *Ker = 0, *Sol1 = 0, *Sol2 = 0;
+        float K = 0.9;
+        Tile_Orientation_T TileOrientation = TILE_HOR;
+        if (Ctrl) {
+		if (Ctrl->TileOrientation != -1) {
+			printf("TileOrientation set by user\n");
+			Ker = CNN_HWC_DWConvolutionPoolAct_fp16_Internal(Name, Ctrl, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+			if (Ker!=0) return 1;
+			else GenTilingError("CNN_MM_ConvolutionPoolAct_fp16: %s, Failed to gen with set tiling orientation, try to let the Autotiler set it for you", Name);
+		}
+	}
+
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+
+	CNN_GenControl_T InternalCtrl;
+	if (!Ctrl) CNN_InitGenCtrl(&InternalCtrl);
+    	else 	   InternalCtrl = *Ctrl;
+
+	printf("\n\n=============================== Trying Tile Orientation: TILE_HOR ===============================\n\n");
+    	CNN_SetGenCtrl(&InternalCtrl, "TILEORIENTATION", AT_OPT_VAL(0));
+        Ker = CNN_HWC_DWConvolutionPoolAct_fp16_Internal(Name, &InternalCtrl, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+        if (Ker) Sol1 = CopyAndPopUserKernel(Ker);
+
+	printf("\n=============================== Trying Tile Orientation: TILE_VER ===============================\n\n");
+    	CNN_SetGenCtrl(&InternalCtrl, "TILEORIENTATION", AT_OPT_VAL(1));
+        Ker = CNN_HWC_DWConvolutionPoolAct_fp16_Internal(Name, &InternalCtrl, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+        if (Ker) Sol2 = CopyAndPopUserKernel(Ker);
+
+        if (Sol1 && Sol2) {
+		int TakeSol1 = ((K*Sol1->Cost->TileOverhead) < Sol2->Cost->TileOverhead);  // K close to 1.0if (TakeSol1) {
+		printf(">>>>>>>>>>>>>>>>>> %s is better: %.3f vs %.3f \n\n\n", TakeSol1?"TILE_HOR":"TILE_VER", Sol1->Cost->TileOverhead, Sol2->Cost->TileOverhead);
+		if (TakeSol1) {
+                    PushBackUserKernel(Sol1); ReleaseUserKerne(Sol2);
+                } else {
+                    PushBackUserKernel(Sol2); ReleaseUserKerne(Sol1);
+                }
+        } else if (Sol1) {
+                PushBackUserKernel(Sol1); ReleaseUserKerne(Sol2);
+	} else if (Sol2) {
+                PushBackUserKernel(Sol2); ReleaseUserKerne(Sol1);
+	} else {
+		GenTilingError("Failed to Generate code for Kernel: %s", Name);
+	}
+        AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+        return 1;
+}
+
+int CNN_ConvolutionPoolAct_fp16(
+	char         *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+       	int InFeat,
+       	int OutFeat,
+       	int Width,
+       	int Height,
+
+	KernelOper_T ConvOper,
+       	int Fcx,
+       	int Fcy,
+	int Dcx,
+	int Dcy,
+	int Scx,
+	int Scy,
+	int ConvPad,
+
+	KernelOper_T PoolOper,
+	int Fpx,
+	int Fpy,
+	int Dpx,
+	int Dpy,
+	int Spx,
+	int Spy,
+	int PoolPad,
+
+	KernelOper_T ActOper
+	)
+{
+	Kernel_T *Ker = 0, *Sol1 = 0, *Sol2 = 0;
+        float K = 0.9;
+        Tile_Orientation_T TileOrientation = TILE_HOR;
+        if (Ctrl) {
+		if (Ctrl->TileOrientation != -1) {
+			printf("TileOrientation set by user\n");
+			Ker = CNN_ConvolutionPoolAct_fp16_Internal(Name, Ctrl, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+			if (Ker!=0) return 1;
+			else GenTilingError("CNN_ConvolutionPoolAct_fp16: %s, Failed to gen with set tiling orientation, try to let the Autotiler set it for you", Name);
+		}
+	}
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+
+	CNN_GenControl_T InternalCtrl;
+	if (!Ctrl) CNN_InitGenCtrl(&InternalCtrl);
+    	else 	   InternalCtrl = *Ctrl;
+
+	printf("\n\n=============================== Trying Tile Orientation: TILE_HOR ===============================\n\n");
+    	CNN_SetGenCtrl(&InternalCtrl, "TILEORIENTATION", AT_OPT_VAL(0));
+        Ker = CNN_ConvolutionPoolAct_fp16_Internal(Name, &InternalCtrl, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+        if (Ker) Sol1 = CopyAndPopUserKernel(Ker);
+
+	printf("\n=============================== Trying Tile Orientation: TILE_VER ===============================\n\n");
+    	CNN_SetGenCtrl(&InternalCtrl, "TILEORIENTATION", AT_OPT_VAL(1));
+        Ker = CNN_ConvolutionPoolAct_fp16_Internal(Name, &InternalCtrl, InFeat, OutFeat, Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
+        if (Ker) Sol2 = CopyAndPopUserKernel(Ker);
+
+        if (Sol1 && Sol2) {
+		int TakeSol1 = ((K*Sol1->Cost->TileOverhead) < Sol2->Cost->TileOverhead);  // K close to 1.0if (TakeSol1) {
+		printf(">>>>>>>>>>>>>>>>>> %s is better: %.3f vs %.3f \n\n\n", TakeSol1?"TILE_HOR":"TILE_VER", Sol1->Cost->TileOverhead, Sol2->Cost->TileOverhead);
+		if (TakeSol1) {
+                    PushBackUserKernel(Sol1); ReleaseUserKerne(Sol2);
+                } else {
+                    PushBackUserKernel(Sol2); ReleaseUserKerne(Sol1);
+                }
+        } else if (Sol1) {
+                PushBackUserKernel(Sol1); ReleaseUserKerne(Sol2);
+	} else if (Sol2) {
+                PushBackUserKernel(Sol2); ReleaseUserKerne(Sol1);
+	} else {
+		GenTilingError("Failed to Generate code for Kernel: %s", Name);
+	}
+        AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+        return 1;
+}
+
+int CNN_PoolAct_fp16(char *Name, CNN_GenControl_T *Ctrl, int InFeat, int OutFeat, int Width, int Height, KernelOper_T PoolOper, int Fpx, int Fpy, int Dpx, int Dpy, int Spx, int Spy, int PoolPad, KernelOper_T ActOper)
+{
+	return (CNN_PoolAct_fp16_Internal(Name, Ctrl, InFeat, OutFeat, Width, Height, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper)!=0);
+}
+
+int CNN_Act_fp16(char *Name, CNN_GenControl_T *Ctrl, int Feat, int Width, int Height,KernelOper_T ActOper) {
+	return (CNN_Act_fp16_Internal(Name, Ctrl, Feat, Width, Height, ActOper)!=0);
+}
+
+int CNN_GlobalPoolAct_fp16(char *Name, CNN_GenControl_T *Ctrl, int InFeat, int OutFeat, int Width, int Height, KernelOper_T PoolOper, KernelOper_T ActOper) {
+	return (CNN_GlobalPoolAct_fp16_Internal(Name, Ctrl, InFeat, OutFeat, Width, Height, PoolOper, ActOper)!=0);
+}
+
+int CNN_LinearAct_fp16(char *Name, CNN_GenControl_T *Ctrl, int InDim, int OutDim, KernelOper_T LinearOper, KernelOper_T ActOper)
+{
+	return (CNN_LinearAct_fp16_Internal(Name, Ctrl, InDim, OutDim, LinearOper, ActOper)!=0);
+}
+
+int CNN_SoftMax_fp16(char *Name, CNN_GenControl_T *Ctrl, int Dim, KernelOper_T SoftMaxOper) {
+	return (CNN_SoftMax_fp16_Internal(Name, Ctrl, Dim, SoftMaxOper)!=0);
+}
+
+int CNN_SoftMax2D_fp16(char *Name, CNN_GenControl_T *Ctrl, int Dim, int N, KernelOper_T SoftMaxOper) {
+	return (CNN_SoftMax2D_fp16_Internal(Name, Ctrl, Dim, N, SoftMaxOper)!=0);
+}
+
+int CNN_MatAddAct_fp16(char *Name, CNN_GenControl_T *Ctrl, int InFeat, int OutFeat, int Width, int Height, KernelOper_T AddMatOper, KernelOper_T ActOper) {
+	return (CNN_MatAddAct_fp16_Internal(Name, Ctrl, InFeat, OutFeat, Width, Height, AddMatOper, ActOper)!=0);
+}
+
+int CNN_MatMulAct_fp16(char *Name, CNN_GenControl_T *Ctrl, int ColM1, int LineM1, int ColM2, int LineM2, int Width, int Height, int Scx, int Scy, KernelOper_T MatMulOper, KernelOper_T ActOper) {
+	return (CNN_MatMulAct_fp16_Internal(Name, Ctrl, ColM1, LineM1, ColM2, LineM2, Width, Height, Scx, Scy, MatMulOper, ActOper, 1)!=0);
+}
+
+int CNN_MatMulSmallM1Act_fp16(char *Name, CNN_GenControl_T *Ctrl, int ColM1, int LineM1, int ColM2, int LineM2, int Width, int Height, int Scx, int Scy, KernelOper_T MatMulOper, KernelOper_T ActOper) {
+	return (CNN_MatMulSmallM1Act_fp16_Internal(Name, Ctrl, ColM1, LineM1, ColM2, LineM2, Width, Height, Scx, Scy, MatMulOper, ActOper)!=0);
 }
 

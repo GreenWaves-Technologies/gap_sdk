@@ -9,14 +9,23 @@ def gen_fft_twiddles_lut(Nfft, Inverse=False, rad4=False):
         Twiddles_real = np.cos(-Phi)
         Twiddles_imag = np.sin(-Phi)
     if rad4:
-        return np.stack([Twiddles_real[:int(3*Nfft/4)], Twiddles_imag[:int(3*Nfft/4)]], axis=0)
-    return np.stack([Twiddles_real[:Nfft//2], Twiddles_imag[:Nfft//2]], axis=0)
+        twid = np.empty((2 * int(3*Nfft/4), ), dtype=Twiddles_real.dtype)
+        twid[0::2] = Twiddles_real[:int(3*Nfft/4)]
+        twid[1::2] = Twiddles_imag[:int(3*Nfft/4)]
+        return twid
+    twid = np.empty((2 * int(Nfft//2), ), dtype=Twiddles_real.dtype)
+    twid[0::2] = Twiddles_real[:int(Nfft//2)]
+    twid[1::2] = Twiddles_imag[:int(Nfft//2)]
+    return twid
 
 def gen_rfft_twiddles_lut(Nfft):
     Phi = (np.pi * 2 / Nfft) * np.arange(0, Nfft//2)
     Twiddles_real = np.sin(Phi)
     Twiddles_imag = np.cos(Phi)
-    return np.stack([Twiddles_real, Twiddles_imag], axis=0)
+    twid = np.empty((Twiddles_real.size + Twiddles_imag.size, ), dtype=Twiddles_real.dtype)
+    twid[0::2] = Twiddles_real
+    twid[1::2] = Twiddles_imag
+    return twid
 
 def gen_fft_swaptable_lut(Ni, rad4=False):
     if rad4:

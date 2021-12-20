@@ -34,6 +34,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int32_t memcmp(const void *str1, const void *str2, size_t n);
 
 void *memcpy(void *str1, const void *str2, size_t n);
@@ -59,5 +63,9 @@ size_t strspn(const char *s, const char *accept);
 size_t strcspn(const char *s, const char *reject);
 
 char *strchr(const char *s, int c);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* __STRING_H__ */

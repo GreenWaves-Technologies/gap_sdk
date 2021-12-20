@@ -3,6 +3,7 @@
 import argparse
 import os
 from subprocess import Popen, PIPE
+import sys
 
 
 parser = argparse.ArgumentParser(description='Generate PC debug info')
@@ -124,6 +125,11 @@ for f in functions:
 
 
 # And finally generate the output files
+
+if args.allFile is None and args.pcFile is None and args.debugFile is None and args.inlineFile is None:
+	for f in functions:
+		f.dumpAll(sys.stdout)
+
 
 # PC oriented file
 if args.allFile != None:

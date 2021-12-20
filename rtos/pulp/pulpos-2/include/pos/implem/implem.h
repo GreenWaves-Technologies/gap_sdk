@@ -141,6 +141,7 @@ static inline void pmsis_exit(int err)
 #if defined(__GAP9__)
 #include "pos/implem/hyperbus-v2.h"
 #include "pos/implem/octospi-v2.h"
+#include "pos/implem/i2s-v3.h"
 #endif
 #endif
 

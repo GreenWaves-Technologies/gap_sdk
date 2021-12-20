@@ -90,9 +90,13 @@ class MatMulMixin(PromoteLinearMixin):
                 )
         else:
             params = MatMulTransposedParameters(valid_name)
-            trans2 = TransposeParameters(f'{valid_name}_tin2', transpose=(1, 0))
+            trans_shape = [i for i in range(len(y_shape))]
+            temp = trans_shape[-1]
+            trans_shape[-1] = trans_shape[-2]
+            trans_shape[-2] = temp
+            trans2 = TransposeParameters(f'{valid_name}_tin2', transpose=tuple(trans_shape))
             out_dims = params.get_output_size(
-                [Dim.unnamed(x_shape), Dim.unnamed(y_shape[::-1])])
+                [Dim.unnamed(x_shape), Dim.unnamed(y_shape[:-2] + y_shape[-2:][::-1])])
             G.add_edge(
                 NNEdge(from_node=y[0], to_node=trans2, from_idx=y[1], to_idx=0))
             G.add_edge(

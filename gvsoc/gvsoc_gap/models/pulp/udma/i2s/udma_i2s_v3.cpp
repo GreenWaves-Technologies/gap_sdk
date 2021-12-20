@@ -239,29 +239,32 @@ void I2s_periph::handle_sdo(bool no_restart)
                 {
                     this->tx_wait_data_init &= ~(1 << this->active_channel);
                     data = this->tx_fifo[this->active_channel].front();
-
                     this->tx_fifo[this->active_channel].pop();
                 }
                 else
                 {
                     if (((this->tx_wait_data_init >> this->active_channel) & 1) == 0)
                     {
+                        this->trace.msg(vp::trace::LEVEL_DEBUG, "Generating TX error (slot: %d)\n", this->active_channel);
                         this->regmap.err_status.set(this->regmap.err_status.get() | (1 << (this->active_channel + 16)));
                     }
                 }
 
                 this->tx_pending_value = this->handle_tx_format(channel, data);
 
-                this->trace.msg(vp::trace::LEVEL_DEBUG, "Got new TX sample (value: 0x%x, width: %d)\n", this->tx_pending_value, this->tx_pending_bits);
-
+                this->trace.msg(vp::trace::LEVEL_DEBUG, "Got new TX sample (slot: %d, value: 0x%x, width: %d)\n", this->active_channel, this->tx_pending_value, this->tx_pending_bits);
 
                 // Now ask the next sample to the channel so that it is ready for the
                 // next frame.
                 // The channel id is pushed now since we the samples are received in order
                 // and we don't know what is the slot when we receive the sample from the channel
 
-                this->tx_fifo_slot_id.push(this->active_channel);
-                channel->get_data(channel->slot_cfg->tx_dsize_get() + 1, channel->slot_cfg->tx_id_get());
+                if (channel->is_active() || channel->slot_cfg->tx_id_get() >= 0xe0)
+                {
+                    this->tx_fifo_slot_id.push(this->active_channel);
+
+                    channel->get_data(channel->slot_cfg->tx_dsize_get() + 1, channel->slot_cfg->tx_id_get());
+                }
             }
 
             if (this->tx_pending_bits > 0)
@@ -1065,7 +1068,7 @@ void I2s_tx_channel::push_data(uint8_t *data, int size)
     uint32_t value = 0;
     memcpy((void *)&value, (void *)data, size);
 
-    this->periph->trace.msg(vp::trace::LEVEL_INFO, "Received TX sample from memory (value: 0x%x)\n", value);
+    this->periph->trace.msg(vp::trace::LEVEL_INFO, "Received TX sample from memory (slot: %d, value: 0x%x)\n", this->periph->tx_fifo_slot_id.front(), value);
 
     this->periph->tx_fifo[this->periph->tx_fifo_slot_id.front()].push(value);
     this->periph->tx_fifo_slot_id.pop();

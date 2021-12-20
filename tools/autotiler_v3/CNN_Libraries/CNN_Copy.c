@@ -39,9 +39,14 @@ float to_float(unsigned short v) {
 #endif
 #else
 #ifndef TO_FLOAT
-#define TO_FLOAT(x) *((F16 *)&x)
+#define TO_FLOAT(x) *((F16 *) (&x))
 #endif
 #endif
+
+typedef union {
+	float F;
+	int I;
+} f32_cast_t;
 
 static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int X)
 
@@ -1706,8 +1711,13 @@ void CNN_FpFloat16(CNN_FpFloat16_T * Arg)
 	unsigned int Iter = Max(0, Last-First);
 	signed short *pIn = (signed short *) (Arg->In + First);
 	F16V *pOut = (F16V *) (Arg->Out + First);
-	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
-	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	F16 zero_diff = (F16) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	F16 scale = (F16) caster.F;
+
 	F16V scale_v = gap_pack2f16(scale, scale);
 	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
 
@@ -1731,8 +1741,13 @@ void CNN_UFpFloat16(CNN_UFpFloat16_T * Arg)
 	unsigned int Iter = Max(0, Last-First);
 	unsigned short *pIn = (unsigned short *) (Arg->In + First);
 	F16V *pOut = (F16V *) (Arg->Out + First);
-	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
-	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	F16 zero_diff = (F16) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	F16 scale = (F16) caster.F;
+
 	F16V scale_v = gap_pack2f16(scale, scale);
 	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
 
@@ -1756,8 +1771,13 @@ void CNN_FpsFloat16(CNN_FpsFloat16_T * Arg)
 	unsigned int Iter = Max(0, Last-First);
 	signed char *pIn = (signed char *) (Arg->In + First);
 	F16V *pOut = (F16V *) (Arg->Out + First);
-	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
-	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	F16 zero_diff = (F16) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	F16 scale = (F16) caster.F;
+
 	F16V scale_v = gap_pack2f16(scale, scale);
 	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
 
@@ -1781,8 +1801,13 @@ void CNN_UFpsFloat16(CNN_UFpsFloat16_T * Arg)
 	unsigned int Iter = Max(0, Last-First);
 	unsigned char *pIn = (signed char *) (Arg->In + First);
 	F16V *pOut = (F16V *) (Arg->Out + First);
-	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
-	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	F16 zero_diff = (F16) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	F16 scale = (F16) caster.F;
+
 	F16V scale_v = gap_pack2f16(scale, scale);
 	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
 
@@ -1806,8 +1831,13 @@ void CNN_Float16Fp(CNN_Float16Fp_T * Arg)
 	unsigned int Iter = Max(0, Last-First);
 	F16V *pIn = (F16V *) (Arg->In + First);
 	v2s *pOut = (v2s *) (Arg->Out + First);
-	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
-	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	F16 zero_diff = (F16) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	F16 scale = (F16) caster.F;
+
 	F16V scale_v = gap_pack2f16(scale, scale);
 	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
 	F16V max_v = gap_pack2f16(32767.0F, 32767.0F);
@@ -1836,8 +1866,13 @@ void CNN_Float16UFp(CNN_Float16UFp_T * Arg)
 	unsigned int Iter = Max(0, Last-First);
 	F16V *pIn = (F16V *) (Arg->In + First);
 	v2u *pOut = (v2u *) (Arg->Out + First);
-	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
-	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	F16 zero_diff = (F16) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	F16 scale = (F16) caster.F;
+
 	F16V scale_v = gap_pack2f16(scale, scale);
 	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
 	F16V max_v = gap_pack2f16(65535.0F, 65535.0F);
@@ -1866,8 +1901,13 @@ void CNN_Float16Fps(CNN_Float16Fps_T * Arg)
 	unsigned int Iter = Max(0, Last-First);
 	F16V *pIn = (F16V *) (Arg->In + First);
 	v4s *pOut = (v4s *) (Arg->Out + First);
-	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
-	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	F16 zero_diff = (F16) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	F16 scale = (F16) caster.F;
+
 	F16V scale_v = gap_pack2f16(scale, scale);
 	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
 	F16V max_v = gap_pack2f16(127.0F, 127.0F);
@@ -1903,8 +1943,13 @@ void CNN_Float16UFps(CNN_Float16UFps_T * Arg)
 	unsigned int Iter = Max(0, Last-First);
 	F16V *pIn = (F16V *) (Arg->In + First);
 	v4u *pOut = (v4u *) (Arg->Out + First);
-	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
-	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	F16 zero_diff = (F16) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	F16 scale = (F16) caster.F;
+
 	F16V scale_v = gap_pack2f16(scale, scale);
 	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
 	F16V max_v = gap_pack2f16(255.0F, 255.0F);
@@ -1930,6 +1975,173 @@ void CNN_Float16UFps(CNN_Float16UFps_T * Arg)
 		pcIn++;
 	}
 	gap_waitbarrier(0);
+}
+
+void CNN_FpFloat32(CNN_FpFloat32_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	signed short *pIn = (signed short *) (Arg->In);
+	float *pOut = (float *) (Arg->Out);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	float zero_diff = (float) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	float scale = (float) caster.F;
+
+	for (int i=First; i<Last; i++) {
+		pOut[i] = (pIn[i] + zero_diff) * scale;
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_UFpFloat32(CNN_UFpFloat32_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	unsigned short *pIn = (unsigned short *) (Arg->In);
+	float *pOut = (float *) (Arg->Out);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	float zero_diff = (float) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	float scale = (float) caster.F;
+
+	for (int i=First; i<Last; i++) {
+		pOut[i] = (pIn[i] + zero_diff) * scale;
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpsFloat32(CNN_FpsFloat32_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	signed char *pIn = (signed char *) (Arg->In);
+	float *pOut = (float *) (Arg->Out);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	float zero_diff = (float) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	float scale = (float) caster.F;
+
+	for (int i=First; i<Last; i++) {
+		pOut[i] = (pIn[i] + zero_diff) * scale;
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_UFpsFloat32(CNN_UFpsFloat32_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	unsigned char *pIn = (signed char *) (Arg->In);
+	float *pOut = (float *) (Arg->Out);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	float zero_diff = (float) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	float scale = (float) caster.F;
+
+	for (int i=First; i<Last; i++) {
+		pOut[i] = (pIn[i] + zero_diff) * scale;
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_Float32Fp(CNN_Float32Fp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	float *pIn = (float *) (Arg->In);
+	signed short int *pOut = (short int *) (Arg->Out);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	float zero_diff = (float) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	float scale = (float) caster.F;
+
+	for (int i=First; i<Last; i++) {
+		pOut[i] = (signed short int) Clipf32((pIn[i] + zero_diff) * scale, 32767.0F, -32768.0F);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_Float32UFp(CNN_Float32UFp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	float *pIn = (float *) (Arg->In);
+	unsigned short int *pOut = (unsigned short int *) (Arg->Out);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	float zero_diff = (float) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	float scale = (float) caster.F;
+
+	for (int i=First; i<Last; i++) {
+		pOut[i] = (unsigned short int) Clipf32((pIn[i] + zero_diff) * scale, 65535.0F, 0.0F);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_Float32Fps(CNN_Float32Fps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	float *pIn = (float *) (Arg->In);
+	signed char *pOut = (signed char *) (Arg->Out);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	float zero_diff = (float) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	float scale = (float) caster.F;
+
+	for (int i=First; i<Last; i++) {
+		pOut[i] = (signed char) Clipf32((pIn[i] + zero_diff) * scale, 127.0F, -128.0F);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_Float32UFps(CNN_Float32UFps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	float *pIn = (float *) (Arg->In);
+	unsigned char *pOut = (unsigned char *) (Arg->Out);
+
+	f32_cast_t caster;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_ZERO_DIFF));
+	float zero_diff = (float) caster.F;
+	caster.I = *((int *) (Arg->Infos + AT_INF_QUANT_SCALE));
+	float scale = (float) caster.F;
+
+	for (int i=First; i<Last; i++) {
+		pOut[i] = (unsigned char) Clipf32((pIn[i] + zero_diff) * scale, 255.0F, 0.0F);
+	}
 }
 
 #pragma GCC diagnostic pop

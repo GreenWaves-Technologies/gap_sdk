@@ -134,7 +134,7 @@ void LoadCNN_NE16_SQ8_Library()
                         TCArg("unsigned char",                "Dy")
                         )
         );
-        LibKernelTemplate("Ker_MM_Conv_NE16_T",
+        LibKernelTemplate("KerConv_MM_NE16_T",
                   CArgs(28,
                         TCArg("unsigned char * __restrict__", "In"),
                         TCArg("unsigned char * __restrict__", "ColBuff"),
@@ -239,13 +239,13 @@ void LoadCNN_NE16_SQ8_Library()
                 CNN_Match(CNN_OperList(1, KOP_CONV_DW), 0, -1, CNN_Type(0,0,0,0,4), 3,3,1,1,1,1));
         LibKernel("KerConvDW3x3Stride2_NE16",   CALL_SEQUENTIAL_STRUCT|CALL_NE16_KER, 0, "KerConv_NE16_T",
                 CNN_Match(CNN_OperList(1, KOP_CONV_DW), 0, -1, CNN_Type(0,0,0,0,4), 3,3,1,1,2,2));
+        LibKernel("Ker_MM_Conv2D_NE16",     CALL_PARALLEL_CC|CALL_NE16_KER, 0, "KerConv_MM_NE16_T",
+                CNN_Match(CNN_OperList(1, KOP_MM_CONV), 0, -1, CNN_Type(0,0,0,0,4), -1,-1, 1, 1,-1,-1));
 
         LibKernel("KerLinear_8a_NE16",          CALL_SEQUENTIAL_STRUCT|CALL_NE16_KER, 0, "KerLinear_NE16_T",
                 CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_NONE), -1, CNN_Type(1,0,4,0,0), 0,0,0,0,0,0));
         LibKernel("KerLinear_16a_NE16",         CALL_SEQUENTIAL_STRUCT|CALL_NE16_KER, 0, "KerLinear_NE16_T",
                 CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_NONE), -1, CNN_Type(2,0,4,0,0), 0,0,0,0,0,0));
-        LibKernel("Ker_MM_Conv2D_NE16",         CALL_PARALLEL_CC|CALL_NE16_KER,       0, "Ker_MM_Conv_NE16_T",
-                CNN_Match(CNN_OperList(1, KOP_MM_CONV), 0, -1, CNN_Type(1,1,0,0,4), -1,-1,1,1,-1,-1));
 
         LibKernel("KerMatMul_8a_NE16",          CALL_PARALLEL_CC|CALL_NE16_KER, 0, "KerMatMul_NE16_T",
                 CNN_Match(CNN_OperList(1, KOP_MATMUL_TRANSPOSED), CNN_OperList(1, KOP_NONE), 0, CNN_Type(1,0,4,0,0), 0,0,0,0,0,0));
@@ -259,7 +259,7 @@ void LoadCNN_NE16_SQ8_Library()
 }
 
 
-int CNN_MM_ConvolutionNE16(
+Kernel_T *CNN_MM_ConvolutionNE16(
         char         *Name,
 
         CNN_GenControl_T *Ctrl,
@@ -335,7 +335,7 @@ int CNN_MM_ConvolutionNE16(
         if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_RELUM || ActOper == KOP_HSIGMOID || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU || ActOper == KOP_SIGMOID || ActOper == KOP_TANH))
                 GenTilingError("CNN_MM_ConvolutionNE16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_RELUM, KOP_HSIGMOID, KOP_HSWISH, KOP_LEAKYRELU, KOP_SIGMOID or KOP_TANH", Name);
 
-        Wa |= O_NE16_RNN;
+        Wa |= O_NE16_LIN | O_LINEAR;
         /* When there is a special activation (not supported by the accelerator itself), you need to streamout 32bits and do the act in the cluster but the ((*S) >> N) is done in the accelerator (KOP_DP_REDUCT_NOSCALE) */
         int NeedReductNoScale = !(ActOper == KOP_RELU || ActOper == KOP_NONE);
         /* Also when in/out are 16bits you need to streamout 32bits but here the reduction step will be done in the cluster (KOP_DP_REDUCT) */
@@ -365,7 +365,7 @@ int CNN_MM_ConvolutionNE16(
 
         /* Im2Col Size is aligned to 16bits for linear padding */
         int Im2ColSize = InFeat*Fcx*Fcy;
-        int WBuffSize = ALIGN(Im2ColSize, 4);
+        int WBuffSize = Im2ColSize;
         int BuffS = 2*ALIGN(Im2ColSize, 4);
 
         /* Layer number of operations and memory bandwidth requirements */
@@ -432,19 +432,18 @@ int CNN_MM_ConvolutionNE16(
         unsigned int DEFAULT_NE16_JOB_CFG = NE16_DefaultConfig(Filter_DataSizeBits, Mode16, StreamoutMode, FilterMode, LinearMode, StridedMode, NormBits, Streamin, \
                                                                WOffsetCfg, QuantRightShift, QuantBits, QuantNoRect, NormShift, NormBias);
 
-        int Ca=0;
-        KCArgs[Ca++] = TCArg(In_DataSize>0?CNN_ArgDataType(In_DataSize,1,1):CNN_ArgDataTypeUns(-In_DataSize,1,1), "In");
-        KCArgs[Ca++] = TCArg(CNN_ArgDataTypeUns(1,         1,1), "Filter"); // int16_t for 16 chin contributions
-        KCArgs[Ca++] = TCArg(CNN_ArgDataType(Bias_DataSize,1,1),   "Bias");
-        KCArgs[Ca++] = TCArg(Out_DataSize>0?CNN_ArgDataType(Out_DataSize,1,1):CNN_ArgDataTypeUns(-Out_DataSize,1,1), "Out");
-        KCArgs[Ca++] = TCArg(CNN_ArgDataTypeUns(1,         1,1),  "Scale");
-        KCArgs[Ca++] = TCArg(CNN_ArgDataType(1,            1,1), "ScaleN");
-        KCArgs[Ca++] = TCArg(CNN_ArgDataType(1,            1,1),  "Infos");
-
         Kernel = UserKernel(Name,
-                KernelIterSpace(3, IterParSpace(D1, OutFeat, OutTileCons), IterTiledSpace(T0), IterParSpace(D0, InFeat, InTileCons)),
+                KernelIterSpace(3, IterParSpace(D1, OutFeat, OutTileCons), IterTiledSpace(T0), IterParSpace(D0|SPACE_PROP_ONE_TILE, InFeat, InTileCons)),
                 TILE_HOR|TILE_HWC,
-                KCArgs,
+                CArgs(7,
+                        TCArg(In_DataSize>0?CNN_ArgDataType(In_DataSize,1,1):CNN_ArgDataTypeUns(-In_DataSize,1,1), "In"),
+                        TCArg(CNN_ArgDataTypeUns(1,         1,1), "Filter"), // int16_t for 16 chin contribution
+                        TCArg(CNN_ArgDataType(Bias_DataSize,1,1),   "Bias"),
+                        TCArg(Out_DataSize>0?CNN_ArgDataType(Out_DataSize,1,1):CNN_ArgDataTypeUns(-Out_DataSize,1,1), "Out"),
+                        TCArg(CNN_ArgDataTypeUns(1,         1,1),  "Scale"),
+                        TCArg(CNN_ArgDataType(1,            1,1), "ScaleN"),
+                        TCArg(CNN_ArgDataType(1,            1,1),  "Infos")
+                ),
                 Calls(6,
                         Call("NE16_Enable", LOC_D1_PROLOG, Bindings(0)),
                         Call("NE16_SoftReset", LOC_D0, Bindings(0)),
@@ -544,7 +543,7 @@ int CNN_MM_ConvolutionNE16(
                                       PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PadInp,
                                       ActOper);
         }
-        return (Kernel!=0);
+        return Kernel;
 }
 
 static Kernel_T *CNN_ConvolutionNE16_Internal(
@@ -604,6 +603,7 @@ static Kernel_T *CNN_ConvolutionNE16_Internal(
                 Fpx=1; Dpx=1; Spx=1; Fpy=1; Dpy=1; Spy=1;
         }
         if (Ctrl) {
+                if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
                 if (Ctrl->PadType != -1) PadType = Ctrl->PadType;
         }
         int OverlapC, OverlapP;
@@ -680,7 +680,7 @@ static Kernel_T *CNN_ConvolutionNE16_Internal(
         LayerBandwidth += (Fcx*Fcy*Filter_DataSizeBits*InFeat*(DWConv?1:OutFeat)+7)/8;
         LayerBandwidth += Bias_DataSize*OutFeat;
 
-        if (ConvOper == KOP_CONV && Height == 1 && Fcx != 1 && Fcy == 1) ConvOper = KOP_CONV1D;
+        if (ConvOper == KOP_CONV && Height == 1 && Fcy == 1) ConvOper = KOP_CONV1D;
         ConvKerName = CNN_FindMatchingKernelAttr(ConvOper, KOP_NONE, ParFeat, CALL_NE16_KER, Abs(In_DataSize), Abs(Out_DataSize), Bias_DataSize, 0, 4, Fcx, Fcy, Dcx, Dcy, Scx, Scy,
                                                  &NeedFcx, &NeedFcy, &NeedDcx, &NeedDcy, &NeedScx, &NeedScy, 0);
         if (ConvKerName==0) GenTilingError("CNN_ConvolutionPoolAct_NE16 Kernel: %s, Can't find a matching Convolution basic kernel", Name);
@@ -778,7 +778,7 @@ static Kernel_T *CNN_ConvolutionNE16_Internal(
                 (DWConv?
                 KernelIterSpace(2, IterParSpace(D0|InFeatProp, InFeat, InTileCons), IterTiledSpace(T0)):
                 KernelIterSpace(3, IterParSpace(D1, OutFeat, OutTileCons), IterTiledSpace(T0), IterParSpace(D0|InFeatProp, InFeat, InTileCons))),
-                TILE_HOR|TILE_HWC,
+                TileOrientation|TILE_HWC,
                 KCArgs,
                 Calls(10,
                         Call("NE16_Enable", DWConv?LOC_D0_PROLOG:LOC_D1_PROLOG, Bindings(0)),
@@ -1122,13 +1122,13 @@ static Kernel_T *CNN_LinearAct_NE16_Internal(
 
         LinearKerName = CNN_FindMatchingKernelAttr(LinearOper, KOP_NONE, 0, CALL_NE16_KER, Abs(In_DataSize), 0, Bias_DataSize, 0,0,  0,0,0,0,0,0, 0,0,0,0,0,0, 0);
         if (LinearKerName==0) GenTilingError("CNN_LinearAct_NE16 Kernel: %s, Can't find a matching Linear basic kernel: %d %d", Name, Abs(In_DataSize), Bias_DataSize);
-        if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_RELUM || ActOper == KOP_HSIGMOID || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+        if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_RELUM || ActOper == KOP_HSIGMOID || ActOper == KOP_SIGMOID || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU || ActOper == KOP_TANH))
                 GenTilingError("CNN_ConvolutionPoolAct_NE16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_RELUM, KOP_HSIGMOID, KOP_HSWISH or KOP_LEAKYRELU", Name);
 
         /* Also when in/out are 16bits you need to streamout 32bits but here the reduction step will be done in the cluster (KOP_DP_REDUCT) */
         int NeedReductScale = Mode16; //Abs(Out_DataSize) == 2;
         int NeedSetBias = Mode16;
-        int NeedReductNoScale = ((InTileCons < InDim) && !InFeatOneTile) || NeedSetBias;
+        int NeedReductNoScale = ((InTileCons < InDim) && !InFeatOneTile) || NeedSetBias || (!(ActOper == KOP_RELU || ActOper == KOP_NONE));
         int NeedReduct = NeedReductNoScale || NeedReductScale;
 
         int NeedLinOut = NeedReduct || NeedSetBias;
@@ -1173,32 +1173,18 @@ static Kernel_T *CNN_LinearAct_NE16_Internal(
         }
         Kernel_T *Kernel;
 
-        CKernel_Arg_T **KCArgs = AllocateCArgs(7);
-        int Ca=0;
-        KCArgs[Ca++] = TCArg(In_DataSize>0?CNN_ArgDataType(In_DataSize,1,1):CNN_ArgDataTypeUns(-In_DataSize,1,1), "In");
-        KCArgs[Ca++] = TCArg(CNN_ArgDataTypeUns(1,1,1), "Filter");
-        KCArgs[Ca++] = TCArg(CNN_ArgDataType(Bs,1,1),   "Bias");
-        KCArgs[Ca++] = TCArg(Out_DataSize>0?CNN_ArgDataType(Out_DataSize,1,1):CNN_ArgDataTypeUns(-Out_DataSize,1,1), "Out");
-        KCArgs[Ca++] = TCArg(CNN_ArgDataTypeUns(1,1,1), "Scale");
-        KCArgs[Ca++] = TCArg(CNN_ArgDataType(1,1,1),    "ScaleN");
-        KCArgs[Ca++] = TCArg(CNN_ArgDataType(1,1,1),    "Infos");
-
-        Object_T **KArgs = AllocateKerArgs(7+NeedLinOut);
-        int Ka=0;
-        KArgs[Ka++] = KerArg("In",      KerArgSpace(1,D0|SPACE_PROP_PAD2PREF),   OBJ_IN_DB,            1, 1,  Abs(In_DataSize), 0, 0, 0, "In");
-        KArgs[Ka++] = KerArg("Filter",  KerArgSpace(2,D1,D0|Wp), OBJ_IN_DB|O_CONST|Wa, 1, 1,  Ws,           0, 0, 0, "Filter");
-        KArgs[Ka++] = KerArg("Bias",    KerArgSpace(1,D1),   OBJ_IN_DB|O_CONST,    1, 1,  Bs,       0, 0, 0, "Bias");
-        if (NeedLinOut)
-        KArgs[Ka++] = KerArg("LinOut",  KerArgSpace(1,D1),   O_BUFF|O_ONETILE,     1, 1,  Ls,           0, 0, 0, "");
-        KArgs[Ka++] = KerArg("Out",     KerArgSpace(1,D1),   OBJ_OUT_DB,           1, 1,  Abs(Out_DataSize), 0, 0, 0, "Out");
-        KArgs[Ka++] = KerArg("Scale",   KerArgSpace(1,D1),   OBJ_IN_DB|O_CONST,    1, 1,  1,            0, 0, 0, "Scale");
-        KArgs[Ka++] = KerArg("ScaleN",  KerArgSpace(1,D1),   OBJ_IN_DB|O_CONST,    1, 1,  1,            0, 0, 0, "ScaleN");
-        KArgs[Ka++] = KerArg("Infos",   KerArgSpace(1,T0),   O_IN|O_BUFF|O_NTILED, 1, 1,  AT_INF_NE16_DIM*1, 0, 0, 0, "Infos");
-
         Kernel = UserKernel(Name,
                 KernelIterSpace(3, IterTiledSpace(T0), IterParSpace(D1, OutDim, OutTileCons), IterParSpace(D0|InFeatProp, InDim, InTileCons)),
                 TileOrientation,
-                KCArgs,
+                CArgs(7,
+                        TCArg(In_DataSize>0?CNN_ArgDataType(In_DataSize,1,1):CNN_ArgDataTypeUns(-In_DataSize,1,1), "In"),
+                        TCArg(CNN_ArgDataTypeUns(1,1,1), "Filter"),
+                        TCArg(CNN_ArgDataType(Bs,1,1),   "Bias"),
+                        TCArg(Out_DataSize>0?CNN_ArgDataType(Out_DataSize,1,1):CNN_ArgDataTypeUns(-Out_DataSize,1,1), "Out"),
+                        TCArg(CNN_ArgDataTypeUns(1,1,1), "Scale"),
+                        TCArg(CNN_ArgDataType(1,1,1),    "ScaleN"),
+                        TCArg(CNN_ArgDataType(1,1,1),    "Infos")
+                ),
                 Calls(6,
                         Call("NE16_Enable", LOC_PROLOG, Bindings(0)),
                         SetBiasKerName?Call(SetBiasKerName, LOC_D0_PROLOG,
@@ -1244,7 +1230,16 @@ static Kernel_T *CNN_LinearAct_NE16_Internal(
                         ),
                         Call("NE16_Disable", LOC_EPILOG, Bindings(0))
                 ),
-                KArgs
+                KerArgs(8,
+                        KerArg("In",      KerArgSpace(1,D0|SPACE_PROP_PAD2PREF),OBJ_IN_DB,            1, 1,  Abs(In_DataSize),  0, 0, 0, "In"),
+                        KerArg("Filter",  KerArgSpace(2,D1,D0|Wp),              OBJ_IN_DB|O_CONST|Wa, 1, 1,  Ws,                0, 0, 0, "Filter"),
+                        KerArg("Bias",    KerArgSpace(1,D1),                    OBJ_IN_DB|O_CONST,    1, 1,  Bs,                0, 0, 0, "Bias"),
+             NeedLinOut?KerArg("LinOut",  KerArgSpace(1,D1),                    O_BUFF|O_ONETILE,     1, 1,  Ls,                0, 0, 0, ""):AT_NO_KER_ARG,
+                        KerArg("Out",     KerArgSpace(1,D1),                    OBJ_OUT_DB,           1, 1,  Abs(Out_DataSize), 0, 0, 0, "Out"),
+                        KerArg("Scale",   KerArgSpace(1,D1),                    OBJ_IN_DB|O_CONST,    1, 1,  1,                 0, 0, 0, "Scale"),
+                        KerArg("ScaleN",  KerArgSpace(1,D1),                    OBJ_IN_DB|O_CONST,    1, 1,  1,                 0, 0, 0, "ScaleN"),
+                        KerArg("Infos",   KerArgSpace(1,T0),                    O_IN|O_BUFF|O_NTILED, 1, 1,  AT_INF_NE16_DIM*1, 0, 0, 0, "Infos")
+                )
         );
         if (Kernel) {
                 AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
@@ -1385,6 +1380,8 @@ int CNN_MatMulAct_NE16(
         )
 
 {
+        return CNN_ConvolutionNE16(Name, Ctrl, In_DataSize, Out_DataSize, Bias_DataSize, 1, Filter_DataSizeBits, ColM1, ColM2, LineM1, 1, KOP_CONV,1,1,1,1,1,1,0,0, KOP_NONE,0,0,0,0,0,0,0, ActOper);
+#if 0
         int Log=1;
         if (Abs(In_DataSize)!=1 && Abs(In_DataSize)!=2) GenTilingError("Node: %s Input DataSize %d not supported in NE16", Name, In_DataSize);
 
@@ -1555,4 +1552,5 @@ int CNN_MatMulAct_NE16(
                 AddKernelArgDim(Name, "Infos", 2, AT_INF_DIM, 1);
         }
         return Kernel!=0;
+#endif
 }

@@ -83,7 +83,7 @@ typedef struct {
 	unsigned char	   Dx;
 	unsigned char	   Dy;
 	unsigned int       Semaphores[2];
-} Ker_MM_Conv_NE16_T;
+} KerConv_MM_NE16_T;
 
 typedef struct {
 	void * __restrict__  In;
@@ -243,7 +243,7 @@ void KerConvNxMDxDy_StrideSxSy_NE16(KerConv_NE16_T *Arg);
 void KerConv3x3Stride1_DxDy_NE16(KerConv_NE16_T *Arg);
 void KerLinear_8a_NE16(KerLinear_NE16_T *Arg);
 void KerLinear_16a_NE16(KerLinear_NE16_T *Arg);
-void Ker_MM_Conv2D_NE16(Ker_MM_Conv_NE16_T *Arg);
+void Ker_MM_Conv2D_NE16(KerConv_MM_NE16_T *Arg);
 void KerMatMul_8a_NE16(KerMatMul_NE16_T *Arg);
 void KerMatMul_8aFast_NE16(KerMatMul_NE16_T *Arg);
 void KerMatMul_16a_NE16(KerMatMul_NE16_T *Arg);

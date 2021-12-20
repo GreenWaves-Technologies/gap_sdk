@@ -20,7 +20,7 @@ endif
 
 ifdef CONFIG_KERNEL
 PULP_SRCS += kernel/init.c kernel/kernel.c kernel/device.c kernel/task.c kernel/alloc.c \
-	kernel/alloc_pool.c kernel/irq.c kernel/soc_event.c kernel/log.c kernel/time.c
+	kernel/alloc_pool.c kernel/irq.c kernel/soc_event.c kernel/log.c kernel/time.c kernel/mem_slab.c
 
 PULP_ASM_SRCS += kernel/irq_asm.S kernel/time_asm.S
 
