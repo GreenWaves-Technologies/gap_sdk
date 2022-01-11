@@ -27,7 +27,7 @@
 
 #include "backend_interface.hpp"
 #include "functiondetails.hpp"
-
+#include "assert.h"
 
 const char* FunctionDetails::columnHeader[] = {
   "Function name",
