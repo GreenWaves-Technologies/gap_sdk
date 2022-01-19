@@ -124,6 +124,10 @@ static inline void __attribute__((always_inline)) pos_task_push_locked(pi_task_t
     }
 }
 
+static inline void __attribute__((always_inline)) pi_task_push_irq_safe(pi_task_t *task)
+{
+    pos_task_push_locked(task);
+}
 
 static inline void __attribute__((always_inline)) pi_task_push(pi_task_t *task)
 {

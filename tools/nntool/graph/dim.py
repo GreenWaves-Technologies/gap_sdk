@@ -464,10 +464,10 @@ class Dim():
             return super().__getattribute__(name)  # @IgnoreException
         self._verify_is_named()
         try:
-            idx = self._names.index(name)
+            idx = self._names.index(name) # @IgnoreException
             return self._shape[idx]
         except ValueError:
-            raise AttributeError("{} not found".format(name))
+            raise AttributeError("{} not found".format(name)) # @IgnoreException
 
     def __setattr__(self, name, val):
         if name.startswith('_'):
@@ -581,6 +581,10 @@ class Dim():
             return "scalar"
         return 'x'.join([str(v) for v in self._shape])
 
+    def __repr__(self) -> str:
+        if self.is_named:
+            return f"Dim({self.__str__()}, {self.keys})"
+        return f"Dim({self.__str__()})"
 
 PAD_DIMS = ['t', 'b', 'l', 'r']
 PAD_VERT_DIMS = ['t', 'b']
@@ -722,8 +726,7 @@ class PadDim(Dim):
         '''checks if PadDim is set same'''
         return self._same_type is not None
 
-    def calculate_same(self, in_dim, filt, stride, dilation=None) -> Dim:
-        '''calculates the actual padding from the input dimension'''
+    def calculate_same_h_w(self, in_dim, filt, stride, dilation=None):
         out_height = ceil(float(in_dim.h) / float(stride.h))
         out_width = ceil(float(in_dim.w) / float(stride.w))
         if dilation is None:
@@ -740,6 +743,11 @@ class PadDim(Dim):
             pad_along_width = max(
                 (out_width - 1) * stride.w + ((dilation.w - 1) * (filt.w - 1) + filt.w) - in_dim.w,
                 0)
+        return pad_along_height, pad_along_width
+
+    def calculate_same(self, in_dim, filt, stride, dilation=None) -> Dim:
+        '''calculates the actual padding from the input dimension'''
+        pad_along_height, pad_along_width = self.calculate_same_h_w(in_dim, filt, stride, dilation)
         if self._same_type == "left":
             self.set(
                 t=pad_along_height,

@@ -115,13 +115,12 @@ void run_Bilinear_Resize(void)
     cluster_call.ImageOut    = ImageOut;
 
     /* Prepare task to be offload to Cluster. */
-    struct pi_cluster_task task = {0};
-    task.entry = (void *) cluster_main;
-    task.arg = &cluster_call;
+    struct pi_cluster_task task;
+    pi_cluster_task(&task, (void *) cluster_main, &cluster_call);
     task.stack_size = (uint32_t) STACK_SIZE;
 
     /* Execute the function "cluster_main" on the Core 0 of cluster. */
-    pi_cluster_send_task_to_cl(&cluster_dev, &task);
+    pi_cluster_send_task(&cluster_dev, &task);
 
     pi_l1_free(&cluster_dev, Resize_L1_Memory, _Resize_L1_Memory_SIZE);
 

@@ -15,8 +15,10 @@
 
 import logging
 
+from graph.dim import Dim
 from graph.types import ConcatParameters, NNEdge, SplitParameters
-from graph.types.others import CopyParameters, NoOPParameters
+from graph.types.others import (CopyParameters, NoOPParameters,
+                                ReshapeParameters, TransposeParameters)
 from utils.graph import GraphView
 from utils.node_id import NodeId
 
@@ -115,8 +117,11 @@ class SplitConcatMatch(Matcher):
             for out_edge_bundle in G.indexed_out_edges(node):
                 if len(out_edge_bundle) == 1:
                     out_edge = out_edge_bundle[0]
-                    concat_node_edges = search_down(G, out_edge, ConcatParameters,
-                                                    can_pass=(CopyParameters, NoOPParameters))
+                    concat_node_edges = search_down(
+                        G, out_edge, ConcatParameters,
+                        can_pass=(CopyParameters, NoOPParameters,
+                                  ReshapeParameters),
+                        can_pass_fn=lambda _, node: isinstance(node, TransposeParameters) and node.does_nothing)
                     if concat_node_edges:
                         if cur_group:
                             this_concat_edge = concat_node_edges[-1]
@@ -142,19 +147,30 @@ class SplitConcatMatch(Matcher):
             concat_node = edge_group[0][-1].to_node
             from_idx = edge_group[0][0].from_idx
             to_idx = edge_group[-1][0].from_idx
-            LOG.info(f"combining outputs {from_idx}:{to_idx} on split node {split_node.name} followed by concat {concat_node.name}")
+            from_concat_idx = edge_group[0][-1].to_idx
+            to_concat_idx = edge_group[1][-1].to_idx
+            LOG.info(
+                f"combining outputs {from_idx}:{to_idx} on split node {split_node.name} followed by concat {concat_node.name}")
             # combine slices and shapes on edges in group
             new_slice, new_shape = reduce_slices(
                 split_node.act_slices[from_idx:to_idx+1],
                 split_node.out_shapes[from_idx:to_idx+1]
             )
+            new_concat_shape = Dim.combine(
+                [concat_node.in_dims[idx]
+                    for idx in range(from_concat_idx, to_concat_idx+1)],
+                concat_node.axis)
             split_node.act_slices = split_node.act_slices[:from_idx] + [
                 new_slice] + split_node.act_slices[to_idx+1:]
+            # the slice may need to reshape since we will remove everything in between
             split_node.out_shapes = split_node.out_shapes[:from_idx] + [
-                new_shape] + split_node.out_shapes[to_idx+1:]
-            # remove all edges and intermediate nodes on all edge groups except the first
-            for edge_list in edge_group[1:]:
+                new_concat_shape.shape] + split_node.out_shapes[to_idx+1:]
+
+            # remove all edges and intermediate nodes on all edge groups
+            for edge_list in edge_group:
                 remove_edges(G, edge_list)
+            # add back a direct edge to the first idx
+            G.add_edge(NNEdge(from_node=split_node, from_idx=edge_group[0][0].from_idx, to_node=concat_node, to_idx=edge_group[0][-1].to_idx))
             out_edge_bundles = G.indexed_out_edges(split_node)
             # move edges beyond the edge group after the first index
             for offset, edge_list in enumerate(out_edge_bundles[to_idx+1:]):

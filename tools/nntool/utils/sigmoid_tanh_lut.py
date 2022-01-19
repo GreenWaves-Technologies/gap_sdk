@@ -101,7 +101,7 @@ sigmoid_table_float = np.array(
 NEAREST = True
 
 
-def sigmoid_lut(x, qtype=None):
+def sigmoid_lut(x, qtype=None, q16_out=False):
     """ Lookup table based sigmoid.
         Input is in Q12
         Output is in Q15"""
@@ -119,6 +119,8 @@ def sigmoid_lut(x, qtype=None):
                           (ua << 9) + ut * (ub-ua))  # Q16*Q8 = Q24
         result = np.where(x > 0, result + (1 << 9),
                           (1 << (9+16))-result+(1 << 9)-1)
+        if q16_out:
+            return result >> 9
         return result >> 10
     else:
         abs_x = (np.abs(x) * 3) >> 9  # input in Q12
@@ -127,6 +129,8 @@ def sigmoid_lut(x, qtype=None):
                           0xFFFF,
                           sigmoid_table[abs_x_masked])  # Q16*Q8 = Q24
         result = np.where(x > 0, result, (1 << 16)-result)
+        if q16_out:
+            return result
         return result >> 1
 
 

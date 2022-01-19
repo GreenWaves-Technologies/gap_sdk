@@ -30,6 +30,13 @@ NARROW_WEIGHTS_OPTION = {
     'default': True
 }
 
+MAX_PRECISION_LIMIT_OPTION = {
+    'name': 'max_precision_limit',
+    'type': int,
+    'help': 'maximum number of bits to degrade input scale precision by to stop overflow of accumulator.',
+    'default': 2
+}
+
 NARROW_STATE_OPTION = {
     'name': 'narrow_state',
     'type': bool,

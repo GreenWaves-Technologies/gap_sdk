@@ -58,6 +58,7 @@ struct pi_cluster_conf {
     // do not move this one, might be accessed in various hackish way
     pi_device_e device_type; /*!< Device type. */
     int id;                  /*!< Cluster ID, starting from 0. */
+    int cc_stack_size;       /*!< Cluster controller stack size (0x800) */
     void *heap_start;        /* Reserved for internal usage. */
     uint32_t heap_size; /* Reserved for internal usage. */
     struct pmsis_event_kernel_wrap* event_kernel; /* Reserved for internal
@@ -74,6 +75,8 @@ struct pi_cluster_conf {
 
 /// @cond IMPLEM
 
+#define PI_CL_CC_STACK_SIZE 0x800
+
 #ifndef CLUSTER_TASK_IMPLEM
 #define CLUSTER_TASK_IMPLEM
 #endif
@@ -84,7 +87,7 @@ struct pi_cluster_conf {
 
 #ifndef CLUSTER_TASK_CUSTOM
 
-struct pi_cluster_task {
+typedef struct pi_cluster_task {
     // entry function and its argument(s)
     void (*entry)(void*);
     void *arg;
@@ -101,7 +104,7 @@ struct pi_cluster_task {
     struct pi_cluster_task *next;
 
     CLUSTER_TASK_IMPLEM;
-};
+} pi_cluster_task_t;
 
 #endif
 

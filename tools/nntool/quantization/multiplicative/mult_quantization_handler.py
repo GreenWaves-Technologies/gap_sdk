@@ -30,6 +30,7 @@ class MultQuantizionHandler(QuantizionHandler):
         8: np.int8,
         16: np.int16
     }
+    DEFAULT_DTYPE = np.int8
 
     @classmethod
     def get_mult_opts(cls, **kwargs):
@@ -71,7 +72,7 @@ class MultQuantizionHandler(QuantizionHandler):
     def _get_in_qs_from_stats(cls, params, stats, in_qs, **kwargs):
         return [QType.from_min_max_sq(stats['range_in'][idx]['min'],
                                       stats['range_in'][idx]['max'],
-                                      dtype=np.int8)
+                                      dtype=cls.DEFAULT_DTYPE)
                 if dim is not None else None
                 for idx, dim in enumerate(params.in_dims)]
 

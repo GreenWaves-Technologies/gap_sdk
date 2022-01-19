@@ -411,7 +411,8 @@ class NewQuantizer():
             'all_stats': self._stats,
             'fusion': fusion,
             'cur_G': cur_G,
-            'graph_update': self._postprocess
+            'graph_update': self._postprocess,
+            'qset': self.qset
         }
         if set_out_qs:
             kwargs['out_qs'] = out_qs
@@ -723,7 +724,7 @@ class NewQuantizer():
             for edge in edge_bundle:
                 was_conflict = self.is_conflict(
                     edge) if edge in self._qtypes else False
-                self.set_qtype_up(edge, out_qtypes[edge.from_idx])
+                self.set_qtype_down(edge, out_qtypes[edge.from_idx])
                 if self.is_conflict(edge):
                     if not was_conflict:
                         self.report_conflict(edge)

@@ -53,8 +53,12 @@
 #include <bsp/gap9.h>
 #endif
 
+#if defined(CONFIG_GAP9_EVK)
+#include <bsp/gap9_evk.h>
+#else
 #if defined(CONFIG_GAP9_V2)
 #include <bsp/gap9_v2.h>
+#endif
 #endif
 
 /* Include debug helper. */
@@ -193,6 +197,12 @@ int bsp_nina_b112_open();
 void bsp_thermeye_conf_init(struct pi_thermeye_conf *conf);
 int bsp_thermeye_open(struct pi_thermeye_conf *conf);
 #endif  /* CONFIG_THERMEYE */
+
+#if defined(CONFIG_AK4332)
+#include "audio/dac/ak4332.h"
+void bsp_ak4332_conf_init(struct pi_ak4332_conf *conf);
+int bsp_ak4332_open(struct pi_ak4332_conf *conf);
+#endif  /* CONFIG_AK4332 */
 
 void bsp_init();
 

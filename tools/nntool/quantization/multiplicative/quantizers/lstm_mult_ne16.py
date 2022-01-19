@@ -32,8 +32,7 @@ from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        params_type)
 from utils.stats_funcs import calc_bits
 
-from ..mult_quantization_handler import MultQuantizionHandler
-from .rescale_constant_mixin import RescaleConstantMixin
+from .rnn_mult_ne16 import NE16RNNMultQuantizionHandler, calc_bias_offset, calc_weight_q
 
 LOG = logging.getLogger('nntool.' + __name__)
 
@@ -56,9 +55,10 @@ def get_max_or_one(stat):
     FORCE_EXTERNAL_SIZE_OPTION,
     NARROW_WEIGHTS_OPTION,
     USE_NE16_OPTION,
-    NARROW_STATE_OPTION
+    NARROW_STATE_OPTION,
+    MAX_PRECISION_LIMIT_OPTION
 )
-class LSTMMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
+class LSTMMultMultNE16Base(NE16RNNMultQuantizionHandler):
 
     @classmethod
     def _quantize_lstm(cls, params, in_qs, stats, input_bits, **kwargs):
@@ -80,6 +80,14 @@ class LSTMMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
         G = kwargs['G']
 
         in_q = in_qs[0]
+
+        # if in_q.dtype != in_out_dtype:
+        #     cls.check_valid_ranges(params, stats, idx=0, dirs='in')
+        #     in_q = in_qs[0] = QType.from_min_max_sq(
+        #         min_val=stats['range_in'][0]['min'],
+        #         max_val=stats['range_in'][0]['max'],
+        #         dtype=in_out_dtype,
+        #         asymmetric=True)
 
         cls.check_valid_ranges(params, stats, idx=0, dirs='out')
 
@@ -137,7 +145,24 @@ class LSTMMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
         # set weight qtypes
         int_num_inp = roundup(params.n_inputs, input_bits == 16)
         int_num_states = roundup(params.n_states, input_bits == 16)
-        woffs = {}
+
+        for gate in ['i', 'o', 'c', 'f']:
+            i_idx = names[f'i_2_{gate}_w']
+            r_idx = names[f'r_2_{gate}_w']
+
+            in_qs[i_idx] = calc_weight_q(
+                in_edges[i_idx].from_node,
+                (params.n_states, params.n_inputs),
+                (params.n_states, int_num_inp),
+                opts['weight_bits'],
+                opts.get('narrow_weights'))
+
+            in_qs[r_idx] = calc_weight_q(
+                in_edges[r_idx].from_node,
+                (params.n_states, params.n_states),
+                (params.n_states, int_num_states),
+                opts['weight_bits'],
+                opts.get('narrow_weights'))
 
         in_q = limit_input_precision(
             params,
@@ -145,7 +170,10 @@ class LSTMMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
             in_q,
             int_num_inp,
             opts['narrow_weights'],
-            opts['weight_bits'])
+            opts['weight_bits'],
+            opts.get('max_precision_limit', MAX_PRECISION_LIMIT_OPTION['default']),
+            w_qs=[in_qs[names[f'i_2_{gate}_w']] for gate in ['i', 'o', 'c', 'f']],
+            out_ranges=[stats.get(f'range_{gate}_gate_i') for gate in ['i', 'o', 'c', 'f']])
 
         o_q = limit_input_precision(
             params,
@@ -154,32 +182,23 @@ class LSTMMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
             int_num_states,
             opts['narrow_weights'],
             opts['weight_bits'],
-            extra_correction=-1 if opts.get('narrow_state') else 0)
+            opts.get('max_precision_limit',
+                     MAX_PRECISION_LIMIT_OPTION['default']),
+            extra_correction=-1 if opts.get('narrow_state') else 0,
+            w_qs=[in_qs[names[f'r_2_{gate}_w']] for gate in ['i', 'o', 'c', 'f']],
+            out_ranges=[stats.get(f'range_{gate}_gate_r') for gate in ['i', 'o', 'c', 'f']])
 
+        # setup zero offset bias adjustment
+        woffs = {}
         for gate in ['i', 'o', 'c', 'f']:
             i_idx = names[f'i_2_{gate}_w']
             r_idx = names[f'r_2_{gate}_w']
 
-            woffs[gate] = woff_gate = [None, None]
-            woff_gate[0] = calculatate_weight_q(
-                in_qs,
-                in_edges,
-                i_idx,
-                in_q.zero_point[0],
-                (params.n_states, params.n_inputs),
-                (params.n_states, int_num_inp),
-                opts['weight_bits'],
-                opts.get('narrow_weights'))
+            woffs[gate] = [
+                calc_bias_offset(in_edges[i_idx].from_node, in_qs[i_idx], in_q.zero_point),
+                calc_bias_offset(in_edges[r_idx].from_node, in_qs[r_idx], o_q.zero_point),
+            ]
 
-            woff_gate[1] = calculatate_weight_q(
-                in_qs,
-                in_edges,
-                r_idx,
-                o_q.zero_point[0],
-                (params.n_states, params.n_states),
-                (params.n_states, int_num_states),
-                opts['weight_bits'],
-                opts.get('narrow_weights'))
 
         # get weight scales
         scale_pairs = {chan: ('i_2_%s_w' % chan, 'r_2_%s_w' % chan)
@@ -248,7 +267,8 @@ class LSTMMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
                     dtype=np.int32,
                     scale=r_pscales[gate],
                     offset=r_zp_b,
-                    interleaved_values=[i_zp_b]
+                    interleaved_values=[i_zp_b],
+                    quantized_dimension=0
                 )
             else:
                 r_zp_b = woffs[gate][1] * qscale.qbiases.astype(
@@ -257,7 +277,8 @@ class LSTMMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
                     dtype=np.int32,
                     scale=r_pscales[gate] / qscale.qbiases,
                     offset=r_zp_b,
-                    interleaved_values=[i_zp_b]
+                    interleaved_values=[i_zp_b],
+                    quantized_dimension=0
                 )
 
         # NOTE - for 16 bit pre-normalize the scales to give us room but make sure it isn't negative

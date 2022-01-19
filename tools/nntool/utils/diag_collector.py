@@ -41,8 +41,8 @@ def thread_singleton(cls_) -> type:
             return instance
 
         def __init__(self, *args, **kwargs):
-            if self not in ThreadSingleton.__initialized:
-                ThreadSingleton.__initialized.add(self)
+            if object.__hash__(self) not in ThreadSingleton.__initialized:
+                ThreadSingleton.__initialized.add(object.__hash__(self))
                 super().__init__(*args, **kwargs)
 
     return ThreadSingleton

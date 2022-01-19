@@ -41,6 +41,9 @@ class Matcher(ABC):
     RUN_BEFORE = []
     RUN_AFTER = []
     GROUPS = []
+    RUN_AGAIN_ON_MATCH = []
+    RUN_QTUNE_ON_MATCH = False
+    RUN_ADJUST_ON_MATCH = False
 
     def __init__(self, identity: str = None):
         if identity is None:
@@ -95,6 +98,18 @@ class Matcher(ABC):
         return Matcher.property_register("RUN_AFTER", args)
 
     @staticmethod
+    def run_again_on_match(*args):
+        return Matcher.property_register("RUN_AGAIN_ON_MATCH", args)
+
+    @staticmethod
+    def run_qtune_on_match(val):
+        return Matcher.property_register("RUN_QTUNE_ON_MATCH", val)
+
+    @staticmethod
+    def run_adjust_on_match(val):
+        return Matcher.property_register("RUN_ADJUST_ON_MATCH", val)
+
+    @staticmethod
     def groups(*args):
         return Matcher.property_register("GROUPS", args)
 
@@ -113,6 +128,10 @@ needs_valid_dimension = Matcher.needs_valid_dimension
 modifies_dimensions = Matcher.modifies_dimensions
 run_before = Matcher.run_before
 run_after = Matcher.run_after
+run_again_on_match = Matcher.run_again_on_match
+run_qtune_on_match = Matcher.run_qtune_on_match
+run_adjust_on_match = Matcher.run_adjust_on_match
+
 groups = Matcher.groups
 
 class DontReplaceError(Exception):

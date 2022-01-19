@@ -34,15 +34,8 @@ pos_init_entry:
     # Cluster PEs will also starts here to avoid aligning another entry point
     # Just re-route them to the right entry
     csrr    a0, 0xF14
-#ifndef CONFIG_NO_CLUSTER_ID
-    andi    a1, a0, 0x1f
-    srli    a0, a0, 5
-    li      a2, ARCHI_FC_CID
-    bne     a0, a2, pos_pe_start
-#else
     li      a2, ARCHI_FC_COREID
-    bne     a0, a2, pos_pe_start
-#endif
+    bne     a0, a2, pi_cl_entry_stub
 
 #endif
 
@@ -60,6 +53,10 @@ pos_init_entry:
     // Should never come back here
 pos_init_end:
     j    pos_init_end
+
+pi_cl_entry_stub:
+    la   t0, pi_cl_entry
+    jr   t0
 
 
 .section .vectors, "ax"

@@ -13,21 +13,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.fusions import PaddedAddFusionParameters
 import logging
 from functools import reduce
 
 import numpy as np
-from generation.at_types.at_params import NO_ACTIVATION, gen_activation_op, gen_active_at_params
+from generation.at_types.at_params import gen_activation_op
 from generation.at_types.gen_ctrl import GenCtrl
-from generation.bindings import (CommentBindingList, GNodeArgEdge,
-                                 GNodeArgNode, NodeBindingList)
-from generation.generators.globals.mult8_infos_generator import act_infos
+from generation.bindings import (CommentBindingList, GNodeArgEdge, NodeBindingList)
 from generation.generators.kernels.autotiler_kernel import NewAutoTilerKernel
 from generation.new_generators.generator_base import (GeneratorBase, ktype,
                                                       paramstype)
-from graph.types import ActivationFusion, MatrixAddParameters, BroadcastableActivationFusion
-from quantization.multiplicative.mulbias import set_add_in_scale
+from graph.types import (ActivationFusion, BroadcastableActivationFusion,
+                         MatrixAddParameters)
 from utils.node_id import NodeId
 
 LOG = logging.getLogger("nntool." + __name__)

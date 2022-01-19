@@ -17,7 +17,7 @@ from itertools import zip_longest
 
 from collections import OrderedDict, deque
 from collections.abc import Iterable, Mapping
-from typing import Union, Sequence
+from typing import KeysView, Union, Sequence
 
 
 class GraphError(Exception):
@@ -198,6 +198,8 @@ class GraphView(Mapping):
         self._out_edges = OrderedDict()
         self._in_edges = OrderedDict()
         self._nodes = OrderedDict()
+        self._hidden = False
+        self._hidden_nodes = []
 
     @classmethod
     # pylint: disable=unused-argument
@@ -285,6 +287,11 @@ class GraphView(Mapping):
 
     def add_edge(self, edge: Edge):
         '''Adds an edge to the graph'''
+        hidden_state = self._hidden
+        if hidden_state:
+            self._hidden = False
+        if self._hidden_nodes:
+            raise ValueError('cannot modify graph when nodes are hidden')
         if isinstance(edge.from_node, str):
             edge = edge.clone(from_node=self._nodes[edge.from_node])
         elif edge.from_node.name not in self._nodes:
@@ -297,9 +304,13 @@ class GraphView(Mapping):
             self._nodes[edge.to_node.name] = edge.to_node
         self.__add_in_edge(edge)
         self.__add_out_edge(edge)
+        if hidden_state:
+            self._hidden = True
 
     def node(self, node_name):
         '''Find a node by name. GraphView[node_name] also works'''
+        if self._hidden and any(node_name == node.name for node in self._hidden_nodes):
+            raise IndexError(f'{node_name} is hidden')
         return self[node_name]
 
     def insert_node(self, node_to_insert, from_node_name,
@@ -307,6 +318,9 @@ class GraphView(Mapping):
                     node_input_idx=0, node_output_idx=0,
                     edge_class=None):
         '''Inserts a node between two existing nodes'''
+        hidden_state = self._hidden
+        if hidden_state:
+            self._hidden = False
         if edge_class is None:
             edge_class = Edge
         node_to_insert = resolve_node(node_to_insert)
@@ -319,6 +333,8 @@ class GraphView(Mapping):
                                  from_idx=from_idx, to_idx=node_input_idx))
         self.add_edge(edge_class(node_to_insert, to_node_name,
                                  from_idx=node_output_idx, to_idx=to_idx))
+        if hidden_state:
+            self._hidden = True
 
     def edge(self, from_node_name: str, to_node_name: str, from_idx: int = 0, to_idx: int = 0):
         '''Finds first edge between two nodes - WARNING - probably not good in weird situation

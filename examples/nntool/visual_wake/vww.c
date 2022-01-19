@@ -77,11 +77,9 @@ void start()
 	if (!task) {
 		printf("failed to allocate memory for task\n");
 	}
-	memset(task, 0, sizeof(struct pi_cluster_task));
-	task->entry = &RunNetwork;
+	pi_cluster_task(task, &RunNetwork, NULL);
 	task->stack_size = STACK_SIZE;
 	task->slave_stack_size = SLAVE_STACK_SIZE;
-	task->arg = NULL;
 
 	printf("Constructor\n");
 
@@ -100,7 +98,7 @@ void start()
 	pi_gpio_pin_configure(NULL, LED, PI_GPIO_OUTPUT);
 	pi_gpio_pin_write(NULL, LED, 1);
 #endif
-	pi_cluster_send_task_to_cl(&cluster_dev, task);
+	pi_cluster_send_task(&cluster_dev, task);
 #ifdef __GAP8__
 	pi_gpio_pin_write(NULL, LED, 0);
 #endif

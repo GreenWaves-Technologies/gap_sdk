@@ -55,7 +55,7 @@ class MatMultPow2(Pow2QuantizionHandler):
             range_out = stats['range_out'][0]
 
         in_q1 = deepcopy(in_qs[0]).scale_to_pow2()
-        in_q2 = deepcopy(in_qs[0]).scale_to_pow2()
+        in_q2 = deepcopy(in_qs[1]).scale_to_pow2()
         biases_q = QType.Pow2(32, in_q1.q + in_q2.q, True)
 
         if force_out_q:

@@ -31,8 +31,8 @@ else
 endif
 MODEL_HEADER = $(MODEL_PREFIX)Info.h
 MODEL_GEN = $(MODEL_BUILD)/$(MODEL_PREFIX)Kernels 
-MODEL_GEN_C = $(addsuffix .c, $(MODEL_GEN)) $(MODEL_EXPRESSIONS)
-MODEL_GEN_CLEAN = $(MODEL_GEN_C) $(addsuffix .h, $(MODEL_GEN)) $(MODEL_EXPRESSIONS)
+MODEL_GEN_C = $(addsuffix .c, $(MODEL_GEN))
+MODEL_GEN_CLEAN = $(MODEL_GEN_C) $(addsuffix .h, $(MODEL_GEN))
 MODEL_GEN_EXE = $(MODEL_BUILD)/GenTile
 
 ifdef MODEL_QUANTIZED

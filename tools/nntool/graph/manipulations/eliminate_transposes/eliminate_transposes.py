@@ -281,8 +281,7 @@ def broadcast_expand(out_shape, in_shape, transpose):
 
 def check_for_null_transpose(node, transpose):
     if transpose is None:
-        raise CantContinueError(
-            f"can't continue at {node.name}")  # @IgnoreException
+        raise CantContinueError(f"can't continue at {node.name}")  # @IgnoreException
 
 
 def check_continue(visited_nodes: VisitedNodes, cur_visited_nodes: VisitedNodes, exclude_nodes, node, direction, idx):

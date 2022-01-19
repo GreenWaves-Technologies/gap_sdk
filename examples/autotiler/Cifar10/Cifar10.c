@@ -336,12 +336,10 @@ void test_cifar10(void)
     }
 
     struct pi_cluster_task *task = pmsis_l2_malloc(sizeof(struct pi_cluster_task));
-    memset(task, 0, sizeof(struct pi_cluster_task));
-    task->entry = RunCifar10;
-    task->arg = NULL;
+    pi_cluster_task(task, RunCifar10, NULL);
 //    task->stack_size = 2048*2;
 
-    pi_cluster_send_task_to_cl(&cluster_dev, task);
+    pi_cluster_send_task(&cluster_dev, task);
 
     pmsis_l1_malloc_free(Cifar10_L1_Memory, _Cifar10_L1_Memory_SIZE);
 

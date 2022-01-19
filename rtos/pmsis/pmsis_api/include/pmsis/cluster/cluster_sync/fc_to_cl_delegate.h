@@ -219,6 +219,18 @@ static inline int pi_cluster_send_task_async(struct pi_device *device, struct pi
     return pi_cluster_send_task_to_cl_async(device, cluster_task, task);
 }
 
+#if defined(__PULPOS2__)
+
+static inline int pi_cluster_send_workgroup_async(pi_device_t *device, pi_cluster_task_t *cluster_task, pi_task_t *task)
+{
+    cluster_task->event_based = 1;
+    return pi_cluster_send_task_to_cl_async(device, cluster_task, task);
+}
+
+static inline int pi_cluster_send_workgroup(pi_device_t *device, pi_cluster_task_t *cluster_task);
+
+#endif
+
 /** \brief check if any cluster is on
 */
 uint8_t pi_cluster_is_on(void);
@@ -278,6 +290,7 @@ static inline struct pi_cluster_task *pi_cluster_task(struct pi_cluster_task *ta
     task->arg = arg;
     task->stacks = (void *)0;
     task->stack_size = 0;
+    task->slave_stack_size = 0;
     task->nb_cores = 0;
     return task;
 }

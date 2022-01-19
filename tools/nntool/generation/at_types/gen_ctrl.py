@@ -69,7 +69,9 @@ CTRL_FEATURES = {
     "OUTPUT_DATASIZE": int,
     "GATE_PRENORM": int,
     "FLOAT_DUMP": int,
-    "MFCC_LOG_OFFSET": int
+    "MFCC_LOG_OFFSET": int,
+    "EXPLICIT_PAD_CONV": int,
+    "EXPLICIT_PAD_POOL": int,
 }
 
 

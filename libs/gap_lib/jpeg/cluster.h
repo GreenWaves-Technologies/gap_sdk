@@ -52,7 +52,7 @@ typedef struct cl_enc_block_s
     short int vc;                    // Block first quantized value
     short int vp;                    // Previous block first quantized value
     int next_vc_done;                // Next block got first quantized value, which means this block can be released
-    short int data[64];              // Block data
+    short int data[64*3];              // Block data
     int output[64*3];                // Block output data. Contains bitstream symbols which should be encoded.
     pi_cl_dma_cmd_t dma_cmd;         // DMA node.
 } cl_enc_block_t;
@@ -104,6 +104,8 @@ typedef struct
   unsigned char *current_ext_bitstream;       // Current position in L2 output bistream
   pi_cl_dma_cmd_t dma_cmd;                    // DMA node used for output bistream copy
   int pending_dma;                            // 1 if a DMA copy is pending for output bistream
+  int color;
+  int comp;
 } cl_enc_t;
 
 

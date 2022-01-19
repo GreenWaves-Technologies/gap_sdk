@@ -154,7 +154,8 @@ class DrawGraphReporter():
                 if qrec is None:
                     qtype = 'no qrec'
                 else:
-                    qtype = qrec.out_qs[idx] if qrec.out_qs and idx < len(qrec.out_qs) else None
+                    qtype = qrec.out_qs[idx] if qrec.out_qs and idx < len(
+                        qrec.out_qs) else None
                     if not qtype:
                         qtype = 'no qtype'
             else:
@@ -165,7 +166,8 @@ class DrawGraphReporter():
                 to_qrec = qrecs.get(nid)
                 if to_qrec is None:
                     return f'{qtype}/no qrec', True
-                to_qtype = to_qrec.in_qs[edge.to_idx] if to_qrec.in_qs and edge.to_idx < len(to_qrec.in_qs) else None
+                to_qtype = to_qrec.in_qs[edge.to_idx] if to_qrec.in_qs and edge.to_idx < len(
+                    to_qrec.in_qs) else None
                 if not to_qtype:
                     return f'{qtype}/no qtype', True
             else:
@@ -194,7 +196,8 @@ class DrawGraphReporter():
                 if qrec is None:
                     qtype = 'no qrec'
                 else:
-                    qtype = qrec.in_qs[idx] if qrec.in_qs and idx < len(qrec.in_qs) else None
+                    qtype = qrec.in_qs[idx] if qrec.in_qs and idx < len(
+                        qrec.in_qs) else None
                     if qtype is None:
                         return 'no qtype', True
             else:
@@ -205,7 +208,8 @@ class DrawGraphReporter():
                 from_qrec = qrecs.get(nid)
                 if from_qrec is None:
                     return f'no qrec/{qtype}', True
-                from_qtype = from_qrec.out_qs[edge.from_idx] if from_qrec.out_qs and edge.from_idx < len(from_qrec.out_qs) else None
+                from_qtype = from_qrec.out_qs[edge.from_idx] if from_qrec.out_qs and edge.from_idx < len(
+                    from_qrec.out_qs) else None
                 if not from_qtype:
                     return f'no qtype/{qtype}', True
             else:
@@ -248,7 +252,7 @@ class DrawGraphReporter():
                     names = self.build_nodebox(
                         node, ports, num_in_edges, num_out_edges, anon=anonymise)
                     dot.node(node.name, nohtml(names), shape='record',
-                             xlabel=str(node.step_idx), color="blue" if node.is_not_generated else "black")
+                             xlabel=f"{node.step_idx}" if parent is None else "", color="blue" if node.is_not_generated else "black")
             for edge in G.in_edges(node.name):
                 if edge.from_node not in nodes:
                     if not all_dims:
@@ -260,7 +264,8 @@ class DrawGraphReporter():
                     to_node_id = self.get_to_id(all_ports, edge, in_port)
                     edge_label, edge_error = self.in_label(
                         G, edge, qrecs, parent=parent,
-                        from_node=not isinstance(edge.from_node, FusionInputParameters),
+                        from_node=not isinstance(
+                            edge.from_node, FusionInputParameters),
                         to_node=not isinstance(edge.to_node, FusionOutputParameters))
                     dot.edge(
                         from_node_id,
@@ -293,7 +298,8 @@ class DrawGraphReporter():
                 from_node_id = self.get_from_id(all_ports, edge, out_port)
                 edge_label, edge_error = self.out_label(
                     G, edge, qrecs, parent=parent,
-                    from_node=not isinstance(edge.from_node, FusionInputParameters),
+                    from_node=not isinstance(
+                        edge.from_node, FusionInputParameters),
                     to_node=not isinstance(edge.to_node, FusionOutputParameters))
                 dot.edge(
                     from_node_id,
@@ -354,7 +360,13 @@ class DrawGraphReporter():
         else:
             func_col = node.func_col
         intermediates = {}
-        with dot.subgraph(name=f'cluster{node.name}', node_attr={'style': 'solid(dashed)'}) as sub:
+        with dot.subgraph(name=f'cluster{node.name}',
+                          graph_attr={
+                              'style': 'dashed',
+                              'label': f"{node.step_idx}",
+                              'labelloc': 't',
+                              'labeljust': 'l'},
+                          node_attr={'style': 'solid(dashed)'}) as sub:
             for var, func in func_col.functions.items():
                 node_id, shape = self.report_symbol(
                     sub, func, intermediates, anonymise=anonymise)
@@ -389,8 +401,14 @@ class DrawGraphReporter():
                      shape='plaintext', fontsize='10.0')
             all_ports[output_node] = [[output_node.name], [output_node.name]]
             output_symbols.append(output_node.name)
-        with dot.subgraph(name=f'cluster{node.name}', node_attr={'style': 'solid(dashed)'}) as sub:
-            self.report_graph(node.subgraph, dot, all_ports, fake_idx, all_dims=all_dims,
+        with dot.subgraph(name=f'cluster{node.name}',
+                          graph_attr={
+                              'style': 'dashed',
+                              'label': f"{node.step_idx}",
+                              'labelloc': 't',
+                              'labeljust': 'l'},
+                          node_attr={'style': 'solid(dashed)'}) as sub:
+            self.report_graph(node.subgraph, sub, all_ports, fake_idx, all_dims=all_dims,
                               anonymise=anonymise, expressions=expressions, qrecs=qrecs, parent=node)
         return [input_symbols, output_symbols]
 

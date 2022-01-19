@@ -31,7 +31,6 @@ from quantization.unified_quantization_handler import (in_qs_constraint,
 from utils.node_id import NodeId
 
 from ..mult_quantization_handler import MultQuantizionHandler
-from .rescale_constant_mixin import RescaleConstantMixin
 
 LOG = logging.getLogger('nntool.' + __name__)
 
@@ -47,34 +46,43 @@ def limit_input_precision(params,
                           input_size,
                           narrow,
                           qw,
-                          extra_correction=0):
-    calc_bits = (input_bits + qw - (1 if narrow else 0) + extra_correction +
-                 math.ceil(math.log2(input_size)) + 1)
-    reduce_precision = calc_bits - 31 if calc_bits > 31 else 0
-    reduce_precision = 8 if reduce_precision > 8 else reduce_precision
-    if reduce_precision:
-        LOG.warning("%s: too much dynamic: reducing %s precision by %s bits. "
-                    "use weight_bits option to reduce weight precision",
-                    params.name,
-                    "input",
-                    reduce_precision)
-        in_q.bits -= reduce_precision
+                          max_correction,
+                          extra_correction=0,
+                          accumulator_bits=31,
+                          out_ranges=None,
+                          w_qs=None):
+    if out_ranges and all(stat is not None for stat in out_ranges) and w_qs:
+        calc_bits = 0
+        for stat, w_q in zip(out_ranges, w_qs):
+            res_scale = np.min(w_q.scale * in_q.scale)
+            max_out = max(abs(stat['min']), abs(stat['max']))
+            if max_out == 0:
+                continue
+            calc_bits = max(calc_bits, math.ceil(math.log2(max_out/res_scale)))
+        # add one safety bit if basing off stats
+        calc_bits += 1
+    else:
+        calc_bits = (input_bits + qw - (1 if narrow else 0) + extra_correction +
+                     math.ceil(math.log2(input_size)) + 1)
+    reduce_by = max(calc_bits - accumulator_bits, 0)
+    if reduce_by > max_correction:
+        LOG.warning(f"{params.name}: too much dynamic: quantizer estimates {reduce_by} bit overflow. "
+                    f"max_precision_limit set to {max_correction}")
+    reduce_by = min(reduce_by, max_correction)
+    if reduce_by:
+        LOG.warning(
+            f"{params.name}: too much dynamic: reducing input precision by {reduce_by} bits. ")
+        in_q = in_q.reduce_precision(reduce_by)
     return in_q
 
 
-def calculatate_weight_q(in_qs,
-                         in_edges,
-                         w_idx,
-                         in_zero_point,
-                         real_dim,
-                         padded_dim,
-                         qw,
-                         narrow):
-    # calculates weight qtype and zero offset bias correction
-
-    wnode = in_edges[w_idx].from_node
+def calc_weight_q(wnode,
+                  real_dim,
+                  padded_dim,
+                  qw,
+                  narrow):
     extra_attrs = {'bit_pack': qw} if qw < 8 else {}
-    in_qs[w_idx] = QType.from_array_sq(
+    return QType.from_array_sq(
         wnode.dqvalue,
         dtype=np.uint8,
         bits=qw,
@@ -93,33 +101,55 @@ def calculatate_weight_q(in_qs,
         },
         no_compression=True,
         **extra_attrs)
-    w_q = in_qs[w_idx]
 
+
+def calc_bias_offset(wnode, w_q, in_zero_point):
     # since the weight zero offset is added by NE16 use signed value
     weight_val = wnode.value_as(w_q).astype(np.int32) - w_q.zero_point
-
     # return zero offset
     return np.sum(
         -in_zero_point.astype(np.int32) * weight_val,
         axis=1, dtype=np.int32)
 
 
-# @options(
-#     {
-#         'name': 'state_width',
-#         'type': int,
-#         'choices': ['8', '16'],
-#         'help': 'sets width of recurrent state',
-#         'default': 8
-#     })
+def calculatate_weight_q(in_qs,
+                         in_edges,
+                         w_idx,
+                         in_zero_point,
+                         real_dim,
+                         padded_dim,
+                         qw,
+                         narrow):
+    # calculates weight qtype and zero offset bias correction
+    in_qs[w_idx] = calc_weight_q(
+        in_edges[w_idx].from_node, real_dim, padded_dim, qw, narrow)
+    return calc_bias_offset(in_edges[w_idx].from_node, in_qs[w_idx], in_zero_point)
+
+
+class NE16RNNMultQuantizionHandler(MultQuantizionHandler):
+
+    @classmethod
+    def _get_in_qs_from_stats(cls, params, stats, in_qs, **kwargs):
+        opts = kwargs['opts']
+        in_dtype = np.uint8 if opts.get(
+            'force_external_size', 8) == 8 else np.uint16
+        return [QType.from_min_max_sq(stats['range_in'][idx]['min'],
+                                      stats['range_in'][idx]['max'],
+                                      dtype=in_dtype if idx == 0 else np.uint8,
+                                      asymmetric=(idx == 0))
+                if dim is not None and stats['range_in'][idx] else None
+                for idx, dim in enumerate(params.in_dims)]
+
+
 @options(
     NE16_WEIGHT_BITS_OPTION,
     FORCE_EXTERNAL_SIZE_OPTION,
     NARROW_WEIGHTS_OPTION,
     USE_NE16_OPTION,
-    NARROW_STATE_OPTION
+    NARROW_STATE_OPTION,
+    MAX_PRECISION_LIMIT_OPTION
 )
-class RNNMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
+class RNNMultMultNE16Base(NE16RNNMultQuantizionHandler):
     @classmethod
     def _quantize_rnn(cls, params, in_qs, stats, input_bits, **kwargs):
         force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
@@ -137,8 +167,10 @@ class RNNMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
 
         cls.check_valid_ranges(params, stats, idx=0, dirs='out')
 
-        o_q = QType.from_min_max_sq(min_val=stats['range_out'][0]['min'],
-                                    max_val=stats['range_out'][0]['max'],
+        assert in_q.dtype == in_out_dtype
+
+        o_q = QType.from_min_max_sq(min_val=-1,
+                                    max_val=1,
                                     dtype=in_out_dtype,
                                     narrow_range=opts['narrow_state'])
 
@@ -149,6 +181,21 @@ class RNNMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
         woff = {}
 
         int_num_inp = roundup(params.n_inputs, input_bits == 16)
+        int_num_states = roundup(params.n_states, input_bits == 16)
+
+        in_qs[names['i_2_i_w']] = calc_weight_q(
+            in_edges[names['i_2_i_w']].from_node,
+            (params.n_states, params.n_inputs),
+            (params.n_states, int_num_inp),
+            opts['weight_bits'],
+            opts.get('narrow_weights'))
+
+        in_qs[names['r_2_i_w']] = calc_weight_q(
+            in_edges[names['r_2_i_w']].from_node,
+            (params.n_states, params.n_states),
+            (params.n_states, int_num_states),
+            opts['weight_bits'],
+            opts.get('narrow_weights'))
 
         in_q = limit_input_precision(
             params,
@@ -156,19 +203,11 @@ class RNNMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
             in_q,
             int_num_inp,
             opts['narrow_weights'],
-            opts['weight_bits'])
-
-        woff['i_2_i_w'] = calculatate_weight_q(
-            in_qs,
-            in_edges,
-            names['i_2_i_w'],
-            in_q.zero_point[0],
-            (params.n_states, params.n_inputs),
-            (params.n_states, int_num_inp),
             opts['weight_bits'],
-            opts['narrow_weights'])
-
-        int_num_states = roundup(params.n_states, input_bits == 16)
+            opts.get('max_precision_limit',
+                     MAX_PRECISION_LIMIT_OPTION['default']),
+            w_qs=[in_qs[names['i_2_i_w']]],
+            out_ranges=[stats.get('range_input_dot')])
 
         o_q = limit_input_precision(
             params,
@@ -177,17 +216,17 @@ class RNNMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
             int_num_states,
             opts['narrow_weights'],
             opts['weight_bits'],
-            extra_correction=-1 if opts.get('narrow_state') else 0)
+            opts.get('max_precision_limit',
+                     MAX_PRECISION_LIMIT_OPTION['default']),
+            extra_correction=-1 if opts.get('narrow_state') else 0,
+            w_qs=[in_qs[names['r_2_i_w']]],
+            out_ranges=[stats.get('range_state_dot')])
 
-        woff['r_2_i_w'] = calculatate_weight_q(
-            in_qs,
-            in_edges,
-            names['r_2_i_w'],
-            o_q.zero_point[0],
-            (params.n_states, params.n_states),
-            (params.n_states, int_num_states),
-            opts['weight_bits'],
-            opts['narrow_weights'])
+        woff['i_2_i_w'] = calc_bias_offset(
+            in_edges[names['i_2_i_w']].from_node, in_qs[names['i_2_i_w']], in_q.zero_point)
+
+        woff['r_2_i_w'] = calc_bias_offset(
+            in_edges[names['r_2_i_w']].from_node, in_qs[names['r_2_i_w']], o_q.zero_point)
 
         i_state_scale = in_qs[names['i_state']].scale
         # rescale input * weight result to state * weight result so that they can be accumulated
@@ -241,15 +280,15 @@ class RNNMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
                 scale=act_output_scale/o_q.scale)
 
         if input_bits == 8:
-            in_qs[names['i_b']].scale = state_w_scale / s_2_s_q.qbiases
-            in_qs[names['i_b']].dtype = np.int32
+            in_qs[names['i_b']] = QType(
+                scale=state_w_scale / s_2_s_q.qbiases, dtype=np.int32, quantized_dimension=0)
             in_qs[names['i_b']].offset = woff * s_2_s_q.qbiases.astype(
                 np.int32) + (1 << (s_2_s_q.qnorms.astype(np.int32) - 1))
             if i_zp_b is not None:
                 in_qs[names['i_b']].attr.interleaved_values = [i_zp_b]
         else:
-            in_qs[names['i_b']].scale = state_w_scale
-            in_qs[names['i_b']].dtype = np.int32
+            in_qs[names['i_b']] = QType(
+                scale=state_w_scale, dtype=np.int32, quantized_dimension=0)
             in_qs[names['i_b']].offset = woff
             # Interleave input zero offset bias with state bias at generation time
             in_qs[names['i_b']].attr.interleaved_values = [i_zp_b]

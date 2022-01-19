@@ -635,6 +635,9 @@ class EdgeParameters():
     def edge_order(self, val):
         self._edge_order = val
 
+    def __repr__(self) -> str:
+        return f"EdgeParameters({self.creating_node.name}:{self.creating_node_idx})"
+
 
 class NNEdge(Edge):
     def __init__(self, from_node: Union[str, Node], to_node: Union[str, Node],
@@ -642,3 +645,4 @@ class NNEdge(Edge):
                  from_idx: int = 0, to_idx: int = 0):
         super().__init__(from_node, to_node, from_idx, to_idx)
         self.params = params
+

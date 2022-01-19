@@ -116,9 +116,8 @@ void test_malloc(void)
         pmsis_l2_malloc_free(conf, sizeof(struct pi_cluster_conf));
         pmsis_exit(-5);
     }
-    memset(task, 0, sizeof(struct pi_cluster_task));
-    task->entry = master_entry;
-    task->arg = NULL;
+    
+    pi_cluster_task(task, master_entry, NULL);
 
     /* Sending task to cluster. */
     pi_cluster_send_task_to_cl(cluster_dev, task);

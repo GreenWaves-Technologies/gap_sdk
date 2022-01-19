@@ -1195,7 +1195,7 @@ PI_INLINE_I2S_LVL_0 int pi_i2s_frame_write(struct pi_device *dev, uint32_t frame
  * @retval 0 If successful.
  * @retval -1 An error occured.
  */
-PI_INLINE_I2S_LVL_0 int pi_i2s_frame_write_async(struct pi_device *dev,
+int pi_i2s_frame_write_async(struct pi_device *dev,
     uint32_t frame, void *mem_block, size_t size, pi_task_t *task);
 
 /**

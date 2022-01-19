@@ -187,7 +187,7 @@ void test_mnist(void)
 	pi_cluster_task(task, (void (*)(void *))RunMnist, (void *) &rec_digit);
     
     printf("Calling Cluster\n");
-    pi_cluster_send_task_to_cl(&cluster_dev, task);
+    pi_cluster_send_task(&cluster_dev, task);
 
     MnistCNN_Destruct();
     pi_cluster_close(&cluster_dev);

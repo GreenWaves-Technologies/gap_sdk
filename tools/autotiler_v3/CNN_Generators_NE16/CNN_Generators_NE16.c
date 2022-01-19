@@ -23,6 +23,7 @@
 #include "CNN_Generator_Util.h"
 #include "Gap.h"
 #include "hal_ne16.h"
+#include "../CNN_Libraries_SQ8/CNN_Infos_SQ8.h"
 
 #define D0      KER_ITER_D0
 #define D1      KER_ITER_D1
@@ -31,11 +32,6 @@
 #define T0      KER_ITER_TILE0
 #define T1      KER_ITER_TILE1
 #define T2      KER_ITER_TILE2
-
-#define AT_INF_NE16_PADVAL      10
-#define AT_INF_NE16_WOFFSET     12
-
-#define AT_INF_NE16_DIM         16
 
 unsigned int NE16_DefaultConfig(unsigned char Qw,
                         unsigned char Mode16,

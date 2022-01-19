@@ -1,4 +1,4 @@
-# Copyright (C) 2020  GreenWaves Technologies, SAS
+# Copyright (C) 2020, 2022  GreenWaves Technologies, SAS
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -16,9 +16,10 @@
 from copy import deepcopy
 
 import numpy as np
-from graph.types import (BinaryOpParameters,
-                         MatrixDivParameters, MatrixMulParameters,
-                         MatScaleFusionParameters, UnaryOpParameters)
+from graph.types import (BinaryOpParameters, MatrixDivParameters,
+                         MatrixMulParameters, MatScaleFusionParameters,
+                         UnaryOpParameters)
+from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
 from quantization.qtype_constraint import MatchAll
@@ -51,5 +52,7 @@ class FromStatsMult(MultQuantizionHandler):
             o_q = QType.from_min_max_sq(stats['range_out'][0]['min'],
                                         stats['range_out'][0]['max'],
                                         dtype=out_dtype)
+        scale_mul_biases_q = MultMulBiasScaleQType(dtype=np.uint8)
+        scale_mul_biases_q.scale = (np.prod([qtype.scale for qtype in in_qs]) / o_q.scale)
 
-        return QRec.scaled(in_qs=in_qs, out_qs=[o_q])
+        return QRec.scaled(in_qs=in_qs, out_qs=[o_q], scale_mul_biases_q=scale_mul_biases_q)

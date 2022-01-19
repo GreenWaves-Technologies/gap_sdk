@@ -20,6 +20,7 @@
 
 #include "../CNN_Libraries/CNN_Copy.h"
 #include "CNN_AT_Misc.h"
+#include "CNN_Infos_SQ8.h"
 
 #ifdef GENASM
 #ifdef __EMUL__
@@ -28,32 +29,6 @@
 #endif
 #endif
 
-#define AT_INF_BIASL_SM         0
-#define AT_INF_ACTSCALE		0
-#define AT_INF_ACTSCALEN	1
-#define AT_INF_A0		2
-#define AT_INF_B0		3
-#define AT_INF_C0		4
-
-#define AT_INF_BIASN		5
-#define AT_INF_IN1SCALE		5
-#define AT_INF_SCALE		5
-#define AT_INF_GLOBAL_SUM_SCALE	5
-
-#define AT_INF_SCALEN		6
-#define AT_INF_IN1SCALEN	6
-#define AT_INF_GLOBAL_SUM_SCALEN 6
-
-#define AT_INF_OUTSCALE		7
-#define AT_INF_OUTSCALEN	8
-
-#define AT_INF_DIM		9
-
-#define AT_INF_PRENORM          9
-#define AT_INF_SQ16_DIM         10
-
-#define AT_INF_ADD_BIAS		9
-#define AT_INF_ASYM_ADD_DIM	11
 
 #ifndef Prec
 #define Prec 			(10)
@@ -841,10 +816,12 @@ extern void KerConvDWNxMDxDyStrideSxSyB32_SQ8(KerConv_SQ8_T *Arg);
 extern unsigned short int SIGMOID_LUT_uint16[];
 
 int SigmoidTable(int x, unsigned short int * table);
+int SigmoidTableUnsigned(int x, unsigned short int * table);
 int TanhTable(int x, unsigned short int * table);
 
 #define Tanh(__x) TanhTable((__x), SIGMOID_LUT_uint16)
 #define Sigmoid(__x) SigmoidTable((__x), SIGMOID_LUT_uint16)
+#define SigmoidU(__x) SigmoidTableUnsigned((__x), SIGMOID_LUT_uint16)
 
 /*
  * Input Scaling and reduction to 8b then channel centric activation, Out location != In location. Features are evaluated in parallel

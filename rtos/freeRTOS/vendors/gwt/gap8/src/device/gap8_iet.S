@@ -49,6 +49,7 @@
         .extern fc_soc_event_handler
         .extern pi_cl_dma_2d_handler
         .extern uTaskCheckQuantum
+        .extern __pi_task_timer_irq
         .extern pi_task_delayed_increment_push
         .extern ASM_FUNC_SAVE_MINIMAL_CONTEXT
         .extern ASM_FUNC_SAVE_SAVE_CONTEXT
@@ -200,6 +201,27 @@ _no_switch:
         mret
         .endfunc
 
+
+        DECLARE hi_res_timer_handler
+        /* FC hi res timer handler */
+        addi sp, sp, -(PI_GAP8_FULL_CONTEXT_SIZE * PI_WORD_SIZE)
+        sw ra, 0*PI_WORD_SIZE(sp)
+        jal ra, ASM_FUNC_SAVE_MINIMAL_CONTEXT
+        lw tp, pxCurrentTCB
+        sw sp, 0*0(tp)
+
+        /* ISR Stack. */
+        la sp, __stack_irq_start__
+        jal ra, __pi_task_timer_irq
+
+        /* Restore current context. */
+        lw tp, pxCurrentTCB
+        lw sp, 0*0(tp)
+        jal ra, ASM_FUNC_RESTORE_MINIMAL_CONTEXT
+        lw ra, 0*PI_WORD_SIZE(sp)
+        addi sp, sp, +(PI_GAP8_FULL_CONTEXT_SIZE * PI_WORD_SIZE)
+        mret
+        .endfunc
 
         /* FC SOC event Handler. */
         DECLARE fc_event_handler

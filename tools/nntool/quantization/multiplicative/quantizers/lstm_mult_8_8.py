@@ -33,7 +33,6 @@ from utils.node_id import NodeId
 from utils.stats_funcs import calc_bits
 
 from ..mult_quantization_handler import MultQuantizionHandler
-from .rescale_constant_mixin import RescaleConstantMixin
 
 LOG = logging.getLogger('nntool.' + __name__)
 
@@ -48,7 +47,7 @@ LOG = logging.getLogger('nntool.' + __name__)
 @in_qs_constraint({'dtype': np.int8})
 @out_qs_constraint({'dtype': np.int8})
 @option_constraint(force_external_size={8, None}, use_ne16={None, False})
-class LSTMMultMult8x8(RescaleConstantMixin, MultQuantizionHandler):
+class LSTMMultMult8x8(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
@@ -121,16 +120,18 @@ class LSTMMultMult8x8(RescaleConstantMixin, MultQuantizionHandler):
                 in_q.max_val,
                 dtype=np.int8,
                 narrow_range=opts.get('narrow_weights'),
+                bits = opts['weight_bits'],
                 dont_generate_value=True)
-            in_qs[names[scale_pair[0]]].bits = opts['weight_bits']
+            # in_qs[names[scale_pair[0]]].bits = opts['weight_bits']
             in_q = in_qs[names[scale_pair[1]]]
             in_qs[names[scale_pair[1]]] = QType.from_min_max_sq(
                 in_q.min_val,
                 in_q.max_val,
                 dtype=np.int8,
+                bits = opts['weight_bits'],
                 narrow_range=opts.get('narrow_weights'),
                 concatenated_nodes=[edges[names[scale_pair[0]]].from_node.name])
-            in_qs[names[scale_pair[1]]].bits = opts['weight_bits']
+            # in_qs[names[scale_pair[1]]].bits = opts['weight_bits']
 
         w_scales = [(in_qs[names[namei]].scale, in_qs[names[namer]].scale)
                     for k, (namei, namer) in scale_pairs.items()]
@@ -209,8 +210,7 @@ class LSTMMultMult8x8(RescaleConstantMixin, MultQuantizionHandler):
         scale_qtypes['i_qtype'] = QType(q=int_q, bits=32, signed=True)
         # set biases to output of perceptron
         for gate in ['i', 'o', 'c', 'f']:
-            in_qs[names[f"{gate}_b"]].scale = r_pscales[gate]
-            in_qs[names[f"{gate}_b"]].dtype = np.int32
+            in_qs[names[f"{gate}_b"]] = QType(scale=r_pscales[gate], dtype=np.int32)
         if params.lstm_output_c_state:
             out_qs = [o_q, in_qs[names['c_state']]]
         else:

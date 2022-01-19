@@ -80,7 +80,7 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Compa
         # The multiplier parameter correspond to the channel multiplier option
         # in tensorflow. There are multiplier filters per input channel in
         # a depthwise convolution
-        if groups is None:
+        if groups is None or groups == 0:
             self.groups = 1
             self.cannot_be_dw = True
         else:
@@ -107,7 +107,7 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Compa
         self._ker_in_order = ker_in_order
         self._ker_out_order = ker_out_order
 
-        LOG.debug("created CON2D %s", str(self))
+        LOG.debug("created CON2D %s %s", self.name, str(self))
 
     @property
     def graph_label(self):

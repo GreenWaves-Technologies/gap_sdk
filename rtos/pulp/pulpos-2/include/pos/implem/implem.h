@@ -49,13 +49,23 @@ static inline uint32_t pi_cluster_id()
     return hal_cluster_id();
 }
 
+static inline int pi_cl_cluster_nb_cores_with_cc()
+{
+#if !defined(ARCHI_CORE_HAS_PULPV2) || defined(PLP_NO_BUILTIN)
+    return ((pulp_read32(ARCHI_APB_SOC_CTRL_ADDR)>>16)) + 1;
+#else
+    return __builtin_pulp_CoreCount() + 1;
+#endif
+}
+
+
 static inline int pi_cl_cluster_nb_cores()
 {
 #ifdef ARCHI_HAS_CC
 #if !defined(ARCHI_CORE_HAS_PULPV2) || defined(PLP_NO_BUILTIN)
-    return ((pulp_read32(ARCHI_APB_SOC_CTRL_ADDR)>>16) + 1);
+    return ((pulp_read32(ARCHI_APB_SOC_CTRL_ADDR)>>16));
 #else
-    return __builtin_pulp_CoreCount() + 1;
+    return __builtin_pulp_CoreCount();
 #endif
 #else
 #if !defined(ARCHI_CORE_HAS_PULPV2) || defined(PLP_NO_BUILTIN)
@@ -112,6 +122,10 @@ static inline void pmsis_exit(int err)
 
 
 #include "task.h"
+#include "alloc.h"
+#include "irq.h"
+#include "link.h"
+#include "soc_event.h"
 #if defined(UDMA_VERSION) && UDMA_VERSION == 2
 #include "pos/implem/udma-v2.h"
 #endif
@@ -121,10 +135,6 @@ static inline void pmsis_exit(int err)
 #if defined(UDMA_VERSION) && UDMA_VERSION == 4
 #include "pos/implem/udma-v4.h"
 #endif
-#include "alloc.h"
-#include "irq.h"
-#include "link.h"
-#include "soc_event.h"
 #include "alloc.h"
 #include "alloc_pool.h"
 #include "trace.h"
@@ -141,7 +151,7 @@ static inline void pmsis_exit(int err)
 #if defined(__GAP9__)
 #include "pos/implem/hyperbus-v2.h"
 #include "pos/implem/octospi-v2.h"
-#include "pos/implem/i2s-v3.h"
+#include "chips/gap9/drivers/i2s/i2s.h"
 #endif
 #endif
 

@@ -83,7 +83,7 @@ struct pi_task_implem
 
 #define CLUSTER_TASK_CUSTOM 1
 
-struct pi_cluster_task {
+typedef struct pi_cluster_task {
     // entry function and its argument(s)
     void (*entry)(void*);
     void *arg;
@@ -100,7 +100,8 @@ struct pi_cluster_task {
     struct pi_cluster_task *next;
 
     int core_mask;
-};
+    uint8_t event_based;
+} pi_cluster_task_t;
 
 
 #define CLUSTER_TASK_IMPLEM struct pos_cluster_task_implem implem
@@ -111,26 +112,25 @@ struct pi_cluster_task {
 typedef struct pi_task{
     // Warning, might be accessed inline in asm, and thus can not be moved
     struct pi_task *next;
-    uintptr_t arg[2];
+    uintptr_t arg[4];
     uint32_t data[PI_TASK_IMPLEM_NB_DATA];
 
     PI_TASK_IMPLEM;
 
 } pi_task_t;
 
-typedef struct pi_cluster_pe_task_s
+typedef struct pi_cl_workitem_s
 {
-    void (*entry)(struct pi_cluster_pe_task_s *task, int id);
-    struct pi_cluster_pe_task_s *next;
-    void *stacks;
+    void (*entry)(struct pi_cl_workitem_s *task, int id);
+    struct pi_cl_workitem_s *next;
     void (*callback_entry)(void *arg);
     void *callback_arg;
-    struct pi_cluster_pe_task_s *piped_task;
+    struct pi_cl_workitem_s *piped_task;
     uint32_t args[4];
     uint8_t nb_cores;
     uint8_t nb_cores_popped;
     uint8_t nb_done_cores;
-} pi_cluster_pe_task_t;
+} pi_cl_workitem_t;
 
 
 struct pi_mem_slab {
@@ -156,14 +156,13 @@ struct pi_mem_slab {
 
 #define PI_CLUSTER_PE_TASK_T_ENTRY           (0*4)
 #define PI_CLUSTER_PE_TASK_T_NEXT            (1*4)
-#define PI_CLUSTER_PE_TASK_T_STACKS          (2*4)
-#define PI_CLUSTER_PE_TASK_T_CALLBACK_ENTRY  (3*4)
-#define PI_CLUSTER_PE_TASK_T_CALLBACK_ARG    (4*4)
-#define PI_CLUSTER_PE_TASK_T_PIPED_TASK      (5*4)
-#define PI_CLUSTER_PE_TASK_T_ARGS            (6*4)
-#define PI_CLUSTER_PE_TASK_T_NB_CORES        (10*4)
-#define PI_CLUSTER_PE_TASK_T_NB_CORES_POPPED (10*4 + 1)
-#define PI_CLUSTER_PE_TASK_T_NB_DONE_CORES   (10*4 + 2)
+#define PI_CLUSTER_PE_TASK_T_CALLBACK_ENTRY  (2*4)
+#define PI_CLUSTER_PE_TASK_T_CALLBACK_ARG    (3*4)
+#define PI_CLUSTER_PE_TASK_T_PIPED_TASK      (4*4)
+#define PI_CLUSTER_PE_TASK_T_ARGS            (5*4)
+#define PI_CLUSTER_PE_TASK_T_NB_CORES        (9*4)
+#define PI_CLUSTER_PE_TASK_T_NB_CORES_POPPED (9*4 + 1)
+#define PI_CLUSTER_PE_TASK_T_NB_DONE_CORES   (9*4 + 2)
 
 #define PI_CALLBACK_T_NEXT       (0*4)
 #define PI_CALLBACK_T_ENTRY      (1*4)
@@ -172,14 +171,16 @@ struct pi_mem_slab {
 #define PI_TASK_T_NEXT           (0*4)
 #define PI_TASK_T_ARG_0          (1*4)
 #define PI_TASK_T_ARG_1          (2*4)
-#define PI_TASK_T_DATA_0         (3*4)
-#define PI_TASK_T_DATA_1         (4*4)
-#define PI_TASK_T_DATA_2         (5*4)
-#define PI_TASK_T_DATA_3         (6*4)
-#define PI_TASK_T_DATA_4         (7*4)
-#define PI_TASK_T_DATA_5         (8*4)
-#define PI_TASK_T_DATA_6         (9*4)
-#define PI_TASK_T_DATA_7         (10*4)
+#define PI_TASK_T_ARG_2          (3*4)
+#define PI_TASK_T_ARG_3          (4*4)
+#define PI_TASK_T_DATA_0         (5*4)
+#define PI_TASK_T_DATA_1         (6*4)
+#define PI_TASK_T_DATA_2         (7*4)
+#define PI_TASK_T_DATA_3         (8*4)
+#define PI_TASK_T_DATA_4         (9*4)
+#define PI_TASK_T_DATA_5         (10*4)
+#define PI_TASK_T_DATA_6         (11*4)
+#define PI_TASK_T_DATA_7         (12*4)
 
 
 #define PI_CLUSTER_TASK_ENTRY                 (0*4)
@@ -192,6 +193,7 @@ struct pi_mem_slab {
 #define PI_CLUSTER_TASK_STACK_ALLOCATED       (7*4)
 #define PI_CLUSTER_TASK_NEXT                  (8*4)
 #define PI_CLUSTER_TASK_CORE_MASK             (9*4)
+#define PI_CLUSTER_TASK_EVENT_BASED           (10*4)
 
 
 

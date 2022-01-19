@@ -43,6 +43,16 @@ static inline void pos_soc_event_register_callback(unsigned int channel_id, void
     pos_soc_event_register_callback_arg(channel_id, arg);
 }
 
+static inline void pi_fc_event_handler_set(unsigned int channel_id, void (*callback)(int, void *), void *arg)
+{
+    pos_soc_event_register_callback(channel_id, callback, arg);
+}
+
+static inline void pi_soc_eu_pr_mask_set(int evt)
+{
+    soc_eu_prEventMask_setEvent(evt);
+}
+
 static inline void pos_soc_event_wait(int event)
 {
     int reg = event >> 5;

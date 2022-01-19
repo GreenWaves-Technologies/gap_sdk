@@ -23,6 +23,6 @@
 
 void pos_allocs_init();
 
-void pos_alloc_init_l1(int cid);
+void pos_alloc_init_l1(int cid, void *base, uint32_t size);
 
 #endif

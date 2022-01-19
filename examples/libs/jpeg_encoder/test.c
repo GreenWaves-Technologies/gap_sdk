@@ -20,23 +20,27 @@
 #include "gaplib/jpeg_encoder.h"
 #include "gaplib/ImgIO.h"
 
+#define __XSTR(__s) __STR(__s)
+#define __STR(__s) #__s
+
 
 static int test_entry()
 {
   jpeg_encoder_t enc;
-  unsigned int width=324, height=244;
+  unsigned int width=IMG_W, height=IMG_H,channels=IMG_C;
   int image_size = width*height;
   int pgm_header_size;
-  uint8_t *image = pmsis_l2_malloc(width*height);
+  uint8_t *image = pmsis_l2_malloc(width*height*channels);
+  char *ImageName = __XSTR(IMAGE_FILE);
 
   // First read input image
-  if (ReadImageFromFile("../../../imgTest0.pgm", width, height, 1, image, width*height, IMGIO_OUTPUT_CHAR, 0)){
+  if (ReadImageFromFile(ImageName, IMG_W, IMG_H, IMG_C, image, IMG_W*IMG_H*IMG_C, IMGIO_OUTPUT_CHAR, 0)){
     printf("Error reading input image");
     pmsis_exit(-1);
   }
   
   // Allocate output jpeg image
-  uint8_t *jpeg_image = pi_l2_malloc(1024*20);
+  uint8_t *jpeg_image = pi_l2_malloc(1024*150);
   if (jpeg_image == NULL)
     return -1;
 
@@ -53,6 +57,12 @@ static int test_entry()
   #else
   enc_conf.flags=0x0;
   #endif
+
+  #if COLOR_JPG
+  //For color Jpeg this flag can be added 
+  enc_conf.flags |= JPEG_ENCODER_FLAGS_COLOR;
+  #endif
+  
   enc_conf.width = width;
   enc_conf.height = height;
   
@@ -125,9 +135,18 @@ static int test_entry()
   for(int i=0;i<bitstream_size;i++){
     check_sum+=jpeg_image[i];
   }
-  
-  if(check_sum==625537)
-  //if(check_sum==653653)
+  #if COLOR_JPG
+  if(check_sum==2203076)
+  {
+    printf("Check sum success! %d \n",check_sum);
+    return 0;
+  }
+  else{
+    printf("Check sum not success! %d \n",check_sum);
+    return -1;
+  }
+  #else
+  if(check_sum==630787)
   {
     printf("Check sum success! %d \n",check_sum);
     return 0;
@@ -136,6 +155,7 @@ static int test_entry()
     printf("Check sum not success! %d \n",check_sum);
     return -1;
   } 
+  #endif
 }
 
 

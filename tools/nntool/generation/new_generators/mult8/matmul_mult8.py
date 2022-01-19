@@ -1,4 +1,4 @@
-# Copyright (C) 2021  GreenWaves Technologies, SAS
+# Copyright (C) 2021, 2022  GreenWaves Technologies, SAS
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -13,29 +13,31 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from generation.new_generators.mult8.conv_pool_mult8 import verify_scalar
-from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
-from graph.types.tensor_arithmetic import MatMulTransposedParameters
-from generation.bindings import CommentBindingList, GNodeArgEdge, GNodeArgNode, NodeBindingList
-from generation.helpers.gen_scales import gen_scales
-from generation.at_generators.utils import at_bits
-from generation.new_generators.helpers.in_out_bindings_mixin import InOutBindingsMixin
-from generation.new_generators.helpers.act_infos import gen_act_infos
-from generation.at_types.at_params import NO_POOL, gen_activation_op
 import logging
-from utils.node_id import NodeId
 
 import numpy as np
+from generation.at_generators.utils import at_bits
+from generation.at_types.at_params import gen_activation_op
 from generation.at_types.constant_info import ConstantInfo
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.at_types.tc_arg_info import GlobalArgInfo
-from generation.generators.globals.global_names import INFOS, MULSCALE, MULSHIFT
+from generation.bindings import (CommentBindingList, GNodeArgEdge,
+                                 GNodeArgNode, NodeBindingList)
+from generation.generators.globals.global_names import (INFOS, MULSCALE,
+                                                        MULSHIFT)
 from generation.generators.kernels.autotiler_kernel import NewAutoTilerKernel
 from generation.helpers.gen_constant import gen_constant
-from generation.new_generators.generator_base import (GeneratorBase,
-                                                      paramstype, ktype)
-from graph.types import MatMulOpParameters, MatMulOpFusionParameters, ActivationParameters
+from generation.helpers.gen_scales import gen_scales
+from generation.new_generators.generator_base import (GeneratorBase, ktype,
+                                                      paramstype)
+from generation.new_generators.helpers.act_infos import gen_act_infos
+from generation.new_generators.mult8.conv_pool_mult8 import SQ8ActInfos
+from graph.types import (ActivationParameters, MatMulOpFusionParameters,
+                         MatMulOpParameters)
+from graph.types.tensor_arithmetic import MatMulTransposedParameters
+from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from quantization.qtype import QType
+from utils.node_id import NodeId
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -48,45 +50,48 @@ class MatMulGenerator(GeneratorBase):
         if isinstance(pnode, MatMulOpParameters):
             mul_node = pnode
             mul_qrec = qrec
-            fnode = pnode
-            infos, comment = np.array([0, 0, 0, 0, 0]), "no activation"
-        elif isinstance(pnode, MatMulOpFusionParameters) and isinstance(fnode, MatMulOpParameters):
+            infos, comment = {}, "no activation"
+        elif isinstance(pnode, MatMulOpFusionParameters):
             cnodes = pnode.contained_nodes()
-            quants = [gen.G.quantization[NodeId(
-                pnode, fnode)] for fnode in cnodes]
             mul_node = cnodes[0]
-            mul_qrec = quants[0]
-            infos, comment = gen_act_infos(cnodes[1], quants[1])
+            if isinstance(mul_node, MatMulOpParameters):
+                if fnode is not None:
+                    return True
+                quants = [gen.G.quantization[NodeId(
+                    pnode, fnode)] for fnode in cnodes]
+                mul_node = cnodes[0]
+                mul_qrec = quants[0]
+                infos, comment = gen_act_infos(cnodes[1], quants[1])
+            else:
+                return False
         else:
             return False
 
         if len(mul_qrec.in_qs[1].scale) > 1:
             gen_scales(gen, pnode, mul_node, mul_qrec)
-            pl_scale = 0
-            pl_scalen = 0
+            infos['OUTSCALE'] = np.uint8(0)
+            infos['OUTSCALEN'] = np.uint8(0)
         else:
-            pl_scale = mul_qrec.cache['mul_biases_q'].qbiases[0]
-            pl_scalen = mul_qrec.cache['mul_biases_q'].qnorms[0]
-
-        infos = np.append(infos, [0, 0, pl_scale, pl_scalen])
+            infos['OUTSCALE'] = mul_qrec.cache['mul_biases_q'].qbiases[0]
+            infos['OUTSCALEN'] = mul_qrec.cache['mul_biases_q'].qnorms[0]
 
         if mul_qrec.cache.get('ne16'):
             conv_mul_bias = mul_qrec.cache.get('mul_biases_q')
-            prenorm = conv_mul_bias.pre_normalization if isinstance(conv_mul_bias, MultMulBiasScaleQType) else 0
-            pad_value = np.array(mul_qrec.in_qs[0].zero_point).astype(np.int16)
-            pad_value1 = np.bitwise_and(pad_value, 0xFF)
-            pad_value2 = np.bitwise_and(pad_value, 0xFF00) >> 8
-            w_offset = -np.array(mul_qrec.in_qs[1].zero_point).astype(np.int32)
-            w_offset1 = np.bitwise_and(w_offset, 0xFF)
-            w_offset2 = np.bitwise_and(w_offset, 0xFF00) >> 8
-            w_offset3 = np.bitwise_and(w_offset, 0xFF0000) >> 16
-            w_offset4 = np.bitwise_and(w_offset, 0xFF000000) >> 24
+            infos['PRENORM'] = np.uint8(conv_mul_bias.pre_normalization if isinstance(
+                conv_mul_bias, MultMulBiasScaleQType) else 0)
+            infos['NE16_PADVAL'] = np.atleast_1d(
+                mul_qrec.in_qs[0].zero_point).astype(mul_qrec.in_qs[0].dtype)
+            infos['NE16_WOFFSET'] = - \
+                np.array(mul_qrec.in_qs[1].zero_point).astype(np.int32)
+            infos_len = 'NE16_DIM'
+        else:
+            infos_len = 'DIM'
 
-            infos = np.append(
-                infos, verify_scalar([prenorm if prenorm else 0, pad_value1, pad_value2, w_offset1, w_offset2, w_offset3, w_offset4]))
+        infos_encoder = SQ8ActInfos()
+        contents = infos_encoder.gen_infos_array(infos_len, **infos)
 
-        cname, file_name = gen_constant(gen, pnode, fnode, INFOS)
-        const_info = ConstantInfo(file_name, QType.Pow2(bits=8, q=0, signed=True), contents=infos)
+        cname, file_name = gen_constant(gen, pnode, mul_node, INFOS)
+        const_info = ConstantInfo(file_name, QType.Pow2(bits=8, q=0, signed=True), contents=contents)
         gen.globals.append(GlobalArgInfo("int8", cname,
                            gen.opts['default_global_home_location'],
                            gen.opts['default_global_exec_location'],

@@ -121,13 +121,12 @@ int body(void){
 
 #ifndef __EMUL__
     printf("Call cluster\n");
-    struct pi_cluster_task task = {0};
-    task.entry = RunExpressions;
-    task.arg = NULL;
+    struct pi_cluster_task task;
+    pi_cluster_task(&task, RunExpressions, NULL);
     task.stack_size = (unsigned int) STACK_SIZE;
     task.slave_stack_size = (unsigned int) SLAVE_STACK_SIZE;
 
-    pi_cluster_send_task_to_cl(&cluster_dev, &task);
+    pi_cluster_send_task(&cluster_dev, &task);
 #else
     RunExpressions();
 #endif

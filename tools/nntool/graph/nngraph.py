@@ -23,6 +23,7 @@ from quantization.quantization_set import QuantizationSet
 from reports.graph_reporter import GraphReporter
 from reports.quantization_reporter import QuantizationReporter
 from utils.graph import Graph, Node
+from utils.node_id import NodeId
 from utils.tabular import TextTableRenderer
 
 from graph.dim import Dim
@@ -38,7 +39,7 @@ from graph.types import (ConstantInputParameters, InputBaseParameters,
 from graph.types.base import NNNodeRef
 from graph.types.dsp_preprocessing import DSPParameters
 from graph.types.expression_fusion import ExpressionFusionParameters
-from graph.types.fusions import FilterFusionBase, FusionBase
+from graph.types.fusions import ActivationFusionBase, FilterFusionBase, FusionBase, MatMulOpFusionParameters, PaddedAddFusionParameters
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -176,9 +177,16 @@ class NNGraph(Graph):
     def has_expressions(self):
         return self.has_node_type(ExpressionFusionParameters)
 
-    @property
-    def has_rnn(self):
-        return self.has_node_type(RNNBaseParameters)
+    def has_rnn(self, ktype=None, ne16=False):
+        nodes = self.nodes(node_classes=RNNBaseParameters)
+        if not nodes:
+            return False
+        if ktype is not None and not any(self.quantization[NodeId(node)].ktype == ktype for node in nodes):
+            return False
+        if ne16 and not any(self.quantization[NodeId(node)].cache.get('ne16') for node in nodes):
+            return False
+        return True
+
 
     @property
     def has_dsp(self):
@@ -187,6 +195,20 @@ class NNGraph(Graph):
     @property
     def all_expressions(self):
         return self.all_node_types(ExpressionFusionParameters)
+
+    @property
+    def nodes_by_step_idx(self):
+        return [step['node'] for step in self.graph_state.steps]
+
+    @property
+    def nodes_by_step_idx_with_fusions(self):
+        nodes = []
+        for step in self.graph_state.steps:
+            node = step['node']
+            if isinstance(node, (FilterFusionBase, ActivationFusionBase, PaddedAddFusionParameters, MatMulOpFusionParameters)):
+                nodes.extend(node.contained_nodes())
+            nodes.append(node)
+        return nodes
 
     def has_node_type(self, node_type):
         return any(isinstance(node, node_type) for node in self.nodes())
@@ -371,6 +393,11 @@ class NNGraph(Graph):
             for edge in other.edges:
                 self.add_edge(edge)
         return self
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self.nodes_by_step_idx[key]
+        return super().__getitem__(key)
 
     def __repr__(self):
         tab = GraphReporter().report(self)

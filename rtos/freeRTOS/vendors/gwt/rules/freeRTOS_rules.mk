@@ -46,6 +46,7 @@ GWT_DEVICE_INC      = $(GWT_TARGET)/$(chip_lowercase)/include
 GWT_DRIVER_INC      = $(GWT_TARGET)/$(chip_lowercase)/include/driver
 GWT_PMSIS_BACKEND   = $(GWT_PMSIS)/backend
 GWT_PMSIS_IMPLEM    = $(GWT_TARGET)/$(chip_lowercase)/pmsis
+GWT_PMSIS_SHARED_IMPLEM = $(PMSIS_HOME)/pmsis_implem
 GWT_PMSIS_API       = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api
 
 
@@ -272,6 +273,7 @@ INC_PATH           += $(GWT_LIBS)/printf
 
 # PMSIS
 PMSIS_IMPLEM_DIR    = $(GWT_PMSIS_IMPLEM)
+PMSIS_SHARED_IMPLEM_DIR    = $(GWT_PMSIS_SHARED_IMPLEM)
 -include $(GWT_PMSIS_IMPLEM)/src.mk
 -include $(GWT_PMSIS)/src.mk
 PMSIS_BACKEND_SRC   = $(shell find $(GWT_PMSIS_BACKEND) -iname "*.c")

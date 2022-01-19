@@ -22,7 +22,7 @@ from graph.types import (ActivationFusionBase,
                          FusionInputParameters, FusionOutputParameters,
                          InputParameters, MatMulOpFusionParameters,
                          PaddedAddFusionParameters, Parameters)
-from quantization.kernels.kernel_executer import KernelExecuter
+from execution.kernels.kernel_executer import KernelExecuter
 from quantization.new_qrec import QRec
 from utils.graph import Graph
 from utils.node_id import NodeId
@@ -321,6 +321,7 @@ class GraphExecuter():
                 qmode: QuantizationMode = None,
                 all_details=None,
                 yield_fusions=False,
+                append_fusion_output=False,
                 silent=False):
 
         if qmode is None:
@@ -330,7 +331,7 @@ class GraphExecuter():
             iterator = [(qoutput, qdetails, fnode)
                         for _, _, _, _, qoutput, qdetails, fnode
                         in self.execute_qnoq_iterator(in_tensors,
-                                                      yield_fusions=yield_fusions,
+                                                      yield_fusions=yield_fusions or append_fusion_output,
                                                       step_idx_limit=step_idx_limit,
                                                       silent=silent)]
         else:
@@ -338,7 +339,7 @@ class GraphExecuter():
                         for _, _, fnode, output_tensors, details
                         in self.execute_iterator(in_tensors, step_idx_limit=step_idx_limit,
                                                  qmode=qmode,
-                                                 yield_fusions=yield_fusions,
+                                                 yield_fusions=yield_fusions or append_fusion_output,
                                                  only_yield_step=only_yield_step,
                                                  yield_details=all_details is not None,
                                                  silent=silent)]
@@ -355,7 +356,12 @@ class GraphExecuter():
             fusion_outputs = None
 
         for output_tensors, details, fnode in iterator:
-            if yield_fusions:
+            if append_fusion_output and fnode:
+                outputs.append([output_tensor.copy()
+                                for output_tensor in output_tensors])
+                if all_details is not None:
+                    all_details.append(details)
+            elif not append_fusion_output and yield_fusions:
                 if fnode:
                     fusion_outputs.append([output_tensor.copy()
                                            for output_tensor in output_tensors])

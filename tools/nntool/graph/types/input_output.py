@@ -34,6 +34,8 @@ class InputOutputParameters(Parameters):
         self._index = None
         self._short_name = short_name
         self.imported_dtype = imported_dtype
+        if isinstance(dims, (tuple, list)):
+            dims = Dim.unnamed(dims)
         self.dims = dims
         self.at_options.valid_options['ALLOCATE'] = int
         self.at_options.valid_options['FIXED_ORDER'] = int

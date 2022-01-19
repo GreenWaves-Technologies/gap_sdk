@@ -115,7 +115,7 @@ DEFAULT_GEN_OPTS = {
     'l1_size': 64000,
     'l2_size': 300000,
     'l3_size': 8000000,
-    'l3_flash_mb': 20,
+    'l3_flash_mb': 64,
     'fc_freq': 250000000,
     'cl_freq': 175000000,
     'cluster_stack_size': 1024 * 4,

@@ -23,7 +23,9 @@ from ..unified_quantization_handler import (QuantizionHandler, needs_stats,
 FLOAT_DTYPES = {
     'bfloat16': bfloat16,
     'float16': np.float16,
-    'float32': np.float32
+    'ieee16': np.float16,
+    'float32': np.float32,
+    'ieee32': np.float32
 }
 
 #pylint: disable=abstract-method

@@ -1,4 +1,4 @@
-# Copyright (C) 2020  GreenWaves Technologies, SAS
+# Copyright (C) 2020, 2022  GreenWaves Technologies, SAS
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -16,9 +16,10 @@
 import logging
 from copy import deepcopy
 
-from graph.types import (ConcatParameters, CopyParameters, NNEdge,
-                         NoOPParameters, OutputParameters, ReshapeParameters,
-                         SplitParameters, TransposeParameters)
+from graph.types import (ConcatParameters, CopyParameters, InputParameters,
+                         NNEdge, NoOPParameters, OutputParameters,
+                         ReshapeParameters, SplitParameters,
+                         TransposeParameters)
 from quantization.new_qrec import QRec
 from utils.graph import GraphView
 from utils.node_id import NodeId
@@ -27,6 +28,7 @@ from ..matcher import (Matcher, description, groups, match_name,
                        needs_valid_dimension, run_after)
 
 LOG = logging.getLogger("nntool." + __name__)
+
 
 def find_real_in_edge(G, edge):
     from_node = edge.from_node
@@ -43,130 +45,112 @@ def find_real_in_edge(G, edge):
             return res
     return (edge.from_node, edge.from_idx)
 
+
 @match_name('insert_copies')
 @description('insert copy nodes on edges that link splits to concats')
 @run_after('insert_transposes')
 @groups('*')
 @needs_valid_dimension(True)
 class MatchInsertCopies(Matcher):
-    def find_concat_edge(self, G, edge):
-        to_node = edge.to_node
-        if isinstance(to_node, (ConcatParameters, SplitParameters)):
-            return [edge]
-        if isinstance(to_node, ReshapeParameters):
-            res = self.find_concat_edge(G, G.out_edges(to_node.name)[0])
-            return [edge] + res if res else res
-        if isinstance(to_node, NoOPParameters):
-            res = self.find_concat_edge(G, G.out_edges(to_node.name)[0])
-            return [edge] + res if res else res
-        if isinstance(to_node, TransposeParameters):
-            _, real_transpose = to_node.real_shape()
-            if len(real_transpose) <= 1:
-                res = self.find_concat_edge(G, G.out_edges(to_node.name)[0])
-                return [edge] + res if res else res
+    @staticmethod
+    def can_pass_node(node):
+        return (isinstance(node, (ReshapeParameters, NoOPParameters)) or
+                isinstance(node, TransposeParameters) and node.does_nothing)
 
-        return []
+    def find_split_concat_down(self, G, edge):
+        if isinstance(edge.to_node, (SplitParameters, ConcatParameters)):
+            return True
+        elif self.can_pass_node(edge.to_node):
+            for out_edge in G.out_edges(edge.to_node):
+                if self.find_split_concat_down(G, out_edge):
+                    return True
+        return False
 
-    def find_split_to_output_edge(self, G, edge):
-        to_node = edge.to_node
-        if isinstance(to_node, OutputParameters):
-            return [edge]
-        if isinstance(to_node, ReshapeParameters):
-            res = self.find_split_to_output_edge(
-                G, G.out_edges(to_node.name)[0])
-            return [edge] + res if res else res
-        if isinstance(to_node, NoOPParameters):
-            res = self.find_split_to_output_edge(
-                G, G.out_edges(to_node.name)[0])
-            return [edge] + res if res else res
-        if isinstance(to_node, TransposeParameters):
-            _, real_transpose = to_node.real_shape()
-            if len(real_transpose) <= 1:
-                res = self.find_split_to_output_edge(
-                    G, G.out_edges(to_node.name)[0])
-                return [edge] + res if res else res
+    def search_up_for_duplicate(self, G, edge):
+        # search up for multi out edges on the same edge idx
+        # if found then search down for a concat or split ignoring ungenerated nodes
+        # return the original out edge where the concat/split was found
+        out_edges = G.indexed_out_edges(edge.from_node)[edge.from_idx]
+        if len(out_edges) > 1:
+            out_edges.remove(edge)
+            for out_edge in out_edges:
+                if self.find_split_concat_down(G, out_edge):
+                    return out_edge
+        elif self.can_pass_node(edge.to_node):
+            return self.search_up_for_duplicate(G, G.in_edges(edge.from_node)[0])
+        return None
 
-        return []
+    @staticmethod
+    def insert_copy_at_edge(G, edge):
+        copy_node = CopyParameters(
+            G.unique_name(f'{edge.from_node.name}_copy'))
+        LOG.info(f'inserting copy between {edge.from_node.name}:{edge.from_idx} '
+                 f'and {edge.to_node.name}:{edge.to_idx}')
+        G.insert_node_at_edge(copy_node, edge, edge_class=NNEdge)
+        nid = NodeId(edge.from_node)
+        if G.quantization and nid in G.quantization:
+            qrec = G.quantization[nid]
+            qtype = deepcopy(qrec.out_qs[edge.from_idx])
+            QRec.copy_ktype(qrec, in_qs=[qtype], out_qs=[qtype])
 
-    def find_split_concat(self, G, split_node, find_output=True):
-        out_edges = G.indexed_out_edges(split_node.name)
-        res = [[] for _ in range(len(out_edges))]
-        found_some = False
-        for edge_group in out_edges:
-            for edge in edge_group:
-                concat_edges = self.find_concat_edge(G, edge)
-                if find_output:
-                    concat_edges += self.find_split_to_output_edge(G, edge)
-                if concat_edges:
-                    found_some = True
-                    res[edge.from_idx].append(concat_edges)
-        return res if found_some else None
-
-    def insert_copy_on_common_concat_in(self, G, concat_nodes):
-        # in every concat nodes collect all the in edges (from_node, from_idx)
-        # if there are repetition of tuples, insert a copy in every repetition
-        # different concats cannot have the same in edge (from_node, from_idx)
-        concat_in_edges = []
+    def find_common_in_edges(self, G: GraphView):
+        # Look for splits and concats that share a common in edge where a copy is necessary
+        nodes = G.nodes(node_classes=(SplitParameters, ConcatParameters))
         has_modified_graph = False
-        for concat_node in concat_nodes:
-            for idx, in_edge in enumerate(G.indexed_in_edges(concat_node.name)):
-                real_in_edge = find_real_in_edge(G, in_edge)
-                if real_in_edge in concat_in_edges:
-                    has_modified_graph = True
-                    copy_node = CopyParameters("%s_copy_%s" % (concat_node.name, idx))
-                    G.remove_edge(in_edge)
-                    LOG.info('common_concat: inserting copy between %s/%s and %s/%s',
-                             in_edge.from_node.name, idx, concat_node.name, in_edge.to_idx)
-                    G.add_edge(NNEdge(in_edge.from_node, copy_node, from_idx=in_edge.from_idx))
-                    G.add_edge(NNEdge(copy_node, concat_node, to_idx=in_edge.to_idx))
-                    if G.quantization:
-                        qrec = G.quantization[NodeId(concat_node)]
-                        G.quantization[NodeId(copy_node)] = QRec.copy_ktype(qrec,
-                                                                            in_qs=[deepcopy(qrec.in_qs[idx])],
-                                                                            out_qs=[deepcopy(qrec.in_qs[idx])])
-                else:
-                    concat_in_edges.append(real_in_edge)
+        while nodes:
+            node = nodes.pop(0)
+            for in_edge in G.in_edges(node):
+                # find another edge that would be generated as the same edge
+                # with a concat/split on it. If found then insert a copy
+                # and search again on that node to find others
+                dup_edge = self.search_up_for_duplicate(G, in_edge)
+                if dup_edge is None:
+                    continue
+                has_modified_graph = True
+                self.insert_copy_at_edge(G, dup_edge)
+                nodes.append(node)
+                break
         return has_modified_graph
 
-    def find_direct_connects(self, G, node, has_modified_graph, find_output=True):
-        # traverse reshapes or transposes that do nothing - check gen
-        # find edges connected to concats
-        res = self.find_split_concat(G, node, find_output=find_output)
-        if res is None:
-            return has_modified_graph
-        if G.quantization:
-            qrec = G.quantization[NodeId(node)]
-        for idx, bundle in enumerate(res):
-            if not bundle:
-                continue
-            has_modified_graph = True
-            copy_node = CopyParameters("%s_copy_%s" % (node.name, idx))
-            for edge_set in bundle:
-                first_edge = edge_set[0]
-                G.remove_edge(first_edge)
-                LOG.info('inserting copy between %s/%s and %s/%s',
-                         node.name, idx, first_edge.to_node.name, first_edge.to_idx)
-                G.add_edge(NNEdge(copy_node, first_edge.to_node,
-                                  to_idx=first_edge.to_idx))
-            G.add_edge(NNEdge(node, copy_node, from_idx=idx))
-            if G.quantization:
-                G.quantization[NodeId(copy_node)] = QRec.copy_ktype(qrec,
-                                                                    in_qs=[
-                                                                        deepcopy(qrec.out_qs[idx])],
-                                                                    out_qs=[deepcopy(qrec.out_qs[idx])])
-        return True
+    def search_up_for(self, G, edge, node_class):
+        if isinstance(edge.from_node, node_class):
+            return edge
+        elif self.can_pass_node(edge.from_node):
+            return self.search_up_for(G, G.in_edges(edge.from_node)[0], node_class)
+        return None
+
+    def insert_copy_split_to_output_or_concat(self, G):
+        # insert copys between splits and outputs or concats
+        nodes = G.nodes(node_classes=(ConcatParameters, OutputParameters))
+        has_modified_graph = False
+        while nodes:
+            node = nodes.pop(0)
+            for edge in G.in_edges(node):
+                split_edge = self.search_up_for(G, edge, SplitParameters)
+                if split_edge is None:
+                    continue
+                has_modified_graph = True
+                self.insert_copy_at_edge(G, split_edge)
+        return has_modified_graph
+
+    def insert_copy_input_or_split_to_concat(self, G):
+        # insert copies between inputs or splits and concats
+        nodes = G.nodes(node_classes=(ConcatParameters))
+        has_modified_graph = False
+        while nodes:
+            node = nodes.pop(0)
+            for edge in G.in_edges(node):
+                input_edge = self.search_up_for(
+                    G, edge, (SplitParameters, InputParameters))
+                if input_edge is None:
+                    continue
+                has_modified_graph = True
+                self.insert_copy_at_edge(G, input_edge)
+        return has_modified_graph
 
     def _match(self, G: GraphView, set_identity: bool = True, **kwargs):
-        split_nodes = [node for node in G.nodes(node_classes=SplitParameters)]
-        has_modified_graph = False
-        for node in split_nodes:
-            has_modified_graph = self.find_direct_connects(
-                G, node, has_modified_graph)
-        concat_nodes = [node for node in G.nodes(
-            node_classes=ConcatParameters)]
-        for node in concat_nodes:
-            has_modified_graph = self.find_direct_connects(
-                G, node, has_modified_graph, find_output=False)
-        has_modified_graph |= self.insert_copy_on_common_concat_in(G, concat_nodes)
+        has_modified_graph = self.insert_copy_input_or_split_to_concat(G)
+        has_modified_graph |= self.insert_copy_split_to_output_or_concat(G)
+        has_modified_graph |= self.find_common_in_edges(G)
 
         return has_modified_graph

@@ -18,6 +18,7 @@ import logging
 import numpy as np
 from bfloat16 import bfloat16
 from expressions.symbolic.kernel_codegen import BasicKernel
+from generation.new_generators import ne16
 from graph.types import (ConcatParameters, ConstantInputParameters,
                          InputParameters, OutputParameters, ReshapeParameters,
                          SplitParameters, TransposeParameters)
@@ -208,16 +209,14 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
 
     @staticmethod
     def real_down_connection(G, eparams):
-        oedge = G.out_edges(eparams.creating_node.name)[
+        oedges = G.indexed_out_edges(eparams.creating_node.name)[
             eparams.creating_node_idx]
-        while isinstance(oedge.to_node, ReshapeParameters) or \
-                (isinstance(oedge.to_node, TransposeParameters) and oedge.to_node.does_nothing()):
-            # TODO - This assert is removed but there are some corner cases where this will break
-            # it would be better to create an edge alias map before code gen
-            # need a test for x -> reshape -> y and output and y -> z -> another output
-            # assert len(G.indexed_out_edges(oedge.to_node.name)) <= 1
-            oedge = G.out_edges(oedge.to_node.name)[0]
-        return oedge
+        while any(isinstance(oedge.to_node, ReshapeParameters) or \
+                (isinstance(oedge.to_node, TransposeParameters) and oedge.to_node.does_nothing()) for oedge in oedges):
+            if len(oedges) > 1:
+                raise NotImplementedError('multiple edges on ungenerated node')
+            oedges = G.out_edges(oedges[0].to_node.name)
+        return oedges[0]
 
     def local_generator(self, indent=0):
         edges = set(edge.params for edge in self.G.edges())
@@ -396,17 +395,17 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
         includes = []
         if any(qrec.ktype == "scaled" for qrec in self.G.quantization.values()):
             includes.append('"CNN_Generators_SQ8.h"')
-            if self.G.has_rnn:
+            if self.G.has_rnn(ktype='scaled'):
                 includes.append('"RNN_Generators_SQ8.h"')
         if any(qrec.ktype == "symmetric" for qrec in self.G.quantization.values()):
             includes.append('"CNN_Generators.h"')
         if any(qrec.ktype == "float" for qrec in self.G.quantization.values()):
             includes.append('"CNN_Generators_fp16.h"')
-            if self.G.has_rnn:
+            if self.G.has_rnn(ktype='float'):
                 includes.append('"RNN_Generators_fp16.h"')
         if any(qrec.cache.get('ne16') for qrec in self.G.quantization.values()):
             includes.append('"CNN_Generators_NE16.h"')
-            if self.G.has_rnn:
+            if self.G.has_rnn(ne16=True):
                 includes.append('"RNN_Generators_NE16.h"')
         if self.G.has_resizer:
             includes.append('"ResizeGenerator.h"')
@@ -424,7 +423,7 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
             kernels.append('\"CNN_BasicKernels_NE16.h\"')
             if '\"CNN_BasicKernels_SQ8.h\"' not in kernels:
                 kernels.append('\"CNN_BasicKernels_SQ8.h\"')
-            if self.G.has_rnn:
+            if self.G.has_rnn(ne16=True):
                 kernels.append('"RNN_BasicKernels_NE16.h"')
         return kernels
 
@@ -551,7 +550,7 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
         code_block = CodeBlock(starting_indent=indent)
         if any(qrec.ktype == "scaled" for qrec in self.G.quantization.values()):
             code_block.write("LoadCNN_SQ8_Library();")
-            if self.G.has_rnn:
+            if self.G.has_rnn(ktype='scaled'):
                 code_block.write("Load_RNN_SQ8_Library();")
             if self.G.has_ssd_postprocess:
                 code_block.write("LoadSSDLibrary();")
@@ -559,14 +558,14 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
             code_block.write("LoadCNNLibrary();")
         if any(qrec.ktype == "float" for qrec in self.G.quantization.values()):
             code_block.write("LoadCNNLibrary_fp16();")
-            if self.G.has_rnn:
+            if self.G.has_rnn(ktype='float'):
                 code_block.write("LoadRNN_fp16_Library();")
             if self.G.has_ssd_postprocess:
                 code_block.write("LoadSSDLibrary_fp16();")
         if any(qrec.cache.get('ne16') for qrec in self.G.quantization.values()):
             # We need to ensure that also LoadCNN_SQ8_Library is called
             code_block.write("LoadCNN_NE16_SQ8_Library();")
-            if self.G.has_rnn:
+            if self.G.has_rnn(ne16=True):
                 code_block.write("Load_RNN_NE16_Library();")
         if self.G.has_resizer:
             code_block.write("LoadResizeLibrary();")

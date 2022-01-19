@@ -14,13 +14,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from generation.at_types.gen_ctrl import GenCtrl
 import logging
 
 from expressions.symbolic.basic import HSigmoid, HTanh, Relu, Sigmoid, TanH
+from generation.at_types.gen_ctrl import GenCtrl
 
-from .base import (CanFuseToExpression, ComparableParameters, NoSizeChangeParameters, Parameters, SensitiveToOrder,
-                   SingleInputAndOutput, expression_op, cls_op_name)
+from utils.subclasses import get_all_subclasses
+
+from .base import (CanFuseToExpression, ComparableParameters,
+                   NoSizeChangeParameters, Parameters, SensitiveToOrder,
+                   SingleInputAndOutput, cls_op_name, expression_op)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -39,7 +42,7 @@ class ActivationParameters(NoSizeChangeParameters, SingleInputAndOutput, Compara
         if activation_type == "relu6":
             return ReluActivationParameters(name, upper_bound=6)
         actnames = {
-            act_class.CLS_OP_NAME: act_class for act_class in ActivationParameters.__subclasses__()}
+            act_class.CLS_OP_NAME: act_class for act_class in get_all_subclasses(ActivationParameters)}
         if activation_type in actnames:
             return actnames[activation_type](name)
         raise ValueError("don't know how to create %s" % activation_type)
@@ -137,20 +140,54 @@ class LeakyActivationParameters(ActivationParameters):
         return (isinstance(other, LeakyActivationParameters) and self.leak_factor == other.leak_factor)
 
 
-@expression_op(HSigmoid)
-@cls_op_name('hsigmoid')
-class HSigmoidActivationParameters(ActivationParameters, CanFuseToExpression):
-    def __init__(self, name, offset=3):
-        super(HSigmoidActivationParameters, self).__init__(name)
-        self._offset = offset
+class HardSigSwiActivationBase(ActivationParameters):
+    def __init__(self, name, offset=3, upper_bound=6, mult=1/6):
+        super(HardSigSwiActivationBase, self).__init__(name)
+        self._factors = [offset, upper_bound, mult]
+
+    @property
+    def factors(self):
+        return self._factors
 
     @property
     def offset(self):
-        return self._offset
+        return self._factors[0]
+
+    @property
+    def upper_bound(self):
+        return self._factors[1]
+
+    @property
+    def mult(self):
+        return self._factors[2]
 
     @offset.setter
     def offset(self, val):
-        self._offset = val
+        self._factors[0] = val
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def is_same_operation_as(self, G, other):
+        return (isinstance(other, self.__class__) and
+                self.factors == other.factors)
+
+    def __str__(self):
+        return f"Activation {self.activation} offset={self.offset} {self.at_options}"
+
+
+@expression_op(HSigmoid)
+@cls_op_name('hsigmoid')
+class HSigmoidActivationParameters(HardSigSwiActivationBase, CanFuseToExpression):
+
+    @classmethod
+    def from_alpha_beta(cls, name, alpha, beta):
+        return cls(name, offset=beta/alpha, upper_bound=1/alpha, mult=alpha)
+
+    @property
+    def activation(self):
+        return "hsigmoid"
 
     def get_gen_ctrl(self):
         gen_ctrl = GenCtrl(self.at_options)
@@ -158,30 +195,12 @@ class HSigmoidActivationParameters(ActivationParameters, CanFuseToExpression):
             gen_ctrl.relun = self.offset
         return gen_ctrl
 
-    @property
-    def can_equalize(self):
-        return False
-
-    def is_same_operation_as(self, G, other):
-        return (isinstance(other, HSigmoidActivationParameters) and self.offset == other.offset)
-
-    def __str__(self):
-        return "Activation {} offset={} {}".format(
-            self.activation,
-            self.offset,
-            self.at_options
-        )
-
 
 @cls_op_name('hswish')
-class HSwishActivationParameters(ActivationParameters):
+class HSwishActivationParameters(HardSigSwiActivationBase):
     @property
     def activation(self):
         return "hswish"
-
-    @property
-    def can_equalize(self):
-        return False
 
 
 @expression_op(HTanh)

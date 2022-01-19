@@ -15,8 +15,10 @@
 
 import argparse
 import logging
-
+import pickle
+import glob
 from cmd2 import Cmd2ArgumentParser, with_argparser
+from cmd2.cmd2 import Cmd
 from interpreter.nntool_shell_base import (NNToolShellBase,
                                            store_once_in_history)
 from interpreter.shell_utils import glob_input_files, input_options
@@ -45,6 +47,9 @@ class AquantCommand(NNToolShellBase):
     parser_aquant.add_argument('-s', '--scheme',
                                type=str, choices=QUANTIZATION_SCHEMES, default='SQ8',
                                help='quantize with scaling factors (TFlite quantization-like) [default] or POW2')
+    parser_aquant.add_argument('--stats',
+                               completer_method=Cmd.path_complete,
+                               help='pickle file containing statistics')
     add_options_to_parser(parser_aquant)
     input_options(parser_aquant)
 
@@ -59,7 +64,12 @@ Attempt to calculate quantization for graph using one or more sample input files
         opts = get_options_from_args(args)
         state = ConstantInputParameters.save_compression_state(self.G)
         try:
-            if self.replaying_history and self.history_stats:
+            if args.stats:
+                stats_file = glob.glob(args.stats)
+                stats_file = stats_file[0] if stats_file else args.stats
+                with open(stats_file, 'rb') as file_pointer:
+                    astats = pickle.load(file_pointer)
+            elif self.replaying_history and self.history_stats:
                 astats = self.history_stats
             else:
                 input_args = self._get_input_args(args)

@@ -111,7 +111,8 @@ class MultMulBiasScaleQType(ScalingQType):
     ]
 
     def __init__(self, *args, scale=None, dtype=np.uint8, available_bits=None, calc_dtype=np.int32, **kwargs):
-        super(MultMulBiasScaleQType, self).__init__(*args, dtype=dtype, **kwargs)
+        super(MultMulBiasScaleQType, self).__init__(
+            *args, dtype=dtype, **kwargs)
         if available_bits is None:
             if dtype == np.uint8:
                 available_bits = 8
@@ -122,15 +123,16 @@ class MultMulBiasScaleQType(ScalingQType):
 
         self._available_bits = available_bits
         self._pre_normalization = 0
-        self._calc_dtype=np.int64
+        self._calc_dtype = np.int64
         self.scale = scale
 
     @classmethod
     def from_filter(cls, in_q, weights_q, out_q, params, dtype=np.uint8):
         available_bits = (
             31 - (math.ceil(math.log2(params.filter.sz)) + 7 + 7))
-        qtype = cls(dtype=dtype, available_bits=available_bits)
-        qtype.scale = in_q.scale * weights_q.scale / out_q.scale
+        qtype = cls(dtype=dtype,
+                    available_bits=available_bits,
+                    scale=in_q.scale * weights_q.scale / out_q.scale)
         return qtype
 
     @property
@@ -213,7 +215,8 @@ class MultFractionalMulBiasQType(ScalingQType):
     ]
 
     def __init__(self, *args, scale=None, **kwargs):
-        super(MultFractionalMulBiasQType, self).__init__(*args, dtype=np.uint32, **kwargs)
+        super(MultFractionalMulBiasQType, self).__init__(
+            *args, dtype=np.uint32, **kwargs)
         self._scale = None
         self.scale = scale
 
@@ -230,7 +233,8 @@ class MultFractionalMulBiasQType(ScalingQType):
         if val is not None:
             if not isinstance(val, np.ndarray):
                 val = np.array([val])
-            assert np.all(val >= 0) and np.all(val <= 1), "scale should be positive and fractional"
+            assert np.all(val >= 0) and np.all(
+                val <= 1), "scale should be positive and fractional"
             self._scale = val
             self.compute_scales()
         else:
@@ -260,12 +264,14 @@ class MultFractionalMulBiasQType(ScalingQType):
             assert len(mul_biases) == 1 and len(
                 mul_biases_norm) == 1, "no axis set. should have single scale"
         else:
-            shape = [len(self.qbiases) if idx == axis else 1 for idx in range(len(arr.shape))]
+            shape = [len(self.qbiases) if idx ==
+                     axis else 1 for idx in range(len(arr.shape))]
             mul_biases = self.qbiases.reshape(shape)
             mul_biases_norm = self.qnorms.reshape(shape)
 
         #arr = np.multiply(arr, mul_biases, dtype=np.int64) >> 32
-        arr = at_norm(np.multiply(arr, mul_biases, dtype=np.int64), 32 + mul_biases_norm)
+        arr = at_norm(np.multiply(arr, mul_biases,
+                                  dtype=np.int64), 32 + mul_biases_norm)
         return arr.astype(np.int32)
 
     def str_by_chan(self, chan: int):

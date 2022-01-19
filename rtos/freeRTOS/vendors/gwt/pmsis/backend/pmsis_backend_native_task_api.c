@@ -2,6 +2,9 @@
 #include "pmsis.h"
 #include "driver/gap_io.h"
 
+
+void pi_task_timer_enqueue(struct pi_task *task, uint32_t delay_us);
+
 /**
  * Kickoff the first "main" os task and scheduler
  */
@@ -62,6 +65,16 @@ void pi_time_wait_us(int time_us)
     //time_us--;
     if (time_us > 0)
     {
+#ifdef __GAP8__
+        // correct the setup time if wait is short, -10 us ==> about 500 cycles max
+        // also do not go below 100 us resolution
+
+            uint32_t wait_time = time_us < 100 ? 100 : time_us;
+            pi_task_t task_block;
+            pi_task_block(&task_block);
+            pi_task_timer_enqueue(&task_block, wait_time);
+            pi_task_wait_on(&task_block);
+#else
         /* Wait less than 1 ms. */
         if (time_us < 1000)
         {
@@ -85,6 +98,7 @@ void pi_time_wait_us(int time_us)
             pi_task_delayed_fifo_enqueue(&task_block, time_us);
             pi_task_wait_on(&task_block);
         }
+#endif
     }
 }
 
@@ -121,6 +135,70 @@ void pi_task_delayed_fifo_enqueue(struct pi_task *task, uint32_t delay_us)
         delayed_task.fifo_tail->next = task;
     }
     delayed_task.fifo_tail = task;
+}
+
+
+PI_FC_L1 struct pi_task_delayed_s timer_task = {0};
+
+// TODO: use a proper define for ref clk (does not exist yet)
+#define ref_clk_us (1000000/(32768/2))
+
+void pi_task_timer_enqueue(struct pi_task *task, uint32_t delay_us)
+{
+#ifdef __GAP8__
+    task->data[8] = ((delay_us)/ref_clk_us)
+        + (((delay_us)%ref_clk_us) > 0);
+    //printf("ticks: %i\n ref_clk_us: %i\n rem: %i\n",task->data[8]
+    //        ,ref_clk_us
+    //        ,(((delay_us)%ref_clk_us) > 0));
+    task->next = NULL;
+    if (delayed_task.fifo_head == NULL)
+    {
+        delayed_task.fifo_head = task;
+        // IRQ might have been disabled due to no timer pending
+        system_setup_timer();
+        NVIC_ClearPendingIRQ(FC_IRQ_TIMER0_HI_EVT);
+        NVIC_EnableIRQ(FC_IRQ_TIMER0_HI_EVT);
+    }
+    else
+    {
+        delayed_task.fifo_tail->next = task;
+    }
+    delayed_task.fifo_tail = task;
+#endif
+}
+
+
+// push timer pi task to unlock
+// --> No callback is allowed here, only timed waits
+void __pi_task_timer_irq(void)
+{
+    struct pi_task *task = delayed_task.fifo_head;
+    struct pi_task *prev_task = delayed_task.fifo_head;
+    while (task != NULL)
+    {
+        task->data[8]--;
+        if ((int32_t) task->data[8] <= 0)
+        {
+            if (task == delayed_task.fifo_head)
+            {
+                delayed_task.fifo_head = task->next;
+            }
+            else
+            {
+                prev_task->next = task->next;
+            }
+            // pi task is mandatorily a blocking task
+            pi_task_release(task);
+        }
+        prev_task = task;
+        task = task->next;
+    }
+    if(!delayed_task.fifo_head)
+    {// no tasks at all --> disable irq
+        pi_timer_stop(FC_TIMER_1);
+        NVIC_DisableIRQ(FC_IRQ_TIMER0_HI_EVT);
+    }
 }
 
 // return value allows to skip some OS logic when a switch has already been triggered

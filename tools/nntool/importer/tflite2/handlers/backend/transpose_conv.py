@@ -12,7 +12,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.dim import Conv2DFilterDim, PadDim, StrideDim
+import numpy as np
+from graph.types.constant_input import ConstantInputParameters
+from graph.dim import Conv2DFilterDim, Dim, PadDim, StrideDim
 from graph.types import NNEdge, TransposeConv2DParameters
 from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
@@ -52,6 +54,9 @@ class TransposeConv(ConstantMixin, FilterMixin, BackendHandler):
         filt_shape = filt[2].shape
         # # ['in_c', 'h', 'w', 'out_c']
         filt_out_c, filt_h, filt_w, filt_in_c = tuple(filt_shape)
+        bias_node = ConstantInputParameters(f'{node.name}_bias',
+                                                        dims=Dim.unnamed([filt_out_c]),
+                                                        value=np.zeros([filt_out_c], dtype=np.float32))  # TODO - check
 
         filt_dim = Conv2DFilterDim(filt_h, filt_w,
                                    filt_out_c, in_c=filt_in_c)
@@ -82,6 +87,7 @@ class TransposeConv(ConstantMixin, FilterMixin, BackendHandler):
         G.add_edge(
             NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         G.add_edge(NNEdge(from_node=weights_node, to_node=params, to_idx=1))
+        G.add_edge(NNEdge(from_node=bias_node, to_node=params, to_idx=2))
         pout_dims = ProvisionalDim(pout_shape)
 
         all_nodes[node.output[0]] = (params, 0, pout_dims)

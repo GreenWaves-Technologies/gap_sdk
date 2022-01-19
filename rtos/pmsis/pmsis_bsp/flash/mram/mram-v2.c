@@ -24,7 +24,7 @@
 #include "archi/chips/gap9_v2/pulp_archi.h"
 #else
 #include "pmsis/targets/target.h"
-#include "pmsis/implem/drivers/udma/udma_core/udma_core.h"
+#include "chips/gap9/drivers/udma/udma_core.h"
 #define ARCHI_UDMA_NB_MRAM UDMA_NB_MRAM
 #define pos_task_push_locked pi_task_push
 #define ARCHI_UDMA_MRAM_ID UDMA_MRAM_ID
@@ -177,6 +177,9 @@ static void __rt_mram_do_trim(pos_mram_t *mram, void *_trim_cfg_buff)
     mram->pending_copy = pi_task_block(&task);
     __rt_mram_trim_cfg_exec(mram, trim_cfg_buff, 0, TRIM_CFG_SIZE*4);
     pi_task_wait_on(&task);
+
+    // Specs require to wait 20us before erase or program
+    pi_time_wait_us(20);
 }
 
 static void pos_mram_null_handler(void* arg)
@@ -307,8 +310,8 @@ static int mram_open(struct pi_device *device)
         pos_soc_event_register_callback(ARCHI_SOC_EVENT_MRAM_TRIM, pos_mram_handle_event, (void *)device);
 #else
         // set rx/tx channel, no attached handler here (mram has its own fixed events)
-        mram->rx_channel = pi_udma_core_lin_alloc(pos_mram_null_handler, NULL);
-        mram->tx_channel = pi_udma_core_lin_alloc(pos_mram_null_handler, NULL);
+        mram->rx_channel = pi_udma_core_lin_alloc();
+        mram->tx_channel = pi_udma_core_lin_alloc();
 
         hal_udma_core_lin_reset(hal_udma_core_lin_get(mram->rx_channel));
         hal_udma_core_lin_reset(hal_udma_core_lin_get(mram->tx_channel));
@@ -324,10 +327,10 @@ static int mram_open(struct pi_device *device)
         pi_fc_event_handler_set(SOC_EVENT_UDMA_MRAM_TRIM_EVT(id), pos_mram_handle_event, (void *)device);
         pi_fc_event_handler_set(SOC_EVENT_UDMA_MRAM_RX_EVT(id), pos_mram_handle_event, (void *)device);
         // activate events
-        hal_soc_eu_set_fc_mask(SOC_EVENT_UDMA_MRAM_ERASE_EVT(id));
-        hal_soc_eu_set_fc_mask(SOC_EVENT_UDMA_MRAM_TX_EVT(id));
-        hal_soc_eu_set_fc_mask(SOC_EVENT_UDMA_MRAM_TRIM_EVT(id));
-        hal_soc_eu_set_fc_mask(SOC_EVENT_UDMA_MRAM_RX_EVT(id));
+        pi_soc_eu_fc_mask_set(SOC_EVENT_UDMA_MRAM_ERASE_EVT(id));
+        pi_soc_eu_fc_mask_set(SOC_EVENT_UDMA_MRAM_TX_EVT(id));
+        pi_soc_eu_fc_mask_set(SOC_EVENT_UDMA_MRAM_TRIM_EVT(id));
+        pi_soc_eu_fc_mask_set(SOC_EVENT_UDMA_MRAM_RX_EVT(id));
 
 #endif
 #ifndef CONFIG_XIP_MRAM

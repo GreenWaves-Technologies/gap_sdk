@@ -18,7 +18,10 @@ endif
 BOARD_PROFILE_UPPER = $(shell echo $(PULPOS_BOARD_PROFILE) | tr 'a-z' 'A-Z')
 PULP_CFLAGS += -DCONFIG_PROFILE_$(BOARD_PROFILE_UPPER)
 
-
+ifneq (,$(findstring $(BOARD_FEATURES),audio_addon))
+	PULP_SRCS += $(BSP_GAP9_EVK_AUDIO_ADDON)
+	PULP_CFLAGS += -DCONFIG_GAP9_EVK_AUDIO_ADDON=1
+endif
 
 # BSP is needed if i2s is used to properly configure pads
 ifeq '$(CONFIG_I2S)' '1'
@@ -111,4 +114,8 @@ endif
 
 ifeq '$(CONFIG_BLE_NINA_B112)' '1'
 PULP_SRCS += $(BSP_BLE_NINA_B112_SRC)
+endif
+
+ifeq '$(CONFIG_AK4332)' '1'
+PULP_SRCS += $(BSP_AK4332_SRC)
 endif

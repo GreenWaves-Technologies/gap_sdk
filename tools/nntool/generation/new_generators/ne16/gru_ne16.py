@@ -71,9 +71,6 @@ class GRUNE16Generator(GeneratorBase):
                                          gen.opts['default_global_exec_location'],
                                          const_info=const_info,
                                          comment=f"{node.name} scales and norms"))
-        if node.rnn_states_as_inputs:
-            gen.globals.append(GlobalResetArgInfo(
-                f"{node.name}_Reset", 'AT_MEM_L2', 'AT_MEM_UNDEF'))
 
         out_q = qrec.out_qs[0]
 
@@ -131,7 +128,11 @@ class GRUNE16Generator(GeneratorBase):
                 f"unsigned {in_ctype}", f"S{step_idx}_StateInternal02"))
 
         i_state_eparams = in_eparams[names['h_state']]
-        reset_name = i_state_eparams.creating_node.reset_name if node.rnn_states_as_inputs else "Reset"
+        if node.rnn_states_as_inputs:
+            reset_name = f'{node.name}_Reset'
+        else:
+            reset_name = 'Reset'
+
         bindings = [
             GNodeArgEdge(i_state_eparams, direction="GNA_INOUT"),
             GNodeArgEdge("S%s_StateInternal01" % step_idx, alias=i_state_eparams,

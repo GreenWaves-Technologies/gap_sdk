@@ -40,35 +40,40 @@ class MoveNodeUpMatcher(Matcher):
     ValidNodes = None
 
     def execute_tests(self, G, tests, node):
-        if len(G.out_edges(node.name)) > 1:
-            return False
         return any(isinstance(node, test) if inspect.isclass(test) else test(node) for test in tests)
 
-    def find_home_for_node(self,
-                           G,
-                           node,
-                           edge=None):
-        if edge is None:
-            in_edge = G.in_edges(node.name)[0]
-            yield from self.find_home_for_node(G,
-                                               node,
-                                               edge=in_edge)
-        elif self.execute_tests(G, self.ValidNodesToPass, edge.from_node):
-            if isinstance(edge.from_node, ConcatParameters):
-                for in_edge in G.in_edges(edge.from_node.name):
+    def find_home_for_node(self, G, node, first=True):
+        # search up for a place to move a node such as an activation to to allow it to fuse properly
+        if self.execute_tests(G, self.ValidNodes, node):
+            # should only see node to move at start
+            if not first:
+                raise LocationNotFoundError()  # @IgnoreException
+            in_edge = G.in_edges(node)[0]
+            yield from self.find_home_for_node(G, in_edge.from_node, first=False)
+        elif self.execute_tests(G, self.ValidNodesToPass, node):
+            # intermediate nodes cannot have multiple outputs
+            if len(G.out_edges(node)) > 1:
+                raise LocationNotFoundError()  # @IgnoreException
+            # Concat can have multiple inputs that must all acccept moved node
+            if isinstance(node, ConcatParameters):
+                for in_edge in G.in_edges(node):
                     yield from self.find_home_for_node(G,
-                                                       node,
-                                                       edge=in_edge)
+                                                       in_edge.from_node,
+                                                       first=False)
             else:
-                in_edge = G.in_edges(edge.from_node.name)[0]
+                in_edge = G.in_edges(node.name)[0]
                 yield from self.find_home_for_node(G,
-                                                   node,
-                                                   edge=in_edge)
-        elif self.execute_tests(G, self.ValidFusions, edge.from_node):
-            yield edge
+                                                   in_edge.from_node,
+                                                   first=False)
+        elif self.execute_tests(G, self.ValidFusions, node):
+            out_edges = G.out_edges(node)
+            # Node to move after can only have one output
+            if len(out_edges) > 1:
+                raise LocationNotFoundError()  # @IgnoreException
+            # yeild the edge that node needs to move onto
+            yield out_edges[0]
         else:
-
-            raise LocationNotFoundError() # @IgnoreException
+            raise LocationNotFoundError()  # @IgnoreException
 
     @staticmethod
     def move_node(G, node, edges):
@@ -88,7 +93,7 @@ class MoveNodeUpMatcher(Matcher):
                      node.name, edge.from_node.name, edge.to_node.name)
             if cnt > 0:
                 new_node = deepcopy(node)
-                new_node.name = f'{original_node.name}_{cnt}'
+                new_node.name = G.unique_name(f'{original_node.name}_{cnt}')
             else:
                 new_node = node
             cnt += 1
@@ -145,6 +150,7 @@ class MoveActivationsMatcherScale8(MoveNodeUpMatcher):
 
     ValidNodes = (ActivationParameters,)
 
+
 @groups('scaled')
 @match_name("move_pooling_scale8")
 @description("Tries to move pooling layers so they are after layers that they can be fused with."
@@ -152,7 +158,6 @@ class MoveActivationsMatcherScale8(MoveNodeUpMatcher):
 @needs_valid_dimension(True)
 @run_before('fuse_gap_convs', 'fuse_gap_linear', 'fuse_gap_pool', 'fuse_op_activation_scale8')
 class MoveMaxPoolMatcherScale8(MoveNodeUpMatcher):
-
 
     ValidNodesToPass = (ReshapeParameters, TransposeParameters,
                         ReluActivationParameters, ConcatParameters)

@@ -96,7 +96,7 @@ add_subdirectory(vendors/gwt)
 add_subdirectory(demos/gwt/config/gap9)
 add_subdirectory(freertos_kernel)
 add_subdirectory(freertos_kernel/portable)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../pmsis/pmsis_api ${CMAKE_CURRENT_BINARY_DIR}/pmsis_api)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../pmsis ${CMAKE_CURRENT_BINARY_DIR}/pmsis)
 
 
 
@@ -121,6 +121,7 @@ target_link_libraries(freertos PUBLIC pmsis_implem_gap9)
 target_link_libraries(freertos PUBLIC pmsis_freertos)
 target_link_libraries(freertos PUBLIC freertos_libs)
 target_link_libraries(freertos PUBLIC pmsis_api)
+target_link_libraries(freertos PUBLIC pmsis_implem)
 target_link_libraries(freertos PUBLIC freertos_printf)
 target_link_libraries(freertos PUBLIC freertos_kernel)
 target_link_libraries(freertos PUBLIC freertos_config_gap9)
@@ -133,12 +134,12 @@ endif()
 
 if(CONFIG_USE_BSP)
 install(TARGETS freertos ri5cy-gap9 freertos_gap9 pmsis_implem_gap9 pmsis_freertos
-     freertos_libs pmsis_api freertos_printf freertos_kernel freertos_config_gap9
+     freertos_libs pmsis_api freertos_printf freertos_kernel pmsis_implem freertos_config_gap9
      pmsis_rtos freertos_pmsis_backend bsp
      EXPORT freertosTargets)
 else()
 install(TARGETS freertos ri5cy-gap9 freertos_gap9 pmsis_implem_gap9 pmsis_freertos
-     freertos_libs pmsis_api freertos_printf freertos_kernel freertos_config_gap9
+     freertos_libs pmsis_api freertos_printf freertos_kernel pmsis_implem freertos_config_gap9
      pmsis_rtos freertos_pmsis_backend
      EXPORT freertosTargets)
 

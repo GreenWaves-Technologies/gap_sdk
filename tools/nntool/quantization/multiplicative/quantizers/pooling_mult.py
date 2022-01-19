@@ -1,4 +1,4 @@
-# Copyright (C) 2020  GreenWaves Technologies, SAS
+# Copyright (C) 2020, 2022  GreenWaves Technologies, SAS
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -18,9 +18,11 @@ from copy import deepcopy
 
 import numpy as np
 from graph.types import PoolingParameters
+from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
-from quantization.quantizer_options import FORCE_NE16_OPTION, HWC_OPTION, USE_NE16_OPTION
+from quantization.quantizer_options import (FORCE_NE16_OPTION, HWC_OPTION,
+                                            USE_NE16_OPTION)
 from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        options,
                                                        out_qs_constraint,
@@ -29,6 +31,7 @@ from quantization.unified_quantization_handler import (in_qs_constraint,
 from ..mult_quantization_handler import MultQuantizionHandler
 
 LOG = logging.getLogger('nntool.' + __name__)
+
 
 @options(
     HWC_OPTION
@@ -61,11 +64,13 @@ class PoolingMult(MultQuantizionHandler):
 
         if force_out_q:
             if force_out_q.asymmetric and not opts.get('allow_asymmetric'):
-                LOG.warning('%s could be asymmetricaly quantized but allow_asymmetric option not selected', params.name)
+                LOG.warning(
+                    '%s could be asymmetricaly quantized but allow_asymmetric option not selected', params.name)
                 return None
             if force_out_q.dtype != in_q.dtype:
                 return None
             o_q = force_out_q
+            # in_q is always out_q since AT pool kernels cannot change scale
             in_q = deepcopy(force_out_q)
             if force_out_q.dtype != in_q.dtype or force_out_q.zero_point != in_q.zero_point:
                 if in_q.forced and force_out_q.zero_point != 0:
@@ -80,8 +85,12 @@ class PoolingMult(MultQuantizionHandler):
             cls.check_order(params, [['h', 'w', 'c']], [['h', 'w', 'c']])
         else:
             cls.check_order(params, [['c', 'h', 'w']], [['c', 'h', 'w']])
+        scale_mul_biases_q = MultMulBiasScaleQType(dtype=np.uint8)
+        scale_mul_biases_q.scale = in_q.scale/o_q.scale
+
         return QRec.scaled(in_qs=[in_q],
-                           out_qs=[o_q])
+                           out_qs=[o_q],
+                           scale_mul_biases_q=scale_mul_biases_q)
 
     @classmethod
     def can_handle_asymmetric_input(cls, params, **kwargs):
@@ -139,9 +148,13 @@ class NE16PoolingMult(MultQuantizionHandler):
             o_q = deepcopy(in_q)
         o_q.attr.ne16 = True
         cls.check_order(params, [['h', 'w', 'c']], [['h', 'w', 'c']])
+        scale_mul_biases_q = MultMulBiasScaleQType(dtype=np.uint8)
+        scale_mul_biases_q.scale = in_q.scale/o_q.scale
+
         return QRec.scaled(in_qs=[in_q],
                            out_qs=[o_q],
-                           ne16=True)
+                           ne16=True,
+                           scale_mul_biases_q=scale_mul_biases_q)
 
     @classmethod
     def _get_in_qs_from_stats(cls, params, stats, in_qs, **kwargs):

@@ -151,7 +151,7 @@ _jump2main: /* Jump to main */
         j default_handler           /* IRQ=8 : undefined */
         j dma_irq_handler           /* IRQ=9 : DMA IRQ Handler. */
         j systick_handler           /* IRQ=10 : Systick Handler. */
-        j default_handler           /* IRQ=11 : undefined */
+        j hi_res_timer_handler      /* IRQ=11 : hi res timer irq handler */
         j default_handler           /* IRQ=12 : undefined */
         j default_handler           /* IRQ=13 : undefined */
         j default_handler           /* IRQ=14 : undefined */

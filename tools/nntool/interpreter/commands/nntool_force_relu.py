@@ -18,7 +18,7 @@ import logging
 
 from cmd2 import Cmd2ArgumentParser, with_argparser
 from interpreter.nntool_shell_base import NNToolShellBase
-from quantization.symmetric.kernels.activations import (get_force_relu,
+from execution.kernels.quant.activations import (get_force_relu,
                                                         set_force_relu)
 
 LOG = logging.getLogger('nntool.'+__name__)

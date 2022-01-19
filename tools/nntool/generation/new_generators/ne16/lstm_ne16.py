@@ -71,9 +71,6 @@ class LSTMNE16Generator(GeneratorBase):
                                          gen.opts['default_global_exec_location'],
                                          const_info=const_info,
                                          comment=f"{node.name} scales and norms"))
-        if node.rnn_states_as_inputs:
-            gen.globals.append(GlobalResetArgInfo(
-                f"{node.name}_Reset", 'AT_MEM_L2', 'AT_MEM_UNDEF'))
 
         out_q = qrec.out_qs[0]
         out_scale = qrec.cache["state_out_q"].qbiases[0]
@@ -183,7 +180,11 @@ class LSTMNE16Generator(GeneratorBase):
 
         i_state_eparams = in_eparams[names['i_state']]
         c_state_eparams = in_eparams[names['c_state']]
-        reset_name = i_state_eparams.creating_node.reset_name if node.rnn_states_as_inputs else "Reset"
+        if node.rnn_states_as_inputs:
+            reset_name = f'{node.name}_Reset'
+        else:
+            reset_name = 'Reset'
+
         bindings = [
             GNodeArgEdge(c_state_eparams, direction="GNA_INOUT"),
             GNodeArgEdge(i_state_eparams, direction="GNA_INOUT"),

@@ -44,6 +44,7 @@ extern char __heapl2ram_size;
 volatile uint32_t SystemCoreClock = (uint32_t) ARCHI_FREQ_INIT;
 
 static volatile uint32_t tick_rate = 0;
+static volatile uint32_t timer_tick_rate = 0;
 
 void system_init(void)
 {
@@ -105,6 +106,34 @@ void system_core_clock_update(uint32_t new_freq)
     cfg.field.mode = 1;
     uint32_t cmp_val = ((SystemCoreClock / tick_rate) - 1);
     pi_timer_init(SYS_TIMER, cfg, cmp_val);
+    // Init precise timer
+    pi_timer_stop(FC_TIMER_1);
+   
+    /* Systick timer configuration. */
+    timer_cfg_u cfg_timer = {0};
+    cfg_timer.field.enable = 1;
+    cfg_timer.field.reset = 1;
+    cfg_timer.field.irq_en = 1;
+    cfg_timer.field.mode = 1;
+    /* Start the timer by putting a CMP value. */
+    cmp_val = ((SystemCoreClock / timer_tick_rate) - 1);
+    pi_timer_init(FC_TIMER_1, cfg_timer, cmp_val);
+    /* Enable IRQ from Systick timer. */
+}
+
+void system_setup_timer(void)
+{
+    /* Systick timer configuration. */
+    timer_cfg_u cfg = {0};
+    cfg.field.enable = 1;
+    cfg.field.reset = 1;
+    cfg.field.irq_en = 1;
+    cfg.field.mode = 1;
+    cfg.field.clk_source = 1;
+    /* Start the timer by putting a CMP value. */
+    uint32_t cmp_val = 2; //((32768 / timer_tick_rate) - 1);
+    pi_timer_init(FC_TIMER_1, cfg, cmp_val);
+    /* Enable IRQ from Systick timer. */
 }
 
 uint32_t system_core_clock_get(void)

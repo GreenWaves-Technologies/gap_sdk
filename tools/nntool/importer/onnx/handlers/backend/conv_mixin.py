@@ -176,14 +176,15 @@ class ConvMixin(BroadcastMixin, PadMixin, ConstantMixin):
             x_qtype = QType(dtype=x_zp.dtype, scale=x_scale, zero_point=x_zp)
             w_zp = cls.get_constant(inputs[5])
             w_scale = cls.get_constant(inputs[4])
+            quantized_dimension = 0 if len(w_scale) > 1 else None
             weights_node.qtype = w_qtype = QType(
                 dtype=w_zp.dtype, scale=w_scale,
-                zero_point=w_zp, quantized_dimension=0 if len(w_scale) > 1 else None)
+                zero_point=w_zp, quantized_dimension=quantized_dimension)
             o_zp = cls.get_constant(inputs[7])
             o_scale = cls.get_constant(inputs[6])
             o_qtype = QType(dtype=o_zp.dtype, scale=o_scale, zero_point=o_zp)
             biases_node.qtype = b_qtype = QType(
-                dtype=biases.dtype, scale=w_scale*x_scale)
+                dtype=biases.dtype, scale=w_scale*x_scale, quantized_dimension=quantized_dimension)
             qrecs[NodeId(params)] = QRec.scaled(
                 in_qs=[x_qtype, w_qtype, b_qtype],
                 out_qs=[o_qtype],

@@ -51,4 +51,4 @@ class NoChangeMixin():
                 "output of %s is forced and inputs don't match - rejecting", params.name)
             return None
 
-        return QRec(in_qs=in_qs, out_qs=[deepcopy(in_qs[0])], ktype=ktype)
+        return QRec(in_qs=deepcopy(in_qs), out_qs=[deepcopy(in_qs[0])], ktype=ktype)

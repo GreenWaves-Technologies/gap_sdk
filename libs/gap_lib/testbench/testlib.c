@@ -195,8 +195,36 @@ void i2s_slot_deinit(i2s_slot_test_t *i2s_slot)
             pi_i2s_channel_conf_set(i2s_slot->i2s, i2s_slot->slot, &i2s_conf);
         }
 
-        pi_l2_free(i2s_slot->buffers[0], i2s_slot->buffer_size);
-        pi_l2_free(i2s_slot->buffers[1], i2s_slot->buffer_size);
+        if (i2s_slot->flags.use_slab)
+        {
+            if (i2s_slot->frame)
+            {
+                if (__FF1(i2s_slot->frame) == i2s_slot->slot)
+                {
+                    pi_l2_free(i2s_slot->slab.buffer, i2s_slot->buffer_size * __builtin_popcount(i2s_slot->frame) * i2s_slot->slab.num_blocks);
+                }
+            }
+            else
+            {
+                pi_l2_free(i2s_slot->slab.buffer, i2s_slot->buffer_size * i2s_slot->slab.num_blocks);
+            }
+        }
+        else
+        {
+            if (i2s_slot->frame)
+            {
+                if (__FF1(i2s_slot->frame) == i2s_slot->slot)
+                {
+                    pi_l2_free(i2s_slot->buffers[0], i2s_slot->buffer_size*__builtin_popcount(i2s_slot->frame));
+                    pi_l2_free(i2s_slot->buffers[1], i2s_slot->buffer_size*__builtin_popcount(i2s_slot->frame));
+                }
+            }
+            else
+            {
+                pi_l2_free(i2s_slot->buffers[0], i2s_slot->buffer_size);
+                pi_l2_free(i2s_slot->buffers[1], i2s_slot->buffer_size);
+            }
+        }
     }
 }
 
@@ -416,24 +444,28 @@ void i2s_slot_callback_tx_file_dumper(void *arg)
 {
     i2s_slot_test_t *i2s_slot = (i2s_slot_test_t *)arg;
 
-    int error = pi_i2s_write_status(&i2s_slot->task);
+    int error = pi_i2s_write_status(&i2s_slot->task[i2s_slot->current_handled_task]);
+    i2s_slot->current_handled_task ^= 1;
 
     if (error)
     {
-        i2s_slot->retval++;
-        pi_task_push(&i2s_slot->end_task);
-        return;
+        i2s_slot->retval = 1;
     }
 
-    if (i2s_slot->nb_sample > 0)
+    if (i2s_slot->nb_sample_done != -1)
     {
-        i2s_slot->nb_sample -= i2s_slot->nb_elem;
+        i2s_slot->nb_sample_done -= i2s_slot->nb_elem;
     }
 
     if (i2s_slot->nb_sample > 0 || i2s_slot->nb_sample == -1)
     {
         void *buffer;
         
+        if (i2s_slot->nb_sample > 0)
+        {
+            i2s_slot->nb_sample -= i2s_slot->nb_elem;
+        }
+
         if (i2s_slot->flags.use_slab)
         {
             pi_mem_slab_alloc(&i2s_slot->slab, (void **)&buffer, 0);
@@ -470,19 +502,23 @@ void i2s_slot_callback_tx_file_dumper(void *arg)
         }
 
 
-
+        pi_task_t *task = &i2s_slot->task[i2s_slot->current_task];
+        i2s_slot->current_task ^= 1;
         if (i2s_slot->frame)
         {
-            int err = pi_i2s_frame_write_async(i2s_slot->i2s, i2s_slot->frame, buffer, i2s_slot->buffer_size, pi_task_callback(&i2s_slot->task, i2s_slot_callback_tx_file_dumper, (void *)i2s_slot));
+            int err = pi_i2s_frame_write_async(i2s_slot->i2s, i2s_slot->frame, buffer, i2s_slot->buffer_size, pi_task_callback(task, i2s_slot_callback_tx_file_dumper, (void *)i2s_slot));
         }
         else
         {
-            int err = pi_i2s_channel_write_async(i2s_slot->i2s, i2s_slot->slot, buffer, i2s_slot->buffer_size, pi_task_callback(&i2s_slot->task, i2s_slot_callback_tx_file_dumper, (void *)i2s_slot));
+            int err = pi_i2s_channel_write_async(i2s_slot->i2s, i2s_slot->slot, buffer, i2s_slot->buffer_size, pi_task_callback(task, i2s_slot_callback_tx_file_dumper, (void *)i2s_slot));
         }
     }
     else
     {
-        pi_task_push(&i2s_slot->end_task);
+        if (i2s_slot->nb_sample_done == 0)
+        {
+            pi_task_push(&i2s_slot->end_task);
+        }
     }
 }
 
@@ -546,6 +582,7 @@ int i2s_slot_callback_rx_iter_check(i2s_slot_test_t *i2s_slot, void *chunk, int 
         {
             printf("Detected error (itf: %d, slot: %d, index: %d, nb_elem: %d, expected: 0x%x, got: 0x%x, address: %p)\n", i2s_slot->itf, i2s_slot->slot, i, nb_elem, current_value, value, address);
             i2s_slot->retval++;
+            exit(1);
             return 1;
         }
 
@@ -564,7 +601,7 @@ void i2s_slot_callback_rx_iter(void *arg)
     void *chunk;
     int size;
 
-    if (pi_i2s_read_status(&i2s_slot->task, &chunk, (size_t *)&size))
+    if (pi_i2s_read_status(&i2s_slot->task[0], &chunk, (size_t *)&size))
     {
         i2s_slot->retval++;
         goto end;
@@ -585,7 +622,7 @@ void i2s_slot_callback_rx_iter(void *arg)
             buffer += size;
         }
         
-        pi_i2s_frame_read_async(i2s_slot->i2s, i2s_slot->frame, pi_task_callback(&i2s_slot->task, i2s_slot_callback_rx_iter, (void *)i2s_slot));
+        pi_i2s_frame_read_async(i2s_slot->i2s, i2s_slot->frame, pi_task_callback(&i2s_slot->task[0], i2s_slot_callback_rx_iter, (void *)i2s_slot));
         
         if (i2s_slot->flags.use_slab)
         {
@@ -597,7 +634,7 @@ void i2s_slot_callback_rx_iter(void *arg)
         if (i2s_slot_callback_rx_iter_check(i2s_slot, chunk, size))
             goto end;
 
-        pi_i2s_channel_read_async(i2s_slot->i2s, i2s_slot->slot, pi_task_callback(&i2s_slot->task, i2s_slot_callback_rx_iter, (void *)i2s_slot));
+        pi_i2s_channel_read_async(i2s_slot->i2s, i2s_slot->slot, pi_task_callback(&i2s_slot->task[0], i2s_slot_callback_rx_iter, (void *)i2s_slot));
 
         if (i2s_slot->flags.use_slab)
         {
@@ -643,11 +680,11 @@ int i2s_slot_start(i2s_slot_test_t *i2s_slot, i2s_slot_start_config_t *config)
             {
                 if (i2s_slot->frame)
                 {
-                    pi_i2s_frame_read_async(i2s_slot->i2s, i2s_slot->frame, pi_task_callback(&i2s_slot->task, i2s_slot_callback_rx_iter, (void *)i2s_slot));
+                    pi_i2s_frame_read_async(i2s_slot->i2s, i2s_slot->frame, pi_task_callback(&i2s_slot->task[0], i2s_slot_callback_rx_iter, (void *)i2s_slot));
                 }
                 else
                 {
-                    pi_i2s_channel_read_async(i2s_slot->i2s, i2s_slot->slot, pi_task_callback(&i2s_slot->task, i2s_slot_callback_rx_iter, (void *)i2s_slot));
+                    pi_i2s_channel_read_async(i2s_slot->i2s, i2s_slot->slot, pi_task_callback(&i2s_slot->task[0], i2s_slot_callback_rx_iter, (void *)i2s_slot));
                 }
             }
         }
@@ -658,6 +695,7 @@ int i2s_slot_start(i2s_slot_test_t *i2s_slot, i2s_slot_start_config_t *config)
             i2s_slot->incr_value = config->tx_iter.incr_value;
             i2s_slot->current_value = config->tx_iter.incr_start;
             i2s_slot->nb_sample = config->tx_iter.nb_samples;
+            i2s_slot->nb_sample_done = config->tx_iter.nb_samples;
 
             if (i2s_slot->incr_value >= i2s_slot->incr_end)
                 i2s_slot->incr_value = 0;
@@ -738,14 +776,26 @@ int i2s_slot_start(i2s_slot_test_t *i2s_slot, i2s_slot_start_config_t *config)
                 if (i2s_slot->frame)
                 {
                     i2s_slot_test_t *first_slot = &i2s_slot->test->slot_test_tx[__FF1(i2s_slot->frame)];
-                    pi_i2s_frame_write_async(first_slot->i2s, first_slot->frame, buffers[0], first_slot->buffer_size, pi_task_callback(&first_slot->task, i2s_slot_callback_tx_file_dumper, (void *)first_slot));
-                    pi_i2s_frame_write_async(first_slot->i2s, first_slot->frame, buffers[1], first_slot->buffer_size, pi_task_callback(&first_slot->task, i2s_slot_callback_tx_file_dumper, (void *)first_slot));
+                    if (first_slot->nb_sample > 0)
+                    {
+                        first_slot->nb_sample -= 2*first_slot->nb_elem;
+                    }
+                    first_slot->current_task = 0;
+                    first_slot->current_handled_task = 0;
+                    pi_i2s_frame_write_async(first_slot->i2s, first_slot->frame, buffers[0], first_slot->buffer_size, pi_task_callback(&first_slot->task[0], i2s_slot_callback_tx_file_dumper, (void *)first_slot));
+                    pi_i2s_frame_write_async(first_slot->i2s, first_slot->frame, buffers[1], first_slot->buffer_size, pi_task_callback(&first_slot->task[1], i2s_slot_callback_tx_file_dumper, (void *)first_slot));
 
                 }
                 else
                 {
-                    pi_i2s_channel_write_async(i2s_slot->i2s, i2s_slot->slot, buffers[0], i2s_slot->buffer_size, pi_task_callback(&i2s_slot->task, i2s_slot_callback_tx_file_dumper, (void *)i2s_slot));
-                    pi_i2s_channel_write_async(i2s_slot->i2s, i2s_slot->slot, buffers[1], i2s_slot->buffer_size, pi_task_callback(&i2s_slot->task, i2s_slot_callback_tx_file_dumper, (void *)i2s_slot));
+                    if (i2s_slot->nb_sample > 0)
+                    {
+                        i2s_slot->nb_sample -= 2*i2s_slot->nb_elem;
+                    }
+                    i2s_slot->current_task = 0;
+                    i2s_slot->current_handled_task = 0;
+                    pi_i2s_channel_write_async(i2s_slot->i2s, i2s_slot->slot, buffers[0], i2s_slot->buffer_size, pi_task_callback(&i2s_slot->task[0], i2s_slot_callback_tx_file_dumper, (void *)i2s_slot));
+                    pi_i2s_channel_write_async(i2s_slot->i2s, i2s_slot->slot, buffers[1], i2s_slot->buffer_size, pi_task_callback(&i2s_slot->task[1], i2s_slot_callback_tx_file_dumper, (void *)i2s_slot));
                 }
             }
         }

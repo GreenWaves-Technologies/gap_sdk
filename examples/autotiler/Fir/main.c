@@ -194,12 +194,10 @@ void test_fir()
 
 	printf ("Call cluster\n");
 	struct pi_cluster_task *task = pmsis_l2_malloc(sizeof(struct pi_cluster_task));
-    memset(task, 0, sizeof(struct pi_cluster_task));
-    task->entry = cluster_main;
-    task->arg = (void *) NULL;
+	pi_cluster_task(task, cluster_main, NULL);
     task->stack_size = (uint32_t) STACK_SIZE;
 
-    pi_cluster_send_task_to_cl(&cluster_dev, task);
+    pi_cluster_send_task(&cluster_dev, task);
 
 	pi_cluster_close(&cluster_dev);
 	

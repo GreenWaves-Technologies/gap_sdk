@@ -191,6 +191,7 @@ class Dispatch_unit {
 public:
   Dispatch_unit(Event_unit *top);
 
+  void consume_dispatch();
   vp::io_req_status_e req(vp::io_req *req, uint64_t offset, bool is_write, uint32_t *data, int core);
   void reset();
 
@@ -1429,6 +1430,8 @@ vp::io_req_status_e Mutex_unit::req(vp::io_req *req, uint64_t offset, bool is_wr
       // The mutex is free, just lock it
       top->trace.msg("Locking mutex (mutex: %d, coreId: %d)\n", id, core);
       mutex->locked = 1;
+
+      *(uint32_t *)req->get_data() = mutex->value;
     }
     else
     {
@@ -1522,6 +1525,26 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
   dispatches = new Dispatch[size];
 }
 
+  void Dispatch_unit::consume_dispatch()
+  {
+
+    for (int core_id=0; core_id<this->top->nb_core; core_id++)
+    {
+      int id = core[core_id].tail;
+      Dispatch *dispatch = &dispatches[id];
+
+      // In case we found ready elements where this core is not involved, bypass them all
+      while ((dispatch->status_mask.get() & (1<<core_id)) && !(dispatch->config_mask.get() & (1<<core_id))) {
+        dispatch->status_mask.set(dispatch->status_mask.get() & (~(1<<core_id)));
+        core[core_id].tail++;
+        if (core[core_id].tail == size) core[core_id].tail = 0;
+        id = core[core_id].tail;
+        dispatch = &dispatches[id];
+        top->trace.msg("Incrementing core counter to bypass entry (coreId: %d, newIndex: %d)\n", core_id, id);
+      }
+    }
+  }
+
   void Dispatch_unit::reset()
   {
     fifo_head = 0;
@@ -1562,7 +1585,7 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
         // When pushing to the FIFO, the global config is pushed to the elected dispatcher
         dispatch->config_mask.set(config);     // Cores that will get a valid value
 
-        top->trace.msg("Pushing dispatch value (dispatch: %d, value: 0x%x, coreMask: 0x%x)\n", id, *data, dispatch->config_mask);
+        top->trace.msg("Pushing dispatch value (dispatch: %d, value: 0x%x, coreMask: 0x%x)\n", id, *data, dispatch->config_mask.get());
 
         // Case where the master push a value
         dispatch->value.set(*data);
@@ -1570,6 +1593,7 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
         dispatch->status_mask.set(-1);
         // Then wake-up the waiting cores
         unsigned int mask = dispatch->waiting_mask.get() & dispatch->status_mask.get();
+
         for (int i=0; i<32 && mask; i++)
         {
           if (mask & (1<<i))
@@ -1627,6 +1651,8 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
             }
           }
         }
+        this->consume_dispatch();
+
 
         return vp::IO_REQ_OK;        
       }
@@ -1662,7 +1688,7 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
         else
         {
           // Nothing is ready, go to sleep
-          top->trace.msg("No ready dispatch value, going to sleep (dispatch: %d, value: %x, dispatchStatus: 0x%x)\n", id, dispatch->value, dispatch->status_mask);
+          top->trace.msg("No ready dispatch value, going to sleep (dispatch: %d, value: %x, dispatchStatus: 0x%x)\n", id, dispatch->value, dispatch->status_mask.get());
           return enqueue_sleep(dispatch, req, core_id);
         }
 
@@ -1674,6 +1700,7 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
     else if (offset == EU_DISPATCH_TEAM_CONFIG)
     {
       config = *data;
+      top->trace.msg("Setting dispatch config (config: 0x%x)\n", config);
       return vp::IO_REQ_OK;
     }
     else

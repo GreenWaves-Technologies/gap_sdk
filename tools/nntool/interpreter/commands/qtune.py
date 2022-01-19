@@ -88,7 +88,10 @@ Tune quantization of graph."""
             nodes = x[0]
             opts = x[1]
             if 'scheme' in opts:
-                opts['scheme'] = SCHEME_NAME_MAPPINGS.get(opts['scheme'])
+                scheme = opts['scheme'].lower()
+                if scheme not in SCHEME_NAME_MAPPINGS:
+                    raise ValueError(f'invalid scheme name {opts["scheme"]}')
+                opts['scheme'] = SCHEME_NAME_MAPPINGS[scheme]
             for node in nodes:
                 props = state.setdefault(NodeId(node), {})
                 props.update(opts)

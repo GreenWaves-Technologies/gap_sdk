@@ -14,21 +14,29 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-from quantization.multiplicative.quantizers.rnn_mult_ne16 import limit_input_precision, roundup
-from quantization.multiplicative.quantizers.filter_mult import check_filter_options
-from quantization.quantizer_options import NE16_WEIGHT_BITS_OPTION, USE_NE16_OPTION, FORCE_INPUT_SIZE_OPTION, FORCE_OUTPUT_SIZE_OPTION
-from quantization.unified_quantization_handler import (in_qs_constraint,
-                                                       option_constraint,
-                                                       options)
+
 import numpy as np
 from graph.types import (ConstantInputParameters, HSigmoidActivationParameters,
                          MatMulOpParameters, ReluActivationParameters,
                          SigmoidActivationParameters, TransposeParameters)
+from graph.types.activations import (HSwishActivationParameters,
+                                     TanHActivationParameters)
 from graph.types.base import NNEdge
+from quantization.multiplicative.quantizers.filter_mult import \
+    check_filter_options
+from quantization.multiplicative.quantizers.rnn_mult_ne16 import (
+    limit_input_precision, roundup)
 from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
+from quantization.quantizer_options import (FORCE_INPUT_SIZE_OPTION,
+                                            FORCE_OUTPUT_SIZE_OPTION,
+                                            MAX_PRECISION_LIMIT_OPTION,
+                                            NE16_WEIGHT_BITS_OPTION,
+                                            USE_NE16_OPTION)
 from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       option_constraint,
+                                                       options,
                                                        out_qs_constraint,
                                                        params_type)
 from utils.graph import GraphView
@@ -38,11 +46,13 @@ from ..mult_quantization_handler import MultQuantizionHandler
 
 LOG = logging.getLogger('nntool.' + __name__)
 
+
 @options(
     NE16_WEIGHT_BITS_OPTION,
     USE_NE16_OPTION,
     FORCE_INPUT_SIZE_OPTION,
     FORCE_OUTPUT_SIZE_OPTION,
+    MAX_PRECISION_LIMIT_OPTION
 )
 class MatMultMultBase(MultQuantizionHandler):
     @classmethod
@@ -75,9 +85,12 @@ class MatMultMultBase(MultQuantizionHandler):
                 G.add_edge(new_edge)
                 to_idx = 1 - to_idx
             # use A.B = (BT.AT)T identity
-            tin1 = TransposeParameters(G.unique_name(f'{params.name}_tin1'), transpose=(1, 0))
-            tin2 = TransposeParameters(G.unique_name(f'{params.name}_tin2'), transpose=(1, 0))
-            tout = TransposeParameters(G.unique_name(f'{params.name}_tout'), transpose=(1, 0))
+            tin1 = TransposeParameters(G.unique_name(
+                f'{params.name}_tin1'), transpose=(1, 0))
+            tin2 = TransposeParameters(G.unique_name(
+                f'{params.name}_tin2'), transpose=(1, 0))
+            tout = TransposeParameters(G.unique_name(
+                f'{params.name}_tout'), transpose=(1, 0))
             G.insert_node_before(tin1, params)
             G.insert_node_before(tin2, params, to_idx=1)
             G.insert_node_after(params, tout)
@@ -94,11 +107,14 @@ class MatMultMultBase(MultQuantizionHandler):
             fnodes = fusion.contained_nodes()
             if len(fnodes) > 1:
                 act_node = fnodes[1]
-                if isinstance(act_node, HSigmoidActivationParameters):
-                    # Hard sigmoid implements a RELU, be sure 6 can be represented
-                    min_val, max_val = 0, 6
-                elif isinstance(act_node, SigmoidActivationParameters):
-                    # Guarantee Q12 input to sigmoid
+                if isinstance(act_node, (HSigmoidActivationParameters, HSwishActivationParameters)):
+                    # Hard sigmoid/swish have parameters that need to be representable
+                    cls.check_valid_ranges(params, stats, idx=0, dirs='out')
+                    min_val, max_val = stats['range_out'][0]['min'], stats['range_out'][0]['max']
+                    max_val = np.maximum(max_val, max(
+                        params.upper_bound, params.offset))
+                elif isinstance(act_node, (SigmoidActivationParameters, TanHActivationParameters)):
+                    # Guarantee Q12 input to lut based sigmoid and tan
                     min_val, max_val = -8, 8
                 elif isinstance(act_node, ReluActivationParameters):
                     # Take stats from activation after the convolution
@@ -108,6 +124,7 @@ class MatMultMultBase(MultQuantizionHandler):
             cls.check_valid_ranges(params, stats, idx=0, dirs='out')
             min_val, max_val = stats['range_out'][0]['min'], stats['range_out'][0]['max']
         return min_val, max_val
+
 
 @params_type(MatMulOpParameters)
 @in_qs_constraint({'dtype': set([np.int8])})
@@ -142,35 +159,40 @@ class MatMultMultSW8(MatMultMultBase):
 
         in_q1 = in_qs[0].make_symmetric_signed()
 
-        min_val, max_val = cls.get_min_max(
-            fusion, stats, kwargs['all_stats'], params)
+        # min_val, max_val = cls.get_min_max(
+        #     fusion, stats, kwargs['all_stats'], params)
 
         if force_out_q:
             o_q = force_out_q
             # can't be forced to something not np.int8
             if o_q.dtype != np.int8 or o_q.asymmetric:
                 return None
-            LOG.warning('node %s output forced to range %s/%s - actual range %s/%s %s',
-                        params.name, o_q.min, o_q.max, min_val, max_val,
-                        "asymmetric" if o_q.asymmetric else "symmetric")
+            LOG.warning(f'node {params.name} output forced to range {o_q.min}/{o_q.max} '
+                        f'{"asymmetric" if o_q.asymmetric else "symmetric"}')
         else:
+            cls.check_valid_ranges(params, stats, idx=0, dirs='out')
+            min_val, max_val = stats['range_out'][0]['min'], stats['range_out'][0]['max']
             o_q = QType.from_min_max_sq(min_val=min_val,
                                         max_val=max_val,
                                         dtype=out_dtype)
         if len(in_qs) == 3:
+            bias_scale = in_q1.scale * in_q2.scale
+            quantized_dimension = None if len(bias_scale) == 1 else 0
             biases_q = QType(
-                dtype=np.int32, scale=in_q1.scale * in_q2.scale)
+                dtype=np.int32,
+                scale=in_q1.scale * in_q2.scale,
+                quantized_dimension=quantized_dimension)
             out_in_qs = [in_q1, in_q2, biases_q]
         else:
             out_in_qs = [in_q1, in_q2]
 
-
-        mul_biases_q = MultMulBiasScaleQType()
-        mul_biases_q.scale = in_q1.scale * in_q2.scale / o_q.scale
+        mul_biases_q = MultMulBiasScaleQType(
+            scale=(in_q1.scale*in_q2.scale)/o_q.scale)
 
         return QRec.scaled(in_qs=out_in_qs,
                            out_qs=[o_q],
                            mul_biases_q=mul_biases_q)
+
 
 class MatMultMultNE16Base(MatMultMultBase):
     @classmethod
@@ -189,7 +211,8 @@ class MatMultMultNE16Base(MatMultMultBase):
         in2_node, in_qs = cls.move_constant(
             G, fusion if fusion else params, in_qs)
         if not in2_node:
-            raise ValueError(f"Not supported in NE16 this matmul {params.name}")
+            raise ValueError(
+                f"Not supported in NE16 this matmul {params.name}")
 
         w1, h1 = params.in_dims[0].shape[0], params.in_dims[0].shape[1]
         h2, w2 = params.in_dims[1].shape[0], params.in_dims[1].shape[1]
@@ -210,18 +233,22 @@ class MatMultMultNE16Base(MatMultMultBase):
                                       dtype=input_dtype,
                                       asymmetric=True)
         in_q1 = limit_input_precision(
-            params, input_bits, in_q1, w1, False, opts['weight_bits'])
+            params, input_bits, in_q1, w1, False, opts['weight_bits'],
+            opts.get('max_precision_limit',
+            MAX_PRECISION_LIMIT_OPTION['default']),
+            out_ranges=stats.get('range_out'),
+            w_qs=[in_q2])
 
-
-        min_val, max_val = cls.get_min_max(
-            fusion, stats, kwargs['all_stats'], params)
+        # min_val, max_val = cls.get_min_max(
+        #     fusion, stats, kwargs['all_stats'], params)
 
         if force_out_q:
             o_q = force_out_q
-            LOG.warning('node %s output forced to range %s/%s - actual range %s/%s %s',
-                        params.name, o_q.min, o_q.max, min_val, max_val,
-                        "asymmetric" if o_q.asymmetric else "symmetric")
+            LOG.warning(f'node {params.name} output forced to range {o_q.min}/{o_q.max} '
+                        f'{"asymmetric" if o_q.asymmetric else "symmetric"}')
         else:
+            cls.check_valid_ranges(params, stats, idx=0, dirs='out')
+            min_val, max_val = stats['range_out'][0]['min'], stats['range_out'][0]['max']
             force_output_size = opts.get('force_output_size', 8)
             out_dtype = np.uint8 if force_output_size == 8 else np.uint16
             o_q = QType.from_min_max_sq(min_val=min_val,
@@ -231,10 +258,12 @@ class MatMultMultNE16Base(MatMultMultBase):
                                         dtype=out_dtype)
         if len(in_qs) == 3:
             biases_q = QType(
-                dtype=np.int32, scale=in_q1.scale * in_q2.scale, ne16_biases=(input_bits!=16))
+                dtype=np.int32, scale=in_q1.scale * in_q2.scale, ne16_biases=(input_bits != 16),
+                quantized_dimension=0)
             # calculate bias offset - this will be added to the bias in the kernel
             # it is already in quantized form
-            bias_offset = np.zeros((in2_node.dqvalue.shape[0], ), dtype=np.int32)
+            bias_offset = np.zeros(
+                (in2_node.dqvalue.shape[0], ), dtype=np.int32)
             if in_q1.zero_point != 0:
                 # input zero correction is sum(W * Zin) by out_c if weights are channel scaled
                 bias_offset -= np.sum(np.multiply(in_q1.zero_point,
@@ -247,7 +276,7 @@ class MatMultMultNE16Base(MatMultMultBase):
                 # output zero correction is So/(Si * Sw) * ZPo by out_c if weights are channel scaled
                 scale = o_q.scale / (in_q1.scale * in_q2.scale)
                 bias_offset += np.floor((o_q.zero_point *
-                                        scale) + 0.5).astype(np.int32)
+                                         scale) + 0.5).astype(np.int32)
             if not np.all(bias_offset == 0):
                 biases_q.offset = bias_offset
             out_in_qs = [in_q1, in_q2, biases_q]
@@ -269,18 +298,20 @@ class MatMultMultNE16Base(MatMultMultBase):
                            mul_biases_q=mul_biases_q,
                            ne16=True)
 
+
 @params_type(MatMulOpParameters)
 @in_qs_constraint({'dtype': set([np.uint8])})
-@out_qs_constraint({'dtype': set([np.uint8, np.int8, np.uint16, np.int16])})
+@out_qs_constraint({'dtype': set([np.uint8, np.int8, np.uint16, np.int16, np.int32])})
 @option_constraint(check_filter_options(True, input_size={8, None}, output_size={8, 16, None}))
 class MatMultMultNE16_8v8(MatMultMultNE16Base):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         return cls._quantize_ne16(params, in_qs, stats, np.uint8, **kwargs)
 
+
 @params_type(MatMulOpParameters)
 @in_qs_constraint({'dtype': set([np.uint16])})
-@out_qs_constraint({'dtype': set([np.uint8, np.int8, np.uint16, np.int16])})
+@out_qs_constraint({'dtype': set([np.uint8, np.int8, np.uint16, np.int16, np.int32])})
 @option_constraint(check_filter_options(True, input_size={16, None}, output_size={8, 16, None}))
 class MatMultMultNE16_16v8(MatMultMultNE16Base):
     @classmethod

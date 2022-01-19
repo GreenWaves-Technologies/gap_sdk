@@ -22,6 +22,10 @@ ActivationATParam = namedtuple('ActivationATParam', [
 
 NO_ACTIVATION = ActivationATParam(ReLUOper='KOP_NONE')
 
+def need_padding_in_at(params):
+    same_h, same_w = params.padding.calculate_same_h_w(params.in_dims[0], params.filter, params.stride, dilation=getattr(params.padding, "dilation", None))
+    return params.padding.h >= same_h and params.padding.w >= same_w
+
 def gen_activation_op(activation, force_relu=False, asymmetric=False):
     if activation is None or activation == "none":
         aop = "KOP_NONE"
@@ -122,7 +126,7 @@ def gen_conv_at_params(params, pad_compatibilities):
             Dcy=params.dilation.h,
             Scx=params.stride.w,
             Scy=params.stride.h,
-            ConvPad=params.has_at_zero_pad() and 1 or 0
+            ConvPad=params.has_at_zero_pad() and need_padding_in_at(params) and 1 or 0
         )
     else:
         cop = "KOP_CONV"
@@ -136,7 +140,7 @@ def gen_conv_at_params(params, pad_compatibilities):
         Dcy=params.dilation.h,
         Scx=params.stride.w,
         Scy=params.stride.h,
-        ConvPad=params.has_at_zero_pad() and 1 or 0
+        ConvPad=params.has_at_zero_pad() and need_padding_in_at(params) and 1 or 0
     )
 
 # POOL
@@ -170,7 +174,7 @@ def gen_pool_at_params(params, pad_compatibilities):
         Dpy=1,
         Spx=params.stride.w,
         Spy=params.stride.h,
-        PoolPad=params.has_at_zero_pad() and 1 or 0
+        PoolPad=params.has_at_zero_pad() and need_padding_in_at(params) and 1 or 0
     )
 
 GlobalPoolATParam = namedtuple('GlobalPoolATParam', [

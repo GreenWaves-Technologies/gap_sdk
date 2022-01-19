@@ -21,6 +21,8 @@
 #include "CNN_Generator_Util.h"
 #include "CNN_Copy_Generators.h"
 #include "Gap.h"
+#include "../CNN_Libraries_SQ8/CNN_Infos_SQ8.h"
+
 
 #define MaxS(a, b) (((int)(a)>(int)(b))?(a):(b))
 #define Max(a, b) (((a)>(b))?(a):(b))
@@ -34,32 +36,6 @@
 #define T0	KER_ITER_TILE0
 #define T1	KER_ITER_TILE1
 #define T2	KER_ITER_TILE2
-
-#define AT_INF_BIASL_SM         0
-#define AT_INF_ACTSCALE         0
-#define AT_INF_ACTSCALEN        1
-#define AT_INF_A0               2
-#define AT_INF_B0               3
-#define AT_INF_C0               4
-
-#define AT_INF_BIASN            5
-#define AT_INF_IN1SCALE         5
-#define AT_INF_SCALEN           5
-#define AT_INF_GLOBAL_SUM_SCALE	5
-
-#define AT_INF_IN1SCALEN        6
-#define AT_INF_GLOBAL_SUM_SCALEN 6
-
-#define AT_INF_OUTSCALE         7
-#define AT_INF_OUTSCALEN        8
-
-#define AT_INF_DIM              9
-
-#define AT_INF_PRENORM          9
-#define AT_INF_SQ16_DIM         10
-
-#define AT_INF_ADD_BIAS		9
-#define AT_INF_ASYM_ADD_DIM	11
 
 
 void LoadCNN_SQ8_Library()
@@ -676,38 +652,26 @@ void LoadCNN_SQ8_Library()
 	LibKernel("KerParMatMulSxSyB16_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,2,0,1), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulSxSyB16_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,2,0,1), 0,0,0,0,-1,-1));
 
-	/* 32b Bias */
-	LibKernel("KerParMatMulB32_2x4_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulB32_2x4_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulB32_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	/* 32b Bias or No Bias at all */
+	LibKernel("KerParMatMulB32_2x4_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(2, KOP_MATMUL, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulB32_2x4_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(2, KOP_MATMUL, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulB32_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(2, KOP_MATMUL, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
 
-	LibKernel("KerParMatMulTransposedB32_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_TRANSPOSED), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulTransposedB32_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_TRANSPOSED), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulTransposedB32_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_TRANSPOSED), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedB32_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",		CNN_Match(CNN_OperList(2, KOP_MATMUL_TRANSPOSED, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedB32_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(2, KOP_MATMUL_TRANSPOSED, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedB32_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(2, KOP_MATMUL_TRANSPOSED, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
 
-	LibKernel("KerParMatMulTransposedNoBias_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,0,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulTransposedNoBias_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T", CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,0,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulTransposedNoBias_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_TRANSPOSED), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,0,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulB32_2x4_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",		CNN_Match(CNN_OperList(2, KOP_MATMUL_SCALE_SCALAR, KOP_MATMUL_NOBIAS_SCALE_SCALAR), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulB32_2x4_ReLU_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",	CNN_Match(CNN_OperList(2, KOP_MATMUL_SCALE_SCALAR, KOP_MATMUL_NOBIAS_SCALE_SCALAR), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulB32_2x4_ReLUN_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",	CNN_Match(CNN_OperList(2, KOP_MATMUL_SCALE_SCALAR, KOP_MATMUL_NOBIAS_SCALE_SCALAR), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
 
-	LibKernel("KerParMatMulB32_2x4_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulB32_2x4_ReLU_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulB32_2x4_ReLUN_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedB32_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",	  	CNN_Match(CNN_OperList(2, KOP_MATMUL_SCALE_SCALAR_TRANSPOSED, KOP_MATMUL_NOBIAS_SCALE_SCALAR_TRANSPOSED), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedB32_ReLU_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",  	CNN_Match(CNN_OperList(2, KOP_MATMUL_SCALE_SCALAR_TRANSPOSED, KOP_MATMUL_NOBIAS_SCALE_SCALAR_TRANSPOSED), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulTransposedB32_ReLUN_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",  	CNN_Match(CNN_OperList(2, KOP_MATMUL_SCALE_SCALAR_TRANSPOSED, KOP_MATMUL_NOBIAS_SCALE_SCALAR_TRANSPOSED), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
 
-	LibKernel("KerParMatMulNoBias_2x4_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_SCALE_SCALAR), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,0,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulNoBias_2x4_ReLU_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_SCALE_SCALAR), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,0,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulNoBias_2x4_ReLUN_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_SCALE_SCALAR), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,0,0,1), 0,0,0,0,1,1));
-
-	LibKernel("KerParMatMulTransposedB32_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",	  	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR_TRANSPOSED), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulTransposedB32_ReLU_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",  	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR_TRANSPOSED), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulTransposedB32_ReLUN_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",  	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR_TRANSPOSED), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
-
-	LibKernel("KerParMatMulTransposedNoBias_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_SCALE_SCALAR_TRANSPOSED), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,0,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulTransposedNoBias_ReLU_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_SCALE_SCALAR_TRANSPOSED), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,0,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulTransposedNoBias_ReLUN_PL_SQ8", CALL_PARALLEL, 0, "KerMatMul_PL_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS_SCALE_SCALAR_TRANSPOSED), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,0,0,1), 0,0,0,0,1,1));
-
-	LibKernel("KerParMatMulSxSyB32_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,-1,-1));
-	LibKernel("KerParMatMulSxSyB32_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,-1,-1));
-	LibKernel("KerParMatMulSxSyB32_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulSxSyB32_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(2, KOP_MATMUL, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulSxSyB32_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(2, KOP_MATMUL, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulSxSyB32_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(2, KOP_MATMUL, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,-1,-1));
 
 	/* Mat Mul based convolutions */
 
@@ -3755,15 +3719,19 @@ Kernel_T *CNN_MatMulAct_SQ8_Internal(
 	int ColFirst = ((LineM1*ColM1)<(LineM2*ColM2));
 	char *MatMulKerName=0, *ActKerName=0;
 	int StandAloneAct = (ActOper!=KOP_NONE);
-	Bias_DataSize = (MatMulOper == KOP_MATMUL_NOBIAS_SCALE_SCALAR || MatMulOper == KOP_MATMUL_NOBIAS_TRANSPOSED)?0:Bias_DataSize;
+
+	/* NoBias Basic Kernels have 32bits bias not used */
+	int NoBias = (MatMulOper == KOP_MATMUL_NOBIAS_SCALE_SCALAR) || (MatMulOper == KOP_MATMUL_NOBIAS) || (MatMulOper == KOP_MATMUL_NOBIAS_TRANSPOSED) || (MatMulOper == KOP_MATMUL_NOBIAS_SCALE_SCALAR_TRANSPOSED);
+	Bias_DataSize = NoBias?4:Bias_DataSize;
+
 	int ScaleScalar = (MatMulOper == KOP_MATMUL_SCALE_SCALAR) || (MatMulOper == KOP_MATMUL_SCALE_SCALAR_TRANSPOSED) || (MatMulOper == KOP_MATMUL_NOBIAS_SCALE_SCALAR_TRANSPOSED) || (MatMulOper == KOP_MATMUL_NOBIAS_SCALE_SCALAR);
 	int Transposed = (MatMulOper == KOP_MATMUL_TRANSPOSED) || (MatMulOper == KOP_MATMUL_NOBIAS_TRANSPOSED) || (MatMulOper == KOP_MATMUL_SCALE_SCALAR_TRANSPOSED) || (MatMulOper == KOP_MATMUL_NOBIAS_SCALE_SCALAR_TRANSPOSED);
         int SAxis = (MatMulOper == KOP_MATMUL)?LineO:ColO;
         int TA = (MatMulOper == KOP_MATMUL)?T0:T1;
         int TB = (MatMulOper == KOP_MATMUL)?T1:T0;
 
-	if (!(MatMulOper == KOP_MATMUL) && !(MatMulOper == KOP_MATMUL_NOBIAS_SCALE_SCALAR) && !(MatMulOper == KOP_MATMUL_SCALE_SCALAR_TRANSPOSED) && !(MatMulOper == KOP_MATMUL_NOBIAS_SCALE_SCALAR_TRANSPOSED) && !(MatMulOper == KOP_MATMUL_SCALE_SCALAR) && !(MatMulOper == KOP_MATMUL_TRANSPOSED) && !(MatMulOper == KOP_MATMUL_NOBIAS_TRANSPOSED))
-		GenTilingError("CNN_MatMulAct_SQ8 Kernel: %s, MatMulOper should be KOP_MATMUL or KOP_MATMUL_NOBIAS_SCALE_SCALAR or KOP_MATMUL_SCALE_SCALAR_TRANSPOSED or KOP_MATMUL_NOBIAS_SCALE_SCALAR_TRANSPOSED or KOP_MATMUL_SCALE_SCALAR or KOP_MATMUL_TRANSPOSED or KOP_MATMUL_NOBIAS_TRANSPOSED", Name);
+	if (!(MatMulOper == KOP_MATMUL) && !(MatMulOper == KOP_MATMUL_NOBIAS) && !(MatMulOper == KOP_MATMUL_NOBIAS_SCALE_SCALAR) && !(MatMulOper == KOP_MATMUL_SCALE_SCALAR_TRANSPOSED) && !(MatMulOper == KOP_MATMUL_NOBIAS_SCALE_SCALAR_TRANSPOSED) && !(MatMulOper == KOP_MATMUL_SCALE_SCALAR) && !(MatMulOper == KOP_MATMUL_TRANSPOSED) && !(MatMulOper == KOP_MATMUL_NOBIAS_TRANSPOSED))
+		GenTilingError("CNN_MatMulAct_SQ8 Kernel: %s, MatMulOper should be KOP_MATMUL or KOP_MATMUL_NOBIAS or KOP_MATMUL_NOBIAS_SCALE_SCALAR or KOP_MATMUL_SCALE_SCALAR_TRANSPOSED or KOP_MATMUL_NOBIAS_SCALE_SCALAR_TRANSPOSED or KOP_MATMUL_SCALE_SCALAR or KOP_MATMUL_TRANSPOSED or KOP_MATMUL_NOBIAS_TRANSPOSED", Name);
 
 	if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_RELUM || ActOper == KOP_RELUMN || ActOper == KOP_HSIGMOID || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU || ActOper == KOP_SIGMOID || ActOper == KOP_TANH))
 		GenTilingError("CNN_MatMulAct_SQ8 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_HSIGMOID, KOP_TANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
@@ -3816,7 +3784,7 @@ Kernel_T *CNN_MatMulAct_SQ8_Internal(
                 CArgs(7,
                       TCArg(CNN_ArgDataType(1,1,1),  InvertInputs?"In2":"In1"),
                       TCArg(CNN_ArgDataType(1,1,1),  InvertInputs?"In1":"In2"),
-                      Bias_DataSize?TCArg(CNN_ArgDataType(Bias_DataSize,1,1), "Bias"):AT_NO_C_ARG,
+                      !NoBias?TCArg(CNN_ArgDataType(Bias_DataSize,1,1), "Bias"):AT_NO_C_ARG,
                       TCArg(CNN_ArgDataType(1,1,1),  "Out"),
                       !ScaleScalar?TCArg(CNN_ArgDataTypeUns(1,1,1),"Scale"):AT_NO_C_ARG,
                       !ScaleScalar?TCArg(CNN_ArgDataType(1,1,1),"ScaleN"):AT_NO_C_ARG,
@@ -3827,12 +3795,12 @@ Kernel_T *CNN_MatMulAct_SQ8_Internal(
 				Bindings(19,
 					K_Arg("In1",  KER_ARG_TILE), K_Arg("In1",  KER_ARG_TILE_W), K_Arg("In1",  KER_ARG_TILE_H),
 					K_Arg("In2",  KER_ARG_TILE), Transposed?K_Arg("In2",  KER_ARG_TILE_H):K_Arg("In2",  KER_ARG_TILE_W),
-					Bias_DataSize?K_Arg("Bias", KER_ARG_TILE):AT_IGNORE_ARG_BINDING,
+					!NoBias?K_Arg("Bias", KER_ARG_TILE):Imm(0),
 					!ScaleScalar?K_Arg("Scale", KER_ARG_TILE):AT_IGNORE_ARG_BINDING,
 					!ScaleScalar?K_Arg("ScaleN", KER_ARG_TILE):AT_IGNORE_ARG_BINDING,
 					K_Arg("Out", KER_ARG_TILE),  K_Arg("Out", KER_ARG_TILE_W), K_Arg(ColFirst?"In1":"In2",  KER_ARG_TILE_BASE),
 					!Transposed?K_Arg("KerBuff", KER_ARG_TILE):AT_IGNORE_ARG_BINDING,
-					Bias_DataSize?K_TileOper("Infos", "char *", '@', AT_INF_BIASN):AT_IGNORE_ARG_BINDING,
+					!NoBias?K_TileOper("Infos", "char *", '@', AT_INF_BIASN):AT_IGNORE_ARG_BINDING,
 					Imm(ColFirst),
 					NeedScx?Imm(Scx):AT_IGNORE_ARG_BINDING,
 					NeedScy?Imm(Scy):AT_IGNORE_ARG_BINDING,
@@ -3858,7 +3826,7 @@ Kernel_T *CNN_MatMulAct_SQ8_Internal(
 	    !Transposed?KerArg("KerBuff",KerArgSpace(1, T1), O_BUFF|O_NTILED, Nbuff*ColM1,  1,      1,             0, 0,                                                0, 0):AT_NO_KER_ARG,
 			KerArg("In1",    KerArgSpace(1, T0), O_IN|O_DB|O_CONST,     ColM1,  LineM1, 1,             0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
 			KerArg("In2",    KerArgSpace(1, T1), O_IN|O_DB,             ColM2,  LineM2, 1,             0, ObjCons|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
-	  Bias_DataSize?KerArg("Bias",   KerArgSpace(1, TA), O_BUFF|O_IN|O_CONST,       1,  SAxis,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
+	        !NoBias?KerArg("Bias",   KerArgSpace(1, TA), O_BUFF|O_IN|O_CONST,       1,  SAxis,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
 			KerArg("Out",    KerArgSpace(1, T1), O_OUT|O_DB,             ColO,  LineO,  1,             0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, 0, "Out"),
 	   !ScaleScalar?KerArg("Scale",  KerArgSpace(1, TA), O_BUFF|O_IN|O_CONST,        1, SAxis,  1,             0, 0,                                                0, "Scale"):AT_NO_KER_ARG,
 	   !ScaleScalar?KerArg("ScaleN", KerArgSpace(1, TA), O_BUFF|O_IN|O_CONST,        1, SAxis,  1,             0, 0,                                                0, "ScaleN"):AT_NO_KER_ARG,
@@ -3868,7 +3836,7 @@ Kernel_T *CNN_MatMulAct_SQ8_Internal(
 	    !Transposed?KerArg("KerBuff",KerArgSpace(1, T0), O_BUFF|O_NTILED, Nbuff*ColM1,  1,      1,             0, 0,                                                0, 0):AT_NO_KER_ARG,
 			KerArg("In1",    KerArgSpace(1, T1), O_IN|O_DB|O_CONST,     ColM1,  LineM1, 1,             0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
 			KerArg("In2",    KerArgSpace(1, T0), O_IN|O_DB,             ColM2,  LineM2, 1,             0, ObjCons|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
-	  Bias_DataSize?KerArg("Bias",   KerArgSpace(1, TB), O_BUFF|O_IN|O_CONST,       1,  SAxis,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
+	        !NoBias?KerArg("Bias",   KerArgSpace(1, TB), O_BUFF|O_IN|O_CONST,       1,  SAxis,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
 			KerArg("Out",    KerArgSpace(1, T1), O_OUT|O_DB,             ColO,  LineO,  1,             0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Out"),
 	   !ScaleScalar?KerArg("Scale",  KerArgSpace(1, TB), O_BUFF|O_IN|O_CONST,        1, SAxis,  1,             0, 0,                                                0, "Scale"):AT_NO_KER_ARG,
 	   !ScaleScalar?KerArg("ScaleN", KerArgSpace(1, TB), O_BUFF|O_IN|O_CONST,        1, SAxis,  1,             0, 0,                                                0, "ScaleN"):AT_NO_KER_ARG,
@@ -3881,7 +3849,7 @@ Kernel_T *CNN_MatMulAct_SQ8_Internal(
 
 		AddKernelArgDim(Name, "In1", 3, LineM1, ColM1, 1);
 		AddKernelArgDim(Name, "In2", 4, LineM2, Height, Width, 1);
-		if (Bias_DataSize) AddKernelArgDim(Name, "Bias", 2, SAxis, Bias_DataSize);
+		if (!NoBias) AddKernelArgDim(Name, "Bias", 2, SAxis, Bias_DataSize);
 		AddKernelArgDim(Name, "Out", 3, LineO, ColO, 1);
 		if (!ScaleScalar) AddKernelArgDim(Name, "Scale", 2, SAxis, 1);
 		if (!ScaleScalar) AddKernelArgDim(Name, "ScaleN", 2, SAxis, 1);

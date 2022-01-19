@@ -114,12 +114,15 @@ typedef struct
     int slot;
     int word_size;
     int elem_size;
-    pi_task_t task;
+    pi_task_t task[2];
+    int current_task;
+    int current_handled_task;
     uint32_t incr_start;
     uint32_t incr_end;
     uint32_t incr_value;
     uint32_t current_value;
     int nb_sample;
+    int nb_sample_done;
     int is_rx;
     int buffer_size;
     int nb_elem;

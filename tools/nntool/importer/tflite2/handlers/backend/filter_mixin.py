@@ -137,7 +137,8 @@ class FilterMixin(FilterPadMixin, HandlerOptions):
 
         # dqbias = bias_node.dqvalue
         bias_scale = (iqtype.scale * wqtype.scale).astype(np.float32)
-        bqtype = QType(dtype=np.int32, scale=bias_scale)
+        quantized_dimension = None if len(wqtype.scale) == 1 else 0
+        bqtype = QType(dtype=np.int32, scale=bias_scale, quantized_dimension=quantized_dimension)
         # NOTE: In some tensorflow graphs the biases are hugely negative or hugely
         # positive. I've never seen this without a relun after and the weights on
         # these channels were 0. Actually they should be pruned.

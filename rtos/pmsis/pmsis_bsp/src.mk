@@ -21,6 +21,7 @@ BSP_CAMERA_SRC = camera/camera.c
 BSP_HIMAX_SRC = camera/himax/himax.c
 BSP_HM0360_SRC = camera/hm0360/hm0360.c
 BSP_BLE_NINA_B112_SRC= ble/ble.c ble/nina_b112/nina_b112.c ble/nina_b112/nina_b112_old.c
+BSP_AK4332_SRC = audio/dac/ak4332.c
 
 COMMON_SRC = \
   $(BSP_FLASH_SRC) \
@@ -43,6 +44,9 @@ VEGA_SRC = \
   $(BSP_RAM_SRC) \
   eeprom/m24c02.c \
   $(BSP_24XX1025_SRC)
+
+BSP_GAP9_EVK_AUDIO_ADDON = \
+  bsp/gap9_evk_audio_addon.c
 
 GAP9_SRC = \
   $(COMMON_SRC) \

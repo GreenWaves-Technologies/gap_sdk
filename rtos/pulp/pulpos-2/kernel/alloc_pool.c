@@ -50,11 +50,11 @@ static inline pos_alloc_t *get_fc_alloc() { return &pos_alloc_l2[0]; }
 
 
 #ifdef ARCHI_HAS_L1
-void pos_alloc_init_l1(int cid)
+void pos_alloc_init_l1(int cid, void *base, uint32_t size)
 {
-  INIT_INF("Initializing L1 allocator (cluster: %d, base: 0x%8x, size: 0x%8x)\n", cid, (int)pos_l1_base(cid), pos_l1_size(cid));
+  INIT_INF("Initializing L1 allocator (cluster: %d, base: 0x%8x, size: 0x%8x)\n", cid, (int)base, size);
 
-  pos_alloc_init(&pos_alloc_l1[cid], pos_l1_base(cid), pos_l1_size(cid));
+  pos_alloc_init(&pos_alloc_l1[cid], base, size);
 }
 #endif
 

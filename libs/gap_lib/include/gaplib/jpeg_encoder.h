@@ -52,6 +52,8 @@ typedef struct jpeg_encoder_s
   int bitstream_size;
   pi_task_t *end_task;
   void *l1_constants;
+  int color;
+  int comp;
 } jpeg_encoder_t;
 
 

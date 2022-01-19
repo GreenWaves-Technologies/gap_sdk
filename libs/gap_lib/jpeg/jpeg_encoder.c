@@ -356,19 +356,19 @@ int process_du(
 
 void rgb_to_y(unsigned char r, unsigned char g, unsigned char b, int *y)
 {
-    *y = FLOAT2FIX( 0.2990f) * r + FLOAT2FIX(0.5870f) * g + FLOAT2FIX(0.1140f) * b - (128 << FIXQ);
-    *y >>= FIXQ - 2;
+    *y = FLOAT2FIX( 0.2990f) * r + FLOAT2FIX(0.5870f) * g + FLOAT2FIX(0.1140f) * b - ((int)128 << FIXQ);
+    *y >>= FIXQ - 1;
 }
 void rgb_to_cb(unsigned char r, unsigned char g, unsigned char b, int *u)
 {
-    *u = FLOAT2FIX(-0.1678f) * r - FLOAT2FIX(0.3313f) * g + FLOAT2FIX(0.5000f) * b;
-    *u >>= FIXQ - 2;
+    *u = FLOAT2FIX(-0.1687f) * r - FLOAT2FIX(0.3313f) * g + FLOAT2FIX(0.5000f) * b;
+    *u >>= FIXQ - 1;
 }
 
 void rgb_to_cr(unsigned char r, unsigned char g, unsigned char b, int *v)
 {
     *v = FLOAT2FIX( 0.5000f) * r - FLOAT2FIX(0.4187f) * g - FLOAT2FIX(0.0813f) * b ;
-    *v >>= FIXQ - 2;
+    *v >>= FIXQ - 1;
 }
 
 
@@ -379,7 +379,7 @@ void gray_to_y(int r, int *y)
     *y = FLOAT2FIX(1.0f) * r - (128 << FIXQ);
     *y >>= FIXQ - 2;
   #else
-    *y = (r - 128) << 2;
+    *y = (r - 128) << 1;
   #endif
 }
 
@@ -619,8 +619,44 @@ void jpeg_encoder_process_async(jpeg_encoder_t *enc, pi_buffer_t *image, pi_buff
   if(enc->flags & JPEG_ENCODER_FLAGS_COLOR){
     if (enc->flags & JPEG_ENCODER_FLAGS_CLUSTER_OFFLOAD)
     {
-      printf("Error: Color Jpeg not yet implemented on cluster\n");
-      return;
+      //Set colors
+      enc->color=1;
+
+      uint32_t written_size=0,encoded_size;
+      jpeg_y_header(enc, encoded_bitstream, &encoded_size);
+      
+      encoded_bitstream->data = encoded_bitstream->data+encoded_size;
+      written_size+=encoded_size;
+      enc->current_du_x=0;
+      enc->current_du_y=0;
+      enc->comp=0;
+      __jpeg_encoder_process_cl(enc, image, encoded_bitstream, task);
+      encoded_bitstream->data = encoded_bitstream->data+task->arg[2];
+      written_size+=task->arg[2];
+      task->arg[2]=0;
+      jpeg_cb_header(enc, encoded_bitstream, &encoded_size);
+      
+      encoded_bitstream->data = encoded_bitstream->data+encoded_size;
+      written_size+=encoded_size;
+      enc->current_du_x=0;
+      enc->current_du_y=0;
+      enc->comp=1;
+      __jpeg_encoder_process_cl(enc, image, encoded_bitstream, task);
+      encoded_bitstream->data = encoded_bitstream->data+task->arg[2];
+      written_size+=task->arg[2];
+      task->arg[2]=0;
+      jpeg_cr_header(enc, encoded_bitstream, &encoded_size);
+
+      encoded_bitstream->data = encoded_bitstream->data+encoded_size;
+      written_size+=encoded_size;
+      enc->current_du_x=0;
+      enc->current_du_y=0;
+      enc->comp=2;
+      __jpeg_encoder_process_cl(enc, image, encoded_bitstream, task);
+      encoded_bitstream->data = encoded_bitstream->data+task->arg[2];
+      written_size+=task->arg[2];
+      task->arg[2] = written_size;
+      pi_task_push(task);
     }
     else{
       uint32_t written_size=0,encoded_size;
@@ -664,7 +700,10 @@ void jpeg_encoder_process_async(jpeg_encoder_t *enc, pi_buffer_t *image, pi_buff
   {
     if (enc->flags & JPEG_ENCODER_FLAGS_CLUSTER_OFFLOAD)
     {
+      enc->color=0;
+      enc->comp=0;
       __jpeg_encoder_process_cl(enc, image, encoded_bitstream, task);
+      pi_task_push(task);
     }
     else{
       jpeg_encoder_process_fc(enc, image, encoded_bitstream, task,0,0);

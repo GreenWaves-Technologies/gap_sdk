@@ -130,7 +130,10 @@ class RNNNE16Generator(GeneratorBase):
                 "uint8", f"S{node.step_idx}_StateInternal02"))
 
         i_state_eparams = in_eparams[names['i_state']]
-        reset_name = i_state_eparams.creating_node.reset_name if node.rnn_states_as_inputs else "Reset"
+        if node.rnn_states_as_inputs:
+            reset_name = f'{node.name}_Reset'
+        else:
+            reset_name = 'Reset'
         gen.bindings.append(
             NodeBindingList(cname,
                             GNodeArgEdge(i_state_eparams,

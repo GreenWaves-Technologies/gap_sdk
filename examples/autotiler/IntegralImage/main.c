@@ -126,7 +126,7 @@ void integral_image(int argc, char *argv[])
 
 	pi_cluster_task(task, (void (*)(void *))cluster_main, (void *) &ClusterCall);
 
-    pi_cluster_send_task_to_cl(&cluster_dev, task);
+    pi_cluster_send_task(&cluster_dev, task);
 
 	//Enable Debug to print to stdout the result image
 	if(DEBUG){

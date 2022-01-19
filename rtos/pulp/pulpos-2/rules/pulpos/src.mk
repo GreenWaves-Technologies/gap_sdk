@@ -124,12 +124,9 @@ endif
 
 # Cluster
 ifeq '$(CONFIG_CLUSTER)' '1'
-ifneq '$(cluster/version)' ''
+ifeq '$(cluster/version)' '3'
 PULP_SRCS += drivers/cluster/cluster.c
 PULP_ASM_SRCS += drivers/cluster/pe-eu-v$(event_unit/version).S
-ifneq '$(event_unit/version)' '3'
-PULP_ASM_SRCS += drivers/cluster/pe-eu-v$(event_unit/version)_task.S
-endif
 endif
 endif
 

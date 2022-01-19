@@ -29,7 +29,6 @@ from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        params_type)
 
 from ..mult_quantization_handler import MultQuantizionHandler
-from .rescale_constant_mixin import RescaleConstantMixin
 
 LOG = logging.getLogger('nntool.' + __name__)
 
@@ -49,7 +48,7 @@ WEIGHTS_DTYPE = np.int8
 @in_qs_constraint({'dtype': np.int8})
 @out_qs_constraint({'dtype': np.int8})
 @option_constraint(force_external_size={8, None}, use_ne16={False, None})
-class GRUMult8x8(RescaleConstantMixin, MultQuantizionHandler):
+class GRUMult8x8(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
@@ -124,14 +123,10 @@ class GRUMult8x8(RescaleConstantMixin, MultQuantizionHandler):
         in_qs[0].scale = in_scale
         o_q.scale = state_scale
 
-        in_qs[names['z_b']].scale = in_scale * rWz_scale
-        in_qs[names['z_b']].dtype = BIAS_DTYPE
-        in_qs[names['r_b']].scale = in_scale * rWr_scale
-        in_qs[names['r_b']].dtype = BIAS_DTYPE
-        in_qs[names['w_h_b']].scale = in_scale * wWh_scale
-        in_qs[names['w_h_b']].dtype = BIAS_DTYPE
-        in_qs[names['r_h_b']].scale = in_scale * rWh_scale
-        in_qs[names['r_h_b']].dtype = BIAS_DTYPE
+        in_qs[names['z_b']] = QType(scale=in_scale * rWz_scale, dtype=BIAS_DTYPE)
+        in_qs[names['r_b']] = QType(scale=in_scale * rWr_scale, dtype=BIAS_DTYPE)
+        in_qs[names['w_h_b']] = QType(scale=in_scale * wWh_scale, dtype=BIAS_DTYPE)
+        in_qs[names['r_h_b']] = QType(scale=in_scale * rWh_scale, dtype=BIAS_DTYPE)
 
         in_qs[names['w_2_z_w']].scale = wWz_scale
         in_qs[names['w_2_r_w']].scale = wWr_scale
