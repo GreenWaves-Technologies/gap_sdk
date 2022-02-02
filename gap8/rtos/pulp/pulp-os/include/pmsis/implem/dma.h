@@ -47,7 +47,7 @@ static inline void __cl_dma_memcpy(unsigned int ext, unsigned int loc, unsigned 
 
   eu_mutex_lock_from_id(0);
 
-  int id = -1;
+  int id = copy->id;
   if (!merge) id = plp_dma_counter_alloc();
   unsigned int cmd = plp_dma_getCmd(dir, size, PLP_DMA_1D, PLP_DMA_TRIG_EVT, PLP_DMA_NO_TRIG_IRQ, PLP_DMA_SHARED);
   // Prevent the compiler from pushing the transfer before all previous
@@ -74,7 +74,7 @@ static inline void __cl_dma_memcpy_2d(unsigned int ext, unsigned int loc, unsign
 
   eu_mutex_lock_from_id(0);
 
-  int id = -1;
+  int id = copy->id;
   if (!merge) id = plp_dma_counter_alloc();
 
   {
@@ -101,7 +101,7 @@ static inline void __cl_dma_copy(uint32_t ext, uint32_t loc, uint32_t len,
                                  pi_cl_dma_dir_e dir, uint8_t merge, uint32_t dma_cmd,
                                  pi_cl_dma_cmd_t *cmd)
 {
-    int32_t tid = -1;
+    int32_t tid = cmd->id;
     uint32_t iter_length = (len < length) ? len : length;
 
     cmd->loc_addr = loc;
@@ -144,7 +144,7 @@ static inline void __cl_dma_memcpy(unsigned int ext, unsigned int loc, unsigned 
     uint32_t max_len = (1 << 15);
     if (size < max_len)
     {
-        int id = -1;
+        int id = copy->id;
         if (!merge) id = plp_dma_counter_alloc();
         unsigned int cmd = plp_dma_getCmd(dir, size, PLP_DMA_1D, PLP_DMA_TRIG_EVT, PLP_DMA_NO_TRIG_IRQ, PLP_DMA_SHARED);
         // Prevent the compiler from pushing the transfer before all previous
@@ -189,7 +189,7 @@ static inline void __cl_dma_memcpy_2d(unsigned int ext, unsigned int loc, unsign
 
     int irq = rt_irq_disable();
 
-    int id = -1;
+    int id = copy->id;
 
     if (stride < (1<<15))
     {
@@ -256,6 +256,7 @@ static inline void __cl_dma_wait(pi_cl_dma_cmd_t *copy)
   plp_dma_counter_free(counter);
 
   eu_mutex_unlock_from_id(0);
+  copy->id = -1;
   
 #ifdef __RT_USE_PROFILE
   gv_vcd_dump_trace(trace, 1);
@@ -283,6 +284,7 @@ static inline void __cl_dma_wait(pi_cl_dma_cmd_t *copy)
     plp_dma_counter_free(copy->id);
 
     rt_irq_restore(irq);
+    copy->id = -1;
   }
   else
   {

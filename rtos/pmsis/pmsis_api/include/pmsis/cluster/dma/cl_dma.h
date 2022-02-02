@@ -193,9 +193,9 @@ static inline void pi_cl_dma_wait(void *copy);
 /// @cond IMPLEM
 
 #define CL_DMA_COMMON                           \
+    int id;                                     \
     uint32_t ext;                               \
     uint32_t loc;                               \
-    uint32_t id;                                \
     uint32_t size;                              \
     pi_cl_dma_dir_e dir;                        \
     uint8_t merge;

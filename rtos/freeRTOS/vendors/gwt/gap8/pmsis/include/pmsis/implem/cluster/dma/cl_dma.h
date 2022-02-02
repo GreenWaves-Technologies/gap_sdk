@@ -72,7 +72,7 @@ static inline void __pi_cl_dma_copy(uint32_t ext, uint32_t loc, uint32_t len,
                                     uint8_t dir, uint8_t merge, uint32_t dma_cmd,
                                     pi_cl_dma_cmd_t *cmd)
 {
-    int32_t tid = -1;
+    int32_t tid = cmd->tid;
     uint32_t iter_length = (len < length) ? len : length;
 
     cmd->loc = loc;
@@ -118,7 +118,7 @@ static inline void __pi_cl_dma_1d_copy(uint32_t ext, uint32_t loc, uint32_t len,
     if (len < max_len)
     {
         iter_length = len;
-        cmd->tid = -1;
+        cmd->tid = cmd->tid;
         if (!merge)
         {
             cmd->tid = hal_cl_dma_tid_get();
@@ -149,7 +149,7 @@ static inline void __pi_cl_dma_2d_copy(uint32_t ext, uint32_t loc, uint32_t len,
                                        uint8_t dir, uint8_t merge, pi_cl_dma_cmd_t *cmd)
 {
     uint32_t irq = disable_irq();
-    int32_t tid = -1;
+    int32_t tid = cmd->tid;
     if (stride < (1 << 15))
     {
         if (!merge)
