@@ -37,15 +37,10 @@ class TFLiteDetectionPostProcess(BackendHandler):
         opts = kwargs['opts']
         all_nodes = kwargs['all_nodes']
         importer = kwargs['importer']
-        graph_outputs = kwargs['outputs']
 
-        if len(node.output) > 3 and node.output[3] in graph_outputs:
-            G.remove(graph_outputs[node.output[3]][0])
-            del graph_outputs[node.output[3]]
         inputs = [all_nodes[t] for t in node.input]
         outputs = [all_nodes.get(node.output[idx]) if idx < len(node.output) else None
-                   for idx in range(3)]
-        # inp_shapes = [input[2].shape for input in inputs]
+                   for idx in range(4)]
 
         if 'max_bb_before_nms' not in custom_opts:
             custom_opts['max_bb_before_nms'] = 300
@@ -79,9 +74,10 @@ class TFLiteDetectionPostProcess(BackendHandler):
                                   dtype=np.int16, scale=2**(-14))
             o_scores_qtype = node.input[1].qtype
             o_class_qtype = QType(scale=1, dtype=np.int8)
+            o_num_detect = QType(scale=1, dtype=np.int8)
             qrec = QRec.scaled(in_qs=in_qtypes,
                                out_qs=[o_boxes_qtype, o_class_qtype,
-                                       o_scores_qtype])
+                                       o_scores_qtype, o_num_detect])
             G.quantization[NodeId(params)] = qrec
 
         return params

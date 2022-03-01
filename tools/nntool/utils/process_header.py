@@ -168,6 +168,7 @@ class InfosBase(ProcessHeader):
         keys = sorted([(key, self.inf(key), self.inf_len(key))
                        for key in vals], key=lambda x: x[1])
         bvals = np.full((self.inf(len_key),), 0, dtype=np.uint8)
+        comment = ""
         for key, info, info_len in keys:
             val = np.atleast_1d(vals[key])
             val = val.newbyteorder('>')
@@ -177,4 +178,5 @@ class InfosBase(ProcessHeader):
                 raise ValueError(
                     f'value for {key} is too long {val_len}>{info_len}')
             bvals[info:info+len(val):1] = val
-        return bvals
+            comment += f" {key}: {vals[key]}"
+        return bvals, comment

@@ -71,13 +71,13 @@ class LeakySymmetricMult(KernelBase):
             params, in_tensors, ktype="symmetric")[0]
         # compute_in_out_scale(qrec)
         in_tensor = in_tensor.astype(np.int32)
-        neg_in = at_norm(in_tensor * leak_mult_gen_factor_q7(params), 7)
+        neg_in = at_norm((in_tensor) * qrec.cache["leak_factor"], 7)
         in_tensor = in_tensor * (in_tensor > 0) + neg_in * (in_tensor < 0)
         scale_mul_biases_q = qrec.cache['scale_mul_biases_q']
-        in_tensor = scale_mul_biases_q.apply_scales(in_tensor)
-        if qrec.out_qs[0] != qrec.in_qs[0]:
-            return qrec.get_outputs(params, [qrec.out_qs[0].reduce_from(in_tensor, qrec.in_qs[0])], ktype="symmetric")
-        return qrec.get_outputs(params, [in_tensor], ktype="symmetric")
+        in_tensor = scale_mul_biases_q.apply_scales(in_tensor) + qrec.cache["zero_point"]
+        #if qrec.out_qs[0] != qrec.in_qs[0]:
+        #    return qrec.get_outputs(params, [qrec.out_qs[0].reduce_from(in_tensor, qrec.in_qs[0])], ktype="symmetric")
+        return qrec.get_outputs(params, [qrec.out_qs[0].clip(in_tensor)], ktype="symmetric")
 
 
 def sigmoid(params,
@@ -147,29 +147,7 @@ def hsigmoid_mult_gen_factors(params, qrec):
     return fac_1, upper_bound, lower_bound
 
 
-@params_type(HSigmoidActivationParameters)
-@qrec_type('scaled')
-class HSigmoidSymmetricMult(KernelBase):
-    @classmethod
-    def execute(cls, params,
-                in_tensors,
-                qrec: QRec,
-                **kwargs):
-        in_tensor = qrec.prepare_inputs(
-            params, in_tensors, ktype="symmetric")[0]
-        offset = qrec.cache['offset']
-        upper_bound = qrec.cache['upper_bound']
-        mult = qrec.cache['mult']
-        lower_bound = qrec.in_qs[0].zero_point
 
-        in_tensor = in_tensor.astype(np.int32)
-        in_tensor_relued = np.minimum(np.maximum(
-            in_tensor + offset, lower_bound), upper_bound) * mult
-        scale_mul_biases_q = qrec.cache['scale_mul_biases_q']
-        in_tensor = scale_mul_biases_q.apply_scales(in_tensor_relued)
-        return qrec.get_outputs(params,
-                                [in_tensor],
-                                ktype="symmetric")
 
 
 @params_type(HSigmoidActivationParameters)
@@ -230,14 +208,18 @@ class SigmoidScaledSymmetricMult(KernelBase):
             params, in_tensors, ktype="symmetric")[0]
         if in_tensor.dtype == np.int8:
             in_tensor = in_tensor.astype(np.int32) << 8
+        elif in_tensor.dtype == np.uint8:
+            in_tensor = in_tensor.astype(np.int32) - qrec.in_qs[0].zero_point
+            in_tensor <<= 8
+        elif in_tensor.dtype == np.uint16:
+            in_tensor = in_tensor.astype(np.int32) - qrec.in_qs[0].zero_point
+        else:
+            in_tensor = in_tensor.astype(np.int32)
 
-        output = sigmoid_lut(in_tensor, q16_out=qrec.out_qs[0].dtype == np.uint16)
-        if qrec.out_qs[0].dtype == np.int8:
-            # compute_in_out_scale(qrec, extra_scale=QType.Pow2(
-            #     bits=32, q=7, signed=True).scale/qrec.in_qs[0].scale)
-            output >>= 8
+        out_q15 = sigmoid_lut(in_tensor)
         scale_mul_biases_q = qrec.cache['scale_mul_biases_q']
-        output = scale_mul_biases_q.apply_scales(output)
+        outp = scale_mul_biases_q.apply_scales(out_q15) + qrec.cache['zero_point']
+        output = qrec.out_qs[0].clip(outp)
         return qrec.get_outputs(params,
                                 [output],
                                 ktype="symmetric")
@@ -279,12 +261,22 @@ class TanHScaledMult(KernelBase):
                 **kwargs):
         in_tensor = qrec.prepare_inputs(
             params, in_tensors, ktype="symmetric")[0]
-        out_q15 = tanh_lut(in_tensor.astype(np.int32) << 8)
+        if in_tensor.dtype == np.int8:
+            in_tensor = in_tensor.astype(np.int32) << 8
+        elif in_tensor.dtype == np.uint8:
+            in_tensor = in_tensor.astype(np.int32) - qrec.cache['zero_point']
+            in_tensor <<= 8
+        elif in_tensor.dtype == np.uint16:
+            in_tensor = in_tensor.astype(np.int32) - qrec.cache['zero_point']
+        else:
+            in_tensor = in_tensor.astype(np.int32)
+
+        out_q15 = tanh_lut(in_tensor)
         # compute_in_out_scale(qrec, extra_scale=QType.Pow2(
         #     bits=32, q=7, signed=True).scale/qrec.in_qs[0].scale)
         scale_mul_biases_q = qrec.cache['scale_mul_biases_q']
-        output = scale_mul_biases_q.apply_scales(out_q15 >> 8)
-
+        outp = scale_mul_biases_q.apply_scales(out_q15) + qrec.out_qs[0].zero_point
+        output = qrec.out_qs[0].clip(outp)
         return qrec.get_outputs(params,
                                 [output],
                                 ktype="symmetric")
@@ -316,15 +308,6 @@ class TanHSymmetricMult(KernelBase):
                                 ktype="symmetric")
 
 
-def hswish_mult_gen_factors(qrec):
-    in_q = qrec.in_qs[0]
-    fac_1 = in_q.quantize(np.array([3.]))
-    # The scale of the result is actually in in_scale * in_scale since it is multiplied by itself
-    compute_in_out_scale(qrec, extra_scale=qrec.in_qs[0].scale * 1/6)
-    upper_bound = in_q.quantize([6.])
-    lower_bound = in_q.quantize([0.])
-    return fac_1, upper_bound, lower_bound
-
 
 @params_type(HSwishActivationParameters)
 @qrec_type('scaled')
@@ -336,17 +319,49 @@ class HSwishSymmetricMult(KernelBase):
                 **kwargs):
         in_tensor = qrec.prepare_inputs(
             params, in_tensors, ktype="symmetric")[0]
-        fac_1, upper_bound, lower_bound = hswish_mult_gen_factors(qrec)
         in_tensor = in_tensor.astype(np.int32)
+
+        offset = qrec.cache['offset']
+        upper_bound = qrec.cache['upper_bound']
+        zero_point = qrec.cache['zero_point']
+
         in_tensor_relued = np.minimum(np.maximum(
-            in_tensor + fac_1, lower_bound), upper_bound)
+            in_tensor + offset, 0), upper_bound)
         scale_mul_biases_q = qrec.cache['scale_mul_biases_q']
         in_tensor = scale_mul_biases_q.apply_scales(
             in_tensor * in_tensor_relued)
+        in_tensor += zero_point
+        in_tensor = qrec.out_qs[0].clip(in_tensor)
         return qrec.get_outputs(params,
                                 [in_tensor],
                                 ktype="symmetric")
 
+
+@params_type(HSigmoidActivationParameters)
+@qrec_type('scaled')
+class HSigmoidSymmetricMult(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QRec,
+                **kwargs):
+        in_tensor = qrec.prepare_inputs(
+            params, in_tensors, ktype="symmetric")[0]
+        in_tensor = in_tensor.astype(np.int32)
+
+        offset = qrec.cache['offset']
+        upper_bound = qrec.cache['upper_bound']
+        zero_point = qrec.cache['zero_point']
+
+        in_tensor_relued = np.minimum(np.maximum(
+            in_tensor + offset, 0), upper_bound)
+        scale_mul_biases_q = qrec.cache['scale_mul_biases_q']
+        in_tensor = scale_mul_biases_q.apply_scales(in_tensor_relued)
+        in_tensor += zero_point
+        in_tensor = qrec.out_qs[0].clip(in_tensor)
+        return qrec.get_outputs(params,
+                                [in_tensor],
+                                ktype="symmetric")
 
 @params_type(HSwishActivationParameters)
 @qrec_type('symmetric')

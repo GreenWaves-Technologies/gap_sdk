@@ -43,7 +43,7 @@ class RemoveReshapes(Matcher):
             return False
         candidate = edge.to_node
         if isinstance(candidate, TransposeParameters):
-            if not candidate.does_nothing():
+            if not candidate.no_model_code:
                 return False
             out_shape = tuple(candidate.out_dims[0].shape)
         else:
@@ -56,12 +56,13 @@ class RemoveReshapes(Matcher):
         return (reshape, candidates, out_shape)
 
     def _match(self, G: GraphView, set_identity: bool = True, **kwargs):
-        modified_graph = True
-        while modified_graph:
-            modified_graph = False
+        modified_graph = False
+        found_reshapes = True
+        while found_reshapes:
+            found_reshapes = False
             for reshape in G.nodes(node_classes=(ReshapeParameters,)):
                 if reshape.shape.shape == reshape.old_shape.shape:
-                    modified_graph = True
+                    found_reshapes = modified_graph = True
                     LOG.info('removing reshape that does nothing %s', reshape.name)
                     G.remove_and_reconnect(reshape, edge_class=NNEdge)
                     nid = NodeId(reshape)
@@ -72,7 +73,7 @@ class RemoveReshapes(Matcher):
                 res = self.validate_reshape(G, reshape)
                 if res:
                     LOG.info('unnecessary reshape found after %s', reshape.name)
-                    modified_graph = True
+                    found_reshapes = modified_graph = True
                     (reshape, candidates, out_shape) = res
                     for candidate in candidates:
                         LOG.info(

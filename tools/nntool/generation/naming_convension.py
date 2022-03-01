@@ -28,9 +28,16 @@ from utils.slugify import variablize
 
 class NamingConvension(ABC):
 
-    def __init__(self, G):
-        self.G = G
-        self.multi_out_edges = {}
+    def __init__(self, G=None):
+        self._G = G
+
+    @property
+    def G(self):
+        return self._G
+
+    @G.setter
+    def G(self, val):
+        self._G = val
 
     @abstractmethod
     def get_node_name(self, node_name, step_idx, params):

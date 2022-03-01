@@ -128,7 +128,7 @@ class MatMultMultBase(MultQuantizionHandler):
 
 @params_type(MatMulOpParameters)
 @in_qs_constraint({'dtype': set([np.int8])})
-@out_qs_constraint({'dtype': set([np.int8])})
+@out_qs_constraint({'dtype': set([np.int8, np.int32])})
 @option_constraint(check_filter_options(False, input_size={8, None}, output_size={8, None}))
 class MatMultMultSW8(MatMultMultBase):
     @classmethod
@@ -150,7 +150,7 @@ class MatMultMultSW8(MatMultMultBase):
             kwargs['graph_update']['requires_adjust'] = True
             in_q2 = QType.from_array_sq(
                 arr=in2_node.dqvalue,
-                quantized_dimension=0,
+                quantized_dimension=len(in2_node.dqvalue.shape) - 2,
                 dtype=np.int8,
                 narrow_range=True,
                 bits=8)
@@ -165,7 +165,7 @@ class MatMultMultSW8(MatMultMultBase):
         if force_out_q:
             o_q = force_out_q
             # can't be forced to something not np.int8
-            if o_q.dtype != np.int8 or o_q.asymmetric:
+            if (o_q.dtype != np.int8 and o_q.dtype != np.int32) or o_q.asymmetric:
                 return None
             LOG.warning(f'node {params.name} output forced to range {o_q.min}/{o_q.max} '
                         f'{"asymmetric" if o_q.asymmetric else "symmetric"}')

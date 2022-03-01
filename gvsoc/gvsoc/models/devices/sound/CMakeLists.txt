@@ -1,3 +1,4 @@
+add_subdirectory(dac)
 
 set(SOUND_PREFIX "devices/sound")
 

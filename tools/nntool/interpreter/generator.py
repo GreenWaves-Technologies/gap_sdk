@@ -24,6 +24,7 @@ from generation.default_template import (basic_kernel_header_template,
                                          basic_kernel_source_template,
                                          default_template, dynamic_template,
                                          header_template)
+from generation.gen_utils import write_empty
 from generation.naming_convension import DefaultNamingConvension
 from interpreter.nntool_shell import NNToolShell
 
@@ -50,7 +51,6 @@ def write_template(G, code_gen, model_directory, model_file, template, template_
         sys.exit(1)
     with open(model_path, "w") as output_fp:
         output_fp.write(model)
-
 
 def generate_code(args):
     LOG.propagate = False
@@ -85,7 +85,7 @@ def generate_code(args):
     os.makedirs(os.path.abspath(opts['model_directory']), mode=0o750, exist_ok=True)
     os.makedirs(os.path.abspath(opts['tensor_directory']), mode=0o750, exist_ok=True)
 
-    code_gen = CodeGenerator(G, DefaultNamingConvension(G, anonymise=opts.get('anonymise')), opts)
+    code_gen = CodeGenerator(G, DefaultNamingConvension(anonymise=opts.get('anonymise')), opts)
     if args.template_file:
         code_template = dynamic_template(args.template_file)
     else:
@@ -96,6 +96,9 @@ def generate_code(args):
                        opts['basic_kernel_header_file'], basic_kernel_header_template, "kernel headers")
         write_template(G, code_gen, opts['model_directory'],
                        opts['basic_kernel_source_file'], basic_kernel_source_template, "kernel source")
+    else:
+        write_empty(opts['model_directory'], opts['basic_kernel_header_file'], "no expressions used")
+        write_empty(opts['model_directory'], opts['basic_kernel_source_file'], "no expressions used")
 
     if args.header_file:
         with open(os.path.join(opts['model_directory'], args.header_file), "w") as output_fp:

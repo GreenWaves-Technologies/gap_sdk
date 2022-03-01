@@ -106,7 +106,10 @@ class SSDDetectorFloat32(KernelBase):
         # out_boxes, out_scores, out_classes = cls.nms(
         #     params, qrec, decoded_bboxes, valid_scores)
         # out_count = np.array([sum(out_classes != 0)])
-        return qrec.get_outputs(params, [out_boxes, out_classes, out_scores], ktype="float")
+        outputs = [out_boxes, out_classes, out_scores]
+        if params.output_detection_count:
+            outputs.append(np.array([out_idx]))
+        return qrec.get_outputs(params, outputs, ktype="float")
 
 @params_type(NMSParameters)
 @qrec_type('float')

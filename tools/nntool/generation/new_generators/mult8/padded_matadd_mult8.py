@@ -14,6 +14,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
+
+import numpy as np
 
 from generation.at_types.at_params import NO_ACTIVATION, gen_activation_op
 from generation.at_types.constant_info import ConstantInfo
@@ -42,9 +45,6 @@ class PaddedMatAddSQ8Generator(GeneratorBase):
 
     @classmethod
     def globals_generator(cls, gen, node, qrec, pnode, fnode) -> bool:
-        cnodes = node.contained_nodes()
-        quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
-
         cnodes = pnode.contained_nodes()
         quants = [gen.G.quantization[NodeId(pnode, cnode)] for cnode in cnodes]
 
@@ -63,10 +63,8 @@ class PaddedMatAddSQ8Generator(GeneratorBase):
             'OUTSCALE': quants[1].cache['scale_mul_biases_q'].qbiases,
             'OUTSCALEN': quants[1].cache['scale_mul_biases_q'].qnorms
         })
-        comments = " ".join(f'{k}: {infos1[k]}' for k in ['IN1SCALE', 'IN1SCALEN', 'OUTSCALE', 'OUTSCALEN']) + f" {acomments}"
-
         infos_encoder = SQ8ActInfos()
-        contents = infos_encoder.gen_infos_array("DIM", **infos1)
+        contents, comments = infos_encoder.gen_infos_array('DIM', **infos1)
 
         cname, file_name = gen_constant(gen, pnode, pnode, INFOS)
         const_info = ConstantInfo(file_name, QType.Pow2(
@@ -77,15 +75,17 @@ class PaddedMatAddSQ8Generator(GeneratorBase):
                                         const_info=const_info,
                                         comment=comments))
 
-
-        infos.update({
-            'IN1SCALE': quants[1].cache['scale_mul_biases_q'].qbiases,
-            'IN1SCALEN': quants[1].cache['scale_mul_biases_q'].qnorms
-        })
-        comments = " ".join(f'{k}: {infos[k]}' for k in ['IN1SCALE', 'IN1SCALEN']) + f" {acomments}"
-
+        # Padded part needs to apply out scale of the matadd + act scale
+        double_scale = MultMulBiasScaleQType(
+            dtype=np.uint8,
+            scale=quants[1].cache['scale_mul_biases_q'].scale * quants[2].cache['scale_mul_biases_q'].scale \
+                if len(cnodes) == 3 else \
+                  quants[1].cache['scale_mul_biases_q'].scale
+        )
+        infos['actscale'] = double_scale.qbiases
+        infos['actscalen'] = double_scale.qnorms
         infos_encoder = SQ8ActInfos()
-        contents = infos_encoder.gen_infos_array("DIM", **infos)
+        contents, comments = infos_encoder.gen_infos_array('DIM', **infos)
 
         cname, file_name = gen_constant(gen, pnode, cnodes[0], INFOS, extra_name='Pad')
         const_info = ConstantInfo(file_name, QType.Pow2(

@@ -27,25 +27,25 @@ extern volatile PI_FC_TINY unsigned int pos_soc_event_status[ARCHI_SOC_EVENT_NB_
 
 void pos_soc_event_init();
 
-static inline void pos_soc_event_register_callback_func(unsigned int channel_id, void (*callback)(int, void *))
+static inline void pos_soc_event_register_callback_func(unsigned int event, void (*callback)(uint32_t, void *))
 {
-    pos_soc_event_callback[channel_id] = callback;
+    pos_soc_event_callback[event] = callback;
 }
 
-static inline void pos_soc_event_register_callback_arg(unsigned int channel_id, void *arg)
+static inline void pos_soc_event_register_callback_arg(unsigned int event, void *arg)
 {
-    pos_soc_event_callback_arg[channel_id] = arg;
+    pos_soc_event_callback_arg[event] = arg;
 }
 
-static inline void pos_soc_event_register_callback(unsigned int channel_id, void (*callback)(int, void *), void *arg)
+static inline void pos_soc_event_register_callback(unsigned int event, void (*callback)(uint32_t, void *), void *arg)
 {
-    pos_soc_event_register_callback_func(channel_id, callback);
-    pos_soc_event_register_callback_arg(channel_id, arg);
+    pos_soc_event_register_callback_func(event, callback);
+    pos_soc_event_register_callback_arg(event, arg);
 }
 
-static inline void pi_fc_event_handler_set(unsigned int channel_id, void (*callback)(int, void *), void *arg)
+static inline void pi_fc_event_handler_set(unsigned int event, void (*callback)(uint32_t, void *), void *arg)
 {
-    pos_soc_event_register_callback(channel_id, callback, arg);
+    pos_soc_event_register_callback(event, callback, arg);
 }
 
 static inline void pi_soc_eu_pr_mask_set(int evt)
@@ -68,6 +68,16 @@ static inline void pos_soc_event_wait(int event)
     }
     *status = __BITCLR_R(*status, 1, bit);
     hal_irq_restore(irq);
+}
+
+static inline void pi_soc_eu_fc_mask_set(uint32_t event_num)
+{
+    soc_eu_fc_mask_clr_set(SOC_EU_ADDR, event_num);
+}
+
+static inline void pi_soc_eu_fc_mask_clear(uint32_t event_num)
+{
+    soc_eu_fc_mask_set_set(SOC_EU_ADDR, event_num);
 }
 
 #endif

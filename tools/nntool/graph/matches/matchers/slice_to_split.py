@@ -118,7 +118,7 @@ def slices_to_sizes(slices_and_shapes, shape_rest):
 
 @ match_name("slice_to_split")
 @ description("collects slices from a single node and converts to a single split")
-@ run_before('unused_concats')
+@ run_before('remove_noops', 'insert_copies')
 @ groups('*')
 class SliceToSplitMatch(Matcher):
     @ staticmethod

@@ -178,6 +178,12 @@ void bsp_atxp032_conf_init(struct pi_atxp032_conf *conf);
 int bsp_atxp032_open(struct pi_atxp032_conf *conf);
 #endif
 
+#if defined(CONFIG_MX25U51245G)
+#include "bsp/flash/mx25u51245g.h"
+void bsp_mx25u51245g_conf_init(struct pi_mx25u51245g_conf *conf);
+int bsp_mx25u51245g_open(struct pi_mx25u51245g_conf *conf);
+#endif
+
 #if defined(CONFIG_NINA_W10)
 #include "bsp/transport/nina_w10.h"
 void bsp_nina_w10_conf_init(struct pi_nina_w10_conf *conf);
@@ -203,6 +209,19 @@ int bsp_thermeye_open(struct pi_thermeye_conf *conf);
 void bsp_ak4332_conf_init(struct pi_ak4332_conf *conf);
 int bsp_ak4332_open(struct pi_ak4332_conf *conf);
 #endif  /* CONFIG_AK4332 */
+
+#if defined(CONFIG_TLV320)
+#include "audio/adc/tlv320.h"
+void bsp_tlv320_conf_init(struct pi_tlv320_conf *conf);
+int bsp_tlv320_open(struct pi_tlv320_conf *conf);
+#endif  /* CONFIG_TLV320 */
+
+#if defined(CONFIG_FXL6408)
+#include "gpio/fxl6408.h"
+void bsp_fxl6408_conf_init(struct pi_fxl6408_conf *conf);
+int bsp_fxl6408_open(struct pi_fxl6408_conf *conf);
+int bsp_fxl6408_close(struct pi_fxl6408_conf *conf);
+#endif  /* CONFIG_FXL6408 */
 
 void bsp_init();
 

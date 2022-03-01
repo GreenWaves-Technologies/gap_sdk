@@ -25,7 +25,7 @@ class Maximizer():
         self._args = tuple()
         self._int_step = int_step
 
-    @lru_cache
+    @lru_cache(maxsize=128, typed=False)
     def func(self, var):
         return self._func(var, *self._args)
 

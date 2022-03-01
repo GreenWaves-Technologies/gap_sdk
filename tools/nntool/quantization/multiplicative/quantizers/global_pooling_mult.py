@@ -58,8 +58,8 @@ class GlobalPoolingMult(MultQuantizionHandler):
 
         if fusion:
             # Global pooling fused with activations need to have only the activation scale
+            #o_q = QType(scale=in_q.scale, dtype=np.int32)
             o_q = deepcopy(in_q)
-            o_q.dtype = np.int32
         elif force_out_q:
             if force_out_q.zero_point != in_q.zero_point:
                 return None

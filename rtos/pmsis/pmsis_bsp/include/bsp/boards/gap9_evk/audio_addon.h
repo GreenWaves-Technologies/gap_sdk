@@ -18,10 +18,11 @@
 
 #include <stdint.h>
 
-#define CONFIG_AK4332
-
 #define CONFIG_AK4332_I2C_ITF 1
 #define CONFIG_AK4332_I2S_ITF 2
+
+#define CONFIG_TLV320_I2C_ITF 1
+#define CONFIG_TLV320_I2S_ITF 2
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,7 +40,6 @@ uint8_t pi_bsp_fxl6408_read_id();
 void __bsp_audio_addon_init();
 
 #define CONFIG_FXL6408UMX_I2C_ITF 1
-#define CONFIG_FXL6408UMX_I2C_ADDR 0x86
 #define CONFIG_FXL6408UMX_AK4332_GPIO 1
 #define CONFIG_FXL6408UMX_TLV320_GPIO 2
 /// @endcond

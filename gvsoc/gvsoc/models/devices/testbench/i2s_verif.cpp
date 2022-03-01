@@ -74,7 +74,7 @@ private:
 class Rx_stream_raw_file : public Rx_stream
 {
 public:
-    Rx_stream_raw_file(Slot *slot, string filepath, int width, bool is_bin);
+    Rx_stream_raw_file(Slot *slot, string filepath, int width, bool is_bin, pi_testbench_i2s_verif_start_config_file_encoding_type_e encoding);
     uint32_t get_sample(int channel_id);
     Slot *slot;
 
@@ -82,13 +82,14 @@ private:
     FILE *infile;
     int width;
     bool is_bin;
+    pi_testbench_i2s_verif_start_config_file_encoding_type_e encoding;
 };
 
 
 class Tx_stream_raw_file : public Tx_stream
 {
 public:
-    Tx_stream_raw_file(Slot *slot, string filepath, int width, bool is_bin);
+    Tx_stream_raw_file(Slot *slot, string filepath, int width, bool is_bin, pi_testbench_i2s_verif_start_config_file_encoding_type_e encoding);
     void push_sample(uint32_t sample, int channel_id);
     Slot *slot;
 
@@ -96,6 +97,7 @@ private:
     FILE *outfile;
     int width;
     bool is_bin;
+    pi_testbench_i2s_verif_start_config_file_encoding_type_e encoding;
 };
 
 
@@ -565,10 +567,11 @@ void I2s_verif::start(pi_testbench_i2s_verif_start_config_t *config)
 }
 
 
-Tx_stream_raw_file::Tx_stream_raw_file(Slot *slot, std::string filepath, int width, bool is_bin)
+Tx_stream_raw_file::Tx_stream_raw_file(Slot *slot, std::string filepath, int width, bool is_bin, pi_testbench_i2s_verif_start_config_file_encoding_type_e encoding)
 {
     this->width = width;
     this->is_bin = is_bin;
+    this->encoding = encoding;
     this->slot = slot;
     this->outfile = fopen(filepath.c_str(), "w");
     this->slot->trace.msg(vp::trace::LEVEL_INFO, "Opening dumper (path: %s)\n", filepath.c_str());
@@ -583,6 +586,17 @@ void Tx_stream_raw_file::push_sample(uint32_t sample, int channel_id)
 {
     if (this->is_bin)
     {
+        if (this->encoding == PI_TESTBENCH_I2S_VERIF_FILE_ENCODING_TYPE_PLUSMINUS)
+        {
+            // Convert encoding from 0/1 to -1/+1
+            if (sample == 0)
+                sample = (uint32_t)-1;
+            else if (sample == 1)
+                sample = 1;
+            else
+                sample = 0; // Error
+        }
+
         int nb_bytes = (this->width + 7) / 8;
         if (fwrite((void *)&sample, nb_bytes, 1, this->outfile) != 1)
         {
@@ -666,10 +680,11 @@ void Tx_stream_libsnd_file::push_sample(uint32_t data, int channel)
 }
 
 
-Rx_stream_raw_file::Rx_stream_raw_file(Slot *slot, std::string filepath, int width, bool is_bin)
+Rx_stream_raw_file::Rx_stream_raw_file(Slot *slot, std::string filepath, int width, bool is_bin, pi_testbench_i2s_verif_start_config_file_encoding_type_e encoding)
 {
     this->width = width;
     this->is_bin = is_bin;
+    this->encoding = encoding;
     this->slot = slot;
     this->infile = fopen(filepath.c_str(), "r");
     if (this->infile == NULL)
@@ -685,10 +700,26 @@ uint32_t Rx_stream_raw_file::get_sample(int channel_id)
     {
         int nb_bytes = (this->width + 7) / 8;
         uint32_t result = 0;
-        if (fread((void *)&result, nb_bytes, 1, this->infile) != 1)
+        int freadres = fread((void *)&result, nb_bytes, 1, this->infile);
+
+        // this->slot->top->trace.msg(vp::trace::LEVEL_TRACE, "channel_id=%d, nb_bytes=%d, freadres=%d, result=%d\n", channel_id, nb_bytes, freadres, result);
+
+        if (freadres != 1)
         {
             return 0;
         }
+
+        if (this->encoding == PI_TESTBENCH_I2S_VERIF_FILE_ENCODING_TYPE_PLUSMINUS)
+        {
+            // Convert encoding from -1/+1 to 0/1
+            if ((int32_t)result == -1)
+                result = 0;
+            else if ((int32_t)result == 1)
+                result = 1;
+            else
+                result = 0;
+        }
+
         return result;
     }
     else
@@ -872,7 +903,12 @@ void Slot::start(pi_testbench_i2s_verif_slot_start_config_t *config, Slot *reuse
             {
                 if (config->tx_file_dumper.type == PI_TESTBENCH_I2S_VERIF_TX_FILE_DUMPER_TYPE_RAW || config->tx_file_dumper.type == PI_TESTBENCH_I2S_VERIF_RX_FILE_READER_TYPE_BIN)
                 {
-                    this->outstream = new Tx_stream_raw_file(this, filepath, config->tx_file_dumper.width, config->tx_file_dumper.type == PI_TESTBENCH_I2S_VERIF_RX_FILE_READER_TYPE_BIN);
+                    this->outstream = new Tx_stream_raw_file(
+                        this,
+                        filepath,
+                        config->tx_file_dumper.width,
+                        config->tx_file_dumper.type == PI_TESTBENCH_I2S_VERIF_RX_FILE_READER_TYPE_BIN,
+                        (pi_testbench_i2s_verif_start_config_file_encoding_type_e)config->tx_file_dumper.encoding);
                 }
                 else
                 {
@@ -904,7 +940,12 @@ void Slot::start(pi_testbench_i2s_verif_slot_start_config_t *config, Slot *reuse
         {
             if (config->rx_file_reader.type == PI_TESTBENCH_I2S_VERIF_RX_FILE_READER_TYPE_RAW || config->rx_file_reader.type == PI_TESTBENCH_I2S_VERIF_RX_FILE_READER_TYPE_BIN)
             {
-                this->instream = new Rx_stream_raw_file(this, filepath, config->rx_file_reader.width, config->rx_file_reader.type == PI_TESTBENCH_I2S_VERIF_RX_FILE_READER_TYPE_BIN);
+                this->instream = new Rx_stream_raw_file(
+                    this,
+                    filepath,
+                    config->rx_file_reader.width,
+                    config->rx_file_reader.type == PI_TESTBENCH_I2S_VERIF_RX_FILE_READER_TYPE_BIN,
+                    (pi_testbench_i2s_verif_start_config_file_encoding_type_e)config->rx_file_reader.encoding);
             }
             else
             {

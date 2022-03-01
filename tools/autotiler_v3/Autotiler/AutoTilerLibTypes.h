@@ -916,6 +916,7 @@ typedef struct {
 	uint64_t PaddedSize;				/* Total size in bytes or bits of this kernel argument, byte aligned, forced padding taken into account */
 	uint64_t BitSize;				/* Total size in bits of this kernel argument (unaligned) */
 	uint64_t PaddedBitSize;				/* Total size in bits of this kernel argument (unaligned), forced padding taken into account */
+	uint64_t Overflow;				/* Amount of read overflow in bytes, it can happen on TILED arg when right or bottom padding is greater than the size of the last tile */
 	KernelArgOneDimDescrT **DimDescr;		/* A vector of dimension description outer to inner */
 	KernelArgOneDimDescrT **IterOrderDimDescr;	/* Reordered DimDescr according to Kernel Iteration Order */
 	int *KerIterDimDescr;				/* Indexed by kernel's IterOrder, if in DimDescr then position in IterOrderDimDescr otherwise -1 */
@@ -1429,6 +1430,7 @@ typedef struct AGraphNodeList_T {
 	ArgBindingDescr_T *Binding;		/* The bindings from which this edge is originating */
 	GraphEdgeWeb_T *Web;			/* Which symbol */
 	unsigned int Size;			/* Size of this symbol as seen in the related kernel argument */
+	unsigned int Guard;			/* Extra space above size in case related arg can read overflow */
 	int Offset;				/* Offset applied to the  base of this symbol in case binding Oper is + or - */
 	int Channel;				/* To which channel this symbol belongs to */
 	int ChannelDepth;			/* Channel depth */
@@ -1457,6 +1459,7 @@ typedef struct {
 	AT_MemLocation_T MemType;
 	unsigned int Address;
 	unsigned int Size;
+	unsigned int Guard;
 	int LiveFirst;
 	int LiveLast;
 	BoxType_T AllocType;
@@ -1484,6 +1487,7 @@ typedef struct AGraphEdgeWeb_T {
 	CKernel_Arg_T *Edge;		/* The symbol, CArgs or Locals in the current graph */
 	unsigned int Index;		/* Index of this Symbol */
 	unsigned int Size;		/* Size of this symbol */
+	unsigned int Guard;		/* Guard on top of Size for this symbol in case of read overflow */
 	int LiveFirst;			/* Graph node index of start life for this symbol */
 	int LiveLast;			/* Graph node index of start stop for this symbol */
 	Kernel_Arg_T *KerArg;		/* This symbol is bounded to this Kernel argument */

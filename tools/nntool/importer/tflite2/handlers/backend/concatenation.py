@@ -96,7 +96,7 @@ class Concatenation(ConstantMixin, BackendHandler):
             params = ConstantInputParameters(node.name, value=value)
         else:
             axis -= sum(1 if dim is None else 0 for dim in pout_shape[:axis:])
-            params = ConcatParameters(node.name, axis=axis, axis_hint=None)
+            params = ConcatParameters(node.name, axis=axis)
 
             for idx, inp in enumerate(inputs):
                 inp_node, inp_idx = cls._maybe_insert_reshape(G, inp, inp_shapes[idx], pout_shape)

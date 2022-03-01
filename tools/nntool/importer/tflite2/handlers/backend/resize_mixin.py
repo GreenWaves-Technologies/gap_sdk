@@ -16,6 +16,7 @@
 
 from graph.dim import Dim
 from graph.types.base import NNEdge
+from importer.common.check_batchdim import check_batchdim
 from utils.node_id import NodeId
 
 
@@ -32,6 +33,7 @@ class ResizeMixin():
 
         inputs = [all_nodes[inp] for inp in node.input]
         x = inputs[0]
+        x = check_batchdim(G, x, node.name)
         new_shape = tuple(cls._verify_constant(inputs[1]))
         params = params_class(node.name,
                               new_shape=new_shape,

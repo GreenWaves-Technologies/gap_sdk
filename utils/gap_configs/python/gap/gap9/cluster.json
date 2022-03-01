@@ -1,5 +1,8 @@
 
 {
+    "vp_component": "gap9.cluster",
+    "power_models_file": "gap/gap9/power_models/cluster.json",
+
     "alias": "0x00000000",
     "mapping": {
         "base": "0x10000000",

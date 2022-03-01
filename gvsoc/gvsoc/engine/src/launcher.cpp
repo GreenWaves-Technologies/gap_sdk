@@ -43,6 +43,7 @@ public:
 
 private:
 
+    void *handler;
     vp::component *instance;
 };
 
@@ -53,19 +54,20 @@ gv::Gvsoc *gv::gvsoc_new()
 
 void Gvsoc_launcher::open(std::string config_path)
 {
-    this->instance = vp::__gv_create(config_path, NULL);
+    this->handler = vp::__gv_create(config_path, NULL);
+    this->instance = ((vp::top *)this->handler)->top_instance;
 
-    gv_start((void *)this->instance);
+    gv_start(this->handler);
 }
 
 void Gvsoc_launcher::close()
 {
-    gv_destroy((void *)this->instance);
+    gv_destroy(this->handler);
 }
 
 void Gvsoc_launcher::run()
 {
-    gv_step((void *)this->instance, 0);
+    gv_step(this->handler, 0);
 }
 
 int64_t Gvsoc_launcher::stop()
@@ -76,7 +78,7 @@ int64_t Gvsoc_launcher::stop()
 
 int64_t Gvsoc_launcher::step(int64_t duration)
 {
-    gv_step((void *)this->instance, duration);
+    gv_step(this->handler, duration);
     return 0;
 }
 
@@ -92,10 +94,10 @@ void Gvsoc_launcher::vcd_bind(gv::Vcd_user *user)
 
 void Gvsoc_launcher::event_add(std::string path, bool is_regex)
 {
-
+    this->instance->traces.get_trace_manager()->conf_trace(1, path, 1);
 }
 
 void Gvsoc_launcher::event_exclude(std::string path, bool is_regex)
 {
-
+    this->instance->traces.get_trace_manager()->conf_trace(1, path, 0);
 }

@@ -26,7 +26,7 @@ from ..mult_quantization_handler import MultQuantizionHandler
 @in_qs_constraint({'dtype': np.int8})
 class SSDDetectorParametersMult(MultQuantizionHandler):
     @classmethod
-    def _quantize(cls, params, in_qs, stats, **kwargs):
+    def _quantize(cls, params: SSDDetectorParameters, in_qs, stats, **kwargs):
         force_out_qs, _ = cls.get_mult_opts(**kwargs)
         force_out_q = force_out_qs and force_out_qs[0]
         if force_out_q:
@@ -39,4 +39,7 @@ class SSDDetectorParametersMult(MultQuantizionHandler):
                               dtype=np.int16, scale=2**(-14))
         o_scores_qtype = in_qs[1]
         o_class_qtype = QType(scale=1, dtype=np.int8)
-        return QRec.scaled(in_qs=in_qs, out_qs=[o_boxes_qtype, o_class_qtype, o_scores_qtype, o_class_qtype])
+        outputs = [o_boxes_qtype, o_class_qtype, o_scores_qtype]
+        if params.output_detection_count:
+            outputs.append(QType(scale=1, dtype=np.int32))
+        return QRec.scaled(in_qs=in_qs, out_qs=outputs)

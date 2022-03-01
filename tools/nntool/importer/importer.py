@@ -20,8 +20,8 @@ from .onnx.onnx import OnnxImporter
 from .tflite2.tflite import NNGraph, TFLiteImporter
 
 GRAPH_IMPORTERS = {
-    'onnx': {'matches':[r".*\.onnx$"], 'importer':OnnxImporter, 'loader': None},
-    'tflite': {'matches':[r".*\.tflite$"], 'importer':TFLiteImporter, 'loader': None},
+    'onnx': {'matches':[r".*\.onnx$"], 'importer':OnnxImporter},
+    'tflite': {'matches':[r".*\.tflite$"], 'importer':TFLiteImporter},
 }
 
 class ImportException(Exception):
@@ -51,7 +51,6 @@ def create_graph(filename: str, graph_format: str = None, opts: Mapping = None) 
             if re.search(match, filename):
                 importer = v['importer']()
                 graph = importer.create_graph(filename, opts)
-                graph.set_load_function(v['loader'])
                 return graph
 
     raise ValueError("Graph importer not found")

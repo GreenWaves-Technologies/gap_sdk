@@ -21,10 +21,6 @@
 #include <pmsis.h>
 #include <string.h>
 
-#if defined(__FREERTOS__)
-#define pi_task_push_irq_safe(pi_task)                   pi_task_push((pi_task))
-#endif  /* __FREERTOS__ */
-
 #define I2S_NB_SLOTS 16
 
 typedef struct
@@ -143,11 +139,7 @@ static void *__pi_i2s_ring_buffer_pop(__pi_i2s_slot_t *slot)
 }
 
 
-#if !defined(__FREERTOS__)
-static void __pi_i2s_handle_rx_frame(int event, void *arg)
-#else
-static void __pi_i2s_handle_rx_frame(void *arg)
-#endif  /* __FREERTOS__ */
+static void __pi_i2s_handle_rx_frame(uint32_t event, void *arg)
 {
     __pi_i2s_slot_t *frame_slot = (__pi_i2s_slot_t *)arg;
     __pi_i2s_t *i2s = frame_slot->i2s;
@@ -204,7 +196,7 @@ static void __pi_i2s_handle_rx_frame(void *arg)
 
             frame_slot->tx_buffer0 = frame_slot->tx_buffer1;
             frame_slot->tx_buffer1 = __pi_i2s_ring_buffer_pop(frame_slot);
-    
+
             if (frame_slot->tx_buffer1)
             {
                 uint32_t frame = frame_slot->frame;
@@ -253,11 +245,7 @@ static void __pi_i2s_handle_rx_frame(void *arg)
     }
 }
 
-#if !defined(__FREERTOS__)
-static void __pi_i2s_handle_tx_frame(int event, void *arg)
-#else
-static void __pi_i2s_handle_tx_frame(void *arg)
-#endif  /* __FREERTOS__ */
+static void __pi_i2s_handle_tx_frame(uint32_t event, void *arg)
 {
     __pi_i2s_slot_t *frame_slot = (__pi_i2s_slot_t *)arg;
     __pi_i2s_t *i2s = frame_slot->i2s;
@@ -321,11 +309,7 @@ static void __pi_i2s_handle_tx_frame(void *arg)
 }
 
 
-#if !defined(__FREERTOS__)
-static void __pi_i2s_handle_rx_channel(int event, void *arg)
-#else
-static void __pi_i2s_handle_rx_channel(void *arg)
-#endif  /* __FREERTOS__ */
+static void __pi_i2s_handle_rx_channel(uint32_t event, void *arg)
 {
     __pi_i2s_slot_t *slot = (__pi_i2s_slot_t *)arg;
     __pi_i2s_t *i2s = slot->i2s;
@@ -390,7 +374,7 @@ static void __pi_i2s_handle_rx_channel(void *arg)
 
             slot->tx_buffer0 = slot->tx_buffer1;
             slot->tx_buffer1 = __pi_i2s_ring_buffer_pop(slot);
-    
+
             if (slot->tx_buffer1)
             {
                 uint32_t base = slot->channel_base;
@@ -424,11 +408,7 @@ static void __pi_i2s_handle_rx_channel(void *arg)
     }
 }
 
-#if !defined(__FREERTOS__)
-static void __pi_i2s_handle_tx_channel(int event, void *arg)
-#else
-static void __pi_i2s_handle_tx_channel(void *arg)
-#endif  /* __FREERTOS__ */
+static void __pi_i2s_handle_tx_channel(uint32_t event, void *arg)
 {
     __pi_i2s_slot_t *slot = (__pi_i2s_slot_t *)arg;
     __pi_i2s_t *i2s = slot->i2s;
@@ -505,8 +485,7 @@ static inline void __pi_i2s_enqueue_buffer(__pi_i2s_slot_t *slot, void *buffer)
     slot->ring_buffer.buffer[slot->ring_buffer.head++] = buffer;
     if (slot->ring_buffer.head == slot->ring_buffer.nb_elem)
         slot->ring_buffer.head = 0;
-    
-    
+
     slot->ring_buffer.current_nb_elem++;
 }
 
@@ -637,7 +616,6 @@ int __pi_i2s_channel_conf_set(struct pi_device *device, uint32_t frame, int slot
         unsigned int loopback = __BITEXTRACTU(conf->options, 1, PI_I2S_OPT_LOOPBACK_ENA_SHIFT);
         int ring_buffer_nb_elem = conf->mem_slab ? conf->mem_slab->num_blocks : 2;
         int ring_buffer_size = sizeof(void *) * ring_buffer_nb_elem;
-        int use_buffers = ((conf->pingpong_buffers[0] != NULL || conf->mem_slab) && loopback == 0) || frame;
 
         slot = pi_fc_l1_malloc(sizeof(__pi_i2s_slot_t) + ring_buffer_size);
         if (slot == NULL)
@@ -671,7 +649,7 @@ int __pi_i2s_channel_conf_set(struct pi_device *device, uint32_t frame, int slot
         slot->tx_task1 = NULL;
         slot->ignore_first_error = 0;
 
-        if (use_buffers)
+        if (conf->asrc_channel == -1 && loopback == 0)
         {
             int channel = pi_udma_core_lin_alloc();
             if (channel == -1)
@@ -819,8 +797,8 @@ int pi_i2s_open(struct pi_device *device)
     if (i2s->open_count == 1)
     {
         int periph_id = UDMA_I2S_ID(itf_id);
-        udma_ctrl_cfg_rstn_set_set(ARCHI_UDMA_ADDR, 1 << periph_id);
-        udma_ctrl_cfg_cg_set_set(ARCHI_UDMA_ADDR, 1 << periph_id);
+        udma_ctrl_cfg_rstn_set_set(UDMA_CTRL_ADDR, 1 << periph_id);
+        udma_ctrl_cfg_cg_set_set(UDMA_CTRL_ADDR, 1 << periph_id);
 
         i2s->itf = itf_id;
         i2s->errors = 0;
@@ -959,8 +937,8 @@ void pi_i2s_close(struct pi_device *device)
 
         // And deactivated device
         int periph_id = UDMA_I2S_ID(i2s->itf);
-        udma_ctrl_cfg_rstn_clr_set(ARCHI_UDMA_ADDR, 1 << periph_id);
-        udma_ctrl_cfg_cg_clr_set(ARCHI_UDMA_ADDR, 1 << periph_id);
+        udma_ctrl_cfg_rstn_clr_set(UDMA_CTRL_ADDR, 1 << periph_id);
+        udma_ctrl_cfg_cg_clr_set(UDMA_CTRL_ADDR, 1 << periph_id);
     }
 }
 
@@ -1024,19 +1002,11 @@ static void __pi_i2s_slot_stop(__pi_i2s_slot_t *slot)
 
     if (slot->is_rx)
     {
-        #if !defined(__FREERTOS__)
         __pi_i2s_handle_rx_channel(0, slot);
-        #else
-        __pi_i2s_handle_rx_channel(slot);
-        #endif  /* __FREERTOS__ */
     }
     else
     {
-        #if !defined(__FREERTOS__)
         __pi_i2s_handle_tx_channel(0, slot);
-        #else
-        __pi_i2s_handle_tx_channel(slot);
-        #endif  /* __FREERTOS__ */
     }
 }
 
@@ -1271,7 +1241,7 @@ int pi_i2s_channel_write_async(struct pi_device *dev, int channel,
     // them if they are different.
     task->data[0] = 0;
 
-    if (!slot->mem_slab)
+    if (slot->pingpong_buffers[0])
     {
         int buffer_index = slot->current_buffer;
         mem_block = slot->pingpong_buffers[buffer_index];

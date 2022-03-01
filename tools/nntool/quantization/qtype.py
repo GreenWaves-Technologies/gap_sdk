@@ -15,7 +15,7 @@
 
 import math
 from copy import deepcopy
-from functools import reduce
+from functools import cmp_to_key, reduce
 
 import numpy as np
 from bfloat16 import bfloat16
@@ -132,7 +132,7 @@ def divide_ignore(a, b):
 IGNORE_KEYS = {'ne16', 'to_dict'}
 
 
-class AttrNamespace:
+class AttrNamespace():
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
@@ -298,6 +298,26 @@ class QType(JsonSerializable, EventEmitter):
         setattr(self, '_dtype', STR_DTYPE[state['dtype']])
         setattr(self, '_EventEmitter__raw_listeners', {})
 
+    def _encapsulate(self):
+        res = {}
+        for k in self.EXPORT:
+            v = getattr(self, f'_{k}')
+            if v is None:
+                continue
+            if k == "attr":
+                res[k] = v.__getstate__()
+            else:
+                res[k] = v
+        return res
+
+    @classmethod
+    def _dencapsulate(cls, val):
+        if 'attr' in val:
+            attr = val['attr']
+            val['attr'] = AttrNamespace()
+            val['attr'].__setstate__(attr)
+        return QType(**val)
+
     @property
     def zero_point_asymmetric_zero(self):
         if self.dtype in [np.int8, np.int16, np.int32]:
@@ -335,13 +355,6 @@ class QType(JsonSerializable, EventEmitter):
     def Pow2(cls, bits, q, signed, forced=False):
         return cls(bits=bits, q=q, signed=signed, forced=forced)
 
-    def _encapsulate(self):
-        return {k: getattr(self, f'_{k}') for k in self.EXPORT
-                if getattr(self, f'_{k}') is not None}
-
-    @classmethod
-    def _dencapsulate(cls, val):
-        return QType(**val)
 
     def _update_dtype(self):
         if self._signed is None or self._bits is None:
@@ -379,6 +392,27 @@ class QType(JsonSerializable, EventEmitter):
     @property
     def forced_scale(self):
         return self._forced.get('scale')
+
+    @staticmethod
+    def precision_key():
+        """ Returns a key function that compares precision
+        """
+        def cmp(a, b):
+            a = float(a)
+            b = float(b)
+            return (a > b) - (a < b) 
+        def cmp_func(q1: QType, q2: QType):
+            if q1.is_floating:
+                if q2.is_floating:
+                    return cmp(q1.bits, q2.bits)
+                else:
+                    return 1 # q1 > q2
+            elif q2.is_floating:
+                return -1
+            # lower scale is more precise
+            return cmp(np.max(q2.scale), np.max(q1.scale))
+        return cmp_to_key(cmp_func)
+
 
     def set_forced(self, val=True, flags=None):
         if flags is None:
@@ -528,7 +562,8 @@ class QType(JsonSerializable, EventEmitter):
 
     @property
     def has_valid_range(self):
-        return (self._min_val is not None and self._max_val is not None) or self._scale is not None
+        return ((self._min_val is not None and self._max_val is not None) or
+                self._scale is not None or self._q is not None)
 
     @property
     def min_val(self):

@@ -25,7 +25,7 @@ LOG = logging.getLogger("nntool." + __name__)
 
 
 @paramstype(ExpressionFusionParameters)
-class GenCopyParameters(GeneratorBase, InOutBindingsMixin):
+class GenExpressionParameters(GeneratorBase, InOutBindingsMixin):
     @classmethod
     def globals_generator(cls, gen, node, qrec, pnode, fnode) -> bool:
         return True

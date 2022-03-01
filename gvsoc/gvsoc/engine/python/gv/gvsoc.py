@@ -146,7 +146,8 @@ class Runner(runner.default_runner.Runner):
 
     def __gen_debug_info(self, full_config, gvsoc_config):
         for binary in full_config.get('**/debug_binaries').get_dict():
-            if os.system('pulp-pc-info --file %s --all-file %s' % (binary.replace('.debugInfo', ''), binary)) != 0:
+            if os.system('gen-debug-info %s %s' % (binary.replace('.debugInfo', ''), binary)) != 0:
+            # if os.system('pulp-pc-info --file %s --all-file %s' % (binary.replace('.debugInfo', ''), binary)) != 0:
                 raise errors.InputError('Error while generating debug symbols information, make sure the toolchain and the binaries are accessible ')
 
 

@@ -23,4 +23,6 @@ export OPENOCD_CABLE=interface/ftdi/gapuino_ftdi.cfg
 
 export GAPY_TARGET=gapuino_v3
 
+export PLPTEST_DEFAULT_PROPERTIES="chip=gap8_v3 chip_family=gap8 board=gapuino_v3 duration=50 test_duration=50"
+
 source $GAP_SDK_HOME/configs/common.sh

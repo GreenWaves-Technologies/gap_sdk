@@ -33,7 +33,7 @@ LOG = logging.getLogger("nntool." + __name__)
 @description("Remove unnecessary copies")
 @modifies_dimensions(True)
 @groups('*')
-@run_after('expand_transposes', 'remove_noops')
+@run_after('remove_noops')
 class RemoveCopies(Matcher):
 
     def _match(self, G: GraphView, set_identity: bool = True, **kwargs):
@@ -47,15 +47,13 @@ class RemoveCopies(Matcher):
                     G,
                     out_edges[0],
                     (OutputParameters, InputParameters, ConstantInputParameters, SplitParameters, ConcatParameters),
-                    can_pass=(ReshapeParameters, NoOPParameters),
-                    can_pass_fn=lambda G, node: isinstance(node, TransposeParameters) and node.does_nothing,
+                    can_pass_fn=lambda G, node: node.no_model_code,
                     follow_multi=True) and
                     search_up(
                         G,
                         G.in_edges(node)[0],
                         (InputParameters, OutputParameters, ConstantInputParameters, SplitParameters, ConcatParameters),
-                        can_pass=(ReshapeParameters, NoOPParameters),
-                        can_pass_fn=lambda G, node: isinstance(node, TransposeParameters) and node.does_nothing,
+                        can_pass_fn=lambda G, node: node.no_model_code,
                         follow_multi=True)):
                 continue
             nodes_to_remove.append(node)

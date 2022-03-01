@@ -15,9 +15,7 @@
 
 import logging
 
-from graph.types import NNEdge, NoOPParameters
-from graph.types.others import (ConcatParameters, ReshapeParameters,
-                                SplitParameters, TransposeParameters)
+from graph.types import NNEdge
 from utils.graph import GraphView
 
 from ..matcher import Matcher, description, groups, match_name, run_before
@@ -34,30 +32,9 @@ LOG = logging.getLogger("nntool." + __name__)
 @groups('symmetric', 'scaled')
 class RemoveNoOPs(Matcher):
 
-    @staticmethod
-    def one_inedge(G, node, idx=None):
-        in_edges = G.in_edges(node)
-        return len(in_edges) == 1 and (idx is None or in_edges[0].to_idx == idx)
-
-    @staticmethod
-    def one_outedge(G, node, idx=None):
-        out_edges = G.out_edges(node)
-        return len(out_edges) == 1 and (idx is None or out_edges[0].from_idx == idx)
-
-    @staticmethod
-    def one_in_and_outedge(G, node, idx=None):
-        return RemoveNoOPs.one_inedge(G, node, idx=idx) and RemoveNoOPs.one_outedge(G, node, idx=idx)
-
-    @staticmethod
-    def node_does_nothing(G, node):
-        return (isinstance(node, NoOPParameters) or
-                isinstance(node, TransposeParameters) and node.transpose is None or
-                isinstance(node, ReshapeParameters) and node.old_shape == node.shape or
-                (isinstance(node, (ConcatParameters, SplitParameters)) and RemoveNoOPs.one_in_and_outedge(G, node, idx=0)))
-
     def _match(self, G: GraphView, set_identity: bool = True, **kwargs) -> bool:
         has_modified_graph = False
-        for node in [node for node in G.nodes() if self.node_does_nothing(G, node)]:
+        for node in [node for node in G.nodes() if node.does_nothing]:
             has_modified_graph = True
             in_edge = G.in_edges(node.name)[0]
             G.remove_edge(in_edge)

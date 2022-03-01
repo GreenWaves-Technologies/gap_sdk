@@ -45,13 +45,13 @@
 #define CONFIG_SPIRAM_START     0
 #define CONFIG_SPIRAM_SIZE     (1<<20)
 
-#define CONFIG_APS25XXXN_SPI_ITF   1
-#define CONFIG_APS25XXXN_SPI_CS    0
+#define CONFIG_APS25XXXN_SPI_ITF   0
+#define CONFIG_APS25XXXN_SPI_CS    1
 #define CONFIG_APS25XXXN_START     0
 #define CONFIG_APS25XXXN_SIZE     (1<<25)
 
-#define CONFIG_ATXP032_SPI_ITF   1
-#define CONFIG_ATXP032_SPI_CS    1
+#define CONFIG_ATXP032_SPI_ITF   0
+#define CONFIG_ATXP032_SPI_CS    0
 
 #define CONFIG_SPIFLASH_SPI_ITF     0
 #define CONFIG_SPIFLASH_SPI_CS      0
@@ -75,5 +75,23 @@
 #define GPIOA21_NINA17                 ( PI_PAD_041)
 #define GPIO_NINA_PWRON                ( PI_PAD_042)
 #define GPIO_NINA17_DSR                ( PI_PAD_043)
+
+#if defined(__PLATFORM_GVSOC__)
+
+#define pi_default_flash_conf pi_hyperflash_conf
+#define pi_default_flash_conf_init pi_hyperflash_conf_init
+
+#define pi_default_ram_conf pi_hyperram_conf
+#define pi_default_ram_conf_init pi_hyperram_conf_init
+
+#else
+
+#define pi_default_flash_conf pi_atxp032_conf
+#define pi_default_flash_conf_init pi_atxp032_conf_init
+
+#define pi_default_ram_conf pi_aps25xxxn_conf
+#define pi_default_ram_conf_init pi_aps25xxxn_conf_init
+
+#endif
 
 #endif

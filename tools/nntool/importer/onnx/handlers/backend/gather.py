@@ -13,13 +13,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import copy
-from graph.types.others import StridedSliceParameters
+
 import numpy as np
 from graph.types import ConstantInputParameters, GatherParameters, NNEdge
+from graph.types.others import ReshapeParameters, StridedSliceParameters
 from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
 from importer.onnx.common import logger
+from utils.numpy_helpers import np_asscalar
 
 from ..backend_handler import BackendHandler
 from ..handler import onnx_op
@@ -40,21 +41,31 @@ class Gather(ConstantMixin, BackendHandler):
         indices = cls.get_constant(y)
         axis = node.attrs.get('axis', 0)
 
-        pshape = ProvisionalDim(x_shape[:axis:] + list(indices.shape) + x_shape[axis + 1:])
+        pshape = ProvisionalDim(
+            x_shape[:axis:] + list(indices.shape) + x_shape[axis + 1:])
         if cls.is_constant(x):
             x_val = cls.get_constant(x)
-            logger.info(f"reducing {valid_name} to a constant {cls.print_small(x_val)}")
-            params = ConstantInputParameters(valid_name, value=np.take(x_val, indices, axis=axis))
+            logger.info(
+                f"reducing {valid_name} to a constant {cls.print_small(x_val)}")
+            params = ConstantInputParameters(valid_name, value=np.take(
+                x_val, indices.astype(np.int64), axis=axis))
         else:
             if np.ndim(indices) <= 1:
-                idx = np.asscalar(indices)
-                act_slice = tuple([(0, dim, 1) if i != axis else (idx, idx+1, 1) for i, dim in enumerate(x_shape) if dim is not None])
+                idx = np_asscalar(indices)
+                act_slice = tuple([(0, dim, 1) if i != axis else (
+                    idx, idx+1, 1) for i, dim in enumerate(x_shape) if dim is not None])
                 out_shape = pshape.known_shape.copy()
-                params = StridedSliceParameters(valid_name, act_slice=act_slice, out_shape=out_shape)
+                params = StridedSliceParameters(
+                    valid_name, act_slice=act_slice, out_shape=out_shape)
+                if params.post_slice_shape == tuple(x[2].known_shape):
+                    params = ReshapeParameters(valid_name, old_shape=tuple(
+                        x[2].known_shape), shape=out_shape)
             else:
                 axis = cls._trim_axis(axis, x_shape)
-                params = GatherParameters(valid_name, axis=axis, indices=indices)
-            G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
+                params = GatherParameters(
+                    valid_name, axis=axis, indices=indices)
+            G.add_edge(
+                NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         all_nodes[node.output[0]] = (params, 0, pshape, x[3])
         return params
 

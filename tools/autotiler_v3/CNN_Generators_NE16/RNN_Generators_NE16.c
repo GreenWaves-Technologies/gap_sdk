@@ -651,7 +651,7 @@ int RNN_Stack_NE16(
                                 if (Log) printf("Mapped sequence tile based with %d output size constraint\n", DoConstraint);
                         } else {
                                 if (Log) printf("Failed to map sequence tile based with %d output size constraint, relaxing constraint\n", DoConstraint);
-                                DoConstraint = (DoConstraint>16)?DoConstraint/2:0;
+                                DoConstraint = (DoConstraint>16)?DoConstraint/2:1;
                         }
                 } else {
                         if (Ok) {
@@ -1128,7 +1128,7 @@ int LSTM_Stack_NE16(
                                 if (Log) printf("Mapped sequence tile based with %d output size constraint\n", DoConstraint);
                         } else {
                                 if (Log) printf("Failed to map sequence tile based with %d output size constraint, relaxing constraint\n", DoConstraint);
-                                DoConstraint = (DoConstraint>16)?DoConstraint-8:0;
+                                DoConstraint = (DoConstraint>16)?DoConstraint-8:1;
                         }
                 } else {
                         if (Ok) {
@@ -1664,7 +1664,7 @@ int GRU_Stack_NE16(
                                 if (Log) printf("Mapped sequence tile based with %d output size constraint\n", DoConstraint);
                         } else {
                                 if (Log) printf("Failed to map sequence tile based with %d output size constraint, relaxing constraint\n", DoConstraint);
-                                DoConstraint = (DoConstraint>16)?DoConstraint-8:0;
+                                DoConstraint = (DoConstraint>16)?DoConstraint-8:1;
                         }
                 } else {
                         if (Ok) {

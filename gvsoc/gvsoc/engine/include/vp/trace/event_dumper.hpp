@@ -71,7 +71,7 @@ namespace vp {
   class Event_dumper
   {
   public:
-    Event_dumper(vp::component *comp) : comp(comp) {}
+    Event_dumper(vp::component *comp) : comp(comp) { this->user_vcd = NULL; }
     Event_trace *get_trace(string trace_name, string file_name, int width, bool is_real=false, bool is_string=false);
     Event_trace *get_trace_real(string trace_name, string file_name);
     Event_trace *get_trace_string(string trace_name, string file_name);
@@ -83,6 +83,7 @@ namespace vp {
   private:
     std::map<std::string, Event_trace *> event_traces;
     std::map<std::string, Event_file *> event_files;
+    gv::Vcd_user *user_vcd;
   };
 
   class Vcd_file : public Event_file

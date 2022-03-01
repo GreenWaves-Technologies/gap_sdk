@@ -37,6 +37,7 @@ public:
 
     int build();
     void start();
+    void power_supply_set(int state);
 
     void dump_traces(FILE *file);
 
@@ -83,6 +84,10 @@ void composite::add_port(std::string name, vp::port *port)
     this->ports[name] = port;
 }
 
+void composite::power_supply_set(int state)
+{
+    //printf("%s power set %d\n", this->get_path().c_str(), state);
+}
 
 
 extern "C" vp::component *vp_constructor(js::config *config)

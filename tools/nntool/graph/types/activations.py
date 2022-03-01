@@ -226,10 +226,6 @@ class TanHActivationParameters(ActivationParameters, CanFuseToExpression):
     def can_equalize(self):
         return False
 
-    def should_fuse(self, node_set, qrec=None):
-        # TODO - TanH is only supported in an expression currently
-        return True
-
 
 @expression_op(Sigmoid)
 @cls_op_name('sigmoid')

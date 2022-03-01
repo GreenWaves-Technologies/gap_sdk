@@ -54,7 +54,7 @@ class MulRN(Function):
 @c_headers('"Gap.h"')
 @copy_props('from_qrec', 'to_qrec', 'num_bits')
 class ScaleQuantized(CompoundFunction):
-    def __init__(self, *args, from_qrec=None, to_qrec=None, num_bits=15, **kwargs):
+    def __init__(self, *args, from_qrec=None, to_qrec=None, num_bits=8, **kwargs):
         self._from_qrec = from_qrec
         self._to_qrec = to_qrec
         self._qbias, self._qnorm = None, None
@@ -130,7 +130,8 @@ class ScaleQuantized(CompoundFunction):
                 ),
                 #pylint: disable=invalid-unary-operand-type
                 QuantizedConstant(-qnorm, dtype=np.int8),
-                name=self.name
+                name=self.name,
+                dtype=self._to_qrec.dtype
             )
         elif qnorm > 0:
             sym = Norm(
@@ -140,7 +141,8 @@ class ScaleQuantized(CompoundFunction):
                     dtype=self._to_qrec.dtype
                 ),
                 QuantizedConstant(qnorm, dtype=np.int8),
-                name=self.name
+                name=self.name,
+                dtype=self._to_qrec.dtype
             )
         else:
             sym = Mul(

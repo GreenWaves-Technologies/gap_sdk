@@ -240,6 +240,11 @@ typedef enum
     PI_TESTBENCH_I2S_VERIF_TX_FILE_DUMPER_TYPE_AU,
 } pi_testbench_i2s_verif_start_config_tx_file_dumper_type_e;
 
+typedef enum
+{
+    PI_TESTBENCH_I2S_VERIF_FILE_ENCODING_TYPE_ASIS = 0, // Keep as is (default)
+    PI_TESTBENCH_I2S_VERIF_FILE_ENCODING_TYPE_PLUSMINUS, // Assume file contains -1/+1 values (usable for PDM only)
+} pi_testbench_i2s_verif_start_config_file_encoding_type_e;
 
 // This structure can be used to describe what an I2S slot should do
 typedef struct
@@ -261,6 +266,7 @@ typedef struct
             uint32_t filepath_len;
             uint8_t type;
             uint8_t width;
+            uint8_t encoding;
         } tx_file_dumper;
         struct
         {
@@ -269,6 +275,7 @@ typedef struct
             uint32_t filepath_len;
             uint8_t type;
             uint8_t width;
+            uint8_t encoding;
         } rx_file_reader;
     };
 

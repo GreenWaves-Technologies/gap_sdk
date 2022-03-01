@@ -422,7 +422,7 @@ Kernel_T *CNN_MM_ConvolutionNE16(
         int WOffsetCfg      = 1;
         int QuantRightShift = 0;
         int QuantBits       = (NeedReduct)?2:(Abs(Out_DataSize)==2?1:0); // 00: 8bit, 01: 16bit, 10: 32bit --> If tiling the channel input dimension you need to streamin (need 32 bits output)
-        int QuantNoRect     = (Out_DataSize>0)?1:0;
+        int QuantNoRect     = (NeedReduct || (Out_DataSize>0))?1:0;
         int NormShift       = 1;
         int NormBias        = 1;
         unsigned int DEFAULT_NE16_JOB_CFG = NE16_DefaultConfig(Filter_DataSizeBits, Mode16, StreamoutMode, FilterMode, LinearMode, StridedMode, NormBits, Streamin, \
@@ -676,7 +676,7 @@ static Kernel_T *CNN_ConvolutionNE16_Internal(
         LayerBandwidth += (Fcx*Fcy*Filter_DataSizeBits*InFeat*(DWConv?1:OutFeat)+7)/8;
         LayerBandwidth += Bias_DataSize*OutFeat;
 
-        if (ConvOper == KOP_CONV && Height == 1 && Fcy == 1) ConvOper = KOP_CONV1D;
+        if (ConvOper == KOP_CONV && Height == 1 && Fcy == 1 && Fcx > 1) ConvOper = KOP_CONV1D;
         ConvKerName = CNN_FindMatchingKernelAttr(ConvOper, KOP_NONE, ParFeat, CALL_NE16_KER, Abs(In_DataSize), Abs(Out_DataSize), Bias_DataSize, 0, 4, Fcx, Fcy, Dcx, Dcy, Scx, Scy,
                                                  &NeedFcx, &NeedFcy, &NeedDcx, &NeedDcy, &NeedScx, &NeedScy, 0);
         if (ConvKerName==0) GenTilingError("CNN_ConvolutionPoolAct_NE16 Kernel: %s, Can't find a matching Convolution basic kernel", Name);
@@ -734,7 +734,7 @@ static Kernel_T *CNN_ConvolutionNE16_Internal(
         int WOffsetCfg      = 1;
         int QuantRightShift = 0;
         int QuantBits       = (NeedReduct)?2:(Abs(Out_DataSize)==2?1:0); // 00: 8bit, 01: 16bit, 10: 32bit --> If tiling the channel input dimension you need to streamin (need 32 bits output)
-        int QuantNoRect     = (Out_DataSize>0 || Mode16)?1:0;
+        int QuantNoRect     = (NeedReduct || (Out_DataSize>0))?1:0;
         int NormShift       = 1;
         int NormBias        = !Mode16;
         unsigned int DEFAULT_NE16_JOB_CFG = NE16_DefaultConfig(Filter_DataSizeBits, Mode16, StreamoutMode, FilterMode, LinearMode, StridedMode, NormBits, Streamin, \
@@ -966,7 +966,7 @@ int CNN_ConvolutionNE16(
         )
 
 {
-        if (Fcx==1 && Fcy==1 && Scx==1 && Scy==1 && Dcx==1 && Dcy==1 && Height==1 && Width==1) {
+        if (Fcx==1 && Fcy==1 && Height==1 && Width==1) {
                 printf("This is a pointwise on 1x1 input --> Mapping to CNN_Linear_NE16\n");
                 CNN_LinearAct_NE16(Name, Ctrl, In_DataSize, Out_DataSize, Bias_DataSize, Scale_DataSize, Filter_DataSizeBits, InFeat, OutFeat, KOP_LINEAR, ActOper);
                 return 1;
@@ -1063,7 +1063,7 @@ int CNN_ConvolutionNE16(
                 OutDim:         Number of outputs
 
                 LinearOper      KOP_LINEAR
-                ActOper         Optional activation function: KOP_NONE, KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+                ActOper         Optional activation function: KOP_NONE, KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU, KOP_SIGMOID, KOP_TANH
 
                 Signature:      Name(In, Filter, Bias, Out, Scale, ScaleN, Infos)
 
@@ -1119,7 +1119,7 @@ static Kernel_T *CNN_LinearAct_NE16_Internal(
         LinearKerName = CNN_FindMatchingKernelAttr(LinearOper, KOP_NONE, 0, CALL_NE16_KER, Abs(In_DataSize), 0, Bias_DataSize, 0,0,  0,0,0,0,0,0, 0,0,0,0,0,0, 0);
         if (LinearKerName==0) GenTilingError("CNN_LinearAct_NE16 Kernel: %s, Can't find a matching Linear basic kernel: %d %d", Name, Abs(In_DataSize), Bias_DataSize);
         if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_RELUM || ActOper == KOP_HSIGMOID || ActOper == KOP_SIGMOID || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU || ActOper == KOP_TANH))
-                GenTilingError("CNN_ConvolutionPoolAct_NE16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_RELUM, KOP_HSIGMOID, KOP_HSWISH or KOP_LEAKYRELU", Name);
+                GenTilingError("CNN_ConvolutionPoolAct_NE16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_RELUM, KOP_HSIGMOID, KOP_HSWISH, KOP_LEAKYRELU, KOP_SIGMOID or KOP_TANH", Name);
 
         /* Also when in/out are 16bits you need to streamout 32bits but here the reduction step will be done in the cluster (KOP_DP_REDUCT) */
         int NeedReductScale = Mode16; //Abs(Out_DataSize) == 2;
@@ -1155,7 +1155,7 @@ static Kernel_T *CNN_LinearAct_NE16_Internal(
         int WOffsetCfg      = 1;
         int QuantRightShift = 0;
         int QuantBits       = NeedLinOut?2:((Abs(Out_DataSize)==1)?0:1); // 00: 8bit, 01: 16bit, 10: 32bit
-        int QuantNoRect     = (Out_DataSize>0 || Mode16)?1:0;
+        int QuantNoRect     = (NeedReduct || (Out_DataSize>0))?1:0;
         int NormBias        = !Mode16;
         int NormShift       = 1;
         unsigned int DEFAULT_NE16_JOB_CFG = NE16_DefaultConfig(Filter_DataSizeBits, Mode16, StreamoutMode, FilterMode, LinearMode, StridedMode, NormBits, Streamin, \

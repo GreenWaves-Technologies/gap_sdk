@@ -230,11 +230,7 @@ static void pos_mram_handle_pending_tasks(void *arg)
 }
 
 
-#ifndef PMSIS_DRIVERS
-PI_LOCAL_CODE static void pos_mram_handle_event(int event, void *arg)
-#else
-static void pos_mram_handle_event(void *arg)
-#endif
+PI_LOCAL_CODE static void pos_mram_handle_event(uint32_t event, void *arg)
 {
     pi_device_t *dev = (pi_device_t *)arg;
     pos_mram_t *mram = (pos_mram_t *)(pos_mram_t *)dev->data;

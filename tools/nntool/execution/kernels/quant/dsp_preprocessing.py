@@ -16,13 +16,14 @@
 import logging
 
 import numpy as np
+from execution.kernels.kernel_base import KernelBase, params_type, qrec_type
 from graph.types import (MFCCPreprocessingParameters,
                          RFFT2DPreprocessingParameters)
-from execution.kernels.kernel_base import KernelBase, params_type, qrec_type
 from quantization.new_qrec import QRec
 from utils.at_norm import at_norm
 from utils.fft_quant import (Rad2_FFT_DIF_Fix16, Rad4_FFT_DIF_Fix16,
                              RFFT_Step_Fix16, SwapSamples)
+from utils.numpy_helpers import np_asscalar
 from utils.pow_sqrt import (LN_2_1F15, LN_10_INV_Q10, LOG10_2, gap_fl1,
                             logn_17_15, sqrt_17_15)
 
@@ -84,7 +85,7 @@ class DSPKernelBasePow2(KernelBase):
             max_in = np.max(in_data[start:start+nonzero_items])
             logn_items = gap_fl1(nonzero_items)
             shift0 = gap_fl1(max_in) if max_in else 0
-            shift = np.asscalar(
+            shift = np_asscalar(
                 np.int32(shift0 + mel_coeff_q + logn_items - 31
                          if shift0 + mel_coeff_q + logn_items > 31 else 0))
             melbin = 0
@@ -130,9 +131,11 @@ class Rfft2DSymmetric(DSPKernelBasePow2):
                 qrec: QRec,
                 **kwargs):
         in_data = in_tensors[0]
-        fft_twiddles = np.stack([in_tensors[2][::2], in_tensors[2][1::2]], axis=0)
+        fft_twiddles = np.stack(
+            [in_tensors[2][::2], in_tensors[2][1::2]], axis=0)
         swap_table = in_tensors[3]
-        rfft_twiddles = np.stack([in_tensors[4][::2], in_tensors[4][1::2]], axis=0)
+        rfft_twiddles = np.stack(
+            [in_tensors[4][::2], in_tensors[4][1::2]], axis=0)
 
         spectrograms = []
         for frame_idx in range(params.n_frames):
@@ -164,9 +167,11 @@ class Mfcc2DSymmetric(DSPKernelBasePow2):
                 in_tensors,
                 qrec: QRec,
                 **kwargs):
-        fft_twiddles = np.stack([in_tensors[2][::2], in_tensors[2][1::2]], axis=0)
+        fft_twiddles = np.stack(
+            [in_tensors[2][::2], in_tensors[2][1::2]], axis=0)
         swap_table = in_tensors[3]
-        rfft_twiddles = np.stack([in_tensors[4][::2], in_tensors[4][1::2]], axis=0)
+        rfft_twiddles = np.stack(
+            [in_tensors[4][::2], in_tensors[4][1::2]], axis=0)
 
         mel_filterbank_sparsity_mat = in_tensors[5]
         mel_filterbank_coeff = in_tensors[6]

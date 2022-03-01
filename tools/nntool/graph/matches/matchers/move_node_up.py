@@ -19,12 +19,12 @@ from graph.types import (ActivationParameters, ConcatParameters,
                          MatrixAddParameters, MatrixMulParameters, NNEdge,
                          PoolingParameters, ReluActivationParameters,
                          ReshapeParameters, TransposeParameters, MatMulTransposedParameters)
-from graph.types.others import ReverseParameters, StridedSliceParameters
+from graph.types.others import QuantizeParameters, ReverseParameters, StridedSliceParameters
 from graph.types.tensor_arithmetic import MatMulOpParameters
 from utils.graph import GraphView
 from utils.node_id import NodeId
 
-from ..matcher import Matcher, match_name, groups, run_before, description, needs_valid_dimension
+from ..matcher import Matcher, match_name, groups, run_before, description, needs_valid_dimension, run_qtune_on_match
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -56,7 +56,8 @@ class MoveNodeUpMatcher(Matcher):
                 raise LocationNotFoundError()  # @IgnoreException
             # Concat can have multiple inputs that must all acccept moved node
             if isinstance(node, ConcatParameters):
-                for in_edge in G.in_edges(node):
+                # important to use indexed here so the order is always the same
+                for in_edge in G.indexed_in_edges(node):
                     yield from self.find_home_for_node(G,
                                                        in_edge.from_node,
                                                        first=False)
@@ -140,10 +141,11 @@ class MoveNodeUpMatcher(Matcher):
              "Should be run before match_gap_ * fusions.")
 @needs_valid_dimension(True)
 @run_before('fuse_gap_convs', 'fuse_gap_linear', 'fuse_gap_pool', 'fuse_op_activation_scale8', 'fuse_op_activation_pow2')
+@run_qtune_on_match
 class MoveActivationsMatcherScale8(MoveNodeUpMatcher):
 
     ValidNodesToPass = (ReshapeParameters, StridedSliceParameters, ReverseParameters,
-                        TransposeParameters, ConcatParameters)
+                        TransposeParameters, ConcatParameters, QuantizeParameters)
     ValidFusions = (Conv2DParameters, FcParameters, PoolingParameters,
                     GlobalPoolingParameters, MatrixAddParameters, MatrixMulParameters,
                     MatMulOpParameters, MatMulTransposedParameters)
@@ -159,8 +161,7 @@ class MoveActivationsMatcherScale8(MoveNodeUpMatcher):
 @run_before('fuse_gap_convs', 'fuse_gap_linear', 'fuse_gap_pool', 'fuse_op_activation_scale8')
 class MoveMaxPoolMatcherScale8(MoveNodeUpMatcher):
 
-    ValidNodesToPass = (ReshapeParameters, TransposeParameters,
-                        ReluActivationParameters, ConcatParameters)
+    ValidNodesToPass = (ReluActivationParameters,)
     ValidFusions = (Conv2DParameters, FcParameters)
     ValidNodes = (lambda node: isinstance(
         node, PoolingParameters) and node.pool_type == "max",)

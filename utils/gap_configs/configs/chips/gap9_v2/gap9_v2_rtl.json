@@ -14,12 +14,25 @@
     "board": {
       "name": "gap9_v2",
       "devices": {
-        "spiflash": {
-          "@includes@": ["devices/spiflash_atxp032.json"]
-        },
-        "flash": {
-          "@include@" : "devices/hyperflash.json",
-          "cs": 1
+        "@cond@": {
+          "@os.environ.get('BOARD_NAME') == 'gap9_evk'@": {
+            "spiflash": {
+              "@includes@": ["devices/spiflash_mx25um51245g.json"]
+            },
+            "flash": {
+              "@include@" : "devices/hyperflash.json",
+              "cs": 1
+            }
+          },
+          "@os.environ.get('BOARD_NAME') != 'gap9_evk'@": {
+            "spiflash": {
+              "@includes@": ["devices/spiflash_atxp032.json"]
+            },
+            "flash": {
+              "@include@" : "devices/hyperflash.json",
+              "cs": 1
+            }
+          }
         }
       },
 
@@ -34,7 +47,7 @@
             },
             "nina_b112": {
               "@includes@": ["devices/nina_b112.json"]
-            },
+            },              
             "mic0": {
               "@includes@": ["devices/microphone.json"]
             },

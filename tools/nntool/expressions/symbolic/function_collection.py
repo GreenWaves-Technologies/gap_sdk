@@ -123,6 +123,10 @@ class FunctionCollection():
     def c_header_set(self):
         return set().union(*[func.c_header_set for func in self._functions.values()])
 
+    def set_var_shapes(self):
+        for var, func in self.functions.items():
+            var.shape = func.shape
+
     @staticmethod
     def split_indexes(unique_axis_groups):
         uaq = sorted(unique_axis_groups, key=len)

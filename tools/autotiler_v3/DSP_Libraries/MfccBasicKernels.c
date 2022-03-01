@@ -35,7 +35,7 @@ void MelFilterBank_Fix32(MelFilterBank_T *Arg)
         unsigned short int    *__restrict__ Mel_Coeffs     = (unsigned short int *__restrict__)    Arg->Mel_Coeffs;
         signed char  *__restrict__ shift_buff     = (signed char *__restrict__)  Arg->shift_buff;
         fbank_type_t *__restrict__ Mel_FilterBank = (fbank_type_t *__restrict__) Arg->Mel_FilterBank;
-        short int                  Mel_NBanks     = Arg->Mel_NBanks;
+        unsigned int               Mel_NBanks     = (unsigned int) Arg->Mel_NBanks;
         short int                  Mel_Coeff_Dyn  = Arg->Mel_Coeff_dyn;
         unsigned int Chunk, First, Last, CoreId=gap_coreid();
 
@@ -86,7 +86,7 @@ void MelFilterBank_Fix32_Scal(MelFilterBank_T *Arg)
         signed char  *__restrict__ shift_fft      = (signed char *__restrict__)  Arg->shift_fft;
         short int    *__restrict__ Mel_Coeffs     = (short int *__restrict__)    Arg->Mel_Coeffs;
         fbank_type_t *__restrict__ Mel_FilterBank = (fbank_type_t *__restrict__) Arg->Mel_FilterBank;
-        short int                  Mel_NBanks     = Arg->Mel_NBanks;
+        unsigned int               Mel_NBanks     = (unsigned int) Arg->Mel_NBanks;
         short int                  Mel_Coeff_Dyn  = Arg->Mel_Coeff_dyn;
         signed char IsMagSquared = Arg->IsMagSquared;
         int MUL_EXP = IsMagSquared?2:1;
@@ -112,7 +112,7 @@ void MelFilterBank_Fix32_Scal(MelFilterBank_T *Arg)
                 }
                 // align the block scaling on the min , compute the max value in the block
                 for (k=0, j=Mel_FilterBank[i].Start; k<(unsigned int) NonZeroItems; j++, k++) {
-                        int TMP = FramePower[j] >> (MUL_EXP * (shift_fft[j] - min_shift));
+                        unsigned int TMP = FramePower[j] >> (MUL_EXP * (shift_fft[j] - min_shift));
                         if (TMP > (unsigned int) maxin) maxin = TMP;
                 }
 
@@ -149,7 +149,7 @@ void MelFilterBank_f16(MelFilterBank_T *Arg)
         F16_DSP *__restrict__ Mel_Spectr = (F16_DSP *__restrict__) Arg->MelSpectr;
         F16_DSP *__restrict__ Mel_Coeffs = (F16_DSP *__restrict__) Arg->Mel_Coeffs;
         fbank_type_t *__restrict__ Mel_FilterBank = (fbank_type_t *__restrict__) Arg->Mel_FilterBank;
-        short int                  Mel_NBanks     = Arg->Mel_NBanks;
+        unsigned int               Mel_NBanks     = (unsigned int) Arg->Mel_NBanks;
 
         unsigned int Chunk, First, Last, CoreId=gap_coreid();
         //Chunk = ChunkSize(Mel_NBanks);
@@ -183,7 +183,7 @@ void MelFilterBank_f32(MelFilterBank_T *Arg)
         float *__restrict__ Mel_Spectr = (float *__restrict__) Arg->MelSpectr;
         float *__restrict__ Mel_Coeffs = (float *__restrict__) Arg->Mel_Coeffs;
         fbank_type_t *__restrict__ Mel_FilterBank = (fbank_type_t *__restrict__) Arg->Mel_FilterBank;
-        short int                  Mel_NBanks     = Arg->Mel_NBanks;
+        unsigned int               Mel_NBanks     = (unsigned int) Arg->Mel_NBanks;
 
         unsigned int Chunk, First, Last, CoreId=gap_coreid();
         //Chunk = ChunkSize(Mel_NBanks);
@@ -211,7 +211,7 @@ void MelFilterBank_f32(MelFilterBank_T *Arg)
 
 void MFCC_ComputeLog_Fix32(MFCC_Log_T *Arg)
 {
-        int i;
+        unsigned int i;
         int         size      = Arg->FrameSize;
         unsigned int *frameIn = (unsigned int *) Arg->FrameIn;
         short int *frameOut = (short int *) Arg->FrameOut;
@@ -269,7 +269,7 @@ void MFCC_ComputeLog_Fix32(MFCC_Log_T *Arg)
 
 void MFCC_ComputeLog_Fix32_Scal(MFCC_Log_T *Arg)
 {
-        int i;
+        unsigned int i;
         int         size      = Arg->FrameSize;
         unsigned int *frameIn = (unsigned int *) Arg->FrameIn;
         short int   *frameOut = (short int *) Arg->FrameOut;
@@ -327,7 +327,7 @@ void MFCC_ComputeLog_Fix32_Scal(MFCC_Log_T *Arg)
 
 void MFCC_ComputeLog_f16( MFCC_LogF_T *Arg)
 {        
-        int i;
+        unsigned int i;
         int size      = Arg->FrameSize;
         F16_DSP *frameIn  = (F16_DSP *) Arg->FrameIn;
         F16_DSP *frameOut = (F16_DSP *) Arg->FrameOut;
@@ -360,7 +360,7 @@ void MFCC_ComputeLog_f16( MFCC_LogF_T *Arg)
 
 void MFCC_ComputeLog_f32(MFCC_LogF_T *Arg) 
 {
-        int i;
+        unsigned int i;
         int   size      = Arg->FrameSize;
         float *frameIn  = (float *) Arg->FrameIn;
         float *frameOut = (float *) Arg->FrameOut;
@@ -392,7 +392,7 @@ void MFCC_ComputeLog_f32(MFCC_LogF_T *Arg)
 
 void MFCC_ComputeDB_Fix32(MFCC_Log_T *Arg)
 {
-        int i;
+        unsigned int i;
         int         size      = Arg->FrameSize;
         unsigned int *frameIn = (unsigned int *) Arg->FrameIn;
         short int   *frameOut = (short int *) Arg->FrameOut;
@@ -450,7 +450,7 @@ void MFCC_ComputeDB_Fix32(MFCC_Log_T *Arg)
 
 void MFCC_ComputeDB_Fix32_Scal(MFCC_Log_T *Arg)
 {
-        int i;
+        unsigned int i;
         int         size      = Arg->FrameSize;
         unsigned int *frameIn = (unsigned int *) Arg->FrameIn;
         short int   *frameOut = (short int *) Arg->FrameOut;
@@ -508,7 +508,7 @@ void MFCC_ComputeDB_Fix32_Scal(MFCC_Log_T *Arg)
 
 void MFCC_ComputeDB_f16( MFCC_LogF_T *Arg)
 {        
-        int i;
+        unsigned int i;
         int size      = Arg->FrameSize;
         F16_DSP *frameIn  = (F16_DSP *) Arg->FrameIn;
         F16_DSP *frameOut = (F16_DSP *) Arg->FrameOut;
@@ -540,7 +540,7 @@ void MFCC_ComputeDB_f16( MFCC_LogF_T *Arg)
 
 void MFCC_ComputeDB_f32(MFCC_LogF_T *Arg) 
 {
-        int i;
+        unsigned int i;
         int    size     = Arg->FrameSize;
         float *frameIn  = (float *) Arg->FrameIn;
         float *frameOut = (float *) Arg->FrameOut;
@@ -577,7 +577,7 @@ void norm_clip_16(Norm_Clip_args_T *Args)
         short int Norm = Args->Norm;
         int N = Args->N;
   
-        int i;
+        unsigned int i;
         unsigned int Chunk, First, Last, CoreId=gap_coreid();
 
         if (CoreId==0) {
@@ -604,7 +604,7 @@ void norm_clip_32_melspect(MFCC_Clip_32_T *Args) {
         unsigned int Chunk, First, Last, CoreId=gap_coreid();
 
         if (CoreId==0){
-                for (i=0; i<(unsigned int)N; i++) {
+                for (i=0; i<N; i++) {
                         int Qformat = (30 - shift_buff[i]);
                         Norm = Qformat - 16; //POWER
                         Out[i] = (Norm<32)?(In[i] >> Norm):0;
@@ -635,12 +635,12 @@ void norm_clip_32_melspect_scal(MFCC_Clip_32_T *Args)
 
         if (CoreId==0){
                 if (IsMagSquared){
-                        for (i=0; i<(unsigned int)N; i++) {
+                        for (i=0; i<N; i++) {
                                 Norm = Mel_Coeff_Dyn-2-shift_buff[i]+2*ExtraQ - 16; //POWER HIGH_PREC
                                 Out[i] = (Norm<32)?(In[i] >> Norm):0;
                         }
                 } else {
-                        for (i=0; i<(unsigned int)N; i++) {
+                        for (i=0; i<N; i++) {
                                 Norm = Mel_Coeff_Dyn-1-shift_buff[i]+ExtraQ - 16; //Abs HIGH_PREC
                                 Out[i] = (Norm<32)?(In[i] >> Norm):0;
                         }                        
@@ -660,8 +660,8 @@ void MFCC_ComputeDCT_II_Fix16(DCT_II_Arg_T *Args)
         v2s * in_dct   = (v2s * __restrict__ ) Args->Data;
         short int * DCTCoeff = (short int * __restrict__) Args->DCTCoeff;
         short int * FeatList = (short int * __restrict__ ) Args->FeatList;
-        short int NDCT       = Args->n_dct;
-        short int NInputs    = Args->n_input;
+        unsigned int NDCT  = (unsigned int) Args->n_dct;
+        unsigned int NInputs = (unsigned int) Args->n_input;
 
         unsigned int Chunk, First, Last, CoreId=gap_coreid();
 
@@ -692,8 +692,8 @@ void MFCC_ComputeDCT_II_f16(DCT_II_Arg_T *Args)
         F16V_DSP * in_dct  = (F16V_DSP * __restrict__ ) Args->Data;
         F16_DSP * FeatList = (F16_DSP * __restrict__ ) Args->FeatList;
         F16_DSP * DCTCoeff = (F16_DSP * __restrict__) Args->DCTCoeff;
-        short int NDCT       = Args->n_dct;
-        short int NInputs    = Args->n_input;
+        unsigned int NDCT  = (unsigned int) Args->n_dct;
+        unsigned int NInputs = (unsigned int) Args->n_input;
 
         unsigned int Chunk, First, Last, CoreId=gap_coreid();
 
@@ -725,8 +725,8 @@ void MFCC_ComputeDCT_II_f32(DCT_II_Arg_T *Args)
         float * in_dct   = (float * __restrict__ ) Args->Data;
         float * FeatList = (float * __restrict__ ) Args->FeatList;
         float * DCTCoeff = (float * __restrict__) Args->DCTCoeff;
-        short int NDCT       = Args->n_dct;
-        short int NInputs    = Args->n_input;
+        unsigned int NDCT  = (unsigned int) Args->n_dct;
+        unsigned int NInputs = (unsigned int) Args->n_input;
 
         unsigned int Chunk, First, Last, CoreId=gap_coreid();
 

@@ -474,7 +474,7 @@ void trace_domain::conf_trace(int event, std::string path_str, bool enabled)
     if (trace != NULL)
     {
         if (event)
-        {              
+        {
             if (enabled)
             {
                 vp::Event_trace *event_trace;

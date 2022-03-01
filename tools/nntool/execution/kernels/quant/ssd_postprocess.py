@@ -131,7 +131,10 @@ class SSDDetectorSymmetric(KernelBase):
         #     params, qrec, offsets, anchors, scores, anchors_type='centers')
         # out_boxes, out_scores, out_classes = cls.nms(params, qrec, decoded_bboxes, valid_scores)
         # out_count = np.array([sum(out_classes != 0)])
-        return qrec.get_outputs(params, [out_boxes, out_classes, out_scores], ktype="symmetric")
+        outputs = [out_boxes, out_classes, out_scores]
+        if params.output_detection_count:
+            outputs.append(np.array([out_idx], dtype=np.int32))        
+        return qrec.get_outputs(params, outputs, ktype="symmetric")
 
 @params_type(NMSParameters)
 @qrec_type('scaled')

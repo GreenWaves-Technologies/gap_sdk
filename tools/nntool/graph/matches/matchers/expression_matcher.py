@@ -250,7 +250,7 @@ def find_connected_groups(G):
 
 @match_name("expression_matcher")
 @description("Groups piecewise expressions for kernel generation")
-@run_after('expand_transposes')
+@run_after('*')
 @needs_valid_dimension(True)
 class ExpressionMatcher(Matcher):
 

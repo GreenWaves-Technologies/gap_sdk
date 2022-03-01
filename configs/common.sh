@@ -76,7 +76,8 @@ export PYTHONPATH=$GAP_SDK_HOME/gvsoc/gvsoc/engine/python:$PYTHONPATH
 export PATH="$GAP_SDK_HOME/utils/gaptest":$PATH
 
 # Audio framework
-export PYTHONPATH=$GAP_SDK_HOME/tools/audio-framework/frontends/python_graph_generator:$GAP_SDK_HOME/tools/audio-framework/components:$PYTHONPATH
+export GAP_AUDIO_FRAMEWORK_HOME=$GAP_SDK_HOME/tools/audio-framework
+export PYTHONPATH=$GAP_AUDIO_FRAMEWORK_HOME/frontends/python_graph_generator:$GAP_AUDIO_FRAMEWORK_HOME/components:$PYTHONPATH
 
 
 # Autotiler

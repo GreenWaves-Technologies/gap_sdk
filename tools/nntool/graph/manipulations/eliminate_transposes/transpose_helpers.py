@@ -22,20 +22,6 @@ def reverse_transpose(trans):
     return [trans.index(idx) for idx in range(len(trans))]
 
 
-def reverses_transpose(trans1, trans2, dim=None):
-    """Checks if one transpose reverses another. If a dim is provided then
-    look if the transpose sequence produces an equivalent dim to cope with 1s in
-    dimensions."""
-    if trans1 is None or trans2 is None:
-        return False
-    if dim and dim.layout_shape == dim.calc_transpose(trans1).calc_transpose(trans2).layout_shape:
-        return True
-    for idx, val in enumerate(trans1):
-        if trans2[val] != idx:
-            return False
-    return True
-
-
 def identity_transpose(trans):
     if trans is None:
         return False
@@ -44,6 +30,35 @@ def identity_transpose(trans):
 
 def apply_transpose(elems, trans):
     return [elems[i] for i in trans]
+
+
+def strip_ones(shape):
+    return tuple(dim for dim in shape if dim != 1)
+
+
+def reverses_transpose_up(trans1, trans2, dim=None):
+    """trans1->trans2->dim
+    1) without dim do the transposes cancel
+    2) with dim to the transposes cancel considering layout shape (i.e. without 1s in shape"""
+    if dim is not None and not isinstance(dim, tuple):
+        dim = tuple(dim.shape)
+    if trans1 is None or trans2 is None:
+        return False, None
+    if identity_transpose(apply_transpose(trans1, trans2)):
+        return True, None
+    if dim is not None:
+        # apply dim -> reverse t2 -> reverse t1
+        # strip 1s and see if it is the same
+        layout_shape_after = strip_ones(dim)
+        shape_before = apply_transpose(
+                apply_transpose(dim, reverse_transpose(trans2)),
+                reverse_transpose(trans1))
+        return strip_ones(shape_before) == layout_shape_after, shape_before
+    return False, None
+
+
+def indexes_of(trans1, trans2):
+    return [trans1.index(i) for i in trans2]
 
 
 def transpose_does_nothing(transpose, shape):
@@ -55,10 +70,6 @@ def transpose_does_nothing(transpose, shape):
     mask = [idx if dim > 1 else None for idx, dim in enumerate(shape)]
     tmask = reduce_mask(apply_transpose(mask, transpose))
     return reduce_mask(mask) == tmask
-
-
-def strip_ones(shape):
-    return tuple(dim for dim in shape if dim != 1)
 
 
 def reshape_is_transpose(old_shape, new_shape):

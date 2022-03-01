@@ -36,9 +36,16 @@
  ******************************************************************************/
 
 #if !defined(__FREERTOS__)
+#define UDMA_NB_CHAN_LIN               ( ARCHI_UDMA_NB_LIN_ADDRGEN )
+#define UDMA_NB_CHAN_2D                ( ARCHI_UDMA_NB_2D_ADDRGEN )
+#define UDMA_NB_CHAN_FIFO              ( ARCHI_UDMA_NB_FIFO_ADDRGEN )
 #define UDMA_CHAN_LIN(id)              ( UDMA_LIN_ADDRGEN_ADDR((id)) )
-#define UDMA_CHAN_2D(id)
-#define UDMA_CHAN_FIFO(id)
+#define UDMA_CHAN_2D(id)               ( 0x1A103800 + 0x20 * id )
+#define UDMA_CHAN_FIFO(id)             ( 0x1A103900 + 0x20 * id )
+#define UDMA_CHAN_LIN_ID(id)           ( (id) )
+#define UDMA_CHAN_2D_ID(id)            ( ARCHI_UDMA_NB_LIN_ADDRGEN + (id) )
+#define UDMA_CHAN_FIFO_ID(id)          ( ARCHI_UDMA_NB_LIN_ADDRGEN + ARCHI_UDMA_NB_2D_ADDRGEN + (id) )
+#define SOC_EVENT_UDMA_CHAN_LIN(id)    ( (id) )
 #endif  /* __FREERTOS__ */
 
 
@@ -87,11 +94,6 @@ static inline void pi_udma_core_channels_init(void)
 /**
  * UDMA_CHANNEL_LINEAR
  */
-static inline uint32_t pi_udma_core_lin_addr_get(int32_t chan_id)
-{
-    return UDMA_CHAN_LIN(chan_id);
-}
-
 static inline int32_t pi_udma_core_lin_alloc(void)
 {
     int32_t chan_id = -1;
@@ -119,22 +121,58 @@ static inline void pi_udma_core_lin_free(int32_t chan_id)
     }
 }
 
+static inline uint32_t pi_udma_core_lin_addr_get(int32_t chan_id)
+{
+    return UDMA_CHAN_LIN(chan_id);
+}
+
+static inline void pi_udma_core_lin_enqueue(uint32_t udma_core_base,
+                                            uint32_t buf,
+                                            uint32_t size, uint32_t config)
+{
+    config |= UDMA_CORE_LIN_ADDRGEN_CFG_CTRL_EN(1);
+    udma_core_lin_addrgen_cfg_sa_buf0_set(udma_core_base, buf);
+    udma_core_lin_addrgen_cfg_size_set(udma_core_base, size);
+    udma_core_lin_addrgen_cfg_ctrl_set(udma_core_base, config);
+}
+
+static inline void pi_udma_core_lin_stop(uint32_t udma_core_base)
+{
+    uint32_t config = UDMA_CORE_LIN_ADDRGEN_CFG_CTRL_STOP(1);
+    udma_core_lin_addrgen_cfg_ctrl_set(udma_core_base, config);
+}
+
+static inline void pi_udma_core_lin_reset(uint32_t udma_core_base)
+{
+    uint32_t config = UDMA_CORE_LIN_ADDRGEN_CFG_CTRL_STOP(1);
+    /* udma_core_lin_addrgen_cfg_sa_buf0_set(udma_core_base, 0); */
+    /* udma_core_lin_addrgen_cfg_sa_buf1_set(udma_core_base, 0); */
+    /* udma_core_lin_addrgen_cfg_size_set(udma_core_base, 0); */
+    udma_core_lin_addrgen_cfg_ctrl_set(udma_core_base, config);
+}
+
+static inline uint32_t pi_udma_core_lin_curr_addr_get(uint32_t udma_core_base)
+{
+    return udma_core_lin_addrgen_cfg_curr_addr_get(udma_core_base);
+}
+
+static inline uint32_t pi_udma_core_lin_bytes_left_get(uint32_t udma_core_base)
+{
+    return udma_core_lin_addrgen_cfg_bytes_left_get(udma_core_base);
+}
+
+
 
 /**
  * UDMA_CHANNEL_2D
  */
-static inline uint32_t pi_udma_core_2d_addr_get(int32_t chan_id)
-{
-    return UDMA_CHAN_2D(chan_id);
-}
-
 static inline int32_t pi_udma_core_2d_alloc(void)
 {
     int32_t chan_id = -1;
-    uint32_t reg_status = __pi_udma_chan_2d;
-    if (0x0 != reg_status)
+    if (0x0 != __pi_udma_chan_2d)
     {
-        chan_id = __FF1(reg_status);
+        chan_id = __FF1(__pi_udma_chan_2d);
+        __pi_udma_chan_2d = __BITCLR_R(__pi_udma_chan_2d, 1, chan_id);
         return (chan_id + UDMA_CHAN_2D_ID(0));
     }
     return chan_id;
@@ -148,22 +186,62 @@ static inline void pi_udma_core_2d_free(int32_t chan_id)
     }
 }
 
+static inline uint32_t pi_udma_core_2d_addr_get(int32_t chan_id)
+{
+    return UDMA_CHAN_2D(chan_id);
+}
+
+static inline void pi_udma_core_2d_enqueue(uint32_t udma_core_base,
+                                            uint32_t buf_0, uint32_t buf_1,
+                                            uint32_t size, uint32_t stride,
+                                            uint32_t length, uint32_t config)
+{
+    config |= UDMA_CORE_2D_ADDRGEN_CFG_CTRL_EN(1);
+    udma_core_2d_addrgen_cfg_sa_buf0_set(udma_core_base, buf_0);
+    udma_core_2d_addrgen_cfg_sa_buf1_set(udma_core_base, buf_1);
+    udma_core_2d_addrgen_cfg_size_set(udma_core_base, size);
+    udma_core_2d_addrgen_cfg_stride_set(udma_core_base, stride);
+    udma_core_2d_addrgen_cfg_row_len_set(udma_core_base, length);
+    udma_core_2d_addrgen_cfg_ctrl_set(udma_core_base, config);
+}
+
+static inline void pi_udma_core_2d_stop(uint32_t udma_core_base)
+{
+    uint32_t config = UDMA_CORE_2D_ADDRGEN_CFG_CTRL_STOP(1);
+    udma_core_2d_addrgen_cfg_ctrl_set(udma_core_base, config);
+}
+
+static inline void pi_udma_core_2d_reset(uint32_t udma_core_base)
+{
+    uint32_t config = UDMA_CORE_2D_ADDRGEN_CFG_CTRL_STOP(1);
+    /* udma_core_2d_addrgen_cfg_sa_buf0_set(udma_core_base, 0); */
+    /* udma_core_2d_addrgen_cfg_sa_buf1_set(udma_core_base, 0); */
+    /* udma_core_2d_addrgen_cfg_size_set(udma_core_base, 0); */
+    /* udma_core_2d_addrgen_cfg_stride_set(udma_core_base, 0); */
+    /* udma_core_2d_addrgen_cfg_row_len_set(udma_core_base, 0); */
+    udma_core_2d_addrgen_cfg_ctrl_set(udma_core_base, config);
+}
+
+static inline uint32_t pi_udma_core_2d_curr_addr_get(uint32_t udma_core_base)
+{
+    return udma_core_2d_addrgen_cfg_curr_addr_get(udma_core_base);
+}
+
+static inline uint32_t pi_udma_core_2d_bytes_left_get(uint32_t udma_core_base)
+{
+    return udma_core_2d_addrgen_cfg_bytes_left_get(udma_core_base);
+}
 
 /**
  * UDMA_CHANNEL_FIFO
  */
-static inline uint32_t pi_udma_core_fifo_addr_get(int32_t chan_id)
-{
-    return UDMA_CHAN_FIFO(chan_id);
-}
-
 static inline int32_t pi_udma_core_fifo_alloc(void)
 {
     int32_t chan_id = -1;
-    uint32_t reg_status = __pi_udma_chan_fifo;
-    if (0x0 != reg_status)
+    if (0x0 != __pi_udma_chan_fifo)
     {
-        chan_id = __FF1(reg_status);
+        chan_id = __FF1(__pi_udma_chan_fifo);
+        __pi_udma_chan_fifo = __BITCLR_R(__pi_udma_chan_fifo, 1, chan_id);
         return (chan_id + UDMA_CHAN_FIFO_ID(0));
     }
     return chan_id;
@@ -175,4 +253,38 @@ static inline void pi_udma_core_fifo_free(int32_t chan_id)
     {
         __pi_udma_chan_fifo = __BITSET_R(__pi_udma_chan_fifo, 1, chan_id - UDMA_CHAN_FIFO_ID(0));
     }
+}
+
+static inline uint32_t pi_udma_core_fifo_addr_get(int32_t chan_id)
+{
+    return UDMA_CHAN_FIFO(chan_id);
+}
+
+static inline void pi_udma_core_fifo_enqueue(uint32_t udma_core_base,
+                                              uint32_t buf,
+                                              uint32_t size,
+                                              uint32_t config)
+{
+    config |= UDMA_CORE_FIFO_CFG_CTRL_EN(1);
+    udma_core_fifo_cfg_sa_buffer_set(udma_core_base, buf);
+    udma_core_fifo_cfg_size_set(udma_core_base, size);
+    udma_core_fifo_cfg_ctrl_set(udma_core_base, config);
+}
+
+static inline void pi_udma_core_fifo_stop(uint32_t udma_core_base)
+{
+    uint32_t config = UDMA_CORE_FIFO_CFG_CTRL_STOP(1);
+    udma_core_fifo_cfg_ctrl_set(udma_core_base, config);
+}
+
+static inline void pi_udma_core_fifo_event_enable(uint32_t udma_core_base,
+                                                  uint8_t enable)
+{
+    udma_core_fifo_cfg_evt_en_set(udma_core_base, enable);
+}
+
+static inline void pi_udma_core_fifo_event_set_threshold(uint32_t udma_core_base,
+                                                         uint32_t threshold)
+{
+    udma_core_fifo_cfg_evt_num_bytes_set(udma_core_base, threshold);
 }

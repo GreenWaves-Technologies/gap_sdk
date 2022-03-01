@@ -22,9 +22,9 @@
 using namespace std::placeholders;
 
 /* delay needed to replicate real performances */
-/* this should be 1 because ffc is 1 data/cycle, but 14 is the closest value
+/* this should be 1 because ffc is 1 data/cycle, but 2 is the closest value
  * to replicate performance */
-#define FFC_DELAY_CYCLES (14)
+#define FFC_DELAY_CYCLES (2)
 
 Ffc_periph::Ffc_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
 {
@@ -47,6 +47,9 @@ Ffc_periph::Ffc_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
 
     /* setup event handlers */
     this->event_convert = top->event_new(this, Ffc_periph::handle_event);
+
+    /* Busy signal for VCD tracing */
+    this->top->new_reg(itf_name + "/busy", &this->busy, 8);
 }
 
 
@@ -56,6 +59,9 @@ void Ffc_periph::reset(bool active)
 
     this->rx_channel->reset(active);
     this->tx_channel->reset(active);
+
+    // Since busy signal is displayed as a state, we need to release it when the FFC is not busy. */
+    this->busy.release();
 }
 
 
@@ -96,6 +102,7 @@ vp::io_req_status_e Ffc_periph::custom_req(vp::io_req *req, uint64_t offset)
             this->trace.msg(vp::trace::LEVEL_TRACE, "Received START access\n");
             /* start converting data */
             this->enqueue_event();
+            this->busy.set(1);
             break;
         default:
             break;
@@ -207,6 +214,8 @@ void Ffc_periph::handle_event(void* __this, vp::clock_event* event)
             {
                 /* done with conversion */
                 _this->state = FFC_STATE_IDLE;
+                // Since busy signal is displayed as a state, we need to release it when the FFC is not busy. */
+                _this->busy.release();
             }
             else if (!_this->ffc_queue.empty())
             {
@@ -570,6 +579,7 @@ void Ffc_periph::convert_to_fixed(uint8_t* src,
                         printf("Invalid float type\n");
                         break;
                 }
+
                 this->push_data((uint8_t*) &dst, 4);
             }
             break;
@@ -583,7 +593,7 @@ void Ffc_periph::enqueue_event(void)
 {
     if (!(this->event_convert)->is_enqueued())
     {
-        this->top->get_periph_clock()->enqueue(this->event_convert, FFC_DELAY_CYCLES);
+        this->top->event_enqueue(this->event_convert, FFC_DELAY_CYCLES);
     }
 }
 

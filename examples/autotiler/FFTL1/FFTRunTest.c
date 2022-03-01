@@ -4,6 +4,12 @@
 	#define pmsis_exit(a)	exit(a)		
 #endif
 
+#ifndef SILENT
+    #define PRINTF printf
+#else
+    #define PRINTF(...) ((void) 0)
+#endif
+
 #define __XSTR(__s) __STR(__s)
 #define __STR(__s) #__s
 #include <stdlib.h>
@@ -21,7 +27,8 @@
 #endif
 #define  STACK_SIZE 			   2048
 typedef void (*FFTFun_T )(void *Data, void *Twiddles, signed char *shift, unsigned int Nfft, unsigned int Inverse);
-
+PI_L2 int PERF_ARR[6][3][2];
+PI_L2 float MSE_ARR[6][2];
 
 short int *InBuff_q16;
 float     *InBuff_f32, *InBuff_f32R4, *OutBuff_f32;
@@ -58,14 +65,14 @@ float MSE_f32(float* real, float* calc, int Size){
 void CallFFT(int Nfft, int Type){
 
 	// FFT: reset buffers, run and check mse
-	int start, elapsed, elapsedFFT, Q;
+	int start, elapsed, elapsedFFT, Q = 0;
 	FFT_InstallArg_T ArgIns;
 	FFT_Arg_T FFTArg;
 	AT_L2_EVENT DmaR_Evt1;
-	void (*FFTFun)(FFT_Arg_T*);
-	void (*SwapFun)(SwapSamples_Arg_T*);
+	void (*FFTFun)(FFT_Arg_T*) = 0;
+	void (*SwapFun)(SwapSamples_Arg_T*) = 0;
 	char *FFTDataType = 0;
-	void *InBuff;
+	void *InBuff = 0;
 
   	ArgIns.Nfft = Nfft; 
   	ArgIns.Radix = ((Nfft)==64 || (Nfft)==256 || (Nfft)==1024)?4:2;
@@ -96,11 +103,11 @@ void CallFFT(int Nfft, int Type){
 			FFTDataType = "Q16";
 			switch (Nfft) {
 				case 64:   ArgIns.Twiddles = R4_Twiddles_fix_64;   ArgIns.SwapLUT = R4_SwapTable_fix_64;   Q = 10; break;
-				case 128:  ArgIns.Twiddles = R2_Twiddles_fix_128;  ArgIns.SwapLUT = R2_SwapTable_fix_128;  Q = 8; break;
-				case 256:  ArgIns.Twiddles = R4_Twiddles_fix_256;  ArgIns.SwapLUT = R4_SwapTable_fix_256;  Q = 8; break;
-				case 512:  ArgIns.Twiddles = R2_Twiddles_fix_512;  ArgIns.SwapLUT = R2_SwapTable_fix_512;  Q = 6; break;
-				case 1024: ArgIns.Twiddles = R4_Twiddles_fix_1024; ArgIns.SwapLUT = R4_SwapTable_fix_1024; Q = 6; break;
-				case 2048: ArgIns.Twiddles = R2_Twiddles_fix_2048; ArgIns.SwapLUT = R2_SwapTable_fix_2048; Q = 4; break;
+				case 128:  ArgIns.Twiddles = R2_Twiddles_fix_128;  ArgIns.SwapLUT = R2_SwapTable_fix_128;  Q = 7; break;
+				case 256:  ArgIns.Twiddles = R4_Twiddles_fix_256;  ArgIns.SwapLUT = R4_SwapTable_fix_256;  Q = 6; break;
+				case 512:  ArgIns.Twiddles = R2_Twiddles_fix_512;  ArgIns.SwapLUT = R2_SwapTable_fix_512;  Q = 5; break;
+				case 1024: ArgIns.Twiddles = R4_Twiddles_fix_1024; ArgIns.SwapLUT = R4_SwapTable_fix_1024; Q = 4; break;
+				case 2048: ArgIns.Twiddles = R2_Twiddles_fix_2048; ArgIns.SwapLUT = R2_SwapTable_fix_2048; Q = 3; break;
 			}
 			if (ArgIns.Radix == 2) FFTFun = &Radix2FFT_DIF_Par_Fix16;
 			else 				   FFTFun = &Radix4FFT_DIF_Par_Fix16;
@@ -139,24 +146,32 @@ void CallFFT(int Nfft, int Type){
   	__CALL((*FFTFun), &FFTArg);
   	AT_FORK(gap_ncore(), (void *) (*SwapFun), (void *) &SwapArg);
   	__CALL((*SwapFun), &SwapArg);
-  	elapsed = gap_cl_readhwtimer() - start; printf("|     %4d | %3s %6s | %6d | %5d | %6d", Nfft, FFTDataType, ArgIns.Radix==2?"Radix2":"Radix4", elapsedFFT, elapsed, elapsed+elapsedFFT);
+  	elapsed = gap_cl_readhwtimer() - start;
+
+  	PERF_ARR[Nfft/128][Type][0] = elapsedFFT;
+  	PERF_ARR[Nfft/128][Type][1] = elapsed;
+  	
+
+  	PRINTF("|     %4d | %3s %6s | %6d | %5d | %6d", Nfft, FFTDataType, ArgIns.Radix==2?"Radix2":"Radix4", elapsedFFT, elapsed, elapsed+elapsedFFT);
 	#if !defined(__EMUL__) && defined(PERF_ALL)
-  	printf(" | %7d | %7d | %7d | %8d | %7d |", pi_perf_read(PI_PERF_INSTR), pi_perf_read(PI_PERF_ACTIVE_CYCLES), pi_perf_read(PI_PERF_TCDM_CONT), pi_perf_read(PI_PERF_LD_STALL), pi_perf_read(PI_PERF_IMISS));
+  	PRINTF(" | %7d | %7d | %7d | %8d | %7d |", pi_perf_read(PI_PERF_INSTR), pi_perf_read(PI_PERF_ACTIVE_CYCLES), pi_perf_read(PI_PERF_TCDM_CONT), pi_perf_read(PI_PERF_LD_STALL), pi_perf_read(PI_PERF_IMISS));
   	#else
-  	printf(" |         |         |         |          |         |");
+  	PRINTF(" |         |         |         |          |         |");
   	#endif
   	if (Type == 0) {
-  		printf("          |\n");
-  		// printf("\nOutFFT%d_f32 = np.array([\n", Nfft); for(int i=0;i<(Nfft); i++) printf("%f%+fj, ", InBuff_f32[2*i], InBuff_f32[2*i+1]); printf("])\n");
+  		PRINTF("          |\n");
+  		// PRINTF("\nOutFFT%d_f32 = np.array([\n", Nfft); for(int i=0;i<(Nfft); i++) PRINTF("%f%+fj, ", InBuff_f32[2*i], InBuff_f32[2*i+1]); PRINTF("])\n");
   	} else if (Type == 1) {
-  		// printf("\nOutFFT%d_q16 = np.array([\n", Nfft); for(int i=0;i<(Nfft); i++) printf("%d%+dj, ", ((short int*)InBuff_q16)[2*i], ((short int*)InBuff_q16)[2*i+1]); printf("])\n");
-  		printf(" %f |\n", MSE_16(InBuff_f32, (short int*) InBuff_q16, Nfft, Q));
+  		// PRINTF("\nOutFFT%d_q16 = np.array([\n", Nfft); for(int i=0;i<(Nfft); i++) PRINTF("%d%+dj, ", ((short int*)InBuff_q16)[2*i], ((short int*)InBuff_q16)[2*i+1]); PRINTF("])\n");
+  		MSE_ARR[Nfft/128][0] = MSE_16(InBuff_f32, (short int*) InBuff_q16, Nfft, Q);
+  		PRINTF(" %f |\n", MSE_ARR[Nfft/128][0]);
   	} else if (Type == 2) {
   		#ifdef __gap9__
-  		// printf("\nOutFFT%d_f16 = np.array([\n", Nfft); for(int i=0;i<(Nfft); i++) printf("%f%+fj, ", ((f16*)OutBuff)[2*i], ((f16*)OutBuff)[2*i+1]); printf("])\n");
-  		printf(" %f |\n", MSE_f16(InBuff_f32, (f16 *) InBuff_f16, Nfft));
+  		// PRINTF("\nOutFFT%d_f16 = np.array([\n", Nfft); for(int i=0;i<(Nfft); i++) PRINTF("%f%+fj, ", ((f16*)OutBuff)[2*i], ((f16*)OutBuff)[2*i+1]); PRINTF("])\n");
+  		MSE_ARR[Nfft/128][1] = MSE_f16(InBuff_f32, (f16 *) InBuff_f16, Nfft);
+  		PRINTF(" %f |\n", MSE_ARR[Nfft/128][1]);
   		#else
-  		printf("\n");
+  		PRINTF("\n");
   		#endif
   	}
 }
@@ -171,31 +186,31 @@ static void RunFFT()
     #endif
     gap_cl_resethwtimer();
     int	start, elapsed, timef32;
-    printf("Initializing inputs....\n");
+    PRINTF("Initializing inputs....\n");
 	//InitData4      (InDataQ16, MAXDIM, 37, 15, 23, 73, 0.1, 0.5, 0.6, 0.8);
 	//InitData4_float(InDataf32, MAXDIM, 37, 15, 23, 73, 0.1, 0.5, 0.6, 0.8);
 	#ifdef __gap9__
 	for (int i=0; i<MAXDIM; i++) InDataf16[i] = (f16) InDataf32[i];
 	#endif
-	printf("Done!\n");
+	PRINTF("Done!\n");
 
   	gap_cl_resethwtimer();
 
   	int FFTBins = 64;
-  	printf("|----------+------------+--------+-------+--------+---------+---------+---------+----------+---------+----------|\n");
-  	printf("| FFT BINS | Type       | FFT    | Swap  | Tot    | Instr   | Act Cyc | TCDM Co | LD Stall | Imiss   | MSE Err  |\n");
-  	printf("|----------+------------+--------+-------+--------+---------+---------+---------+----------+---------+----------|\n");
+  	PRINTF("|----------+------------+--------+-------+--------+---------+---------+---------+----------+---------+----------|\n");
+  	PRINTF("| FFT BINS | Type       | FFT    | Swap  | Tot    | Instr   | Act Cyc | TCDM Co | LD Stall | Imiss   | MSE Err  |\n");
+  	PRINTF("|----------+------------+--------+-------+--------+---------+---------+---------+----------+---------+----------|\n");
 	while (FFTBins < MAXDIM){
-		//printf("FFT: %4d\n", FFTBins);
+		//PRINTF("FFT: %4d\n", FFTBins);
 	  	CallFFT(FFTBins, 0);
 	  	CallFFT(FFTBins, 1);
 	  	#ifdef __gap9__
 	  	CallFFT(FFTBins, 2);
 	  	#endif
 	  	FFTBins *= 2;
-  		printf("|----------+------------+--------+-------+--------+---------+---------+---------+----------+---------+----------|\n");
+  		PRINTF("|----------+------------+--------+-------+--------+---------+---------+---------+----------+---------+----------|\n");
   	}
-  	printf("Finished\n");
+  	PRINTF("Finished\n");
 }
 
 void test_kickoff(void *arg)
@@ -237,7 +252,25 @@ void test_kickoff(void *arg)
 		task.slave_stack_size = (unsigned int) 1048;
 		pi_cluster_send_task(&cluster_dev, &task);
 	#endif
-	printf("Exiting\n");
+
+  	int FFTBins = 64;
+	while (FFTBins < MAXDIM){
+		if (MSE_ARR[FFTBins/128][0] > 0.016) {
+			printf("Error: MSE too large for %d FFT Q16\n", FFTBins);
+			printf("Test FAILED\n");
+			pmsis_exit(-1);
+		}
+		#ifdef __gap9__
+		if (MSE_ARR[FFTBins/128][1] > 0.000048) {
+			printf("Error: MSE too large for %d FFT F16\n", FFTBins);
+			printf("Test FAILED\n");
+			pmsis_exit(-1);
+		}
+		#endif
+	  	FFTBins *= 2;
+	}
+ 
+	printf("Test PASSED\n");
     pmsis_exit(0);
 }
 

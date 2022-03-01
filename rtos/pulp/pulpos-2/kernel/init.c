@@ -72,6 +72,11 @@ static void pos_init_bss()
 }
 
 
+void __attribute__((weak)) pi_bsp_init()
+{
+}
+
+
 void pos_init_start()
 {
     INIT_INF("Starting runtime initialization\n");
@@ -105,6 +110,8 @@ void pos_init_start()
 
     // Now now the minimal init are done, we can activate interruptions
     hal_irq_enable();
+
+    pi_bsp_init();
 
     int retval = main();
 

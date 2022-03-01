@@ -1,43 +1,4 @@
-BOARD_NAME ?= gapuino
-
-ifeq ($(TARGET_CHIP_FAMILY), GAP9)
-PMSIS_OS ?= freertos
-else
-PMSIS_OS ?=pulpos
-endif				# TARGET_CHIP_FAMILY
-
-ifndef platform
-ifdef PMSIS_PLATFORM
-platform = $(PMSIS_PLATFORM)
-else
-platform = board
-endif				# platform
-endif				# PMSIS_PLATFORM
-
-SHELL=bash
-ECHO_GREEN = $(shell tput setaf 2)
-ECHO_BOLD = $(shell tput bold)
-ECHO_CLEAR = $(shell tput sgr0)
-
-help:
-	@echo "=================== ${ECHO_BOLD}${ECHO_GREEN}GAP SDK Application${ECHO_CLEAR} ==================="
-	@echo ""
-	@echo "Main targets:"
-	@echo " - ${ECHO_BOLD}clean${ECHO_CLEAR} : clean the application"
-	@echo " - ${ECHO_BOLD}all${ECHO_CLEAR}   : build the application"
-	@echo " - ${ECHO_BOLD}run${ECHO_CLEAR}   : run the application"
-	@echo ""
-	@echo "Common options:"
-	@echo " - ${ECHO_BOLD}platform=<value>${ECHO_CLEAR} : select the platform (gvsoc or board)"
-	@echo " - ${ECHO_BOLD}PMSIS_OS=<value>${ECHO_CLEAR} : select the OS (freertos or pulpos)"
-	@echo ""
-	@echo "For more information, please refer to the SDK documentation."
-
-ifeq '$(PMSIS_OS)' 'pulpos'
-ifeq '$(TARGET_CHIP)' 'GAP9_V2'
-export USE_PULPOS=1
-endif
-endif
+include $(GAP_SDK_HOME)/utils/rules/pmsis_defs.mk
 
 APP_INC += $(TILER_EMU_INC)
 
@@ -64,6 +25,9 @@ PLPBRIDGE_EXTRA_FLAGS        += -ftdi
 else ifeq ($(BOARD_NAME), ai_deck)
 COMMON_CFLAGS          += -DCONFIG_AI_DECK
 
+else ifeq ($(BOARD_NAME), gap9_evk)
+COMMON_CFLAGS          += -DCONFIG_GAP9_EVK
+
 else ifeq ($(BOARD_NAME), vega)
 COMMON_CFLAGS          += -DCONFIG_VEGA -mvega -Wa,-mwinsn
 
@@ -74,6 +38,10 @@ endif
 
 ifdef RUNNER_CONFIG
 override config_args += --config-ini=$(RUNNER_CONFIG)
+endif
+
+ifeq ($(platform), gvsoc)
+CONFIG_BOOT_MODE ?= flash
 endif
 
 # Enable traces with GVSOC
@@ -137,6 +105,10 @@ override APP_CFLAGS += -DCONFIG_SLOW_OSC
 override config_args += --config-opt=**/runner/efuses/content/info_2/wake_osc_ctrl=3
 endif				# CONFIG_SLOW_OSC
 
+ifdef CONFIG_BOOT_DEVICE
+CONFIG_BOOT_MODE=flash
+endif
+
 
 CONFIG_BOOT_DEVICE           ?= hyperflash
 
@@ -157,6 +129,8 @@ else
 override config_args += --config-opt=**/runner/boot/device=target/chip/soc/mram
 endif
 endif
+
+
 
 ifdef CONFIG_BOOT_MODE
 override config_args += --config-opt=**/runner/boot/mode=$(CONFIG_BOOT_MODE)
@@ -193,6 +167,17 @@ override config_args += --config-opt=**/gvsoc/debug-mode=true
 endif
 
 
+ifdef CONFIG_AUDIO_FRAMEWORK
+-include $(CONFIG_AUDIO_FRAMEWORK_BUILDDIR)/tc_sources.mk
+
+APP_SRCS += $(GAP_SDK_HOME)/tools/audio-framework/runtime/src/framework.c $(GAP_SDK_HOME)/tools/audio-framework/runtime/src/framework_ffc.c
+APP_SRCS += $(foreach file,$(TC_GENERATED_SRCS),$(CONFIG_AUDIO_FRAMEWORK_BUILDDIR)/$(file))
+APP_SRCS += $(foreach file,$(TC_COMPONENT_SRCS),$(GAP_SDK_HOME)/tools/audio-framework/components/$(file))
+override APP_INC += $(GAP_SDK_HOME)/tools/audio-framework/runtime/include \
+	$(GAP_SDK_HOME)/tools/audio-framework/components $(CONFIG_AUDIO_FRAMEWORK_BUILDDIR)
+endif
+
+
 ifdef CONFIG_TESTBENCH
 # Set of models connected to the RTL platform, capable of generating stimuli.
 # For example, on I2S it allows to generate samples, or capture them on I2S interfaces.
@@ -205,7 +190,9 @@ override config_args += --config-opt=$(CONFIG_BOARD_PATH)/addon_testbench_enable
 CONFIG_TESTBENCH_UART_ID ?= 1
 CONFIG_TESTBENCH_UART_BAUDRATE ?= 20000000
 
-APP_SRCS           += $(GAP_LIB_PATH)/testbench/testbench.c $(GAP_LIB_PATH)/testbench/testlib.c
+APP_SRCS           += $(GAP_LIB_PATH)/testbench/testbench.c $(GAP_LIB_PATH)/testbench/testlib.c \
+	$(GAP_LIB_PATH)/testbench/testlib_hyper.c $(GAP_LIB_PATH)/testbench/testlib_i2s.c \
+	$(GAP_LIB_PATH)/testbench/testlib_uart.c $(GAP_LIB_PATH)/testbench/testlib_i2c.c
 APP_INC            += $(GAP_LIB_PATH)/testbench
 override APP_CFLAGS         += -DCONFIG_TESTBENCH_UART_ID=$(CONFIG_TESTBENCH_UART_ID) \
                       -DCONFIG_TESTBENCH_UART_BAUDRATE=$(CONFIG_TESTBENCH_UART_BAUDRATE)
@@ -219,7 +206,6 @@ endif				# CONFIG_TESTBENCH
 ifdef CONFIG_IO_UART_BAUDRATE
 override config_args += --config-opt=**/rtl/testbench/uart/baudrate=$(CONFIG_IO_UART_BAUDRATE)
 endif				# CONFIG_IO_UART_BAUDRATE
-
 
 # FS config
 READFS_FLASH ?= flash
@@ -265,16 +251,24 @@ GAPY_TARGET_OPT = --target=$(GAPY_TARGET)
 endif
 
 
-# Directory containing built objects
-PMSIS_OS_UPPERCASE  = $(shell echo $(PMSIS_OS) | tr a-z A-Z)
-BUILDDIR            = $(CURDIR)/BUILD/$(TARGET_CHIP)/GCC_RISCV_$(PMSIS_OS_UPPERCASE)$(build_dir_ext)
-TARGET_BUILD_DIR    = $(BUILDDIR)
-#$(info ## BUILDDIR : $(BUILDDIR))
-
 #$(info ## App sources : $(APP_SRCS))
 #$(info ## App includes : $(APP_INC))
 #$(info ## App cflags : $(APP_CFLAGS))
 #$(info ## App ldflags : $(APP_LDFLAGS))
+
+help:
+	@echo "=================== ${ECHO_BOLD}${ECHO_GREEN}GAP SDK Application${ECHO_CLEAR} ==================="
+	@echo ""
+	@echo "Main targets:"
+	@echo " - ${ECHO_BOLD}clean${ECHO_CLEAR} : clean the application"
+	@echo " - ${ECHO_BOLD}all${ECHO_CLEAR}   : build the application"
+	@echo " - ${ECHO_BOLD}run${ECHO_CLEAR}   : run the application"
+	@echo ""
+	@echo "Common options:"
+	@echo " - ${ECHO_BOLD}platform=<value>${ECHO_CLEAR} : select the platform (gvsoc or board)"
+	@echo " - ${ECHO_BOLD}PMSIS_OS=<value>${ECHO_CLEAR} : select the OS (freertos or pulpos)"
+	@echo ""
+	@echo "For more information, please refer to the SDK documentation."
 
 ifeq '$(PMSIS_OS)' 'freertos'
 
@@ -283,7 +277,16 @@ PMSIS_BSP_DIR            = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp
 
 ifeq ($(CUSTOM_BSP),)
 include $(PMSIS_BSP_DIR)/rules/freertos_bsp_rules.mk
+override APP_CFLAGS += $(PMSIS_BSP_CFLAGS)
 endif				# CUSTOM_BSP
+
+ifdef CONFIG_IO_UART_BAUDRATE
+override APP_CFLAGS += -DCONFIG_IO_UART_BAUDRATE=$(CONFIG_IO_UART_BAUDRATE)
+endif
+
+ifdef CONFIG_IO_UART_ITF
+override APP_CFLAGS += -DCONFIG_IO_UART_ITF=$(CONFIG_IO_UART_ITF)
+endif
 
 # Special flag for FreeRTOS to use semihosting.
 ifeq ($(FS_TYPE), host)
@@ -419,6 +422,10 @@ profiler:
 	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) --config-opt="gvsoc/debug-mode=true" --config-opt="gvsoc/events/gen_gtkw=false" run --image --flash --exec-prepare --binary=$(BIN) --event-format=raw --event=.*@all.bin $(runner_args)
 	cd $(BUILDDIR) && if [ -e all.bin ]; then rm all.bin; fi; mkfifo all.bin
 	cd $(BUILDDIR) && export PULP_CONFIG_FILE=$(BUILDDIR)/gvsoc_config.json && profiler $(BUILDDIR) $(BIN) gvsoc_config.json --signal-tree-file=$(PROFILER_SIGNAL_TREE)
+
+profile:
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) --config-opt="gvsoc/debug-mode=true" --config-opt="gvsoc/events/gen_gtkw=false" run --image --flash --exec-prepare --binary=$(BIN) $(runner_args)
+	cd $(BUILDDIR) && profiler gvsoc_config.json --signal-tree-file=$(GAP_SDK_HOME)/tools/profiler_v2/gui/images/signalstree.txt
 
 size:
 	$(GAP_SDK_HOME)/utils/bin/binary-size --binary=$(BIN) --depth=10 --groups=$(PMSIS_OS)

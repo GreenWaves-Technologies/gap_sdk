@@ -9,6 +9,14 @@ Task
     :private-members:
     :protected-members:
 
+Event_Task
+....
+
+.. doxygengroup:: Event_Task
+    :members:
+    :private-members:
+    :protected-members:
+
 Memory allocation
 .................
 

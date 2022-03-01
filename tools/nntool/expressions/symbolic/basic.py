@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
+
 import numpy as np
 from bfloat16 import bfloat16
 from quantization.qtype import DTYPE_GAP_CTYPE
@@ -21,6 +23,8 @@ from scipy.special import expit
 from .function import Function
 from .symbol import (Constant, Rational, c_headers, copy_props, environment,
                      handles, handlesr, nargs)
+
+LOG = logging.getLogger('nntool.'+__name__)
 
 
 @nargs(2)
@@ -178,6 +182,7 @@ class GapAbs(Abs):
     def _c_expr(self, *args, **kwargs):
         return "gap_abs(%s)" % (args[0])
 
+
 @nargs(1)
 class Round(Function):
 
@@ -271,6 +276,7 @@ class Sqrt(Function):
     def _c_expr(self, *args, **kwargs):
         return "sqrtf(%s)" % (args[0],)
 
+
 @nargs(1)
 @c_headers('<math.h>')
 class RSqrt(Function):
@@ -283,6 +289,7 @@ class RSqrt(Function):
 
     def _c_expr(self, *args, **kwargs):
         return "1.0f/sqrtf(%s)" % (args[0],)
+
 
 @nargs(1)
 @c_headers('<math.h>')
@@ -353,13 +360,14 @@ class Square(Function):
     def _c_expr(self, *args, **kwargs):
         return f"square({args[0]}))"
 
+
 @nargs(2)
 @c_headers('<math.h>')
 class Pow(Function):
 
     def _impl(self, *args, **kwargs):
         if any(b < 0 and e < 1 for b, e in np.broadcast(*args)):
-            raise ValueError(
+            LOG.warning(
                 'fractional powers are being passed to a negative base for Pow operator')
         return np.power(args[0], args[1], dtype=self.dtype)
 
@@ -562,6 +570,7 @@ class ConvertFloatScaled(CompoundFunction):
         if self._from_qrec.dtype == np.int16 or self._from_qrec.dtype == bfloat16:
             return self._eval_float_to_quant(*args, **kwargs)
         return self._eval_quant_to_float(*args, **kwargs)
+
 
 @nargs(2)
 class SquaredDifference(CompoundFunction):

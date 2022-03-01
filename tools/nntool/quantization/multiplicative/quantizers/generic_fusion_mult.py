@@ -44,21 +44,21 @@ class GenericFusionMultBase(MultQuantizionHandler):
 
 @params_type(ActivationFusionBase, MatMulOpFusionParameters, MatScaleFusionParameters, PaddedAddFusionParameters)
 @in_qs_constraint(MatchAll({'dtype': np.int8}))
-@out_qs_constraint(MatchAll({'dtype': np.int8}))
+#@out_qs_constraint(MatchAll({'dtype': np.int8}))
 @fusion_handler
 class GenericFusionMult(GenericFusionMultBase):
     pass
 
 @params_type(ActivationFusionBase, MatMulOpFusionParameters, MatScaleFusionParameters, PaddedAddFusionParameters)
 @in_qs_constraint(MatchAll({'dtype': np.uint8}))
-@out_qs_constraint(MatchAll({'dtype': np.uint8}))
+#@out_qs_constraint(MatchAll({'dtype': np.uint8}))
 @fusion_handler
 class GenericFusionMultU8(GenericFusionMultBase):
     pass
 
 @params_type(ActivationFusionBase, MatMulOpFusionParameters, MatScaleFusionParameters, PaddedAddFusionParameters)
 @in_qs_constraint(MatchAll({'dtype': np.uint16}))
-@out_qs_constraint(MatchAll({'dtype': np.uint16}))
+#@out_qs_constraint(MatchAll({'dtype': np.uint16}))
 @fusion_handler
 class GenericFusionMultU16(GenericFusionMultBase):
     pass

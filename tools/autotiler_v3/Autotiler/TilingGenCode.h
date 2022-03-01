@@ -22,6 +22,7 @@ extern void LogicalTileNAddressAndSizeOrig(Kernel_T *Ker, Kernel_Arg_T *Arg, uin
 extern char *BindOpImage(ArgBindingOper Op);
 
 extern char *KernelArgImage(Kernel_T *Ker, Kernel_Arg_T *Arg, CKernel_Arg_T *ArgVal, KernelArgSelect_T ArgSel, KernelIteratorT ArgSpace, KernelIteratorT ItSpace, int *IsInvar);
+extern int EvalArgOverflow(Kernel_T *Ker, Kernel_Arg_T *Arg, Object_T *Obj);
 
 
 #endif

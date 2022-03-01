@@ -15,10 +15,9 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Generator, Sequence
+from typing import Sequence
+from utils.graph import GraphView, MatchNode
 from utils.node_id import NodeId
-
-from utils.graph import GraphView, MatchNode, Node
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -55,6 +54,18 @@ class Matcher(ABC):
     def name(self):
         return self.NAME
 
+    @property
+    def run_again(self):
+        return self.RUN_AGAIN_ON_MATCH
+
+    @property
+    def run_qtune(self):
+        return self.RUN_QTUNE_ON_MATCH
+
+    @property
+    def run_adjust(self):
+        return self.RUN_ADJUST_ON_MATCH
+
     @staticmethod
     def remove_quantization(G, node):
         if G.quantization:
@@ -83,7 +94,7 @@ class Matcher(ABC):
 
     @staticmethod
     def needs_valid_dimension(val):
-        return Matcher.property_register("DESCRIPTION", val)
+        return Matcher.property_register("NEEDS_VALID_DIMENSION", val)
 
     @staticmethod
     def modifies_dimensions(val):
@@ -102,12 +113,14 @@ class Matcher(ABC):
         return Matcher.property_register("RUN_AGAIN_ON_MATCH", args)
 
     @staticmethod
-    def run_qtune_on_match(val):
-        return Matcher.property_register("RUN_QTUNE_ON_MATCH", val)
+    def run_qtune_on_match(cls):
+        setattr(cls, 'RUN_QTUNE_ON_MATCH', True)
+        return cls
 
     @staticmethod
-    def run_adjust_on_match(val):
-        return Matcher.property_register("RUN_ADJUST_ON_MATCH", val)
+    def run_adjust_on_match(cls):
+        setattr(cls, 'RUN_ADJUST_ON_MATCH', True)
+        return cls
 
     @staticmethod
     def groups(*args):
@@ -134,59 +147,6 @@ run_adjust_on_match = Matcher.run_adjust_on_match
 
 groups = Matcher.groups
 
-class DontReplaceError(Exception):
-    pass
-
-
-class DefaultMatcher(Matcher):
-    @abstractmethod
-    def match_function(self, G: GraphView) -> Generator[GraphView, None, None]:
-        pass
-
-    @abstractmethod
-    def replace_function(self, G: GraphView, subgraph: GraphView) -> Node:
-        pass
-
-    def _match(self, G: GraphView, set_identity: bool = True, **kwargs) -> bool:
-        replaced = True
-        has_modified_graph = False
-        while replaced:
-            replaced = False
-            for subgraph in self.match_function(G):
-                # TODO - Save in and out edges here since the replace function may modify the
-                # subgraph
-                in_edges = [in_edge for input_node in subgraph.inputs()
-                            for in_edge in G.in_edges(input_node.name)]
-                out_edges = [out_edge for output_node in subgraph.outputs()
-                             for out_edge in G.out_edges(output_node.name)]
-                try:
-                    replacement, edge_in_mapping, edge_out_mapping = self.replace_function(
-                        G, subgraph)
-                    if replacement is None:
-                        G.remove_fragment(subgraph)
-                        has_modified_graph = True
-                    elif isinstance(replacement, Node):
-                        # use saved  in and out edges
-                        G.replace_fragment(subgraph,
-                                           replacement,
-                                           frag_in_edges=in_edges,
-                                           frag_out_edges=out_edges,
-                                           edge_in_mapping=edge_in_mapping,
-                                           edge_out_mapping=edge_out_mapping)
-                        has_modified_graph = True
-                    else:
-                        raise TypeError(
-                            "unexcepted return value from replace_function")
-                    replaced = True
-                    break
-                except DontReplaceError:
-                    pass
-
-        if set_identity:
-            self.set_identity(G)
-
-        return has_modified_graph
-
 
 # This can be used to define groups of matches to be selected
 # from the command line
@@ -195,52 +155,56 @@ class MatchGroup(Matcher):
 
     def __init__(self, *args: Sequence[Matcher], identity: str = None):
         super().__init__(identity)
-        self.matches = list(args)
+        self._matches = {match.name: match for match in args}
+        self._matches_pending = []
+        self._adjust_pending = False
+        self._qtune_pending = False
+
+    @property
+    def run_again(self):
+        return self._matches_pending
+
+    @property
+    def run_qtune(self):
+        return self._qtune_pending
+
+    @property
+    def run_adjust(self):
+        return self._adjust_pending
 
     def add_match(self, match: Matcher):
-        self.matches.append(match)
+        self._matches.append(match)
 
     def _match(self, G: GraphView, set_identity: bool = True, **kwargs):
         # Note: assumption is that dimensions are valid when a match is called
         found_match = True
         dimensions_set = True
+        self._matches_pending = []
+        self._adjust_pending = False
+        self._qtune_pending = False
         while found_match:
             found_match = False
-            for match_instance in self.matches:
-                LOG.debug("fusions - start %s", match_instance.name)
-                if match_instance.NEEDS_VALID_DIMENSION and not dimensions_set:
+            matches = list(self._matches.values())
+            while matches:
+                match = matches.pop(0)
+                LOG.debug("fusions - start %s", match.name)
+                if match.NEEDS_VALID_DIMENSION and not dimensions_set:
                     G.add_dimensions(quiet=True)
                     dimensions_set = True
-                has_modified_graph = match_instance.match(
+                has_modified_graph = match.match(
                     G, set_identity=False, group_identity=self._identity)
                 if has_modified_graph:
-                    LOG.info("++ fusion %s modified graph", match_instance.name)
+                    LOG.info("++ fusion %s modified graph", match.name)
                     found_match = True
                     G.add_dimensions(quiet=True)
+                    for required_match in match.run_again:
+                        if match not in self._matches_pending:
+                            self._matches_pending.append(required_match)
+                    self._adjust_pending = self._adjust_pending or match.run_adjust
+                    if G.quantization:
+                        self._qtune_pending = self._qtune_pending or match.run_qtune
+
                 if dimensions_set and has_modified_graph:
                     dimensions_set = False
         if set_identity:
             self.set_identity(G)
-
-
-def find_forward(G: GraphView, edge, find_node_classes, skip_node_classes=None, find_skip=None):
-    if find_skip is None:
-        find_skip = [find_node_classes, skip_node_classes]
-        for idx, elem in enumerate(find_skip):
-            if elem is not None and not isinstance(elem, tuple):
-                if isinstance(elem, list):
-                    find_skip[idx] = tuple(elem)
-                else:
-                    find_skip[idx] = tuple([elem])
-    if isinstance(edge.to_node, find_skip[0]):
-        return [[edge]]
-    if skip_node_classes and isinstance(edge.to_node, find_skip[0]):
-        res = []
-        for out_edge in G.out_edges(edge.to_node.name):
-            edge_lists = find_forward(G, out_edge, find_node_classes,
-                                      find_skip=find_skip)
-            if not edge_lists:
-                continue
-            res.extend([[edge] + edge_list for edge_list in edge_lists])
-        return res
-    return []

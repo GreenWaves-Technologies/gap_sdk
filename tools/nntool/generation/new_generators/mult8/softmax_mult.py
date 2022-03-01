@@ -45,10 +45,11 @@ class SoftMaxGenerator(GeneratorBase, InOutBindingsMixin):
         infos = { 
             'BIASL_SM': np.uint8(15 + np.ceil(np.log2(qrec.in_qs[0].scale)))
         }
-        comment = f"in: {qrec.in_qs[0].scale[0]:.5f} out: {qrec.out_qs[0].scale[0]:.5f} NORM: {infos['BIASL_SM']}"
+        comment = f"in: {qrec.in_qs[0].scale[0]:.5f} out: {qrec.out_qs[0].scale[0]:.5f} "
 
         infos_encoder = SQ8ActInfos()
-        contents = infos_encoder.gen_infos_array('DIM', **infos)
+        contents, new_comment = infos_encoder.gen_infos_array('DIM', **infos)
+        comment += new_comment
 
         cname, file_name = gen_constant(gen, pnode, pnode, INFOS)
         const_info = ConstantInfo(file_name, QType.Pow2(bits=8, q=0, signed=True), contents=contents)
@@ -95,7 +96,7 @@ class SoftMaxKernelBase(NewAutoTilerKernel):
         # attributes affecting generation
         attrs = {
             'size': in_dim.size(),
-            'width': in_dim.size()/in_dim.shape[axis],
+            'width': in_dim.size()//in_dim.shape[axis],
             'height': in_dim.shape[axis],
             'softmax_op': softmax_op
         }

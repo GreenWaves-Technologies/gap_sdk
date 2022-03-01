@@ -130,7 +130,7 @@ class MatMulFloat32(KernelBase):
         in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="float")
 
         if isinstance(params, MatMulTransposedParameters):
-            mat1, mat2 = in_tensors[0], np.transpose(in_tensors[1], (1, 0))
+            mat1, mat2 = in_tensors[0], np.swapaxes(in_tensors[1], -2, -1)
         else:
             mat1, mat2 = in_tensors[0], in_tensors[1]
 

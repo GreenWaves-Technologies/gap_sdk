@@ -20,6 +20,7 @@ from typing import Sequence, Union
 from expressions.symbolic.symbol import Symbol
 from generation.at_types.gen_ctrl import CTRL_FEATURES, GenCtrl
 from graph.dim import Dim, PadDim, StrideDim
+from stats.ranges_utils import collect_stat
 
 from utils.graph import Edge, Node, NodeRef
 from utils.option_list import OptionList
@@ -64,25 +65,13 @@ def clone_dims(dims: Sequence[Dim], hints: Sequence[Dim]):
 
 
 class NNNodeRef(NodeRef):
-    def __init__(self, node, idx, G) -> None:
-        super(NNNodeRef, self).__init__(node)
-        self._G = G
-        self._idx = idx
-
-    @property
-    def G(self):
-        return self._G
-
-    @property
-    def ref(self):
-        return ((self._node, self._idx), self._G)
 
     def __getattr__(self, name):
         return getattr(self._node, name)
 
     def __setattr__(self, name, val):
         if name in ['_node', '_G', '_idx']:
-            super().__setattr__(name, val)
+            return super().__setattr__(name, val)
         return setattr(self._node, name, val)
 
     def __hasattr__(self, name):
@@ -94,26 +83,14 @@ class NNNodeRef(NodeRef):
     def __repr__(self) -> str:
         return self._node.__repr__()
 
-    def __eq__(self, o: object) -> bool:
-        if isinstance(o, NNNodeRef):
-            return super().__eq__(o)
-        return self._node.__eq__(o)
-
-    def __hash__(self) -> int:
-        return self._node.__hash__()
-
-    def __call__(self, *args, **kwargs):
-        raise ValueError("this is already a reference")
-
 
 class Parameters(Node):
     CLS_OP_NAME = None
     NARGS = {1}
     NOT_GENERATED = False
 
-    def __init__(self, name, *args, in_dims_hint=None, out_dims_hint=None, **kwargs):
-        super().__init__(name, *args, **kwargs)
-        del args, kwargs
+    def __init__(self, name, in_dims_hint=None, out_dims_hint=None, **kwargs):
+        super().__init__(name, **kwargs)
         self._in_dims = None
         self._out_dims = None
         self._in_dims_hint = in_dims_hint
@@ -134,17 +111,19 @@ class Parameters(Node):
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'
 
-    def __call__(self, *args, **kwargs):
+    @property
+    def _edge_class(self):
+        return NNEdge
+
+    @property
+    def _noderef_class(self):
+        return NNNodeRef
+
+    def __call__(self, *args, num_outputs=1, **kwargs):
         # set of number of args
         if isinstance(self.NARGS, set):
             if '*' not in self.NARGS and len(args) not in self.NARGS:
                 raise ValueError("incorrect number of arguments")
-            inputs, fragments = [], []
-            for arg in args:
-                if arg is not None and not isinstance(arg, NNNodeRef):
-                    raise ValueError("expecting NNNodeRef")
-                inputs.append(arg.ref[0] if arg else None)
-                fragments.append(arg.ref[1] if arg else None)
 
         # list of possible inputs passed in kwargs. Things passed in args get
         # copied to kwargs with their index from the names in nargs
@@ -153,32 +132,37 @@ class Parameters(Node):
                 if idx >= len(self.nargs):
                     raise ValueError('Too many inputs for this node type')
                 kwargs[self.nargs[idx]] = arg
-            inputs = []
-            fragments = []
+            args = []
             for name in self.nargs:
                 if name in kwargs:
                     ref = kwargs[name]
                     if not isinstance(ref, NNNodeRef):
                         raise ValueError("expecting NNNodeRef")
-                    inputs.append(ref[0])
-                    fragments.append(ref[1])
+                    args.append(ref)
                 else:
-                    inputs.append(None)
-                    fragments.append(None)
-            if inputs[0] is None:
+                    args.append(None)
+            if args[0] is None:
                 raise ValueError('Expecting at least an input')
 
-        fragment = [frag for frag in fragments if frag is not None][0]
-        if len(fragments) > 1:
-            for other in fragments[1::]:
-                if other is not None:
-                    fragment.merge(other)
-        for to_idx, from_tuple in enumerate(inputs):
-            if from_tuple is not None:
-                from_node, from_idx = from_tuple
-                fragment.add_edge(NNEdge(from_node=from_node,
-                                         from_idx=from_idx, to_node=self, to_idx=to_idx))
-        return NNNodeRef(self, 0, fragment)
+        return super().__call__(*args, num_outputs=num_outputs)
+
+    @property
+    def no_model_code(self) -> bool:
+        """Returns True if node results in no kernel, global or local generation in model
+
+        Returns:
+            bool: True if nothing generated
+        """
+        return False
+
+    @property
+    def does_nothing(self) -> bool:
+        """Returns True if the node does not modify its input in any way
+
+        Returns:
+            bool: True if node could be eliminated with no effect
+        """
+        return False
 
     @property
     def graph_label(self):
@@ -313,6 +297,9 @@ class Parameters(Node):
     @property
     def op_name(self):
         return self.CLS_OP_NAME
+
+    def details_collector(self, stats, stat, details):
+        pass
 
     def compute_load(self):
         return None
@@ -531,12 +518,19 @@ class FilterParameters(Parameters, SingleInputAndOutput):
         self.details = None
         self.at_options.update_valid_options(CTRL_FEATURES)
 
+    def details_collector(self, stats, stat, details):
+        collect_stat(stat, 'range_acc', details, details_name='acc')
 
 class MultiplicativeBiasParameters(FilterParameters):
     def __init__(self, *args, **kwargs):
         super(MultiplicativeBiasParameters, self).__init__(*args, **kwargs)
         self.has_mul_bias = False
         self._mul_biases = None
+
+    def details_collector(self, stats, stat, details):
+        super().details_collector(stats, stat, details)
+        if self.mul_biases:
+            collect_stat(stat, 'range_pre_mul_bias', details, details_name='pre_mul_bias')
 
     @property
     def mul_biases(self):
@@ -645,4 +639,3 @@ class NNEdge(Edge):
                  from_idx: int = 0, to_idx: int = 0):
         super().__init__(from_node, to_node, from_idx, to_idx)
         self.params = params
-

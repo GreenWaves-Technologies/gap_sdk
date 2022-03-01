@@ -354,8 +354,14 @@ class OnnxImporter(ImporterBase):
                                           from_idx=producer[1]))
                     banned_inputs.update(node.output)
                     continue
-
-            params = handler.handle(OnnxNode(node), all_nodes=all_nodes, vars_dict=vars_dict,
+            onode = OnnxNode(node)
+            inputs = [all_nodes[inp] if inp else None for inp in onode.input]
+            if inputs:
+                x = inputs[0]
+                x_shape = x[2].shape
+                name = hasattr(node, 'name') and getattr(node, 'name')
+                x=0
+            params = handler.handle(onode, all_nodes=all_nodes, vars_dict=vars_dict,
                                     G=G, valid_name=self._node_name(node),
                                     used_tensors=used_tensors, importer=self, **kwargs)
             if params is None:

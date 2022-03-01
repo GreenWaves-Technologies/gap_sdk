@@ -1,5 +1,5 @@
 APP              = fuser
-APP_SRCS        += gap8_fuser.c
+APP_SRCS        += gap_fuser.c
 APP_INC	        +=
 
 dump ?= 0
@@ -31,6 +31,13 @@ endif
 
 ifeq '$(revb_hyper)' '1'
 APP_CFLAGS      += -DREVB_HYPER
+endif
+
+ifdef GAP9
+
+gen:
+	./gap9-efuse-gen  --output=gap9_fuser_map.h --name=fuser_map
+
 endif
 
 

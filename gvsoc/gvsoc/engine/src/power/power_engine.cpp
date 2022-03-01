@@ -46,14 +46,11 @@ void vp::power::engine::start_capture()
 void vp::power::engine::stop_capture()
 {
     // When stopping, dump recursively all traces to a file
-    FILE *file = fopen("power_report.csv", "w");
-    if (file == NULL)
-    {
-        // vp_warning_always(&this->warning, "Failed to open power report file (path: %s)\n", "power_report.csv");
-        return;
-    }
 
-    this->top->dump_traces_recursive(file);
+    if (this->file)
+    {
+        this->top->dump_traces_recursive(file);
+    }
 }
 
 
@@ -64,4 +61,19 @@ vp::power::engine::engine(vp::component *top)
 
     // Declare power service, each component will ask the connection to it
     top->new_service("power", this);
+
+    this->file = fopen("power_report.csv", "w");
+    if (this->file == NULL)
+    {
+        //vp_warning_always(&this->warning, "Failed to open power report file (path: %s)\n", "power_report.csv");
+    }
+}
+
+
+vp::power::engine::~engine()
+{
+    if (this->file)
+    {
+        fclose(this->file);
+    }
 }

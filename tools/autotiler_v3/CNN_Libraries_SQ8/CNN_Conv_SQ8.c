@@ -3640,11 +3640,7 @@ static void __attribute__ ((noinline)) KerConvNxMStrideSxSy_Body_SQ8(
 		for (unsigned int w=Wo_F; w<Wo_L; w++) {
 			int Acc = *PtO;
 			for (unsigned int i=0; i<Fh; i++) {
-				// for (unsigned int j=0; j<Fw/4; j++) Acc = gap_sumdotp4(*((v4s *) &In[(h*StrideY-PadT+i)*W + (w*StrideX-PadL+j)]), *((v4s *) &Filter[Fw*i+j]), Acc);
-				// for (unsigned int j=(Fw/4)*4; j<Fw; j++) Acc += In[(h*StrideY-PadT+i)*W + (w*StrideX-PadL+j)]*Filter[Fw*i+j];
-				for (unsigned int j=0; j<Fw; j++) {
-					Acc += In[(h*StrideY-PadT+i)*W + (w*StrideX-PadL+j)]*Filter[Fw*i+j];
-				}
+				for (unsigned int j=0; j<Fw; j++) Acc += In[(h*StrideY-PadT+i)*W + (w*StrideX-PadL+j)]*Filter[Fw*i+j];
 			}
 			*PtO = Acc; PtO++;
 		}
@@ -3717,9 +3713,9 @@ static void __attribute__ ((noinline)) KerConv3x3DxDyStrideSxSy_Body_SQ8(
         int *PtO = Out+Wo*Ho_F+Wo_F;
 
         V0 = (v4s){0}; V1 = (v4s){0}; V2 = (v4s){0};
-        for (unsigned int h=Ho_F; h<Ho_L; h++) {
+	for (unsigned int h=Ho_F; h<Ho_L; h++) {
                 signed char *PtI = In + (h*StrideY-PadT)*W + Wo_F*StrideX-PadL;
-                for (unsigned int w=Wo_F; w<Wo_L; w++) {
+		for (unsigned int w=Wo_F; w<Wo_L; w++) {
                         int Acc = *PtO;
 			signed char X0, X1, X2;
 			X0 = PtI[0]; X1 = PtI[Dw]; X2 = PtI[2*Dw]; V0 = gap_pack4(X0, X1, X2, 0); PtI += Dh*W;
@@ -3753,7 +3749,7 @@ static void __attribute__ ((noinline)) KerConv3x3DxDyStride1x1_Body_SQ8(
         )
 {
         int Fw = 3, Fh = 3;
-	unsigned StrideX = 1, StrideY = 1;
+	int StrideX = 1, StrideY = 1;
         unsigned short int PadL = Pad[0], PadT = Pad[2];
         v4s C0 = *((v4s *) &Filter[0]);
         v4s C1 = *((v4s *) &Filter[3]);
@@ -3796,7 +3792,7 @@ static void __attribute__ ((noinline)) KerConv3x3D2D2Stride1x1_Body_SQ8(
 {
         int Fw = 3, Fh = 3;
         int Dw = 2, Dh = 2;
-	unsigned StrideX = 1, StrideY = 1;
+	int StrideX = 1, StrideY = 1;
         unsigned short int PadL = Pad[0], PadT = Pad[2];
         v4s C0 = *((v4s *) &Filter[0]);
         v4s C1 = *((v4s *) &Filter[3]);
@@ -3860,7 +3856,7 @@ static void __attribute__ ((noinline)) KerConv3x3D4D4Stride1x1_Body_SQ8(
 {
         int Fw = 3, Fh = 3;
         int Dw = 4, Dh = 4;
-	unsigned StrideX = 1, StrideY = 1;
+	int StrideX = 1, StrideY = 1;
         unsigned short int PadL = Pad[0], PadT = Pad[2];
         v4s C0 = *((v4s *) &Filter[0]);
         v4s C1 = *((v4s *) &Filter[3]);
@@ -3906,7 +3902,7 @@ static void __attribute__ ((noinline)) KerConv3x3D8D8Stride1x1_Body_SQ8(
 {
         int Fw = 3, Fh = 3;
         int Dw = 8, Dh = 8;
-	unsigned StrideX = 1, StrideY = 1;
+	int StrideX = 1, StrideY = 1;
         unsigned short int PadL = Pad[0], PadT = Pad[2];
         v4s C0 = *((v4s *) &Filter[0]);
         v4s C1 = *((v4s *) &Filter[3]);
@@ -4044,7 +4040,7 @@ static void __attribute__ ((noinline)) KerConv3x3D8D1Stride1x1_Body_SQ8(
 {
         int Fw = 3, Fh = 3;
         int Dw = 8, Dh = 1;
-	unsigned StrideX = 1, StrideY = 1;
+	int StrideX = 1, StrideY = 1;
         unsigned short int PadL = Pad[0], PadT = Pad[2];
         v4s C0 = *((v4s *) &Filter[0]);
         v4s C1 = *((v4s *) &Filter[3]);
@@ -6019,19 +6015,8 @@ void KerConv3x3Stride1_SQ8(KerConv_SQ8_T *Arg)
 		Ho_F = Max(First, Ho_F); Ho_L = Min(Last, Ho_L);
 	}
 	if (First<Last) {
-#ifdef ALT
-		unsigned int TotalInFeatures = Arg->TotalInFeatures, InFeatures = Arg->InFeatures, OutFeatures = Arg->OutFeatures;
-		for (unsigned int of=0; of<OutFeatures; of++)
-			for (unsigned int If=0; If<InFeatures; If++) {
-				signed char *in = In+W*H*If, *filter = Filter+FS*FS*(TotalInFeatures*of  + If);
-				int *out = Out+Wo*Ho*(of);
-				KerConv3x3Stride1_Body_SQ8(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadOrg);
-				if ((int)PadIn) KerConv3x3BorderStride1_SQ8(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, PadOrg);
-			}
-#else
 		KerConv3x3Stride1_Body_SQ8(In, Out, Filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadOrg);
 		if ((int)PadIn) KerConv3x3BorderStride1_SQ8(In, Out, Filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, PadOrg);
-#endif
 	}
 	gap_waitbarrier(0);
 }

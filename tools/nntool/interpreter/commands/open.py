@@ -179,7 +179,11 @@ Open a graph or state file"""
         else:
             # reset the current graph
             self._graphs[self._graph_idx] = NO_GRAPH.copy()
-        self.__open_graph(args)
+        try:
+            self.__open_graph(args)
+        except FileNotFoundError:
+            self.perror(f'{args.nnfile} not found')
+            return
         self._update_prompt()
         self.py_locals['G'] = self.G
 

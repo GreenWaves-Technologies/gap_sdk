@@ -40,7 +40,6 @@ public:
 
 private:
 
-  static void power_callback(void *__this, vp::clock_event *event);
   static void power_ctrl_sync(void *__this, bool value);
 
   vp::trace     trace;
@@ -60,14 +59,13 @@ private:
   bool power_trigger;
   bool powered_up;
 
-  vp::power::power_source idle_power;
   vp::power::power_source read_8_power;
   vp::power::power_source read_16_power;
   vp::power::power_source read_32_power;
   vp::power::power_source write_8_power;
   vp::power::power_source write_16_power;
   vp::power::power_source write_32_power;
-  vp::power::power_source leakage_power;
+  vp::power::power_source background_power;
 
   vp::clock_event *power_event;
   int64_t last_access_timestamp;
@@ -77,15 +75,6 @@ memory::memory(js::config *config)
 : vp::component(config)
 {
 
-}
-
-void memory::power_callback(void *__this, vp::clock_event *event)
-{
-  memory *_this = (memory *)__this;
-  if (_this->last_access_timestamp < _this->get_time())
-  {
-    _this->idle_power.dynamic_power_start();
-  }
 }
 
 vp::io_req_status_e memory::req(void *__this, vp::io_req *req)
@@ -142,9 +131,6 @@ vp::io_req_status_e memory::req(void *__this, vp::io_req *req)
         else if (size == 4)
           _this->read_32_power.account_energy_quantum();
       }
-
-      if (!_this->power_event->is_enqueued())
-        _this->event_enqueue(_this->power_event, 1);
     }
 
   #ifdef VP_TRACE_ACTIVE
@@ -223,16 +209,13 @@ int memory::build()
   js::config *config = get_js_config()->get("power_trigger");
   this->power_trigger = config != NULL && config->get_bool();
 
-  power.new_power_source("leakage", &leakage_power, this->get_js_config()->get("**/leakage"));
-  power.new_power_source("idle", &idle_power, this->get_js_config()->get("**/idle"));
+  power.new_power_source("leakage", &background_power, this->get_js_config()->get("**/background"));
   power.new_power_source("read_8", &read_8_power, this->get_js_config()->get("**/read_8"));
   power.new_power_source("read_16", &read_16_power, this->get_js_config()->get("**/read_16"));
   power.new_power_source("read_32", &read_32_power, this->get_js_config()->get("**/read_32"));
   power.new_power_source("write_8", &write_8_power, this->get_js_config()->get("**/write_8"));
   power.new_power_source("write_16", &write_16_power, this->get_js_config()->get("**/write_16"));
   power.new_power_source("write_32", &write_32_power, this->get_js_config()->get("**/write_32"));
-
-  power_event = this->event_new(memory::power_callback);
 
   return 0;
 }
@@ -287,8 +270,8 @@ void memory::start()
     }
   }
 
-  this->leakage_power.leakage_power_start();
-  this->idle_power.dynamic_power_start();
+  this->background_power.leakage_power_start();
+  this->background_power.dynamic_power_start();
   this->last_access_timestamp = -1;
 }
 

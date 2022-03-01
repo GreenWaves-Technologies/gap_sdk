@@ -30,7 +30,7 @@ endif
 # HYPER
 
 ifeq '$(CONFIG_HYPER)' '1'
-ifneq '$(udma/version)' ''
+ifneq '$(udma/hyper/version)' ''
 ifeq '$(TARGET_CHIP_FAMILY)' 'GAP9'
 HYPER_HAS_ASM = 1
 HYPER_HAS_OCTOSPI = 1

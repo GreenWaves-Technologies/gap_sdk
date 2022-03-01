@@ -17,7 +17,7 @@ import logging
 
 from graph.dim import Dim
 
-from .base import NNNodeRef, Parameters, SensitiveToOrder, cls_op_name, nargs
+from .base import Parameters, SensitiveToOrder, cls_op_name, nargs
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -41,13 +41,25 @@ class SSDDetectorParameters(Parameters, SensitiveToOrder):
         self.nms_config = {'using_json_config': {'INCLUDE': False, 'json_config_path': ''},
                            'using_pipeline_config': {'INCLUDE': False, 'pipeline_config_path': ''},
                            'using_params': {'INCLUDE': True, 'params': self._parameters}}
+        self.at_options.valid_options['NMS_SCORE_THRESHOLD'] = float
+        self.at_options.valid_options['NMS_IOU_THRESHOLD'] = float
+        self.nms_score_threshold = self._parameters['nms_score_threshold']
+        self.nms_iou_threshold = self._parameters['nms_iou_threshold']
+        self._output_detection_count = True
 
     def __call__(self, *args, **kwargs):
-        noderef = super(SSDDetectorParameters, self).__call__(*args, **kwargs)
-        return tuple(NNNodeRef(self, i, noderef.ref[1]) for i in range(3))
+        return super().__call__(*args, num_outputs=4 if self._output_detection_count else 3, **kwargs)
 
     def get_parameter_size(self):
         return 0
+
+    @property
+    def output_detection_count(self):
+        return self._output_detection_count
+
+    @output_detection_count.setter
+    def output_detection_count(self, val):
+        self._output_detection_count = val
 
     @property
     def can_equalize(self):
@@ -70,14 +82,6 @@ class SSDDetectorParameters(Parameters, SensitiveToOrder):
         return self._parameters['h_scale']
 
     @property
-    def nms_score_threshold(self):
-        return self._parameters['nms_score_threshold']
-
-    @nms_score_threshold.setter
-    def nms_score_threshold(self, val):
-        self._parameters['nms_score_threshold'] = val
-
-    @property
     def max_bb_before_nms(self):
         return self._parameters['max_bb_before_nms']
 
@@ -95,7 +99,19 @@ class SSDDetectorParameters(Parameters, SensitiveToOrder):
 
     @property
     def nms_iou_threshold(self):
-        return self._parameters['nms_iou_threshold']
+        return self.at_options.nms_iou_threshold
+
+    @nms_iou_threshold.setter
+    def nms_iou_threshold(self, val):
+        self.at_options.nms_iou_threshold = val
+
+    @property
+    def nms_score_threshold(self):
+        return self.at_options.nms_score_threshold
+
+    @nms_score_threshold.setter
+    def nms_score_threshold(self, val):
+        self.at_options.nms_score_threshold = val
 
     @property
     def max_detections(self):
@@ -108,18 +124,18 @@ class SSDDetectorParameters(Parameters, SensitiveToOrder):
     def get_output_size(self, in_dims):
         num_detected_boxes = self._parameters['max_detections'] * \
             self._parameters['max_classes_per_detection']
-        return [
-            Dim(shape=[num_detected_boxes, 4], is_ordered=True),
-            Dim(shape=[num_detected_boxes], is_ordered=True),
-            Dim(shape=[num_detected_boxes], is_ordered=True),
-            Dim(shape=[num_detected_boxes], is_ordered=True),
+        outputs = [
+            Dim.unnamed([num_detected_boxes, 4]),
+            Dim.unnamed([num_detected_boxes]),
+            Dim.unnamed([num_detected_boxes]),
         ]
+        if self.output_detection_count:
+            outputs.append(Dim.unnamed([1]))
+        return outputs
 
     def __str__(self):
-        return "{} SCORE_THR {:.2f} IOU_THR {:.2f}".format(
-            self.at_options,
-            self.nms_score_threshold,
-            self.nms_iou_threshold
+        return "{}".format(
+            self.at_options
         )
 
 
@@ -148,10 +164,13 @@ class NMSParameters(Parameters, SensitiveToOrder):
         self._ker_in_order = [['batch', 'spatial_dim', 'box'], [
             'batch', 'class', 'spatial_dim']]
         self._ker_out_order = [['spatial_dim', 'index']]
+        self.at_options.valid_options['NMS_SCORE_THRESHOLD'] = float
+        self.at_options.valid_options['NMS_IOU_THRESHOLD'] = float
+        self.nms_score_threshold = self._parameters['nms_score_threshold']
+        self.nms_iou_threshold = self._parameters['nms_iou_threshold']
 
     def __call__(self, *args, **kwargs):
-        noderef = super(NMSParameters, self).__call__(*args, **kwargs)
-        return tuple(NNNodeRef(self, i, noderef.ref[1]) for i in range(2))
+        return super().__call__(*args, num_outputs=2, **kwargs)
 
     def get_parameter_size(self):
         return 0
@@ -161,16 +180,20 @@ class NMSParameters(Parameters, SensitiveToOrder):
         return False
 
     @property
+    def nms_iou_threshold(self):
+        return self.at_options.nms_iou_threshold
+
+    @nms_iou_threshold.setter
+    def nms_iou_threshold(self, val):
+        self.at_options.nms_iou_threshold = val
+
+    @property
     def nms_score_threshold(self):
-        return self._parameters['nms_score_threshold']
+        return self.at_options.nms_score_threshold
 
     @nms_score_threshold.setter
     def nms_score_threshold(self, val):
-        self._parameters['nms_score_threshold'] = val
-
-    @property
-    def nms_iou_threshold(self):
-        return self._parameters['nms_iou_threshold']
+        self.at_options.nms_score_threshold = val
 
     @property
     def max_output_boxes_per_class(self):
@@ -192,8 +215,6 @@ class NMSParameters(Parameters, SensitiveToOrder):
         ]
 
     def __str__(self):
-        return "{} SCORE_THR {:.2f} IOU_THR {:.2f}".format(
-            self.at_options,
-            self.nms_score_threshold,
-            self.nms_iou_threshold
+        return "{}".format(
+            self.at_options
         )

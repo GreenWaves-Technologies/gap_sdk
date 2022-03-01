@@ -1,0 +1,28 @@
+{
+    "background": {
+        "dynamic": {
+            "type": "linear",
+            "unit": "W",
+        
+            "values": {
+                "25": {
+                    "1.2": {
+                        "any": "0.00284"
+                    }
+                }
+            }
+        },
+        "leakage": {
+            "type": "linear",
+            "unit": "W",
+        
+            "values": {
+                "25": {
+                    "1.2": {
+                        "any": "0.0011045"
+                    }
+                }
+            }
+        }
+    }
+}

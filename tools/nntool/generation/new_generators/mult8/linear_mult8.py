@@ -60,13 +60,12 @@ class LinearActSQ8Generator(GeneratorBase):
         else:
             return False
 
-        comment = f"BiasQ: {0}" + infos_comment
         infos['BIASN'] = np.int8(0)  # BiasQ
+        conv_mul_bias = filt_q.cache.get('mul_biases_q')
+        infos['PRENORM'] = np.uint8(conv_mul_bias.pre_normalization if isinstance(
+            conv_mul_bias, MultMulBiasScaleQType) else 0)
 
         if filt_q.cache.get('ne16'):
-            conv_mul_bias = filt_q.cache.get('mul_biases_q')
-            infos['PRENORM'] = np.uint8(conv_mul_bias.pre_normalization if isinstance(
-                conv_mul_bias, MultMulBiasScaleQType) else 0)
             infos['NE16_PADVAL'] = np.atleast_1d(
                 filt_q.in_qs[0].zero_point).astype(np.uint16)
             infos['NE16_WOFFSET'] = - \
@@ -76,7 +75,8 @@ class LinearActSQ8Generator(GeneratorBase):
             infos_len = 'DIM'
 
         infos_encoder = SQ8ActInfos()
-        contents = infos_encoder.gen_infos_array(infos_len, **infos)
+        contents, new_comment = infos_encoder.gen_infos_array(infos_len, **infos)
+        comment = infos_comment + new_comment
 
         cname, file_name = gen_constant(gen, pnode, fnode, INFOS)
         const_info = ConstantInfo(file_name, QType.Pow2(

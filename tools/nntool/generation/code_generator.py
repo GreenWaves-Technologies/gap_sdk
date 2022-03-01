@@ -18,15 +18,17 @@ import logging
 import numpy as np
 from bfloat16 import bfloat16
 from expressions.symbolic.kernel_codegen import BasicKernel
-from generation.new_generators import ne16
+from graph.manipulations.dimensions import add_dimensions
 from graph.types import (ConcatParameters, ConstantInputParameters,
                          InputParameters, OutputParameters, ReshapeParameters,
                          SplitParameters, TransposeParameters)
-from graph.types.lstm import LSTMParameters
-from graph.types.others import CopyParameters, QuantizeParameters
+from graph.types.base import NNEdge
+from graph.types.fusions import FusionBase
+from graph.types.others import CopyParameters, NoOPParameters, QuantizeParameters
 from graph.types.rnn import RNNBaseParameters
 from utils.node_id import NodeId
 
+from generation.gen_utils import ModelGenerationInternalError
 from generation.generator_decorators import RegisteredGeneratorsMixin
 # pylint: disable=wildcard-import,unused-wildcard-import
 from generation.generators import *
@@ -117,6 +119,17 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
     def __init__(self, G, naming_convension, opts=None):
         super().__init__()
         self.G = G
+        # this generates a view of the graph with all nodes that are not generated removed
+        self.hidden_graph = G.with_hidden_nodes(
+            lambda node: node.no_model_code,
+            edge_class=NNEdge
+        )
+        self.sorted_nodes = sorted(
+            self.hidden_graph.nodes(), key=lambda node: node.step_idx)
+        naming_convension.G = self.hidden_graph
+        # the edge parameters are generated from the graph with the hidden nodes but the dimensions
+        # are not updated. They are read from the nodes
+        add_dimensions(self.hidden_graph, update_graph=False)
         self.naming_convension = naming_convension
         self.name_cache = NameCache()
         self.bindings = []
@@ -133,13 +146,21 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
             self.opts.update(opts)
         if self.opts['include_project_header']:
             self.include_files.append(self.project_name + '.h')
-        has_vcd = False
-        for step in G.graph_state.steps:
-            node = step['node']
-            if node.at_options.vcd_trace_on is not None:
-                has_vcd = True
-        if has_vcd:
+        if any(step and step['node'].at_options.vcd_trace_on is not None
+               for step in G.graph_state.steps):
             self.include_files.append('hal/gvsoc/gvsoc.h')
+
+    @property
+    def output_nodes(self):
+        for node in sorted(self.hidden_graph.outputs(), key=lambda node: node.step_idx):
+            if isinstance(node, OutputParameters):
+                yield node
+
+    @property
+    def input_nodes(self):
+        for node in sorted(self.hidden_graph.inputs(), key=lambda node: node.step_idx):
+            if isinstance(node, InputParameters):
+                yield node
 
     @property
     def project_name(self):
@@ -160,8 +181,9 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
     def get_node_name(self, params, target):
         try:
             return self.name_cache[params][target]
-        except:
-            raise ValueError(f"Name Cache: {params.name} {target} not found")
+        except KeyError as ex:
+            raise ModelGenerationInternalError(
+                f"Name Cache: {params.name} {target} not found") from ex
 
     def memory_device_generator(self, indent=0):
         self.opts['memory_devices'].set_l2_ram_ext_managed(
@@ -200,66 +222,36 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
         return str(code_block)
 
     @staticmethod
-    def real_up_connection(G, eparams, set_real=False):
-        while isinstance(eparams.creating_node, ReshapeParameters) or \
-                (isinstance(eparams.creating_node, TransposeParameters) and eparams.creating_node.does_nothing()):
-            set_real = True
-            eparams = G.in_edges(eparams.creating_node.name)[0].params
-        return eparams, set_real
-
-    @staticmethod
-    def real_down_connection(G, eparams):
+    def get_output(G, eparams):
         oedges = G.indexed_out_edges(eparams.creating_node.name)[
             eparams.creating_node_idx]
-        while any(isinstance(oedge.to_node, ReshapeParameters) or \
-                (isinstance(oedge.to_node, TransposeParameters) and oedge.to_node.does_nothing()) for oedge in oedges):
-            if len(oedges) > 1:
-                raise NotImplementedError('multiple edges on ungenerated node')
-            oedges = G.out_edges(oedges[0].to_node.name)
+        if len(oedges) != 1 or not isinstance(oedges[0].to_node, OutputParameters):
+            return None
         return oedges[0]
 
     def local_generator(self, indent=0):
-        edges = set(edge.params for edge in self.G.edges())
+        edges = set(edge.params for edge in self.hidden_graph.edges())
         sorted_edges = list(edges)
         sorted_edges.sort(key=lambda eparams: eparams.creating_step)
         for eparams in sorted_edges:
-            # check if the following real node is an output
-            if isinstance(eparams.creating_node, ConcatParameters):
-                rout_edge = self.real_down_connection(self.G, eparams)
-                if isinstance(rout_edge.to_node, OutputParameters):
-                    rout_eparams = rout_edge.params
-                    cname = self.naming_convension.get_edge_name(rout_eparams.creating_node,
-                                                                 rout_eparams.creating_step,
-                                                                 rout_eparams.edge_type,
-                                                                 rout_eparams.edge_order)
-                    LOG.info("edge from step %s %s is not used and is replaced with edge to step %s:%s %s cname: %s",
-                             eparams.creating_node.step_idx, eparams.creating_node.name,
-                             rout_eparams.creating_node.name, rout_eparams.creating_node.step_idx,
-                             rout_eparams.creating_step, cname)
-                    self.name_cache.set(eparams, 'edge', cname)
-                    continue
+            if eparams.edge_type == "out":
+                # The edge was marked as an output so find the real output edge
+                oedges = self.hidden_graph.indexed_out_edges(eparams.creating_node.name)[
+                    eparams.creating_node_idx]
+                oedges = list(filter(lambda edge: isinstance(
+                    edge.to_node, OutputParameters), oedges))
+                if not oedges:
+                    raise ModelGenerationInternalError(
+                        f'output edge created by {eparams.creating_node.name}:{eparams.creating_node_idx} '
+                        f'is not connected to an output - {" ".join(edge.to_node.name for edge in oedges)}')
+                if len(oedges) > 1:
+                    raise ModelGenerationInternalError(
+                        f'output edge created by {eparams.creating_node.name}:{eparams.creating_node_idx} '
+                        f'is connected to more than one output - {" ".join(edge.to_node.name for edge in oedges)}')
 
-            rin_eparams, set_real = self.real_up_connection(self.G, eparams)
-            if rin_eparams.edge_type == "out":
-                # The edge was marked as an output so find the real edge down
-                rin_eparams = self.real_down_connection(
-                    self.G, rin_eparams).params
+                rin_eparams = oedges[0].params
                 self.name_cache.set(eparams, 'edge', rin_eparams.name)
                 continue
-            else:
-                if set_real:
-                    # Code will not be generated for reshape or empty transpose so the input to the
-                    # following node is the input to this node
-                    cname = self.naming_convension.get_edge_name(rin_eparams.creating_node,
-                                                                 rin_eparams.creating_step,
-                                                                 rin_eparams.edge_type,
-                                                                 rin_eparams.edge_order)
-                    LOG.info("edge from step %s %s is not used and is replaced with edge from step %s:%s %s cname: %s",
-                             eparams.creating_node.step_idx, eparams.creating_node.name,
-                             rin_eparams.creating_node.name, rin_eparams.creating_node.step_idx,
-                             rin_eparams.creating_step, cname)
-                    self.name_cache.set(eparams, 'edge', cname)
-                    continue
 
             cname = self.naming_convension.get_edge_name(eparams.creating_node,
                                                          eparams.creating_step,
@@ -304,7 +296,7 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
         return str(code_block)
 
     def stack_generator(self, indent=0):
-        edges = set(edge.params for edge in self.G.edges())
+        edges = set(edge.params for edge in self.hidden_graph.edges())
         sorted_edges = list(edges)
         sorted_edges.sort(key=lambda eparams: eparams.creating_step)
         concat_edges = list([eparams for eparams in sorted_edges if isinstance(
@@ -313,15 +305,15 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
             node = eparams.creating_node
             cname_out = self.name_cache[eparams]['edge']
             in_edge_names = [self.name_cache[edge.params]['edge']
-                             for edge in self.G.indexed_in_edges(node.name)]
+                             for edge in self.hidden_graph.indexed_in_edges(node.name)]
             self.stacked_tensors.append(TensorStack(cname_out, in_edge_names))
 
-        split_nodes = [node for node in self.G.nodes(
+        split_nodes = [node for node in self.hidden_graph.nodes(
         ) if isinstance(node, SplitParameters)]
         for split_node in split_nodes:
-            eparams_in = self.G.in_edges(split_node.name)[0].params
+            eparams_in = self.hidden_graph.in_edges(split_node.name)[0].params
             eparams_out = [
-                edge_bundle[0].params for edge_bundle in self.G.indexed_out_edges(split_node.name)]
+                edge_bundle[0].params for edge_bundle in self.hidden_graph.indexed_out_edges(split_node.name)]
             cname_in = self.name_cache[eparams_in]['edge']
             cnames_out = [self.name_cache[eparams]['edge']
                           for eparams in eparams_out]
@@ -359,22 +351,27 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
 
     def generate_outputs(self):
         outputs = set()
-        count_outputs = 0
-        for node in self.G.output_nodes():
+        for node in self.output_nodes:
             qrec = self.G.quantization[NodeId(node)]
-            for edge in self.G.in_edges(node.name):
-                if isinstance(edge.from_node, (LSTMParameters, )) and count_outputs:
+            for edge in self.hidden_graph.in_edges(node.name):
+                if isinstance(edge.from_node, (RNNBaseParameters, )) and edge.from_idx > 0:
                     continue
-                eparams, _ = self.real_up_connection(self.G, edge.params)
+                eparams = edge.params
                 if eparams in outputs:
                     continue
                 eparams.edge_type = "out"
                 outputs.add(eparams)
                 self.execute_phase("outputs", node, qrec, edge)
-                count_outputs += 1
+
+    def sorted_nodes_and_fusions(self):
+        for node in self.sorted_nodes:
+            if isinstance(node, FusionBase) and node.quantize_internals:
+                for fnode in node.contained_nodes():
+                    yield node, fnode
+            yield node, None
 
     def generate_constants(self):
-        for _, pnode, _, fnode in self.G.nodes_iterator():
+        for pnode, fnode in self.sorted_nodes_and_fusions():
             anode = pnode if not fnode else fnode
             qrec = self.G.quantization.get(NodeId(pnode, fnode))
             if not self.new_execute_phase("globals", anode, qrec, pnode, fnode):
@@ -382,9 +379,9 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
 
     def generate_inputs(self):
         inputs = set()
-        for node in self.G.input_nodes():
+        for node in self.input_nodes:
             qrec = self.G.quantization[NodeId(node)]
-            for edge in self.G.out_edges(node.name):
+            for edge in self.hidden_graph.out_edges(node.name):
                 eparams = edge.params
                 if eparams in inputs:
                     continue
@@ -474,22 +471,22 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
 
     def kernel_generator(self, indent=0):
         code_block = CodeBlock(starting_indent=indent)
-        for _, node, _, _ in self.G.nodes_iterator(yield_fusions=False):
+        for node in self.sorted_nodes:
             name = node.name
             cname = self.get_node_cname(node)
             if node.at_options.vcd_trace_on is not None:
                 self.add_vcd_trace_binding(cname, node.at_options.vcd_trace_on)
             self.name_cache.set(node, 'node', cname)
-            in_eparams = self.G.get_in_params(name)
-            out_eparams = self.G.get_out_params(name)
+            in_eparams = [edge.params if edge else None
+                          for edge in self.hidden_graph.indexed_in_edges(name)]
+            out_eparams = [edge_bundle[0].params if edge_bundle else None
+                           for edge_bundle in self.hidden_graph.indexed_out_edges(name)]
             try:
                 qrec = self.G.quantization[NodeId(node)]
             except KeyError as err:
                 LOG.error("Quantization record not found for node %s", node.name)
                 raise err
-            if isinstance(node, ReshapeParameters):
-                continue
-            if isinstance(node, TransposeParameters) and node.does_nothing():
+            if node.no_model_code:
                 continue
             elif isinstance(node, (InputParameters, OutputParameters)):
                 continue
@@ -507,7 +504,8 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
                                        in_eparams, out_eparams, cname)
                 if not (self.new_execute_phase("kernels", node, qrec, in_eparams, out_eparams, cname) or
                         self.execute_phase("kernels", node, qrec, in_eparams, out_eparams, cname)):
-                    raise NotImplementedError(f"Don't know how to generate kernel for parameter type {node.name} {node.CLS_OP_NAME}. "
+                    raise NotImplementedError("Don't know how to generate kernel for parameter type "
+                                              f"{node.name} {node.CLS_OP_NAME}. "
                                               "Perhaps you need to run fusions -a expression_matcher.")
 
             # if self.opts['generate_checksums']:
@@ -527,16 +525,16 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
                                 before=True))
 
     def add_checksum_binding(self, cname, name, step_idx, eparams, before):
-        node = self.G[name]
+        node = self.hidden_graph[name]
         if before:
             size = node.in_dims[0].size()
         else:
             size = node.out_dims[0].size()
         self.bindings.append(
             FunctionBindingList(cname,
-                                checksum_func(self.G, name),
+                                checksum_func(self.hidden_graph, name),
                                 Imm(step_idx),
-                                Imm(calc_value_checksum(self.G, name)),
+                                Imm(calc_value_checksum(self.hidden_graph, name)),
                                 GArgEdge(eparams[0]),
                                 Imm(size),
                                 before=before)
@@ -578,9 +576,7 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
 
     def header_generator(self, indent=0):
         code_block = CodeBlock(starting_indent=indent)
-        for _, node, _, fnode in self.G.nodes_iterator():
-            if fnode:
-                continue
+        for node in self.sorted_nodes:
             cname = self.name_cache[node]['node']
             qrec = self.G.quantization[NodeId(node)]
             code_block.comment(cname)
@@ -687,7 +683,7 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
     def generate_main_appl_inout_def(self, test_inputs=None, test_outputs=None, indent=0):
         code_block = CodeBlock(starting_indent=indent)
         code_block.write("/* Inputs */")
-        for i, node in enumerate(self.G.input_nodes()):
+        for i, node in enumerate(self.input_nodes):
             if node.at_options.allocate or node.at_options.extern_input_pointer:
                 continue
             nodeq = self.G.quantization[NodeId(node, None)].out_qs[0]
@@ -703,7 +699,7 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
                 code_block.write(
                     f"L2_MEM {CTYPE[nodeq.ctype]} {node.name.capitalize()}[{node.out_dims[0].size()}];")
         code_block.write("/* Outputs */")
-        for node in self.G.output_nodes():
+        for node in self.output_nodes:
             if node.at_options.allocate:
                 continue
             nodeq = self.G.quantization[NodeId(node, None)].out_qs[0]
@@ -711,7 +707,7 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
                 f"L2_MEM {CTYPE[nodeq.ctype]} {node.name.capitalize()}[{node.out_dims[0].size()}];")
 
         if test_outputs:
-            for out_n, outp in zip(self.G.output_nodes(), test_outputs):
+            for out_n, outp in zip(self.output_nodes, test_outputs):
                 code_block.write(
                     'L2_MEM {} {}_gt[] = {{{}}};',
                     dtype2ctype(outp),
@@ -722,15 +718,13 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
 
     def gen_inout_list(self):
         inout_str = ""
-        for node in self.G.input_nodes():
+        for node in self.input_nodes:
             if node.at_options.allocate or node.at_options.extern_input_pointer:
                 continue
             inout_str += f"{node.name.capitalize()}, "
-        rnn_present = any([isinstance(node, RNNBaseParameters)
-                           for node in self.G.nodes()])
-        if rnn_present:
+        if self.hidden_graph.nodes(node_classes=RNNBaseParameters):
             inout_str += "1, "
-        for node in self.G.output_nodes():
+        for node in self.output_nodes:
             if node.at_options.allocate:
                 continue
             inout_str += f"{node.name.capitalize()}, "
@@ -739,7 +733,7 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
     def generate_output_check(self, tol=0.0, indent=0):
         code = CodeBlock(starting_indent=indent)
         code.write('int errors;')
-        for idx, out_node in enumerate(self.G.output_nodes()):
+        for out_node in self.output_nodes:
             out_sz = out_node.out_dims[0].size()
             nodeq = self.G.quantization[NodeId(out_node, None)].out_qs[0]
             dtype = "%f" if nodeq.is_floating else "%d"
@@ -753,8 +747,9 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
                     f"{dtype2ctype(nodeq)} diff = {out_node.name.capitalize()}[j] - "
                     f"{out_node.name.capitalize()}_gt[j];")
                 code.write("diff = (diff>0)?diff:(-diff);")
-                code.write(f"if (diff > max_diff) max_diff = diff;")
-                code.write(f'if (diff > {nodeq.quantize(np.array(tol)).item()}) {{')
+                code.write("if (diff > max_diff) max_diff = diff;")
+                code.write(
+                    f'if (diff > {nodeq.quantize(np.array(tol)).item()}) {{')
             else:
                 code.write(
                     f'if ({out_node.name.capitalize()}[j] != {out_node.name.capitalize()}_gt[j]) {{')

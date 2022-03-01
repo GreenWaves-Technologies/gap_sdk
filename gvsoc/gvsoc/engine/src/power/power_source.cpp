@@ -30,15 +30,15 @@ void vp::power::power_source::setup(double temp, double volt, double freq)
     // dynamic background power or leakage if they are defined, which is the case if they are not -1
     if (this->quantum != -1)
     {
-        this->quantum = this->table->get(temp, volt, freq);
+        this->quantum = this->dyn_table->get(temp, volt, freq);
     }
     if (this->background_power != -1)
     {
-        this->background_power = this->table->get(temp, volt, freq);
+        this->background_power = this->dyn_table->get(temp, volt, freq);
     }
     if (this->leakage != -1)
     {
-        this->leakage = this->table->get(temp, volt, freq);
+        this->leakage = this->leakage_table->get(temp, volt, freq);
     }
 }
 
@@ -130,7 +130,14 @@ int vp::power::power_source::init(component *top, std::string name, js::config *
                     return -1;
                 }
 
-                this->table = new Linear_table(values);
+                if (is_leakage)
+                {
+                    this->leakage_table = new Linear_table(values);
+                }
+                else
+                {
+                    this->dyn_table = new Linear_table(values);
+                }
             }
             else
             {
@@ -146,4 +153,45 @@ int vp::power::power_source::init(component *top, std::string name, js::config *
     }
 
     return 0;  
+}
+
+
+void vp::power::power_source::check()
+{
+    bool leakage_power_is_on = this->is_on && this->is_leakage_power_started;
+    bool dynamic_power_is_on = this->is_on && this->is_dynamic_power_on && this->is_dynamic_power_started;
+
+    if (this->dynamic_power_is_on_sync != dynamic_power_is_on)
+    {
+        if (this->background_power)
+        {
+            if (dynamic_power_is_on)
+            {
+                this->trace->inc_dynamic_power(this->background_power);
+            }
+            else
+            {
+                this->trace->inc_dynamic_power(-this->background_power);
+            }
+        }
+
+        this->dynamic_power_is_on_sync = dynamic_power_is_on;
+    }
+
+    if (this->leakage_power_is_on_sync != leakage_power_is_on)
+    {
+        if (this->leakage)
+        {
+            if (leakage_power_is_on)
+            {
+                this->trace->inc_leakage_power(this->leakage);
+            }
+            else
+            {
+                this->trace->inc_leakage_power(-this->leakage);
+            }
+        }
+
+        this->leakage_power_is_on_sync = leakage_power_is_on;
+    }
 }

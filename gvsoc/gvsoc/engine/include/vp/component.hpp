@@ -397,6 +397,7 @@ namespace vp {
   {
 
     friend class component_clock;
+    friend class vp::power::component_power;
 
   public:
     component(js::config *config);
@@ -410,6 +411,7 @@ namespace vp {
     virtual void quit(int status) {}
     virtual void pre_reset() {}
     virtual void reset(bool active) {}
+    virtual void power_supply_set(int state) {}
     virtual void load() {}
     virtual void elab();
     virtual void run() {}
@@ -567,6 +569,14 @@ namespace vp {
   };
 
   vp::component *__gv_create(std::string config_path, struct gv_conf *gv_conf);
+
+  class top
+  {
+  public:
+      component *top_instance;
+      power::engine *power_engine;
+  private:
+  };
 
 };  
 

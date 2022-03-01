@@ -1,4 +1,4 @@
-# Copyright (C) 2020  GreenWaves Technologies, SAS
+# Copyright (C) 2020, 2022  GreenWaves Technologies, SAS
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -15,9 +15,16 @@
 
 from itertools import zip_longest
 
-from collections import OrderedDict, deque
 from collections.abc import Iterable, Mapping
-from typing import KeysView, Union, Sequence
+from typing import Optional, Set, Tuple, Union, Sequence
+
+
+def is_iterable(x):
+    try:
+        iter(x)  # @IgnoreException
+    except TypeError:
+        return False
+    return True
 
 
 class GraphError(Exception):
@@ -46,8 +53,12 @@ class Node():
     '''Node class to inherit for nodes'''
 
     def __init__(self, name: str, *args, **kwargs):
-        super(Node, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._name = name
+
+    @property
+    def _noderef_class(self):
+        return NodeRef
 
     @property
     def name(self):
@@ -59,17 +70,71 @@ class Node():
         '''Node name - must not be changed once node is in graph'''
         self._name = name
 
+    def __call__(self, *args, num_outputs=1):
+        inputs = []
+        fragments = set()
+        for arg in args:
+            if arg is not None and not isinstance(arg, self._noderef_class):
+                raise ValueError(
+                    f"expecting {self._noderef_class.__name__} or None")
+            inputs.append(arg.ref[0] if arg else None)
+            fragments.add(arg.ref[1] if arg else None)
+        fragment = next(
+            iter([frag for frag in fragments if frag is not None]), None)
+        if fragment is None:
+            raise ValueError("No inputs")
+        other_fragments = fragments - {fragment}
+
+        for other in other_fragments:
+            if hasattr(fragment, 'merge'):
+                if other is not None:
+                    fragment.merge(other)
+            else:
+                raise ValueError('graph has no merge method')
+
+        for to_idx, from_tuple in enumerate(inputs):
+            if from_tuple is not None:
+                from_node, from_idx = from_tuple
+                fragment.add_edge(fragment._edge_class(from_node=from_node,
+                                                       from_idx=from_idx,
+                                                       to_node=self,
+                                                       to_idx=to_idx))
+        if num_outputs == 1:
+            return self._noderef_class(fragment, self, 0)
+        return tuple(self._noderef_class(fragment, self, idx) for idx in range(num_outputs))
+
     def __str__(self):
         return self._name
 
 
 class NodeRef():
-    def __init__(self, node) -> None:
+    def __init__(self, G: "GraphView", node: Node, idx: int) -> None:
+        self._G = G
         self._node = node
+        self._idx = idx
 
     @property
-    def node(self):
+    def G(self) -> "GraphView":
+        return self._G
+
+    @property
+    def ref(self) -> Tuple[Tuple[Node, int], "GraphView"]:
+        return ((self._node, self._idx), self._G)
+
+    @property
+    def node(self) -> Node:
         return self._node
+
+    def __eq__(self, o: object) -> bool:
+        if isinstance(o, NodeRef):
+            return super().__eq__(o)
+        return self._node.__eq__(o)
+
+    def __hash__(self) -> int:
+        return self._node.__hash__()
+
+    def __call__(self, *args, **kwargs):
+        raise ValueError("this is already a reference")
 
 
 class MatchNode(Node):
@@ -136,6 +201,12 @@ class Edge():
             raise ValueError('expecting int for to_idx')
         self._link = (from_node, from_idx, to_node, to_idx)
 
+    @classmethod
+    def from_src_to_dest(cls, from_edge, to_edge):
+        return cls(
+            from_node=from_edge.from_node, from_idx=from_edge.from_idx,
+            to_node=to_edge.to_node, to_idx=to_edge.to_idx)
+
     @property
     def from_node(self):
         '''Edge start node'''
@@ -194,17 +265,52 @@ class Edge():
 
 class GraphView(Mapping):
 
-    def __init__(self):
-        self._out_edges = OrderedDict()
-        self._in_edges = OrderedDict()
-        self._nodes = OrderedDict()
-        self._hidden = False
-        self._hidden_nodes = []
+    def __init__(self, **attr):
+        self._out_edges = {}
+        self._in_edges = {}
+        self._nodes = {}
+        self._attr = attr
 
     @classmethod
     # pylint: disable=unused-argument
     def clone_factory(cls, G):
         return cls()
+
+    def with_hidden_nodes(self, hidden_fn, edge_class=None):
+        if edge_class is None:
+            edge_class = Edge
+
+        def real_up_node(G, edge):
+            if hidden_fn(edge.from_node):
+                edges = G.in_edges(edge.from_node)
+                assert len(edges) == 1
+                return real_up_node(G, edges[0])
+            return edge.from_node, edge.from_idx
+
+        def copy_node(G, new_graph, node):
+            for edge in self.in_edges(node):
+                from_node, from_idx = real_up_node(G, edge)
+                new_edge = edge_class(from_node=from_node, from_idx=from_idx,
+                                      to_node=node, to_idx=edge.to_idx)
+                if new_graph.has_edge(new_edge):
+                    continue
+                new_graph.add_edge(new_edge)
+                copy_node(G, new_graph, from_node)
+
+        new_graph = self.__class__()
+        setattr(new_graph, '_attr', self._attr)
+        for node in self.outputs():
+            copy_node(self, new_graph, node)
+        return new_graph
+
+    def has_edge(self, edge):
+        edges = self._in_edges.get(edge.to_node.name)
+        if not edges:
+            return False
+        edges = edges.get(edge.from_node.name)
+        if not edges:
+            return False
+        return edge in edges
 
     def clear(self):
         '''Clears the graph view'''
@@ -221,6 +327,12 @@ class GraphView(Mapping):
         clone._nodes = self._nodes.copy()
         return clone
 
+    def merge(self, other: 'Graph'):
+        if self != other:
+            for edge in other.edges:
+                self.add_edge(edge)
+        return self
+
     def num_nodes(self):
         '''Number of nodes len(GraphView) also works'''
         return len(self)
@@ -232,14 +344,8 @@ class GraphView(Mapping):
                    for edge in edge_list)
 
     def __add_in_edge(self, edge: Edge, update=False):
-        edges = self._in_edges.get(edge.to_node.name)
-        if not edges:
-            edges = {}
-            self._in_edges[edge.to_node.name] = edges
-        edge_list = edges.get(edge.from_node.name)
-        if edge_list is None:
-            edge_list = []
-            edges[edge.from_node.name] = edge_list
+        edges = self._in_edges.setdefault(edge.to_node.name, {})
+        edge_list = edges.setdefault(edge.from_node.name, [])
         edge_idx = next((i for i, x in enumerate(edge_list) if x == edge), -1)
         if edge_idx >= 0:
             if update:
@@ -255,14 +361,8 @@ class GraphView(Mapping):
             edge_list.append(edge)
 
     def __add_out_edge(self, edge: Edge, update=False):
-        edges = self._out_edges.get(edge.from_node.name)
-        if not edges:
-            edges = {}
-            self._out_edges[edge.from_node.name] = edges
-        edge_list = edges.get(edge.to_node.name)
-        if edge_list is None:
-            edge_list = []
-            edges[edge.to_node.name] = edge_list
+        edges = self._out_edges.setdefault(edge.from_node.name, {})
+        edge_list = edges.setdefault(edge.to_node.name, [])
         edge_idx = next((i for i, x in enumerate(edge_list) if x == edge), -1)
         if edge_idx >= 0:
             if update:
@@ -287,11 +387,6 @@ class GraphView(Mapping):
 
     def add_edge(self, edge: Edge):
         '''Adds an edge to the graph'''
-        hidden_state = self._hidden
-        if hidden_state:
-            self._hidden = False
-        if self._hidden_nodes:
-            raise ValueError('cannot modify graph when nodes are hidden')
         if isinstance(edge.from_node, str):
             edge = edge.clone(from_node=self._nodes[edge.from_node])
         elif edge.from_node.name not in self._nodes:
@@ -304,13 +399,9 @@ class GraphView(Mapping):
             self._nodes[edge.to_node.name] = edge.to_node
         self.__add_in_edge(edge)
         self.__add_out_edge(edge)
-        if hidden_state:
-            self._hidden = True
 
     def node(self, node_name):
         '''Find a node by name. GraphView[node_name] also works'''
-        if self._hidden and any(node_name == node.name for node in self._hidden_nodes):
-            raise IndexError(f'{node_name} is hidden')
         return self[node_name]
 
     def insert_node(self, node_to_insert, from_node_name,
@@ -318,9 +409,6 @@ class GraphView(Mapping):
                     node_input_idx=0, node_output_idx=0,
                     edge_class=None):
         '''Inserts a node between two existing nodes'''
-        hidden_state = self._hidden
-        if hidden_state:
-            self._hidden = False
         if edge_class is None:
             edge_class = Edge
         node_to_insert = resolve_node(node_to_insert)
@@ -333,8 +421,6 @@ class GraphView(Mapping):
                                  from_idx=from_idx, to_idx=node_input_idx))
         self.add_edge(edge_class(node_to_insert, to_node_name,
                                  from_idx=node_output_idx, to_idx=to_idx))
-        if hidden_state:
-            self._hidden = True
 
     def edge(self, from_node_name: str, to_node_name: str, from_idx: int = 0, to_idx: int = 0):
         '''Finds first edge between two nodes - WARNING - probably not good in weird situation
@@ -398,7 +484,8 @@ class GraphView(Mapping):
     def nodes(self, node_classes=None, sort=False):
         '''All the nodes in the graph. GraphView.values() also works.'''
         if node_classes is not None:
-            nodes = [node for node in self._nodes.values() if isinstance(node, node_classes)]
+            nodes = [node for node in self._nodes.values(
+            ) if isinstance(node, node_classes)]
         else:
             nodes = list(self._nodes.values())
         if sort:
@@ -451,34 +538,48 @@ class GraphView(Mapping):
             edge.to_node for edge in self.out_edges(node_or_node_name))
         return list(connected_nodes)
 
-    def is_vertex_cut(self, node_set, node=None, visited=None):
-        if visited is None:
-            visited = set()
-        if node is None:
-            inputs = set(self.inputs())
-            # choose one input node (or successor) that is not in the node_set
-            start_node = None
-            while inputs:
-                node = inputs.pop()
-                # if the input node is actually in the set then move past it
-                # this ensures that if the node_set is at the start of the graph
-                # and does not divide the graph it is not reported as a cut
-                if node not in node_set:
-                    start_node = node
-                    break
-                inputs.update(edge.to_node for edge in self.out_edges(node))
-            self.is_vertex_cut(node_set, node=start_node, visited=visited)
-            return len(visited) < (len(self) - len(node_set))
-        # undirected dfs
+    def _old_undirected_dfs(self, node, stop_at, pass_at, visited):
+        if node in stop_at or node in visited:
+            return
+        if pass_at and node not in pass_at:
+            return
         visited.add(node)
-        for edge in self.out_edges(node):
-            if edge.to_node in visited | node_set:
-                continue
-            self.is_vertex_cut(node_set, node=edge.to_node, visited=visited)
+        yield node
         for edge in self.in_edges(node):
-            if edge.from_node in visited | node_set:
-                continue
-            self.is_vertex_cut(node_set, node=edge.from_node, visited=visited)
+            yield from self._old_undirected_dfs(edge.from_node, stop_at, pass_at, visited)
+        for edge in self.out_edges(node):
+            yield from self._old_undirected_dfs(edge.to_node, stop_at, pass_at, visited)
+
+    def old_undirected_dfs(self, stop_at=None, start_at=None, pass_at=None):
+        if start_at is None:
+            start_at = list(self.inputs())
+        elif is_iterable(start_at):
+            start_at = list(start_at)
+        else:
+            start_at = [start_at]
+        if stop_at is None:
+            stop_at = set()
+        elif not is_iterable(stop_at):
+            stop_at = {stop_at}
+        else:
+            stop_at = set(stop_at)
+        if pass_at is None:
+            pass_at = set()
+        elif not is_iterable(pass_at):
+            pass_at = {stop_at}
+        else:
+            pass_at = set(pass_at)
+
+        visited = set()
+        while start_at:
+            yield from self._old_undirected_dfs(start_at.pop(0), stop_at, pass_at, visited)
+
+    def is_vertex_cut(self, node_set):
+        start_at = next(
+            iter([node for node in self.nodes() if node not in node_set]))
+        visited = list(self.old_undirected_dfs(
+            start_at=start_at, stop_at=node_set))
+        return len(visited) < (len(self) - len(node_set))
 
     def nodes_between_in(self, node_from, node_to, node_set, start=True):
         """Check that the only nodes between from and to are in node set"""
@@ -512,25 +613,38 @@ class GraphView(Mapping):
                                    visited=visited, path=path + [edge.to_node])
         return visited
 
-    def nodes_below(self, node, visited=None):
+    def paths_between(self, node_from, node_to, path=None, topo=None):
+        if topo is None:
+            topo = {node: idx for idx, node in enumerate(self.topological_sort())}
+            path = []
+        if node_from == node_to:
+            return path
+        if topo[node_from] > topo[node_to]:
+            return None
+        found_paths = []
+        for edge in self.in_edges(node_to):
+            up_path = self.paths_between(node_from, edge.from_node, path=[edge] + path, topo=topo)
+            if up_path is None:
+                continue
+            found_paths.append(up_path)
+        if not found_paths:
+            return None
+        if len(found_paths) == 1:
+            return found_paths[0]
+        return found_paths
+
+    def nodes_below(self, node):
         """Return nodes below node not including node"""
-        if visited is None:
-            node = resolve_node_or_str(node, G=self)
-            visited = set()
-        for edge in self.out_edges(node):
-            visited.add(edge.to_node)
-            self.nodes_below(edge.to_node, visited=visited)
-        return visited
+        nodes_below = set(self.directed_dfs(node))
+        nodes_above = set(self.undirected_dfs(
+            node, start_up=True, stop_down_at=nodes_below))
+        return tuple(self.undirected_dfs(node, stop_up_at=nodes_above))
 
     def nodes_above(self, node, visited=None):
         """Return nodes above node not including node"""
-        if visited is None:
-            node = resolve_node_or_str(node, G=self)
-            visited = set()
-        for edge in self.in_edges(node):
-            visited.add(edge.from_node)
-            self.nodes_above(edge.from_node, visited=visited)
-        return visited
+        nodes_above = set(self.directed_dfs(node, go_up=True))
+        nodes_below = set(self.undirected_dfs(node, stop_up_at=nodes_above))
+        return tuple(self.undirected_dfs(node, stop_down_at=nodes_below, start_up=True))
 
     def nodes_below_are_class(self, node, classes, visited=None):
         """Check all nodes below are in classes"""
@@ -545,6 +659,169 @@ class GraphView(Mapping):
             if not self.nodes_below_are_class(edge.to_node, classes, visited=visited):
                 return False
         return True
+
+    def directed_dfs(self,
+                     node_or_name: Union[str, Node],
+                     stop_at: Optional[Set[Node]] = None,
+                     go_up: bool = False,
+                     yield_start_node=False,
+                     visited=None):
+        """Yields all nodes above or below this node searched directed. This is almost a dfs
+        since it yields in order going down the graph rather than bottom up
+
+        Args:
+            node_or_name (Union[str, Node]): Node or node name to start at
+            stop_at (Optional[Set[Node]], optional): Stop at this set of nodes. Defaults to None.
+            go_up (bool, optional): Go in an upward direction or downwards if False. Defaults to False.
+
+        Yields:
+            Node: Nodes visited
+        """
+        node = resolve_node_or_str(node_or_name, G=self)
+        if visited is None:
+            visited = {node}
+            started = False
+            if stop_at is None:
+                stop_at = {}
+        else:
+            started = True
+        if node in stop_at:
+            return
+        if started or yield_start_node:
+            yield node
+        if not go_up:
+            for edge in self.out_edges(node.name):
+                if edge.to_node in visited:
+                    continue
+                visited.add(edge.to_node)
+                yield from self.directed_dfs(edge.to_node, stop_at=stop_at, go_up=go_up, visited=visited)
+        if go_up:
+            for edge in self.in_edges(node.name):
+                if edge.from_node in visited:
+                    continue
+                visited.add(edge.from_node)
+                yield from self.directed_dfs(edge.from_node, stop_at=stop_at, go_up=go_up, visited=visited)
+
+    def connected_groups(self):
+        nodes = set(self.nodes())
+        groups = []
+        while nodes:
+            start = nodes.pop()
+            group = set(self.undirected_dfs(start))|set(self.undirected_dfs(start, start_up=True))|{start}
+            groups.append(group)
+            nodes -= group
+        return groups
+
+    def undirected_dfs(self,
+                       node_or_name: Union[str, Node],
+                       stop_at: Optional[Set[Node]] = None,
+                       stop_down_at: Optional[Set[Node]] = None,
+                       stop_up_at: Optional[Set[Node]] = None,
+                       start_up: bool = False,
+                       yield_start_node: bool = False,
+                       yield_stop_node: bool = False,
+                       visited=None):
+        """Yields all nodes above or below this node searched undirected. This is almost a dfs
+        since it yields in order going down the graph rather than bottom up. It also has a few modes
+        where it is edge direction sensitive for stopping
+
+        Args:
+            node_or_name (Union[str, Node]): Node or node name to start at
+            stop_at (Optional[Set[Node]], optional): Stop at this set of nodes. Defaults to None.
+            stop_down_at (Optional[Set[Node]], optional): Stop at this set of nodes going down. Defaults to None.
+            stop_up_at (Optional[Set[Node]], optional): Stop at this set of nodes going up. Defaults to None.
+            start_up (bool, optional): Start in an upward direction or downwards if False. Defaults to False.
+
+        Yields:
+            Node: Nodes visited
+        """
+        node = resolve_node_or_str(node_or_name, G=self)
+        if visited is None:
+            visited = {node}
+            started = False
+            if stop_at is None:
+                stop_at = {}
+            if stop_down_at is None:
+                stop_down_at = {}
+            if stop_up_at is None:
+                stop_up_at = {}
+        else:
+            started = True
+        if node in stop_at:
+            if yield_stop_node:
+                yield node
+            return
+        if started or yield_start_node:
+            yield node
+        if not start_up or started:
+            for edge in self.out_edges(node.name):
+                if edge.to_node in visited or edge.to_node in stop_down_at:
+                    continue
+                visited.add(edge.to_node)
+                yield from self.undirected_dfs(edge.to_node, stop_at=stop_at, stop_down_at=stop_down_at,
+                                               stop_up_at=stop_up_at, visited=visited)
+        if start_up or started:
+            for edge in self.in_edges(node.name):
+                if edge.from_node in visited or edge.from_node in stop_up_at:
+                    continue
+                visited.add(edge.from_node)
+                yield from self.undirected_dfs(edge.from_node, stop_at=stop_at, stop_down_at=stop_down_at,
+                                               stop_up_at=stop_up_at, visited=visited)
+
+    def _topological_sort(self, node: Node, visited_edges):
+        yield node
+        for edge_bundle in self.indexed_out_edges(node):
+            for edge in edge_bundle:
+                visited_edges.add(edge)
+                if set(self.in_edges(edge.to_node)).issubset(visited_edges):
+                    yield from self._topological_sort(edge.to_node, visited_edges)
+
+    def _topological_sort_reversed(self, node: Node, visited_edges):
+        yield node
+        for edge in reversed(self.indexed_in_edges(node)):
+            visited_edges.add(edge)
+            if set(self.out_edges(edge.from_node)).issubset(visited_edges):
+                yield from self._topological_sort_reversed(edge.from_node, visited_edges)
+
+    def topological_sort(self,
+                         start_node_or_nodes: Optional[Union[str,
+                                                             Node,
+                                                             Sequence[Union[str, Node]]]] = None,
+                         reverse: bool = False):
+        """[summary]
+
+        Args:
+            start_node_or_nodes (Optional[Union[str, Node, Sequence[Union[str, Node]]]], optional): 
+                Optional start node or nodes. Can also be node names. Defaults to None.
+            reverse (bool, optional): Sort from bottom of the graph up. Tries to be a perfect reverse of order. Defaults to False.
+
+        Raises:
+            ValueError: Bad parameters given
+
+        Yields:
+            (Node): Yields nodes in desired sort order
+        """
+        if start_node_or_nodes is None:
+            if reverse:
+                nodes = list(reversed(self.outputs()))
+            else:
+                nodes = self.inputs()
+        elif isinstance(start_node_or_nodes, str):
+            nodes = [self._nodes[start_node_or_nodes]]
+        elif isinstance(start_node_or_nodes, Iterable):
+            nodes = [node if isinstance(node, Node) else
+                     self[node] for node in start_node_or_nodes]
+        else:
+            raise ValueError('invalid argument')
+        visited_edges = set()
+        if reverse:
+            while nodes:
+                node = nodes.pop(0)
+                yield from self._topological_sort_reversed(node, visited_edges)
+        else:
+            while nodes:
+                node = nodes.pop(0)
+                yield from self._topological_sort(node, visited_edges)
 
     def nodes_above_are_class(self, node, classes, visited=None):
         """Check all nodes above are in classes"""
@@ -617,64 +894,6 @@ class GraphView(Mapping):
         node_name = resolve_name(node_or_name)
         return len(self.out_edges(node_name))
 
-    def flood_above(self, node_or_name: Union[str, Node], res=None, in_edge=None):
-        """Return all nodes above this node including it and those connected to it
-
-        Args:
-            node (Node): Node to flood
-
-        Returns:
-            [Sequence[Node]]: Nodes found including node
-        """
-        node = resolve_node_or_str(node_or_name, G=self)
-        if res is None:
-            first = True
-            res = {node}
-        else:
-            first = False
-        for edge in self.in_edges(node.name):
-            if edge.from_node not in res:
-                res.add(edge.from_node)
-                self.flood_above(edge.from_node, res=res, in_edge=edge)
-        if not first:
-            for edge in self.out_edges(node.name):
-                if edge == in_edge:
-                    continue
-                if edge.to_node != node and edge.to_node not in res:
-                    res.add(edge.to_node)
-                    self.flood_below(edge.to_node, res=res)
-        return res
-
-    def flood_below(self, node_or_name: Union[str, Node], stop_at=None, res=None, out_edge=None):
-        """Return all nodes below this node including it and those connected to it
-
-        Args:
-            node (Node): Node to flood
-            stop_at (Node): Optional node to stop flooding at
-        Returns:
-            [Sequence[Node]]: Nodes found including node
-        """
-        node = resolve_node_or_str(node_or_name, G=self)
-        if stop_at:
-            stop_at = resolve_node_or_str(stop_at, G=self)
-        if res is None:
-            first = True
-            res = {node, stop_at} if stop_at else {node}
-        else:
-            first = False
-        for edge in self.out_edges(node.name):
-            if edge.to_node not in res:
-                res.add(edge.to_node)
-                self.flood_below(edge.to_node, res=res, out_edge=edge)
-        if not first:
-            for edge in self.in_edges(node.name):
-                if edge == out_edge:
-                    continue
-                if edge.from_node != node and edge.from_node not in res:
-                    res.add(edge.from_node)
-                    self.flood_above(edge.from_node, res=res)
-        return res
-
     def remove_all(self, nodes: Sequence[Node]):
         """Remove all nodes
 
@@ -691,26 +910,20 @@ class GraphView(Mapping):
             self.remove(del_node)
 
     def remove_below(self, node: Node):
-        """Remove the nodes below this node. Note: If there are links below this node
-        that go back above it this will do nothing since all nodes are flooded. Use
-        keep_between in this case.
+        """Remove the nodes below this node.
 
         Args:
             node (Node): Remove below this node
         """
-        keep_nodes = self.flood_above(node)
-        self.remove_all(set(self._nodes.values()) - keep_nodes)
+        self.remove_all(self.nodes_below(node))
 
     def remove_above(self, node: Node):
-        """Remove the nodes above this node. Note: If there are links above this node
-        that go down below it this will do nothing since all nodes are flooded. Use
-        keep_between in this case.
+        """Remove the nodes above this node..
 
         Args:
             node (Node): Remove below this node
         """
-        keep_nodes = self.flood_below(node)
-        self.remove_all(set(self._nodes.values()) - keep_nodes)
+        self.remove_all(self.nodes_above(node))
 
     def keep_between(self, from_node: Node, to_node: Node):
         """Remove all nodes that are not between from_node and to_node
@@ -719,8 +932,18 @@ class GraphView(Mapping):
             from_node (Node): Remove above this node
             to_node (Node): Remove below this node
         """
-        keep_nodes = self.flood_below(from_node, stop_at=to_node)
-        self.remove_all(set(self._nodes.values()) - keep_nodes)
+        keep_nodes = set(
+            self.directed_dfs(
+                from_node,
+                stop_at={to_node},
+                yield_start_node=True)
+        ) | set(
+            self.directed_dfs(
+                to_node,
+                stop_at={from_node},
+                go_up=True,
+                yield_start_node=True))
+        self.remove_all(set(self._nodes.values()) - set(keep_nodes))
 
     def remove(self, node_or_name: Union[str, Node]):
         '''Removes a node and all its connected edges'''
@@ -756,6 +979,10 @@ class GraphView(Mapping):
             = list(filter(edge_match, edge_list))
         if not self._out_edges[edge.from_node.name][edge.to_node.name]:
             del self._out_edges[edge.from_node.name][edge.to_node.name]
+
+    def remove_edges(self, edges):
+        for edge in edges:
+            self.remove_edge(edge)
 
     def edge_in_graph(self, edge):
         if edge.to_node.name in self._in_edges:
@@ -914,7 +1141,8 @@ class GraphView(Mapping):
                 in_nodes.add(edge.from_node)
         del frag_in_edges, in_nodes
 
-        frag_out_nodes = set((edge.to_node, edge.to_idx) for frag_out_node in frag.outputs(ignore_names=nodes_not_in_graph)
+        frag_out_nodes = set((edge.to_node, edge.to_idx)
+                             for frag_out_node in frag.outputs(ignore_names=nodes_not_in_graph)
                              for edge in self.out_edges(frag_out_node.name))
         assert len(frag_out_nodes) == 1, "doesn't work if more than one output"
         frag_out_node = list(frag_out_nodes)[0]
@@ -945,96 +1173,6 @@ class GraphView(Mapping):
         return [self._nodes[node_name] for node_name in self._nodes
                 if node_name not in self._out_edges or all(output_name in ignore_names
                                                            for output_name in self._out_edges[node_name])]
-
-    def fast_dfs(self):
-        visited_edges = set()
-        nodes = deque(self.inputs())
-        while nodes:
-            node = nodes.pop()
-            node_name = node.name
-            if node_name in self._in_edges and not set(edge for edge_list in self._in_edges[node_name].values() for edge in edge_list).issubset(visited_edges):
-                continue
-            yield node
-            if node_name not in self._out_edges:
-                return
-            for edge_list in self._out_edges[node_name].values():
-                for out_edge in edge_list:
-                    visited_edges.add(out_edge)
-                    nodes.append(out_edge.to_node)
-
-    def __revdfs(self, node, condition, visited_nodes, visited_edges, from_node, from_edge):
-        if not node:
-            return
-        if isinstance(node, str):
-            node = self._nodes[node]
-        if node not in visited_nodes and\
-            (from_node is None or
-             all((out_edge in visited_edges) for out_edge in self.out_edges(node.name))) and\
-                (not condition or condition(self, from_node, node, from_edge)):
-
-            yield node
-            visited_nodes.add(node)
-            in_edges = self.in_edges(node.name)
-            # Edges are visited in a repeatable order
-            in_edges.sort(key=lambda x: str(x.from_idx) + x.from_node.name + str(x.to_idx),
-                          reverse=True)
-            for edge in in_edges:
-                visited_edges.add(edge)
-
-                yield from self.__revdfs(edge.from_node,
-                                         condition,
-                                         visited_nodes,
-                                         visited_edges,
-                                         node,
-                                         edge)
-
-    def __dfs(self, node, condition, visited_nodes, visited_edges, from_node, from_edge):
-        if not node:
-            return
-        if isinstance(node, str):
-            node = self._nodes[node]
-        if node not in visited_nodes and \
-            (from_node is None or all((in_edge in visited_edges) for in_edge in self.in_edges(node.name))) and \
-                (not condition or condition(self, from_node, node, from_edge)):
-            yield node
-            visited_nodes.add(node)
-            out_edges = self.out_edges(node.name)
-            # Edges are visited in a repeatable order
-            out_edges.sort(key=lambda x: str(x.from_idx) +
-                           x.to_node.name + str(x.to_idx))
-            for edge in out_edges:
-                visited_edges.add(edge)
-
-                yield from self.__dfs(edge.to_node,
-                                      condition,
-                                      visited_nodes,
-                                      visited_edges,
-                                      node,
-                                      edge)
-
-    def dfs(self, node_or_name=None, condition=None, reverse=False):
-        if node_or_name is None:
-            if reverse:
-                nodes = list(self.outputs())
-                # This isn't really necessary but helps with tests
-                nodes.reverse()
-            else:
-                nodes = self.inputs()
-        elif isinstance(node_or_name, str):
-            nodes = [self._nodes[node_or_name]]
-        elif isinstance(node_or_name, Iterable):
-            nodes = [node if isinstance(node, Node) else
-                     self[node] for node in node_or_name]
-        else:
-            raise TypeError()
-
-        visited_nodes = set()
-        visited_edges = set()
-        for node in nodes:
-            if reverse:
-                yield from self.__revdfs(node, condition, visited_nodes, visited_edges, None, None)
-            else:
-                yield from self.__dfs(node, condition, visited_nodes, visited_edges, None, None)
 
     @staticmethod
     def match_semantics(edges, match_edge):
@@ -1174,48 +1312,19 @@ class GraphView(Mapping):
             return False
         return True
 
-    def match_fragment(self, fragment: 'GraphView', node_or_name: Node = None, allow_extra_edges=False):
-        """Matches a graph fragment against this graph"""
-        inputs = fragment.inputs()
+    @property
+    def _edge_class(self):
+        return Edge
 
-        start_points = {}
-
-        def match_start_points(G, from_node, to_node, unused1):
-            del unused1
-            nonlocal inputs, start_points
-            edge = None if from_node is None else G.edge(
-                from_node.name, to_node.name)
-            for fragment_input_node in inputs:
-                if isinstance(fragment_input_node, MatchNode) and fragment_input_node._match(G, to_node, edge):
-                    start_points[to_node] = fragment_input_node
-            return True
-
-        _ = list(self.dfs(condition=match_start_points,
-                          node_or_name=node_or_name))
-        # start points will now be a list of pairs with the start_node name in the graph and the
-        # corresponding node in the fragment. The start points have all matched an input none in the
-        # fragment
-
-        matched_fragments = []
-        while True:
-            graph_node = next(start_points.__iter__(), None)
-            if graph_node is None:
-                return matched_fragments
-            match_node = start_points[graph_node]
-            del start_points[graph_node]
-
-            matched_graphview = GraphView()
-            matched_graphview.add_node(graph_node)
-            visited_nodes = set()
-            if self.match_down_node(matched_graphview, fragment,
-                                    graph_node, match_node,
-                                    visited_nodes, start_points,
-                                    allow_extra_edges=allow_extra_edges):
-                matched_fragments.append(matched_graphview)
-        return matched_fragments
+    @property
+    def _noderef_class(self):
+        return NodeRef
 
     def __eq__(self, other):
         return set(self.nodes()) == set(other.nodes()) and set(self.edges()) == set(other.edges())
+
+    def __hash__(self) -> int:
+        return (tuple(self.nodes()), tuple(self.edges())).__hash__()
 
     def __len__(self):
         return len(self._nodes)

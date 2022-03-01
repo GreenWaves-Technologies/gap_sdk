@@ -18,20 +18,54 @@ import logging
 import pickle
 
 import numpy as np
-from PIL import Image, ImageDraw
 from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
-
 from execution.graph_executer import GraphExecuter
 from execution.quantization_mode import QuantizationMode
-from graph.types import SSDDetectorParameters
 from interpreter.nntool_shell_base import NNToolShellBase, no_history
-from interpreter.shell_utils import (glob_input_files,
-                                     input_options)
+from interpreter.shell_utils import glob_input_files, input_options
+from PIL import Image, ImageDraw
+from utils.at_norm import get_do_rounding, set_do_rounding
 from utils.data_importer import import_data
 from utils.node_id import NodeId
-from utils.at_norm import set_do_rounding, get_do_rounding
+
+from graph.dump_tensor import PrintDumper, dump_tensor
+from graph.types import ConstantInputParameters, SSDDetectorParameters
 
 LOG = logging.getLogger('nntool.'+__name__)
+
+
+def print_intermediates(G, outputs, limit=None, width=8,
+                        precision=4, channel=None, order=None,
+                        checksum=False, print_constants=False):
+    def print_step(step, outs, index):
+        node = step['node']
+        if checksum:
+            for out_idx, out in enumerate(outs):
+                if isinstance(node, ConstantInputParameters):
+                    continue
+                checksum_val = np.sum(out) if out.dtype != np.uint8 else np.sum(
+                    out.astype(np.int8))
+                print(
+                    f"S{index} - {node.name}\n\tChecksum = {checksum_val}")
+        else:
+            print(node.name)
+            for out_idx, out in enumerate(outs):
+                dims = node.out_dims[out_idx]
+                if order is not None and dims.is_named and order != dims.order and all(k in dims.order
+                                                                                       for k in order):
+                    transpose = dims.transpose_to_order(order)
+                    out = out.transpose(transpose)
+                if channel is not None:
+                    out = out[channel:channel+1:1, ...]
+                dump_tensor(out, PrintDumper(
+                    out, width=width, precision=precision))
+
+    if limit is not None:
+        print_step(G.graph_state.steps[limit], outputs[limit], limit)
+    else:
+        for idx, out in enumerate(outputs):
+            print_step(G.graph_state.steps[idx], out, idx)
+    print()
 
 
 class DumpCommand(NNToolShellBase):
@@ -126,9 +160,9 @@ specific step of the graph."""
             if args.pickle or self._in_py or args.save:
                 pickles.append(outputs)
             else:
-                self.G.print_intermediates(outputs, limit=step, width=args.number_width,
-                                           precision=args.precision, channel=args.channel,
-                                           order=['c', 'h', 'w'], checksum=args.checksum)
+                print_intermediates(self.G, outputs, limit=step, width=args.number_width,
+                                    precision=args.precision, channel=args.channel,
+                                    order=['c', 'h', 'w'], checksum=args.checksum)
 
             if args.visualize_detection:
                 img_in = Image.open(file_per_input[0]).convert('RGBA')

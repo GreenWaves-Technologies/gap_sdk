@@ -59,6 +59,18 @@
         "type": "i2c",
         "is_master": true
       },
+      "i2c1": {
+        "type": "i2c",
+        "is_master": true
+      },
+      "i2c2": {
+        "type": "i2c",
+        "is_master": true
+      },
+      "i2c3": {
+        "type": "i2c",
+        "is_master": true
+      },
       "i2s0": {
         "type": "i2s",
         "is_slave": true

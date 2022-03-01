@@ -43,22 +43,7 @@ pi_task_t *__pi_task_block(pi_task_t *callback_task)
     callback_task->id = PI_TASK_NONE_ID;
     callback_task->done = 0;
     pi_sync_obj_init((void *) &(callback_task->sync_obj));
-    callback_task->destroy = 1;
-    callback_task->core_id = -1;
-    callback_task->timeout = 0;
-    callback_task->next = NULL;
-    return callback_task;
-}
-
-pi_task_t *__pi_task_callback(pi_task_t *callback_task,
-                              pi_callback_func_t func, void *arg)
-{
-    callback_task->id = PI_TASK_CALLBACK_ID;
-    callback_task->arg[0] = (uintptr_t) func;
-    callback_task->arg[1] = (uintptr_t) arg;
-    callback_task->done = 0;
-    callback_task->sync_obj = NULL;
-    callback_task->destroy = 0;
+    //callback_task->destroy = 1;
     callback_task->core_id = -1;
     callback_task->timeout = 0;
     callback_task->next = NULL;
@@ -67,16 +52,16 @@ pi_task_t *__pi_task_callback(pi_task_t *callback_task,
 
 void __pi_task_destroy(pi_task_t *task)
 {
-    if (task->destroy)
+    //if (task->destroy)
     {
-        task->destroy = 0;
+        //task->destroy = 0;
         // if the mutex is only virtual (e.g. wait on soc event)
-        hal_compiler_barrier();
+        //hal_compiler_barrier();
         if (task->sync_obj != NULL)
         {
             pi_sync_obj_deinit((void *) &(task->sync_obj));
         }
-        hal_compiler_barrier();
+        //hal_compiler_barrier();
     }
 }
 
@@ -96,12 +81,14 @@ void __pi_task_wait_on(pi_task_t *task)
     __pi_task_destroy(task);
 }
 
+#if 0
 void __pi_task_push(pi_task_t *task)
 {
     uint32_t irq = disable_irq();
     pmsis_event_push(pmsis_event_get_default_scheduler(), task);
     restore_irq(irq);
 }
+#endif
 
 /*******************************************************************************
  * API implementation
@@ -118,11 +105,32 @@ pi_task_t *pi_task_block_no_mutex(pi_task_t *callback_task)
     callback_task->id = PI_TASK_NONE_ID;
     callback_task->done = 0;
     callback_task->sync_obj = NULL;
-    callback_task->destroy = 0;
+    //callback_task->destroy = 0;
     callback_task->core_id = -1;
     callback_task->timeout = 0;
     callback_task->next = NULL;
     return callback_task;
+}
+
+void __pi_task_push_locked(pi_task_t * task)
+{
+    switch (task->id)
+    {
+    case PI_TASK_NONE_ID :
+        pi_task_release(task);
+        break;
+
+    case PI_TASK_CALLBACK_ID :
+        __pi_task_push_no_irq(task);
+        break;
+
+    case PI_TASK_IRQ_ID :
+        __pi_task_push_exec_irq_safe(task);
+        break;
+
+    default :
+        return;
+    }
 }
 
 void pi_task_release(pi_task_t *task)

@@ -51,7 +51,6 @@ def extract_node(G: NNGraph, keep_node: Parameters):
         if node not in keep_nodes and node.name in G:
             LOG.info(f'remove {node.name}')
             G.remove(node)
-    G.reset_inout_counts()
     for edge in in_edges:
         input_node = G.add_input(edge.from_node.out_dims[edge.from_idx])
         G.add_edge(NNEdge(input_node, keep_node, to_idx=edge.to_idx))

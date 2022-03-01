@@ -738,6 +738,11 @@ int MFCC_Generator(
 	printf("MfccKernel:	%25s\n", MfccKernel?MfccKernel:"");
 	printf("LogKernel:	%25s\n", LogKernel?LogKernel:"");
 	printf("DCTKernel:	%25s\n", DCTKernel?DCTKernel:"");
+	printf("\tN Frames: %d\n", NFrames);
+	printf("\tFrame Size: %d\n", FrameSize);
+	printf("\tFrame Stride: %d\n", FrameStride);
+	printf("\tIn Data Size: %d\n", InItemSize);
+	printf("\tTot Input Size: %d\n", FrameStride * (NFrames-1) + FrameSize);
 	printf("\tNb Oper: %d\n", LayerOp);
 	printf("\tBandwidth: %d\n", LayerBandwidth);
 	// printf("MFCC_COEF_DYN = %d\nFFT_BITS = %d\nUSE_DB = %d\nDATA_TYPE = %dLOG OFFSET %f\n", MFCC_Coeff_Dyn, Log2Nfft, UseDB, DataType, MfccLogOffset);

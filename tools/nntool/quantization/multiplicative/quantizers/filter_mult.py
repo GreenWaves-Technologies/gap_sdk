@@ -13,15 +13,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.constant_input import ConstantInputParameters
-from graph.types.tensor_arithmetic import MatMulOpParameters, MatMulTransposedParameters
 import logging
 from copy import deepcopy
 
 import numpy as np
 from graph.types import (Conv2DParameters, FcParameters, FusionInputParameters,
-                         HSigmoidActivationParameters, PoolingParameters,
+                         HSigmoidActivationParameters,
                          ReluActivationParameters, SigmoidActivationParameters)
+from graph.types.constant_input import ConstantInputParameters
+from graph.types.tensor_arithmetic import (MatMulTransposedParameters)
+from quantization.clipping import get_clip
 from quantization.multiplicative.quantizers.rnn_mult_ne16 import \
     limit_input_precision
 from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
@@ -97,7 +98,8 @@ def check_filter_options(is_ne16, input_size, output_size):
     FORCE_INPUT_SIZE_OPTION,
     FORCE_OUTPUT_SIZE_OPTION,
     HWC_OPTION,
-    MAX_PRECISION_LIMIT_OPTION
+    MAX_PRECISION_LIMIT_OPTION,
+    CLIP_TYPE_OPTION
 )
 # pylint: disable=abstract-method
 class FilterMultBase(MultQuantizionHandler):
@@ -210,14 +212,18 @@ class FilterSWMultBase(FilterMultBase):
 
         if force_out_q:
             o_q = force_out_q
-            # can't be forced to something not in_out_dtype
-            if o_q.dtype != in_out_dtype:
+            # can't be forced to something not in_out_dtype or int32
+            if o_q.dtype != in_out_dtype and o_q.dtype != np.int32:
                 return None
             LOG.warning(f'node {params.name} output forced to range {o_q.min}/{o_q.max} '
                         f'{"asymmetric" if o_q.asymmetric else "symmetric"}')
         else:
             cls.check_valid_ranges(params, stats, idx=0, dirs='out')
-            min_val, max_val = stats['range_out'][0]['min'], stats['range_out'][0]['max']
+            min_val, max_val = get_clip(
+                params.out_dims[0].shape,
+                8 if in_out_dtype == np.int8 else 16,
+                stats['range_out'][0],
+                opts['clip_type'])
             o_q = QType.from_min_max_sq(min_val=min_val,
                                         max_val=max_val,
                                         dtype=in_out_dtype,
@@ -273,7 +279,7 @@ class FilterSWMultBase(FilterMultBase):
 
 @params_type(FcParameters, Conv2DParameters)
 @in_qs_constraint({'dtype': np.int8})
-@out_qs_constraint({'dtype': np.int8})
+@out_qs_constraint({'dtype': set([np.int8, np.int32])})
 @option_constraint(check_filter_options(False, input_size={8, None}, output_size={8, None}))
 class FilterSWMult8x8(FilterSWMultBase):
     @classmethod
@@ -283,7 +289,7 @@ class FilterSWMult8x8(FilterSWMultBase):
 
 @params_type(FcParameters, Conv2DParameters)
 @in_qs_constraint({'dtype': np.int16})
-@out_qs_constraint({'dtype': np.int16})
+@out_qs_constraint({'dtype': set([np.int8, np.int32])})
 @option_constraint(check_filter_options(False, input_size={16, None}, output_size={16, None}))
 class FilterSWMult16x8(FilterSWMultBase):
     @classmethod
@@ -331,9 +337,13 @@ class FilterMultNE16Base(FilterMultBase):
                 f'node {params.name} output forced to range {o_q.min}/{o_q.max}')
         else:
             cls.check_valid_ranges(params, stats, idx=0, dirs='out')
-            min_val, max_val = stats['range_out'][0]['min'], stats['range_out'][0]['max']
             force_output_size = opts.get('force_output_size', 8)
             output_dtype = np.uint8 if force_output_size == 8 else np.uint16
+            min_val, max_val = get_clip(
+                params.out_dims[0].shape,
+                force_output_size,
+                stats['range_out'][0],
+                opts['clip_type'])
             o_q = QType.from_min_max_sq(min_val=min_val,
                                         max_val=max_val,
                                         dtype=output_dtype,

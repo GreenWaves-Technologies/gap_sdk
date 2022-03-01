@@ -73,7 +73,7 @@ class GraphExecuter():
             G = self._G
             saved_outputs = {}
 
-        for node in G.dfs():
+        for node in G.topological_sort():
             step_idx = node.step_idx
             if step_idx_limit is not None and step_idx > step_idx_limit:
                 break
@@ -166,7 +166,7 @@ class GraphExecuter():
         if not silent:
             LOG.info("execute uncached: quantization mode %s", qmode)
             ExecutionProgress.start()
-        for node in G.dfs():
+        for node in G.topological_sort():
             step_idx = node.step_idx
             if step_idx_limit is not None and step_idx > step_idx_limit:
                 break

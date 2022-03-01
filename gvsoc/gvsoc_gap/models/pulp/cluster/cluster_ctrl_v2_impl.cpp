@@ -68,6 +68,8 @@ private:
   uint32_t dbg_halt_mask;
   uint32_t dbg_halt_status;
   uint32_t dbg_halt_status_sync;
+
+  vp::wire_master<bool>  clock_gating_en_itf;
 };
 
 cluster_ctrl::cluster_ctrl(js::config *config)
@@ -111,6 +113,10 @@ vp::io_req_status_e cluster_ctrl::req(void *__this, vp::io_req *req)
   }
   else if (offset == ARCHI_CLUSTER_CTRL_CLUSTER_CLK_GATE)
   {
+    if (_this->clock_gating_en_itf.is_bound())
+    {
+      _this->clock_gating_en_itf.sync((*data) & 1);
+    }
     return vp::IO_REQ_OK;
   }
   else if (offset == ARCHI_CLUSTER_CTRL_DBG_STATUS)
@@ -257,6 +263,8 @@ int cluster_ctrl::build()
 
   in.set_req_meth(&cluster_ctrl::req);
   new_slave_port("input", &in);
+
+  this->new_master_port("clock_gating_en", &this->clock_gating_en_itf);
 
   for (int i = 0; i<nb_core; i++)
   {

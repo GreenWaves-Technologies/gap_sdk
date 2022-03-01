@@ -17,32 +17,19 @@
 
 import logging
 
-from graph.matches.matcher import Matcher, MatchGroup
+from graph.matches.matcher import Matcher, MatchGroup, match_name, description
 from utils.subclasses import get_all_subclasses
 
 from .matchers import *
 
 LOG = logging.getLogger("nntool." + __name__)
 
-
-def general_validation(match: Matcher):
-    if match.DESCRIPTION is None:
-        LOG.warning('matcher %s has no description', match.NAME)
-    if match.NAME is None:
-        raise ValueError(f'match {match.NAME} has no name')
-    if '*' in match.RUN_BEFORE and '*' in match.RUN_AFTER:
-        raise ValueError(
-            f'match {match.NAME} has wildcard in run_before and run_after')
-    return match
-
-
-ALL_MATCHERS = [general_validation(match_class) for match_class in get_all_subclasses(Matcher)
-                if match_class.NAME is not None]
+ALL_MATCHERS = {}
 
 
 def select_matchers(group=None):
-    return [match_class for match_class in ALL_MATCHERS
-            if (group is None or '*' in match_class.GROUPS or group in match_class.GROUPS)]
+    return [match_class for match_class in ALL_MATCHERS.values()
+            if ('*' in match_class.GROUPS or group in match_class.GROUPS)]
 
 
 def order_matchers(matchers):
@@ -75,22 +62,39 @@ def select_sorted_matcher_instances(group=None):
 def get_fusions():
     return sorted(
         [(match_class.NAME, match_class.DESCRIPTION)
-         for match_class in ALL_MATCHERS],
+         for match_class in ALL_MATCHERS.values()],
         key=lambda x: x[0])
 
 
+@match_name("pow2_match_group")
+@description("a selection of matches that are relevant for POW2 quantized graphs")
+class POW2MatchGroup(MatchGroup):
+    def __init__(self):
+        super().__init__(*select_sorted_matcher_instances(group='symmetric'),
+                         identity='pow2_match_group')
+
+
+@match_name("scaled_match_group")
+@description("a selection of matches that are relevant for scaled quantized graphs")
+class ScaledMatchGroup(MatchGroup):
+    def __init__(self):
+        super().__init__(*select_sorted_matcher_instances(group='scaled'),
+                         identity='scaled_match_group')
+
+
 def get_pow2_match_group():
-    return MatchGroup(
-        *select_sorted_matcher_instances(group='symmetric'),
-        identity="pow2_match_group"
-    )
+    return POW2MatchGroup()
 
 
 def get_scale8_match_group():
-    return MatchGroup(
-        *select_sorted_matcher_instances(group='scaled'),
-        identity="std_match_group"
-    )
+    return ScaledMatchGroup()
+
+
+def get_matches(*match_names, identity="custom"):
+    not_found = set(match_names) - set(ALL_MATCHERS)
+    if not_found:
+        raise ValueError(f'matches {" ".join(not_found)} not found')
+    return MatchGroup(*[ALL_MATCHERS[name]() for name in match_names], identity=identity)
 
 
 def get_fusion(name):
@@ -98,8 +102,10 @@ def get_fusion(name):
         return get_pow2_match_group()
     if name in ["std_match_group", "scale8_match_group"]:
         return get_scale8_match_group()
-    match_class = next((match_class for match_class in select_matchers()
-                        if match_class.NAME == name), None)
-    if match_class is not None:
-        return match_class()
+    if name in ALL_MATCHERS:
+        return ALL_MATCHERS[name]()
     return None
+
+
+ALL_MATCHERS.update({match_class.NAME: match_class for match_class in get_all_subclasses(Matcher)
+                     if match_class.NAME is not None})

@@ -78,18 +78,17 @@ void pi_time_wait_us(int time_us)
         /* Wait less than 1 ms. */
         if (time_us < 1000)
         {
-            uint32_t irq = pi_irq_disable();
-            uint32_t freq_fc = pi_freq_get(PI_FREQ_DOMAIN_FC);
-            //uint64_t counter = (uint64_t) (((uint64_t) time_us) * freq_fc) / 1000000;
-            //uint64_t counter = (uint64_t) (((uint64_t) time_us) * freq_fc);
-            uint64_t freq = (uint64_t) ((uint64_t) time_us * (uint64_t) freq_fc);
-            uint32_t counter = (uint32_t) ((freq) >> 20);
-            //counter >>= 20; /* Div 10^6 */
-            //uint32_t counter = (uint32_t) time_us;
-            //counter = (counter * freq_fc) / 1000000;
-            //printf("counter=%ld, freq=%ld, time_us=%d\n", counter, freq_fc, time_us);
+#ifdef __VEGA__
+            int irq = pi_irq_disable();
+            for (volatile int i = 0; i < time_us; i++){};
             pi_irq_restore(irq);
-            for (volatile uint32_t i=0; i<counter; i++);
+#else
+            pi_task_t task_block;
+            pi_task_block(&task_block);
+            extern struct pi_device sys_timer_hi_prec;
+            pi_timer_task_add(&sys_timer_hi_prec, time_us, &task_block);
+            pi_task_wait_on(&task_block);
+#endif
         }
         else
         {
@@ -104,6 +103,7 @@ void pi_time_wait_us(int time_us)
 
 unsigned long long int pi_time_get_us()
 {
+    #if defined(__GAP8__) || defined (__VEGA__)
     uint64_t time = 0;
     uint32_t irq = pi_irq_disable();
     uint32_t cur_tick = xTaskGetTickCount();
@@ -115,6 +115,18 @@ unsigned long long int pi_time_get_us()
     //time += 95; /* Around 95us between main() and kernel start. */
     pi_irq_restore(irq);
     return time;
+    #else
+    uint64_t time = 0;
+    uint32_t irq = pi_irq_disable();
+    uint32_t cur_timer_val = 0;
+    extern struct pi_device sys_timer_hi_prec;
+    int32_t status = pi_timer_current_value_read(&sys_timer_hi_prec, &cur_timer_val);
+    uint32_t freq_timer = pi_timer_clock_freq_get(&sys_timer_hi_prec);
+    time = ((uint64_t)cur_timer_val * 1000000) / freq_timer;
+    //time += cur_timer_val;
+    pi_irq_restore(irq);
+    return time;
+    #endif  /* __GAP8__ */
 }
 
 PI_FC_L1 struct pi_task_delayed_s delayed_task = {0};
@@ -137,7 +149,7 @@ void pi_task_delayed_fifo_enqueue(struct pi_task *task, uint32_t delay_us)
     delayed_task.fifo_tail = task;
 }
 
-
+#if defined(__GAP8__)
 PI_FC_L1 struct pi_task_delayed_s timer_task = {0};
 
 // TODO: use a proper define for ref clk (does not exist yet)
@@ -145,7 +157,6 @@ PI_FC_L1 struct pi_task_delayed_s timer_task = {0};
 
 void pi_task_timer_enqueue(struct pi_task *task, uint32_t delay_us)
 {
-#ifdef __GAP8__
     task->data[8] = ((delay_us)/ref_clk_us)
         + (((delay_us)%ref_clk_us) > 0);
     //printf("ticks: %i\n ref_clk_us: %i\n rem: %i\n",task->data[8]
@@ -165,7 +176,6 @@ void pi_task_timer_enqueue(struct pi_task *task, uint32_t delay_us)
         delayed_task.fifo_tail->next = task;
     }
     delayed_task.fifo_tail = task;
-#endif
 }
 
 
@@ -200,6 +210,7 @@ void __pi_task_timer_irq(void)
         NVIC_DisableIRQ(FC_IRQ_TIMER0_HI_EVT);
     }
 }
+#endif  /* __GAP8__ */
 
 // return value allows to skip some OS logic when a switch has already been triggered
 int pi_task_delayed_increment_push(void)

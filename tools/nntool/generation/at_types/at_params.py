@@ -42,22 +42,22 @@ def gen_activation_op(activation, force_relu=False, asymmetric=False):
         else:
             aop = "KOP_RELUN" if not force_relu else "KOP_RELU"
     elif activation == "hsigmoid":
-        assert not asymmetric, 'asymmetric not supported'
+        #assert not asymmetric, 'asymmetric not supported'
         aop = "KOP_HSIGMOID"
     elif activation == "htanh":
-        assert not asymmetric, 'asymmetric not supported'
+        #assert not asymmetric, 'asymmetric not supported'
         aop = "KOP_HTANH"
     elif activation == "swish" or activation == "hswish":
-        assert not asymmetric, 'asymmetric not supported'
+        #assert not asymmetric, 'asymmetric not supported'
         aop = "KOP_HSWISH"
     elif activation == "leaky":
-        assert not asymmetric, 'asymmetric not supported'
+        #assert not asymmetric, 'asymmetric not supported'
         aop = "KOP_LEAKYRELU"
     elif activation == "sigmoid":
-        assert not asymmetric, 'asymmetric not supported'
+        #assert not asymmetric, 'asymmetric not supported'
         aop = "KOP_SIGMOID"
     elif activation == "tanh":
-        assert not asymmetric, 'asymmetric not supported'
+        #assert not asymmetric, 'asymmetric not supported'
         aop = "KOP_TANH"
     else:
         raise NotImplementedError("activation type %s not implemented" % activation)

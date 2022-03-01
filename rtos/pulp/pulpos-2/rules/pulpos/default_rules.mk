@@ -309,6 +309,8 @@ build: $(TARGETS)
 image:
 	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --image --binary=$(TARGETS) $(runner_args)
 
+flash_noforce: flash
+
 flash:
 	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --flash --binary=$(TARGETS) $(runner_args)
 
@@ -354,4 +356,4 @@ install-lib: build-lib
 #	@echo "  CONFIG_TRACE_LEVEL=<level>    Activate traces for the specified level (0=none, 1=fatal, 2=error, 3=warning, 4=info, 5=debug, 6=trace)."
 #	@echo "  CONFIG_TRACE_ALL=1            Activate all traces. Other traces can be individually activated with CONFIG_TRACE_<NAME>."
 
-.PHONY: image flash exec run dis size help clean all conf build-lib install-lib
+.PHONY: image flash flash_noforce exec run dis size help clean all conf build-lib install-lib

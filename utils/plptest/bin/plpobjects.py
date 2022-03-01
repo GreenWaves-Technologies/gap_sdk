@@ -904,6 +904,9 @@ class PulpObjects(object):
             result += test.getNbSuccess()
         return result
 
+    def status(self):
+        return self.getNbTests() - self.getNbSuccess() - self.getNbSkipped()
+
     def getNbSkipped(self):
         result = 0
         for test in self.topTests:

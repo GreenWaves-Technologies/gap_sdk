@@ -23,13 +23,13 @@
 void Ne16::debug_x_buffer() {
   if(this->mode_linear) {
     std::ostringstream stringStream;
-    stringStream << "x_buffer[32,16] = \n" << (this->trace_format?std::hex:std::dec) << std::setw(2) << this->x_buffer_linear << std::dec << "\n";
+    stringStream << "x_buffer[32,16] = \n" << (this->trace_format?std::hex:std::dec) << this->x_buffer_linear << std::dec << "\n";
     std::string copyOfStr = stringStream.str();
     this->trace.msg(vp::trace::LEVEL_DEBUG, copyOfStr.c_str());
   }
   else {
     std::ostringstream stringStream;
-    stringStream << "x_buffer[5,5,16] = \n" << (this->trace_format?std::hex:std::dec) << std::setw(2) << this->x_buffer << std::dec << "\n";
+    stringStream << "x_buffer[5,5,16] = \n" << (this->trace_format?std::hex:std::dec) << this->x_buffer << std::dec << "\n";
     std::string copyOfStr = stringStream.str();
     this->trace.msg(vp::trace::LEVEL_DEBUG, copyOfStr.c_str());
   }
@@ -47,7 +47,7 @@ void Ne16::debug_x_array() {
   // }
   // else {
     std::ostringstream stringStream;
-    stringStream << "x_array[9,9,16] = \n" << xt::print_options::threshold(10000) << (this->trace_format?std::hex:std::dec) << std::setw(2) << this->x_array << std::dec << "\n";
+    stringStream << "x_array[9,9,16] = \n" << xt::print_options::threshold(10000) << (this->trace_format?std::hex:std::dec) << this->x_array << std::dec << "\n";
     std::string copyOfStr = stringStream.str();
     this->trace.msg(vp::trace::LEVEL_DEBUG, copyOfStr.c_str());
   // }
@@ -55,7 +55,7 @@ void Ne16::debug_x_array() {
 
 void Ne16::debug_accum(){
   std::ostringstream stringStream;
-  stringStream << "accum[9,32] = \n" << (this->trace_format?std::hex:std::dec) << std::setw(8) << xt::cast<int32_t>(this->accum) << std::dec << "\n";
+  stringStream << "accum[9,32] = \n" << (this->trace_format?std::hex:std::dec) << xt::cast<int32_t>(this->accum) << std::dec << "\n";
   std::string copyOfStr = stringStream.str();
   this->trace.msg(vp::trace::LEVEL_DEBUG, copyOfStr.c_str());
 }
@@ -69,7 +69,7 @@ void Ne16::debug_accum(){
 
 void Ne16::debug_psum_block(){
   std::ostringstream stringStream;
-  stringStream << "psum_block[9,9] = \n" << (this->trace_format?std::hex:std::dec) << std::setw(8) << xt::cast<int32_t>(this->psum_block) << std::dec << "\n";
+  stringStream << "psum_block[9,9] = \n" << (this->trace_format?std::hex:std::dec) << xt::cast<int32_t>(this->psum_block) << std::dec << "\n";
   std::string copyOfStr = stringStream.str();
   this->trace.msg(vp::trace::LEVEL_DEBUG, copyOfStr.c_str());
 }

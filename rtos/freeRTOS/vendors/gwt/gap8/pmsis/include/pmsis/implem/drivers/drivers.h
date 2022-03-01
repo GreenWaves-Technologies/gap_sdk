@@ -38,6 +38,7 @@
 #include "pmsis/chips/gap8/pad.h"
 #include "pmsis/chips/gap8/gpio.h"
 #include "pmsis/chips/gap8/pmu.h"
+#include "pmsis/chips/gap8/timer.h"
 
 /* Drivers. */
 #include "pmsis/drivers/cpi.h"

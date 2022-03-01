@@ -99,7 +99,8 @@ int test_${gen.project_name}(void)
 
     printf("Call cluster\\n");
 #ifndef __EMUL__
-    struct pi_cluster_task task = {0};
+    struct pi_cluster_task task;
+    pi_cluster_task(&task,NULL,NULL);
     task.entry = cluster;
     task.arg = NULL;
     task.stack_size = (unsigned int) STACK_SIZE;
@@ -186,7 +187,7 @@ MODEL_BUILD=BUILD_MODEL$(MODEL_SUFFIX)
 
 TRAINED_MODEL = ${os.path.split(G.graph_identity.filename)[1]}
 
-MODEL_EXPRESSIONS = ${"$(MODEL_BUILD)/" + gen.opts['basic_kernel_source_file'] if gen.G.has_expressions else ""}
+MODEL_EXPRESSIONS = ${"$(MODEL_BUILD)/" + gen.opts['basic_kernel_source_file']}
 
 NNTOOL_EXTRA_FLAGS += ${open_args}
 ${"MODEL_QUANTIZED=1" if quantized else ""}
@@ -225,7 +226,7 @@ MODEL_BUILD=BUILD_MODEL$(MODEL_SUFFIX)
 
 AT_MODEL_PATH=${model_path}
 
-MODEL_EXPRESSIONS = ${gen.opts['basic_kernel_source_file'] if gen.G.has_expressions else ""}
+MODEL_EXPRESSIONS = ${gen.opts['basic_kernel_source_file']}
 
 ${"MODEL_QUANTIZED=1" if quantized else ""}
 

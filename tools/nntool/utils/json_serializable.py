@@ -64,6 +64,10 @@ class JsonSerializableStateEncoder(json.JSONEncoder):
                 '__contents': o.tolist(),
                 '__dtype': o.dtype.name
             }
+        if hasattr(o, 'dtype'):
+            if np.issubdtype(o.dtype, np.bool):
+                return bool(o)
+
         # Let the base class default method raise the 
         try:
             return json.JSONEncoder.default(self, o)

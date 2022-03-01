@@ -41,6 +41,9 @@ void vp::power::component_power::build()
     {
         this->get_engine()->reg_trace(trace);
     }
+
+    this->power_port.set_sync_meth(&vp::power::component_power::power_supply_sync);
+    this->top.new_slave_port(this, "power_supply", &this->power_port);
 }
 
 
@@ -68,6 +71,8 @@ int vp::power::component_power::new_power_source(std::string name, power_source 
         return -1;
 
     source->setup(VP_POWER_DEFAULT_TEMP, VP_POWER_DEFAULT_VOLT, VP_POWER_DEFAULT_FREQ);
+
+    this->sources.push_back(source);
 
     return 0;
 }
@@ -148,5 +153,53 @@ void vp::power::component_power::dump_child_traces(FILE *file, double total)
     for (auto &x : this->top.get_childs())
     {
         x->power.dump(file, total);
+    }
+}
+
+void vp::power::component_power::power_supply_sync(void *__this, int state)
+{
+    vp::power::component_power *_this = (vp::power::component_power *)__this;
+    _this->power_supply_set_all(state);
+}
+
+
+void vp::power::component_power::power_supply_set_all(int state)
+{
+    this->top.power_supply_set(state);
+
+    for (auto &x : this->top.childs)
+    {
+        x->power.power_supply_set_all(state);
+    }
+
+
+
+    if (state >= 2)
+    {
+        for (auto &x : this->sources)
+        {
+            if (state == 3)
+            {
+                x->turn_dynamic_power_on();
+            }
+            else
+            {
+                x->turn_dynamic_power_off();
+            }
+        }
+    }
+    else
+    {
+        for (auto &x : this->sources)
+        {
+            if (state == 1)
+            {
+                x->turn_on();
+            }
+            else
+            {
+                x->turn_off();
+            }
+        }
     }
 }

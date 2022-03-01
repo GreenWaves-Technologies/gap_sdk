@@ -13,12 +13,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.verify import verify_graph
 import logging
 from typing import Sequence
 
 from generation.naming_convension import (DefaultNamingConvension,
                                           NamingConvension)
+from utils.graph import GraphView
+# from graph.verify import verify_graph
 
 from ..dim import Dim, MissMatchedInputsError, MoreThanOneInputError
 from ..types import (ConcatParameters, ConstantInputParameters, EdgeParameters,
@@ -30,9 +31,10 @@ LOG = logging.getLogger("nntool." + __name__)
 
 
 def set_out_edges_multi(G, node: Parameters, dims: Sequence[Dim], step_idx: int,
-                        naming_convension: NamingConvension, edge_type: str = "in_out"):
+                        naming_convension: NamingConvension, update_graph, edge_type: str = "in_out"):
     # clone the dims first so that the edge dims are the same objects as the node output dims
-    dims = node.set_output_size(dims)
+    if update_graph:
+        dims = node.set_output_size(dims)
     out_edges = G.indexed_out_edges(node)
     is_multi_out = len(out_edges) > 1
     for edge_idx, edge_group in enumerate(out_edges):
@@ -49,17 +51,20 @@ def set_out_edges_multi(G, node: Parameters, dims: Sequence[Dim], step_idx: int,
 
 
 def set_out_edges_one(G, node: Parameters, dim: Dim, step_idx: int,
-                      naming_convension: NamingConvension, edge_type: str = "in_out"):
+                      naming_convension: NamingConvension, update_graph, edge_type: str = "in_out"):
     ename = naming_convension.get_edge_name(node, step_idx, edge_type)
     eparams = EdgeParameters(ename, dim, node, 0, step_idx, edge_type)
     for edge in G.out_edges(node.name):
         assert edge.from_idx == 0, "Only for use with nodes that have one output"
         edge.params = eparams
     LOG.debug("%s %s", node.name, ename)
-    eparams.dims = node.set_output_size([dim])[0]
+    if update_graph:
+        eparams.dims = node.set_output_size([dim])[0]
+    else:
+        eparams.dims = node.out_dims[0]
 
 
-def validate_one_in_edge(G, node: Parameters, expect_named: bool = True):
+def validate_one_in_edge(G, node: Parameters, update_graph, expect_named: bool = True):
     edges = G.in_edges(node.name)
     if len(edges) != 1:
         if len(edges) > 1:
@@ -70,11 +75,12 @@ def validate_one_in_edge(G, node: Parameters, expect_named: bool = True):
     assert eparams is not None, "edge parameters not yet set"
     assert not expect_named or eparams.dims.has_keys(
         ['c', 'h', 'w']), "dimensions not yet set"
-    eparams.dims = node.set_input_size([eparams.dims])[0]
+    if update_graph:
+        eparams.dims = node.set_input_size([eparams.dims])[0]
     return eparams
 
 
-def validate_multi_in_edge(G, node: Parameters, expect_named: bool = True):
+def validate_multi_in_edge(G, node: Parameters, update_graph, expect_named: bool = True):
     dims = []
     for edge in G.indexed_in_edges(node.name):
         if edge is None:
@@ -85,64 +91,77 @@ def validate_multi_in_edge(G, node: Parameters, expect_named: bool = True):
         assert not expect_named or eparams.dims.has_keys(
             ['c', 'h', 'w']), "dimensions not yet set"
         dims.append(eparams.dims)
-    try:
-        dims = node.set_input_size(dims)
-    except MissMatchedInputsError as exc:
-        raise ValueError(f'missmatched inputs on node {node.name}') from exc
+    if update_graph:
+        try:
+            dims = node.set_input_size(dims)
+        except MissMatchedInputsError as exc:
+            raise ValueError(f'missmatched inputs on node {node.name}') from exc
     return dims
 
 
 def add_dimensions_concat(G, node: Parameters, step_idx: int,
-                          naming_convension: NamingConvension, indexes):
+                          naming_convension: NamingConvension,
+                          indexes, update_graph):
     del indexes
-    in_dims = validate_multi_in_edge(G, node, expect_named=False)
-    out_dims = node.get_output_size(in_dims)
-    set_out_edges_one(G, node, out_dims[0], step_idx, naming_convension)
+    in_dims = validate_multi_in_edge(G, node, update_graph, expect_named=False)
+    if update_graph:
+        out_dims = node.get_output_size(in_dims)
+    else:
+        out_dims = node.out_dims
+    set_out_edges_one(G, node, out_dims[0], step_idx, naming_convension, update_graph )
 
 
 def add_dimensions_constant(G, node: Parameters, step_idx: int,
-                            naming_convension: NamingConvension, indexes):
+                            naming_convension: NamingConvension, indexes, update_graph):
     node.index = indexes['constant']
     indexes['constant'] += 1
     constant_dims = node.get_output_size(None)
     set_out_edges_one(G, node, constant_dims[0], step_idx,
-                      naming_convension, edge_type="in")
+                      naming_convension, update_graph, edge_type="in")
 
 
 def add_dimensions_input(G, node: Parameters, step_idx: int,
-                         naming_convension: NamingConvension, indexes):
+                         naming_convension: NamingConvension, indexes, update_graph):
     node.index = indexes['input']
     indexes['input'] += 1
     input_dims = node.get_output_size(None)
     node.set_input_size(input_dims)
     set_out_edges_one(G, node, input_dims[0], step_idx,
-                      naming_convension, edge_type="in")
+                      naming_convension, update_graph , edge_type="in")
 
 
 def add_dimensions_output(G, node: Parameters, step_idx: int,
-                          naming_convension: NamingConvension, indexes):
+                          naming_convension: NamingConvension, indexes, update_graph):
     node.index = indexes['output']
     indexes['output'] += 1
-    eparams = validate_one_in_edge(G, node, expect_named=False)
+    eparams = validate_one_in_edge(G, node, update_graph, expect_named=False)
     eparams.edge_type = "out"
     eparams.name = naming_convension.get_edge_name(node, step_idx, "out")
     # set the dimensions of the output node
-    node.set_output_size(node.get_output_size([eparams.dims]))
+    if update_graph:
+        node.set_output_size(node.get_output_size([eparams.dims]))
 
 
 def add_dimensions_unknown_single(G, node: Parameters, step_idx: int,
-                                  naming_convension: NamingConvension, indexes):
+                                  naming_convension: NamingConvension, indexes, update_graph):
     del indexes
-    eparams = validate_one_in_edge(G, node, expect_named=False)
-    out_dims = node.get_output_size([eparams.in_dims])
-    set_out_edges_one(G, node, out_dims[0], step_idx, naming_convension)
+    eparams = validate_one_in_edge(G, node, update_graph, expect_named=False)
+    if update_graph:
+        out_dims = node.get_output_size([eparams.in_dims])
+    else:
+        out_dims = node.out_dims
+    set_out_edges_one(G, node, out_dims[0], step_idx, naming_convension, update_graph)
 
 
 def add_dimensions_unknown(G, node: Parameters, step_idx: int,
-                           naming_convension: NamingConvension):
-    in_dims = validate_multi_in_edge(G, node, expect_named=False)
-    set_out_edges_multi(G, node, node.get_output_size(in_dims),
-                        step_idx, naming_convension)
+                           naming_convension: NamingConvension, update_graph):
+    in_dims = validate_multi_in_edge(G, node, update_graph, expect_named=False)
+    if update_graph:
+        out_dims = node.get_output_size(in_dims)
+    else:
+        out_dims = node.out_dims
+    set_out_edges_multi(G, node, out_dims,
+                        step_idx, naming_convension, update_graph)
 
 
 OP_ROUTINES = {
@@ -154,7 +173,7 @@ OP_ROUTINES = {
 }
 
 
-def add_dimensions(G, naming_convension: NamingConvension = None) -> list:
+def add_dimensions(G: GraphView, naming_convension: NamingConvension = None, update_graph=True) -> list:
     """ Walks graph setting all edge names and dimensions
     """
     if naming_convension is None:
@@ -171,15 +190,21 @@ def add_dimensions(G, naming_convension: NamingConvension = None) -> list:
     #                       else "b" + (str(node.step_idx) if node.step_idx else node.name)))
     LOG.debug("inputs: %s", [node.name for node in inputs])
 
-    for node in G.dfs(inputs):
+    def add_step(step, idx):
+        if len(steps) <= idx:
+            steps.extend([None] * (idx + 1 - len(steps)))
+        steps[idx] = step
+
+    for node in G.topological_sort(inputs):
         LOG.debug("add dimensions to: %s", node.name)
-        node.step_idx = len(steps)
-        steps.append({'node': node})
+        if update_graph:
+            node.step_idx = len(steps)
+        add_step({'node': node}, node.step_idx)
         if node.__class__ in OP_ROUTINES:
             OP_ROUTINES[node.__class__](
-                G, node, node.step_idx, naming_convension, indexes)
+                G, node, node.step_idx, naming_convension, indexes, update_graph)
         else:
-            add_dimensions_unknown(G, node, node.step_idx, naming_convension)
+            add_dimensions_unknown(G, node, node.step_idx, naming_convension, update_graph)
     set_aliases(G)
     # verify_graph(G, throw_exception=True)
     return steps

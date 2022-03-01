@@ -22,7 +22,7 @@ from ..matcher import Matcher, match_name, description, run_before, groups
 
 LOG = logging.getLogger("nntool." + __name__)
 
-@match_name("match_duplicate_constants")
+@match_name("duplicate_constants")
 @description("""Find constants that are linked to more than one node and duplicate them""")
 @run_before('*')
 @groups('symmetric', 'scaled')

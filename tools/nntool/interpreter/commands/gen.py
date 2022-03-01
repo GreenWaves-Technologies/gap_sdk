@@ -16,14 +16,19 @@
 import argparse
 import logging
 import os
+
 from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
-from interpreter.nntool_shell_base import NNToolShellBase, no_history
-from utils.data_importer import import_data
 from execution.graph_executer import GraphExecuter
 from execution.quantization_mode import QuantizationMode
-from generation.default_template import basic_kernel_header_template, basic_kernel_source_template, default_template, dynamic_template, header_template
-from generation.naming_convension import DefaultNamingConvension
 from generation.code_generator import CodeGenerator
+from generation.default_template import (basic_kernel_header_template,
+                                         basic_kernel_source_template,
+                                         default_template, dynamic_template,
+                                         header_template)
+from generation.gen_utils import write_empty
+from generation.naming_convension import DefaultNamingConvension
+from interpreter.nntool_shell_base import NNToolShellBase, no_history
+from utils.data_importer import import_data
 
 LOG = logging.getLogger("nntool")
 
@@ -92,9 +97,11 @@ settings related to code generation."""
         self.settings['basic_kernel_source_file'] = args.basic_kernel_source_file
         self.settings['basic_kernel_header_file'] = args.basic_kernel_header_file
         self.settings['anonymise'] = args.anonymise
-        os.makedirs(os.path.abspath(self.settings['model_directory']), mode=0o750, exist_ok=True)
-        os.makedirs(os.path.abspath(self.settings['tensor_directory']), mode=0o750, exist_ok=True)
-        code_gen = CodeGenerator(self.G, DefaultNamingConvension(self.G, anonymise=args.anonymise), self.settings)
+        os.makedirs(os.path.abspath(
+            self.settings['model_directory']), mode=0o750, exist_ok=True)
+        os.makedirs(os.path.abspath(
+            self.settings['tensor_directory']), mode=0o750, exist_ok=True)
+        code_gen = CodeGenerator(self.G, DefaultNamingConvension(anonymise=args.anonymise), self.settings)
 
         if self.settings['template_file']:
             code_template = dynamic_template(self.settings['template_file'])
@@ -108,18 +115,28 @@ settings related to code generation."""
             if self.G.has_expressions:
                 with open(os.path.join(self.settings['model_directory'],
                                        args.basic_kernel_source_file), "w") as output_fp:
-                    output_fp.write(basic_kernel_source_template(self.G, code_generator=code_gen))
+                    output_fp.write(basic_kernel_source_template(
+                        self.G, code_generator=code_gen))
                 with open(os.path.join(self.settings['model_directory'],
                                        args.basic_kernel_header_file), "w") as output_fp:
-                    output_fp.write(basic_kernel_header_template(self.G, code_generator=code_gen))
+                    output_fp.write(basic_kernel_header_template(
+                        self.G, code_generator=code_gen))
+            else:
+                write_empty(self.settings['model_directory'],
+                            args.basic_kernel_source_file, "no expressions used")
+                write_empty(self.settings['model_directory'],
+                            args.basic_kernel_header_file, "no expressions used")
         else:
             self.ppaged(code_template(self.G, code_generator=code_gen))
             if self.G.has_expressions:
-                self.ppaged(basic_kernel_source_template(self.G, code_generator=code_gen))
-                self.ppaged(basic_kernel_header_template(self.G, code_generator=code_gen))
+                self.ppaged(basic_kernel_source_template(
+                    self.G, code_generator=code_gen))
+                self.ppaged(basic_kernel_header_template(
+                    self.G, code_generator=code_gen))
         if args.output_tensors:
             code_gen.write_constants()
 
         if args.header_file:
             with open(os.path.join(self.settings['model_directory'], args.header_file), "w") as output_fp:
-                output_fp.write(header_template(self.G, code_generator=code_gen))
+                output_fp.write(header_template(
+                    self.G, code_generator=code_gen))

@@ -19,7 +19,7 @@ import gsystree as st
 class Mchan(st.Component):
 
     def __init__(self, parent, name, nb_channels=0, core_queue_depth=2, global_queue_depth=8, is_64=False, max_nb_ext_read_req=8,
-            max_nb_ext_write_req=8, max_burst_length=256, nb_loc_ports=4, tcdm_addr_width=20):
+            max_nb_ext_write_req=8, max_burst_length=256, nb_loc_ports=4, tcdm_addr_width=20, power_models_file=None):
         super(Mchan, self).__init__(parent, name)
 
         self.vcd_group(self, skip=True)
@@ -36,6 +36,9 @@ class Mchan(st.Component):
             'nb_loc_ports': nb_loc_ports,
             'tcdm_addr_width': tcdm_addr_width,
         })
+
+        if power_models_file is not None:
+            self.add_property('power_models', self.load_property_file(power_models_file))
 
 
     def gen_gtkw(self, tree, traces):

@@ -698,6 +698,29 @@ int CNN_MatMulAct_SQ8(
         KernelOper_T ActOper
 	);
 
+int CNN_BatchedMatMulAct_SQ8(
+	char *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+	int Bias_DataSize,
+	int Scale_DataSize,
+
+	int NBatches,
+	int ColM1,
+	int LineM1,
+	int ColM2,
+	int LineM2,
+
+	int Width,
+	int Height,
+	int Scx,
+	int Scy,
+
+	KernelOper_T MatMulOper,
+	KernelOper_T ActOper
+	);
+
 Kernel_T *CNN_MatMulAct_SQ8_Internal(
 	char *Name,
 
@@ -706,6 +729,7 @@ Kernel_T *CNN_MatMulAct_SQ8_Internal(
 	int Bias_DataSize,
 	int Scale_DataSize,
 
+	int NBatches,
 	int ColM1,
 	int LineM1,
 	int ColM2,

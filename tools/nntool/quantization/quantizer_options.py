@@ -136,6 +136,14 @@ FLOAT_MATH_KERNEL_TYPE_OPTION = {
     'default': 'fastfloat'
 }
 
+CLIP_TYPE_OPTION = {
+    'name': 'clip_type',
+    'type': str,
+    'choices': ['laplace', 'gaus', 'mix', 'none'],
+    'help': 'Clipping method for filter output activations min max. laplace or gaussian distribution or choose based on MSE or no clipping',
+    'default': 'none'
+}
+
 BIAS_SIZE_OPTION = {
     'name': 'pow2_biases',
     'type': int,

@@ -13,6 +13,9 @@
 
 #include "pmsis.h"
 #include "testbench.h"
+#include "testlib_i2s.h"
+#include "testlib_uart.h"
+#include "testlib_i2c.h"
 
 #define I2S_SLOT_STATIC_INIT {0}
 

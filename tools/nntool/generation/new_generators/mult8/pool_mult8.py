@@ -82,7 +82,8 @@ class PoolActGenerator(GeneratorBase, InOutBindingsMixin):
             infos['GLOBAL_SUM_SCALEN'] = pool_q.cache['scale_mul_biases_q'].qnorms
 
         infos_encoder = SQ8ActInfos()
-        contents = infos_encoder.gen_infos_array('DIM', **infos)
+        contents, new_comment = infos_encoder.gen_infos_array('DIM', **infos)
+        comment += new_comment
 
         cname, file_name = gen_constant(gen, pnode, pnode, INFOS)
         const_info = ConstantInfo(file_name, QType.Pow2(
@@ -103,7 +104,7 @@ class PoolActGenerator(GeneratorBase, InOutBindingsMixin):
                     gen, in_eparams, out_eparams, cname, node, qrec)
                 return True
             return False
-        elif isinstance(node, (GlobalPoolingParameters, PoolingParameters)):
+        elif isinstance(node, (GlobalPoolingParameters, PoolingParameters, ActivationParameters)):
             cls.set_in_out_infos_bindings(
                 gen, in_eparams, out_eparams, cname, node, qrec)
         else:

@@ -15,9 +15,11 @@
 
 import argparse
 import logging
+from pathlib import Path
 
 import numpy as np
-from cmd2 import Cmd2ArgumentParser, with_argparser
+from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
+from interpreter.commands.qtune import load_options
 from interpreter.nntool_shell_base import NNToolShellBase
 from quantization.handlers_helpers import (add_options_to_parser,
                                            get_options_from_args)
@@ -55,6 +57,9 @@ class FquantCommand(NNToolShellBase):
     parser_fquant.add_argument('--seed',
                                type=int, default=0,
                                help='numpy random seed, default not set and inputs change every time')
+    parser_fquant.add_argument('--json',
+                               completer_method=Cmd.path_complete,
+                               help='json file file containing saved quantization options using qtunesave command')
     add_options_to_parser(parser_fquant)
 
     @with_argparser(parser_fquant)
@@ -65,6 +70,16 @@ This is intended to allow code generation for performance testing even if no rea
 weights and input data are avalaible."""
         self._check_graph()
         opts = get_options_from_args(args)
+        opts = get_options_from_args(args)
+        if args.json:
+            json_path = Path(args.json)
+            if not json_path.exists() or not json_path.is_file():
+                self.perror(f'{json_path} does not exist or is not a file')
+                return
+            json_opts = load_options(json_path)
+            json_opts.update(opts)
+            opts = json_opts
+
         state = ConstantInputParameters.save_compression_state(self.G)
         try:
             if self.replaying_history and self.history_stats:

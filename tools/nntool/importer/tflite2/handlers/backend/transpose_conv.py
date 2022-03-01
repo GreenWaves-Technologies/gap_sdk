@@ -22,6 +22,7 @@ from importer.tflite2.common.tflite_node import TFLiteNode
 from importer.tflite2.tflite_schema_head.Padding import Padding
 from importer.tflite2.tflite_schema_head.TransposeConvOptions import \
     TransposeConvOptions
+from importer.common.check_batchdim import check_batchdim
 
 from ..backend_handler import BackendHandler
 from ..handler import tflite_op, partial_support, ps_description
@@ -43,11 +44,13 @@ class TransposeConv(ConstantMixin, FilterMixin, BackendHandler):
 
         inputs = [all_nodes[t] for t in node.input]
         x = inputs[2]
+        x = check_batchdim(G, x, node.name)
         x_shape = x[2].shape
         in_b, in_h, in_w, in_c = tuple(x_shape)
         pout_shape = [dim if x_shape[idx] is not None else None for idx,
                       dim in enumerate(cls.get_constant(inputs[0]))]
         out_b, out_h, out_w, out_c = tuple(pout_shape)
+
 
         filt = inputs[1]
         weights_node = filt[0]

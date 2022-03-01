@@ -13,30 +13,23 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.tensor_arithmetic import MatMulTransposedParameters
 import logging
-from abc import abstractproperty
 
-from graph.types import (TransposeParameters, ActivationParameters,
-                         BroadcastableActivationFusion,
-                         GlobalPoolingParameters, HSigmoidActivationParameters,
-                         HSwishActivationParameters, LeakyActivationParameters,
-                         MatMulOpFusionParameters, MatMulOpParameters,
-                         MatrixAddParameters, NNEdge,
-                         PoolingParameters, ReluActivationParameters,
-                         SigmoidActivationParameters)
-from quantization.new_qrec import QRec
+from graph.manipulations.eliminate_transposes.transpose_helpers import \
+    identity_transpose
+from graph.types import MatMulOpParameters, NNEdge, TransposeParameters
+from graph.types.tensor_arithmetic import MatMulTransposedParameters
 from utils.graph import GraphView
-from utils.node_id import NodeId
 
-from ..matcher import Matcher, description, groups, match_name, run_after, run_before
+from ..matcher import (Matcher, description, groups, match_name, run_after,
+                       run_before)
 
 LOG = logging.getLogger("nntool." + __name__)
 
 @run_after('fuse_external_bias_matmul')
 @run_before('fuse_op_activation_scale8', 'fuse_op_activation_pow2')
 @groups('*')
-@match_name("match_trans_matmul")
+@match_name("match_transpose_matmul")
 @description("spots Transpose followed by matmul and generates the proper matmul generator")
 class MatchTransMatMul(Matcher):
 
@@ -55,6 +48,11 @@ class MatchTransMatMul(Matcher):
             in_edges = [edge for edge in G.indexed_in_edges(node.name)]
             trans_node = in_edges[1].from_node
             if not isinstance(trans_node, TransposeParameters):
+                continue
+            transpose = tuple(trans_node.transpose)
+            if not identity_transpose(transpose[:-2]):
+                continue
+            if transpose[-2:] != (len(transpose) - 1, len(transpose) - 2):
                 continue
             if isinstance(node, MatMulTransposedParameters):
                 new_node = MatMulOpParameters(node.name)

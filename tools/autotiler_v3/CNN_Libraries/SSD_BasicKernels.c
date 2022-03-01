@@ -15,13 +15,6 @@
 #include "CNN_BasicKernels.h"
 #include "SSD_BasicKernels.h"
 
-#ifndef __EMUL__
-    #define CL_CRITICAL_ENTER() pi_cl_team_critical_enter()
-    #define CL_CRITICAL_EXIT()  pi_cl_team_critical_exit()
-#else
-    #define CL_CRITICAL_ENTER()
-    #define CL_CRITICAL_EXIT()
-#endif
 // optimize the division to find the chunk size
 // equivalent to ceil(KerArg0->W/rt_nb_pe())
 inline static unsigned int __attribute__((always_inline)) ChunkSize(unsigned int X)
@@ -137,14 +130,14 @@ void Ker_SSD_Decoder(Ker_SSD_Decoder_ArgT  *KerArg0 )
         boxes_idx = i*num_coords;
         for (unsigned int j=1; j<num_classes; j++){
             if((scores[(i*num_classes)+j]) > score_th){
-                CL_CRITICAL_ENTER();
+                gap_cl_critical_enter();
                 bbn = KerArg0->bbox_idx[0]++;
                 // printf("Core: %d\tbbox_idx:%d\n", CoreId, KerArg0->bbox_idx[0]);
                 if(bbn > n_max_bb){ // check if we reched n_max_bb
-                    CL_CRITICAL_EXIT();
+                    gap_cl_critical_exit();
                     goto exit_double_for;
                 }
-                CL_CRITICAL_EXIT();
+                gap_cl_critical_exit();
                 // Valid BBOX --> alive
                 bbox[bbn].alive = 1;
                 //Save score always as a Q7

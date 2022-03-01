@@ -185,6 +185,12 @@ class QuantizationSet(MutableMapping, JsonSerializable):
             del self.qset[nid]
         if self.stats and nid in self.stats:
             self.stats[fnid] = self.stats[nid]
+        if self.options and nid in self.options:
+            pnid = NodeId(new_pnode)
+            options = self.options[nid]
+            del self.options[nid]
+            self.options[fnid] = options
+            self.options.setdefault(pnid, {}).update(options)
 
     def move_to_node(self, node: Parameters, new_pnode: Parameters):
         nid = NodeId(node)

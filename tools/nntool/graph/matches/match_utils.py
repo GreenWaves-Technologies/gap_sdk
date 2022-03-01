@@ -30,7 +30,7 @@ def search_down(G, edge, for_node_classes, can_pass=None, can_pass_fn=None, edge
         multi_on_target (bool, optional): Allow target to have multiple edges. Defaults to True.
 
     Returns:
-        Optional[Sequence[Edge]]: Edges found or None  
+        Optional[Sequence[Edge]]: Edges found or None
     """
     if edge_list is None:
         edge_list = []
@@ -71,18 +71,19 @@ def search_up(G, edge, for_node_classes, can_pass=None, can_pass_fn=None, edge_l
 
     Args:
         G (NNGraph): Graph
-        edge (Edge): Edge to look down
+        edge (Edge): Edge to look up
         for_node_classes (Union[Parameters, Tuple[Parameters]]): Node class or classes to look for
         can_pass (Union[Parameters, Tuple[Parameters]], optional): Will pass through this node class or classes.
                                                                    Defaults to None.
         can_pass_fn (Callable, optional): function with graph and node as parameters. Should return True if
                                           search can pass this node. Defaults to None.
-        follow_multi (str, optional): Follow multi edge outputs. Defaults to empty string which means don't follow can be same or any.
+        follow_multi (str, optional): Follow multi edge outputs. Defaults to empty string which means don't
+                follow can be same or any.
         follow_first (bool, optional): Only follow first input. Defaults to True.
         multi_on_target (bool, optional): Allow target to have multiple edges. Defaults to True.
 
     Returns:
-        Optional[Sequence[Edge]]: Edges found or None  
+        Optional[Sequence[Edge]]: Edges found or None
     """
     if edge_list is None:
         edge_list = []

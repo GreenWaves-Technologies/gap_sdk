@@ -66,7 +66,7 @@ class AdjusterBase():
             if node.in_dims_hint:
                 node.in_dims_hint[idx] = apply_transpose(node.in_dims_hint[idx], trans)
             nid = NodeId(node)
-            if G.quantization:
+            if G.quantization and nid in G.quantization:
                 G.quantization.copy_qrec(node, 'in', idx, params)
 
     def apply_output_trans(self, G, node, trans: list, index=None):
@@ -86,7 +86,8 @@ class AdjusterBase():
             )
             if node.out_dims_hint:
                 node.out_dims_hint[idx] = apply_transpose(node.out_dims_hint[idx], self.invert(trans))
-            if G.quantization:
+            nid = NodeId(node)
+            if G.quantization and nid in G.quantization:
                 G.quantization.copy_qrec(node, 'out', idx, params)
 
     @staticmethod

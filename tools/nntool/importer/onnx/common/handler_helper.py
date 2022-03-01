@@ -14,11 +14,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from onnx import defs
+from onnx.defs import SchemaError
 
 from .. import common
 # pylint: disable=wildcard-import,unused-wildcard-import
 from ..handlers.backend import *  # noqa
 from ..handlers.backend_handler import BackendHandler
+
 
 def get_opset_status():
     ops = []
@@ -33,7 +35,8 @@ def get_opset_status():
     counts_by_domain = {}
     for handler in BackendHandler.__subclasses__():
         handler.check_cls()
-        counts_by_domain.setdefault(handler.DOMAIN, [0, onnx_ops.get(handler.DOMAIN, 0)])
+        counts_by_domain.setdefault(
+            handler.DOMAIN, [0, onnx_ops.get(handler.DOMAIN, 0)])
         counts_by_domain[handler.DOMAIN][0] += 1
         ops.append([
             handler.DOMAIN,
@@ -46,6 +49,7 @@ def get_opset_status():
         'Domain', 'Op', 'Versions', 'Notes'
     ])
     return ops, counts_by_domain
+
 
 def get_all_backend_handlers(opset_dict):
     """ Get a dict of all backend handler classes.
@@ -65,14 +69,16 @@ def get_all_backend_handlers(opset_dict):
         since_version = 1
         if defs.has(handler.ONNX_OP, domain=handler.DOMAIN):
             try:
-                since_version = defs.get_schema(  # @IgnoreException
+                since_version = defs.get_schema( #@IgnoreException
                     handler.ONNX_OP,
                     domain=handler.DOMAIN,
                     max_inclusive_version=version).since_version
-            except RuntimeError:
-                common.logger.debug("Fail to get since_version of %s in domain `%s` "
-                                    "with max_inclusive_version=%s. Set to 1.",
-                                    handler.ONNX_OP, handler.DOMAIN, version)
+            except (SchemaError, RuntimeError):
+                versions = sorted([int(ver_func[len('varsion_'):]) for ver_func in dir(handler) if ver_func.startswith('version_')])
+                since_version = versions[0] if versions else 1
+                common.logger.debug(
+                    f"Fail to load schema of {handler.ONNX_OP} in domain `{handler.DOMAIN}` "
+                    f"with max_inclusive_version=version. Since version set to {since_version}.")
         else:
             common.logger.debug("Unknown op %s in domain `%s`.",
                                 handler.ONNX_OP, handler.DOMAIN or "ai.onnx")

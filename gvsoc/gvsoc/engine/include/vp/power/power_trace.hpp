@@ -32,25 +32,43 @@ inline double vp::power::power_trace::get_power()
 
 
 
-inline double vp::power::power_trace::get_dynamic_energy_for_cycle()
+inline double vp::power::power_trace::get_quantum_power_for_cycle()
 {
     // First check if the current energy is for an old cycle
-    this->flush_dynamic_energy_for_cycle();
+    this->flush_quantum_power_for_cycle();
 
     // And return the current total
-    return this->dynamic_energy_for_cycle;
+    return this->quantum_power_for_cycle;
+}
+
+
+inline double vp::power::power_trace::get_quantum_energy_for_cycle()
+{
+    double power = this->get_quantum_power_for_cycle();
+
+    if (power != 0)
+    {
+        return power * this->top->get_period();
+    }
+
+    return 0;
 }
 
 
 
-inline void vp::power::power_trace::flush_dynamic_energy_for_cycle()
+inline void vp::power::power_trace::flush_quantum_power_for_cycle()
 {
     // Clear the current total if it is not for the current cycle
-    if (this->curent_cycle_timestamp < this->top->get_time())
+    if (this->quantum_power_for_cycle && this->curent_cycle_timestamp < this->top->get_time())
     {
-        this->curent_cycle_timestamp = this->top->get_time();
-        this->dynamic_energy_for_cycle = 0;
+        if (this->parent)
+        {
+            this->parent->inc_dynamic_power(-this->quantum_power_for_cycle);
+        }
+        this->quantum_power_for_cycle = 0;
     }
+
+    this->curent_cycle_timestamp = this->top->get_time();
 }
 
 

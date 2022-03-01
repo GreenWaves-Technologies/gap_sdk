@@ -17,8 +17,8 @@ from graph.dim import Dim, PoolFilterDim, StrideDim
 from graph.types import GlobalPoolingParameters, PoolingParameters
 from graph.types.base import NNEdge
 from importer.common.provisional_dim import ProvisionalDim
+from importer.common.check_batchdim import check_batchdim
 
-from ..handler import partial_support, ps_description
 from .pad_mixin import PadMixin
 
 
@@ -31,6 +31,7 @@ class PoolMixin(PadMixin):
         valid_name = kwargs['valid_name']
         inputs = [all_nodes[inp] for inp in node.input]
         x = inputs[0]
+        x = check_batchdim(G, x, valid_name)
         x_shape = x[2].shape
         x_feature_shape = x_shape[2::]
         input_rank = len(x_feature_shape)

@@ -161,6 +161,7 @@ class Gap9(st.Component):
         self.bind(soc_clock, 'out', pmu, 'clock')
         self.bind(soc, 'pmu_input', pmu, 'input')
         self.bind(pmu, 'icu6_reset', clusters[0], 'reset')
+        self.bind(pmu, 'icu6_power', clusters[0], 'power_supply')
         self.bind(pmu, 'icu5_reset', soc, 'reset')
         self.bind(ref_clock, 'out', pmu, 'ref_clock')
         self.bind(pmu, 'event', soc, 'event')

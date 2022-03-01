@@ -12,32 +12,37 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.dim import Dim
 import logging
 from copy import deepcopy
 from functools import partial
 from itertools import groupby
 
 import numpy as np
+from graph.dim import Dim
 from graph.types import SplitParameters
 from graph.types.base import ComparableParameters, NNEdge
 from utils.graph import GraphView
 
-from ..matcher import Matcher, description, groups, match_name, run_before
+from ..matcher import Matcher, description, groups, match_name, run_before, run_qtune_on_match
 
 LOG = logging.getLogger("nntool." + __name__)
 
-@match_name("match_duplicate_operations")
+
+@match_name("duplicate_operations")
 @description("""Removes operations that are duplicates on the same edge""")
 @run_before("*")
 @groups('symmetric', 'scaled')
+@run_qtune_on_match
 class MatchDuplicateOperations(Matcher):
+    def __init__(self, identity: str = None, limit_to_dest_classes=None):
+        super().__init__(identity)
+        self._limit_to_dest_classes = limit_to_dest_classes
 
     def _match(self, G: GraphView, set_identity: bool = True, **kwargs):
-        if G.quantization:
-            LOG.warning(
-                'match_duplicate_operations does not handle quantized graphs')
-            return False
+        # if G.quantization:
+        #     LOG.warning(
+        #         'duplicate_operations does not handle quantized graphs')
+        #     return False
 
         def same_source_edge_fn(x):
             return f"{x.from_node.__hash__()}##{x.from_idx}"
@@ -53,6 +58,11 @@ class MatchDuplicateOperations(Matcher):
             # all have the same origin
             same_source_edges = [elem for elem in same_source_edges
                                  if len(elem) > 1]
+            if self._limit_to_dest_classes:
+                same_source_edges = list(
+                    filter(
+                        lambda edges: all(isinstance(edge.to_node, self._limit_to_dest_classes) for edge in edges),
+                        same_source_edges))
             same_dest_edges = []
             same_dest_group_edges = []
 
@@ -63,7 +73,7 @@ class MatchDuplicateOperations(Matcher):
                     first = same_source_edge.pop(0)
 
                     others = list(filter(partial(lambda x, y: x.to_node != y.to_node and y.to_node.is_same_operation_as(G,
-                        x.to_node), first), same_source_edge))
+                                                                                                                        x.to_node), first), same_source_edge))
                     if others:
                         same_dest_edges.append(tuple([first] + others))
                         for other in others:
@@ -83,10 +93,11 @@ class MatchDuplicateOperations(Matcher):
             while same_dest_edges:
                 edge_set = same_dest_edges.pop(0)
                 keep_node = edge_set[0].to_node
-                other_edge_sets = [edges for edges in same_dest_edges if any(edge.to_node == keep_node for edge in edges)]
+                other_edge_sets = [edges for edges in same_dest_edges if any(
+                    edge.to_node == keep_node for edge in edges)]
                 for other_edge_set in other_edge_sets:
                     same_dest_edges.remove(other_edge_set)
-                
+
                 nodes_to_delete = set()
                 for edge_set in [edge_set] + other_edge_sets:
                     for edge in edge_set:
@@ -95,13 +106,13 @@ class MatchDuplicateOperations(Matcher):
                             continue
                         nodes_to_delete.add(other_node)
                         for out_edge in G.out_edges(other_node):
-                            G.add_edge(NNEdge(from_node=keep_node, to_node=out_edge.to_node, to_idx=out_edge.to_idx))
+                            G.add_edge(
+                                NNEdge(from_node=keep_node, to_node=out_edge.to_node, to_idx=out_edge.to_idx))
                 LOG.info(
                     f'removed duplicates {",".join(node.name for node in nodes_to_delete)} to {keep_node.name}')
                 for node in nodes_to_delete:
                     G.remove(node)
-                        
-            
+
             # # all are multiple edges that go to something comparable
 
             # for edge_set in same_dest_edges:
@@ -145,7 +156,8 @@ class MatchDuplicateOperations(Matcher):
                 out_edges = G.out_edges(first_node.name)
                 for edge in out_edges:
                     G.remove_edge(edge)
-                    G.add_edge(NNEdge(from_node=split1, from_idx=out_num, to_node=edge.to_node, to_idx=edge.to_idx))
+                    G.add_edge(NNEdge(from_node=split1, from_idx=out_num,
+                                      to_node=edge.to_node, to_idx=edge.to_idx))
                 G.add_edge(NNEdge(from_node=first_node, to_node=split1))
                 # first split output goes to original output
                 for other in edge_set[1::]:
@@ -169,7 +181,8 @@ class MatchDuplicateOperations(Matcher):
                     G.remove(weights_other)
                     G.remove(biases_other)
                     for edge in out_edges:
-                        G.add_edge(NNEdge(from_node=split1, from_idx=out_num, to_node=edge.to_node, to_idx=edge.to_idx))
+                        G.add_edge(NNEdge(from_node=split1, from_idx=out_num,
+                                          to_node=edge.to_node, to_idx=edge.to_idx))
                 LOG.info(
                     f'merged convolutions {",".join(dup_nodes)} into {first_node.name}')
             if not found_more:

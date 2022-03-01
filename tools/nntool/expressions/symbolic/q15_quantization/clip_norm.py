@@ -63,6 +63,7 @@ class Norm(Function):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        x=0
 
     def _impl(self, *args, **kwargs):
         dtype = self.dtype

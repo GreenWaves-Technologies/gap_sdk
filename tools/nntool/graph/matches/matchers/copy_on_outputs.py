@@ -15,9 +15,7 @@
 
 import logging
 
-from graph.matches.matchers.insert_copies import find_real_in_edge
-from graph.types import (CopyParameters, NNEdge, OutputParameters,
-                         ReshapeParameters, TransposeParameters)
+from graph.types import CopyParameters, NNEdge, OutputParameters
 from utils.graph import GraphView
 from utils.node_id import NodeId
 
@@ -29,7 +27,7 @@ LOG = logging.getLogger("nntool." + __name__)
 
 def search_down(G, edge):
     node = edge.to_node
-    if isinstance(node, ReshapeParameters) or (isinstance(node, TransposeParameters) and node.does_nothing):
+    if node.no_model_code:
         res = []
         for out_edge in G.out_edges(node):
             res.extend(search_down(G, out_edge))
@@ -49,7 +47,7 @@ def search_up(G, edge):
             if out_edge == edge:
                 continue
             res.extend(search_down(G, out_edge))
-    if isinstance(node, (OutputParameters, ReshapeParameters)) or (isinstance(node, TransposeParameters) and node.does_nothing):
+    if node.no_model_code:
         edge = G.in_edges(node)[0]
         res.extend(search_up(G, edge))
     return res

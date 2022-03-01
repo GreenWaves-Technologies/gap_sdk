@@ -61,8 +61,10 @@ private:
   uint64_t get_compare_value(bool is_64, int counter);
   uint64_t get_value(bool is_64, int counter);
   void set_value(bool is_64, int counter, uint64_t new_value);
+  void set_enable(int counter, bool enabled);
 
   vp::wire_master<bool> irq_itf[2];
+  vp::wire_master<bool> busy_itf;
   vp::clock_slave ref_clock_itf;
 
   uint32_t value[2];
@@ -143,6 +145,16 @@ void timer::set_value(bool is_64, int counter, uint64_t new_value)
   else value[counter] = new_value;
 }
 
+void timer::set_enable(int counter, bool enabled)
+{
+  this->is_enabled[counter] = enabled;
+
+  if (this->busy_itf.is_bound())
+  {
+    this->busy_itf.sync(enabled);
+  }
+}
+
 void timer::check_state_counter(bool is_64, int counter)
 {
   if (is_enabled[counter] && get_compare_value(is_64, counter) == get_value(is_64, counter))
@@ -165,7 +177,7 @@ void timer::check_state_counter(bool is_64, int counter)
 
     if (one_shot[counter]) {
       this->trace.msg(vp::trace::LEVEL_DEBUG, "Reached one-shot end (timer: %d)\n", counter);
-      is_enabled[counter] = false;
+      this->set_enable(counter, false);
     }
 
   }
@@ -300,7 +312,7 @@ vp::io_req_status_e timer::handle_compare(int counter, uint32_t *data, unsigned 
 
 void timer::depack_config(int counter, uint32_t configuration)
 {
-  is_enabled[counter] = (configuration >> TIMER_CFG_LO_ENABLE_BIT) & 1;
+  this->set_enable(counter, (configuration >> TIMER_CFG_LO_ENABLE_BIT) & 1);
   irq_enabled[counter] = (configuration >> TIMER_CFG_LO_IRQEN_BIT) & 1;
   iem[counter] = (configuration >> TIMER_CFG_LO_IEM_BIT) & 1;
   cmp_clr[counter] = (configuration >> TIMER_CFG_LO_MODE_BIT) & 1;
@@ -384,6 +396,8 @@ int timer::build()
 
   new_master_port("irq_itf_0", &irq_itf[0]);
   new_master_port("irq_itf_1", &irq_itf[1]);
+
+  new_master_port("busy", &busy_itf);
 
   ref_clock_itf.set_sync_meth(&timer::ref_clock_sync);
   new_slave_port("ref_clock", &ref_clock_itf);

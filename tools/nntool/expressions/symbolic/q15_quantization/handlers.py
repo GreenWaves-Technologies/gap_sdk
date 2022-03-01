@@ -295,7 +295,8 @@ class BasicMulQ15Quant(BasicFunctionQuant):
             prod_q, 15), max_val=prod_scale, min_val=-prod_scale)
         if prod_q > 15:
             qsym = Norm(sym_cls(*in_syms, dtype=np.int32),
-                        QuantizedConstant(prod_q - 15))
+                        QuantizedConstant(prod_q - 15),
+                        dtype=np.int32)
         else:
             qsym = sym_cls(*in_syms)
         return (qsym, out_qrec)

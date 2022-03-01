@@ -22,6 +22,9 @@ BSP_HIMAX_SRC = camera/himax/himax.c
 BSP_HM0360_SRC = camera/hm0360/hm0360.c
 BSP_BLE_NINA_B112_SRC= ble/ble.c ble/nina_b112/nina_b112.c ble/nina_b112/nina_b112_old.c
 BSP_AK4332_SRC = audio/dac/ak4332.c
+BSP_TLV320_SRC = audio/adc/tlv320.c
+BSP_FXL6408_SRC = gpio/fxl6408.c
+BSP_ADC_ADS1014_SRC = adc/ads1014.c
 
 COMMON_SRC = \
   $(BSP_FLASH_SRC) \
@@ -57,10 +60,8 @@ GAP9_SRC = \
   $(BSP_HIMAX_SRC) \
   $(BSP_HYPERFLASH_SRC) \
   $(BSP_HYPERRAM_SRC) \
-  $(BSP_RAM_SRC) \
   $(BSP_MRAM_SRC) \
   $(BSP_OSPI_FLASH_SRC) \
-  $(BSP_OSPI_RAM_SRC) \
   $(BSP_BLE_NINA_B112_SRC)
 
 WOLFE_SRC = \
@@ -104,6 +105,11 @@ AI_DECK_SRC = \
   $(BSP_SPIRAM_SRC) \
   $(BSP_SPIFLASH_SRC) \
   $(BSP_RAM_SRC)
+
+GAP9_EVK_SRC = \
+  $(COMMON_SRC) \
+  $(BSP_MRAM_SRC) \
+  bsp/gap9_evk.c
 
 GAPOC_A_SRC = \
   $(COMMON_SRC) \
@@ -152,3 +158,66 @@ GAPOC_B_SRC = \
   camera/ov5640/ov5640.c
 endif				# TARGET_CHIP
 
+ifeq '$(BOARD_NAME)' 'gap9_evk'
+# Configure the right spi flash
+CONFIG_MX25U51245G=1
+CONFIG_APS25XXXN=1
+CONFIG_IO_UART_ITF=1
+CONFIG_IO_UART_BAUDRATE=115200
+endif
+
+ifeq '$(BOARD_NAME)' 'gap9_v2'
+# Configure the right spi flash
+CONFIG_ATXP032=1
+CONFIG_HYPERFLASH=1
+CONFIG_HYPERRAM=1
+CONFIG_APS25XXXN=1
+endif
+
+ifneq (,$(findstring $(BOARD_FEATURES),audio_addon))
+	PMSIS_BSP_SRC += $(BSP_GAP9_EVK_AUDIO_ADDON)
+	PMSIS_BSP_CFLAGS += -DCONFIG_GAP9_EVK_AUDIO_ADDON=1
+endif
+
+CONFIG_OCTOSPI = 1
+ifeq '$(CONFIG_AK4332)' '1'
+PMSIS_BSP_SRC += $(BSP_AK4332_SRC)
+CONFIG_FXL6408 = 1
+CONFIG_I2C = 1
+PMSIS_BSP_CFLAGS += -DCONFIG_AK4332=1
+endif
+
+ifeq '$(CONFIG_TLV320)' '1'
+PMSIS_BSP_SRC += $(BSP_TLV320_SRC)
+CONFIG_FXL6408 = 1
+CONFIG_I2C = 1
+PMSIS_BSP_CFLAGS += -DCONFIG_TLV320=1
+endif
+
+ifeq '$(CONFIG_FXL6408)' '1'
+PMSIS_BSP_SRC += $(BSP_FXL6408_SRC)
+PMSIS_BSP_CFLAGS += -DCONFIG_FXL6408=1
+CONFIG_I2C = 1
+endif
+
+ifeq '$(CONFIG_MX25U51245G)' '1'
+PMSIS_BSP_SRC += flash/spiflash/mx25u51245g.c
+CONFIG_FLASH = 1
+CONFIG_OCTOSPI = 1
+endif
+
+ifeq '$(CONFIG_APS25XXXN)' '1'
+PMSIS_BSP_SRC += ram/spiram/aps25xxxn.c
+CONFIG_RAM = 1
+CONFIG_OCTOSPI = 1
+endif
+
+ifeq '$(CONFIG_RAM)' '1'
+PMSIS_BSP_SRC += $(BSP_RAM_SRC)
+CONFIG_BSP = 1
+endif
+
+ifeq '$(CONFIG_ADS1014)' '1'
+PMSIS_BSP_SRC += $(BSP_ADC_ADS1014_SRC)
+PMSIS_BSP_CFLAGS += -DCONFIG_ADS1014=1
+endif

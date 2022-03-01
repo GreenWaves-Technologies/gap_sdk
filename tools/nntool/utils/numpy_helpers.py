@@ -36,3 +36,8 @@ def packbits(value, bits):
         )[:, 0:bits:].flatten(),
         bitorder='little'
     )
+
+def np_asscalar(elem):
+    if isinstance(elem, np.ndarray):
+        return elem.item()
+    return elem

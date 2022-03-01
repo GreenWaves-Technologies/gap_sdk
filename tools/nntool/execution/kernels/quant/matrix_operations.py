@@ -193,7 +193,7 @@ class MatMulScaled(KernelBase):
         in_tensors = [in_tensor.astype(np.int32) for in_tensor in qrec.prepare_inputs(
             params, in_tensors, ktype="symmetric")]
         if isinstance(params, MatMulTransposedParameters):
-            mat1, mat2 = in_tensors[0], np.transpose(in_tensors[1], (1, 0))
+            mat1, mat2 = in_tensors[0], np.swapaxes(in_tensors[1], -2, -1)
         else:
             mat1, mat2 = in_tensors[0], in_tensors[1]
 
@@ -208,9 +208,10 @@ class MatMulScaled(KernelBase):
             biases = 0
 
         out_tensor = np.matmul(mat1, mat2) + biases
+        out_rank = len(out_tensor.shape)
         mul_biases_q = qrec.cache['mul_biases_q']
         scale_axis = None if len(mul_biases_q.scale) == 1 else \
-            (1 if isinstance(params, MatMulTransposedParameters) else 0)
+            (out_rank-1 if isinstance(params, MatMulTransposedParameters) else out_rank-2)
         out_tensor = mul_biases_q.apply_scales(out_tensor, scale_axis)
 
         return qrec.get_outputs(params, [out_tensor], ktype="symmetric")
@@ -228,7 +229,7 @@ class MatMulSymmetric(KernelBase):
             params, in_tensors, ktype="symmetric")]
 
         if isinstance(params, MatMulTransposedParameters):
-            mat1, mat2 = in_tensors[0], np.transpose(in_tensors[1], (1, 0))
+            mat1, mat2 = in_tensors[0], np.swapaxes(in_tensors[1], -2, -1)
         else:
             mat1, mat2 = in_tensors[0], in_tensors[1]
 

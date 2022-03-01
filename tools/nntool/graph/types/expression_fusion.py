@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from copy import deepcopy
 import logging
 from collections import Counter
 
@@ -121,6 +122,19 @@ class ExpressionFusionParameters(FusionBase, Broadcastable, ComparableParameters
         qtype = qrec.out_qs[0]
         symbol.control.add_min_max(symbol, qtype.min_val, qtype.max_val)
 
+    def details_collector(self, stats, stat, details):
+        if 'expression' in stat:
+            stat = stat['expression']
+            for sym_name, rec in details.items():
+                if sym_name == "results":
+                    continue
+                stat_rec = stat.setdefault(
+                    sym_name, {'min': float('inf'), 'max': float('-inf')})
+                stat_rec['min'] = min(stat_rec['min'], rec['min'])
+                stat_rec['max'] = max(stat_rec['max'], rec['max'])
+        else:
+            stat['expression'] = deepcopy(details)
+
     def is_same_operation_as(self, G, other):
         if not isinstance(other, ExpressionFusionParameters):
             return False
@@ -182,6 +196,8 @@ class ExpressionFusionParameters(FusionBase, Broadcastable, ComparableParameters
             if tuple(in_vars[idx].shape) != shape:
                 in_vars[idx].shape = shape
                 dim_change = True
+        if dim_change:
+            self.func_col.set_var_shapes()
         out_dims = super().get_output_size(in_dims)
         if dim_change: # if the input shapes haven't changed then the output shapes have not changed
             out_vars = [self.func_col.variables[name] for name in self.output_symbols]

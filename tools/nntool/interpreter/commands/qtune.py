@@ -75,7 +75,7 @@ class QtuneCommand(NNToolShellBase):
     parser_tune.add_argument(
         '--json',
         completer_method=Cmd.path_complete,
-        help='json file to save quantization options')
+        help='json file to load quantization options from')
 
     @with_argparser(parser_tune, ns_provider=capture_shell)
     def do_qtune(self, args):
@@ -102,8 +102,7 @@ Tune quantization of graph."""
             if not json_path.exists() or not json_path.is_file():
                 self.perror(f'{json_path} does not exist or is not a file')
                 return
-            with json_path.open('r') as fp:
-                options = json.load(fp, cls=JsonSerializableStateDecoder)
+            options = load_options(json_path)
         else:
             options = {}
 
@@ -114,6 +113,17 @@ Tune quantization of graph."""
         quantizer.options.update(options)
         quantizer.quantize()
         self.pfeedback('quantization options set')
+
+def load_options(file_path):
+    with file_path.open('r') as fp:
+        save_options = json.load(fp, cls=JsonSerializableStateDecoder)
+        options = save_options['global']
+        for node_opt in save_options['nodes']:
+            if 'node_name' not in node_opt:
+                raise ValueError('node option missing node id')
+            options[NodeId(node_opt['node_name'])] = {opt: val for opt, val in node_opt.items() if opt != "node_name"}
+    return options
+
 
 class QTuneSaveCommand(NNToolShellBase):
 
@@ -126,13 +136,35 @@ class QTuneSaveCommand(NNToolShellBase):
     @with_argparser(parser_qtune_save)
     def do_qtunesave(self, args):
         """
-Save set quantization options."""
+Save set quantization options.
+
+You can manually edit quantization options in the file.
+The global section contains options that will be applied to the whole graph
+The nodes array contains options for each node that override the global options
+Each nodes entry should be a JSON mapping with a key node_name
+node_name should contain a node name or and arry with the fusion name and fusion internal
+node name.
+"""
         self._check_graph()
         self._check_quantized()
         save_path = Path(args.jsonfile).with_suffix('.json')
-        options = self.G.quantization.options.copy()
-        if 'scheme' not in options:
-            options['scheme'] = self.G.quantization.scheme_priority[0]
+        save_options = {
+            "global": {},
+            "nodes": []
+        }
+        for optid, opt in self.G.quantization.options.items():
+            if isinstance(optid, NodeId):
+                opt = opt.copy()
+                if 'qtype_ind' in opt:
+                    del opt['qtype_ind']
+                if opt:
+                    opt['node_name'] = optid.id[0] if not optid.id[1] else optid
+                    save_options['nodes'].append(opt)
+            else:
+                save_options['global'][optid] = opt
+
+        if 'scheme' not in save_options:
+            save_options['scheme'] = self.G.quantization.scheme_priority[0]
         with save_path.open('w') as fp:
-            json.dump(options, fp, cls=JsonSerializableStateEncoder, indent=2)
+            json.dump(save_options, fp, cls=JsonSerializableStateEncoder, indent=2)
         self.pfeedback(f'quantization options saved to {save_path}')

@@ -12,7 +12,7 @@ argcomplete==1.10.0
 Cython==0.29.21
 scikit-image==0.17.2
 scikit-learn==0.21.3
-onnx==1.8.0
+onnx==1.10.2
 prettytable==0.7.2
 iteration-utilities==0.11.0
 bfloat16==1.0

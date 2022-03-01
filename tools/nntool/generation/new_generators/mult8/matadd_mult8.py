@@ -61,7 +61,7 @@ class MatAddSQ8Generator(GeneratorBase):
             add_node = pnode
             add_quant = qrec
             infos = {}
-            acomments = ""
+            acomments = "no activation - "
 
         infos.update({
             'IN1SCALE': add_quant.cache['scale_in_mul_biases_q'].qbiases,
@@ -69,7 +69,6 @@ class MatAddSQ8Generator(GeneratorBase):
             'OUTSCALE': add_quant.cache['scale_mul_biases_q'].qbiases,
             'OUTSCALEN': add_quant.cache['scale_mul_biases_q'].qnorms
         })
-        comments = " ".join(f'{k}: {infos[k]}' for k in ['IN1SCALE', 'IN1SCALEN', 'OUTSCALE', 'OUTSCALEN']) + acomments
         if not add_quant.in_qs[0].signed:
             infos['ADD_BIAS'] = add_quant.cache['add_bias_offset']
             infos_len = 'ASYM_ADD_DIM'
@@ -78,7 +77,8 @@ class MatAddSQ8Generator(GeneratorBase):
 
 
         infos_encoder = SQ8ActInfos()
-        contents = infos_encoder.gen_infos_array(infos_len, **infos)
+        contents, new_comment = infos_encoder.gen_infos_array(infos_len, **infos)
+        comments = acomments + new_comment
 
         cname, file_name = gen_constant(gen, pnode, pnode, INFOS)
         const_info = ConstantInfo(file_name, QType.Pow2(

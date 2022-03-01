@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2019 GreenWaves Technologies
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+import argparse
+import runner.chips.gap9_v2_efuse as efuse
+
+parser = argparse.ArgumentParser(description='Generate gap9 efuse map')
+
+parser.add_argument("--usecase", dest="usecase", default=None, help="specify the usecase")
+parser.add_argument("--output", dest="output", default=None, help="specify the output file path")
+parser.add_argument("--name", dest="name", default=None, help="specify the structure name")
+
+args = parser.parse_args()
+
+efuse_map = efuse.Efuse_map()
+
+efuse_map.get_efuse('info_1').get_field('icache_enabled').set(1)
+
+# By default, only activate fast clock and fed other blocks like timer at 24Mhz/16
+fast_osc_freq_div = 24576062.0 / 16
+efuse_map.get_efuse('info_1').get_field('osc_ctrl_setup').set(1)
+efuse_map.get_efuse('info_1').get_field('osc_ctrl').set(1)
+efuse_map.get_efuse('info_1').get_field('fast_clk_div_pow2_setup').set(1)
+efuse_map.get_efuse('fast_clk_div_pow2').set(4 | (1<<3))
+efuse_map.get_efuse('info_2').get_field('wake_osc_ctrl_setup').set(1)
+efuse_map.get_efuse('info_2').get_field('wake_osc_ctrl').set(1)
+efuse_map.get_efuse('info_2').get_field('wake_fast_clk_div_pow2_setup').set(1)
+efuse_map.get_efuse('wake_fast_clk_div_pow2').set(4 | (1<<3))
+
+# Lock FLL soc and periph
+efuse_map.get_efuse('info_1').get_field('fll_global_setup').set(1)
+efuse_map.get_efuse('info_1').get_field('fll_dco0_setup').set(1)
+# FLL DRR (DCO min | DCO max)
+efuse_map.get_efuse('fll_drr').set((0 << 0) | (0x1ff << 16))
+# Pre-lock FLL CCR1 (CLK0 DIV | CLK1 DIV)
+efuse_map.get_efuse('fll_ccr1_pre_lock').set((0 << 0) | (0 << 8))
+# Post-lock FLL CCR1 (CLK0 DIV | CLK1 DIV)
+efuse_map.get_efuse('fll_ccr1_post_lock').set((0 << 0) | (3 << 8))
+# FLL CCR2 (CLK0 SEL | CLK1 SEL | CLK2_SEL | CLK3_SEL | CKG0)
+efuse_map.get_efuse('fll_ccr2').set((0x1 << 0) | (0x1 << 4) | (0x1 << 8) | (0x2 << 12) | (1 << 16))
+# DCO0 CR1 (DCO EN | CLOSE LOOP | LOOP GAIN | LOCK TOL | ITG | ASSERT CYCLES)
+efuse_map.get_efuse('fll_f0cr1').set((1 << 0) | (1 << 1) | (4 << 4) | (10 << 8) | (24 << 16) | (6 << 26))
+# DCO0 CR2 (MFI | DCO CODE)
+efuse_map.get_efuse('fll_f0cr2').set((166 << 0) | (0x1A << 16))
+
+# FLL DRR (DCO min | DCO max)
+efuse_map.get_efuse('wakeup_fll_drr').set((0 << 0) | (0x1ff << 16))
+# Pre-lock FLL CCR1 (CLK0 DIV | CLK1 DIV)
+efuse_map.get_efuse('wakeup_fll_ccr1_pre_lock').set((0 << 0) | (0 << 8))
+# Post-lock FLL CCR1 (CLK0 DIV | CLK1 DIV)
+efuse_map.get_efuse('wakeup_fll_ccr1_post_lock').set((0 << 0) | (1 << 8))
+# FLL CCR2 (CLK0 SEL | CLK1 SEL | CLK2_SEL | CLK3_SEL | CKG0)
+efuse_map.get_efuse('wakeup_fll_ccr2').set((0x1 << 0) | (0x1 << 4) | (0x1 << 8) | (0x2 << 12) | (1 << 16))
+# DCO0 CR1 (DCO EN | CLOSE LOOP | LOOP GAIN | LOCK TOL | ITG | ASSERT CYCLES)
+efuse_map.get_efuse('wakeup_fll_f0cr1').set((1 << 0) | (1 << 1) | (4 << 4) | (10 << 8) | (24 << 16) | (6 << 26))
+# DCO0 CR2 (MFI | DCO CODE)
+efuse_map.get_efuse('wakeup_fll_f0cr2').set((166 << 0) | (0x1A << 16))
+
+
+if args.usecase == 'mram':
+    efuse_map.get_efuse('info_1').get_field('bootmode').set(3)
+    efuse_map.get_efuse('info_1').get_field('mram_reset_wait').set(1)
+    efuse_map.get_efuse('info_2').get_field('wake_mram_reset_wait').set(1)
+    efuse_map.get_efuse('mram_reset_wait_cycles').set(math.ceil(0.000003*fast_osc_freq_div))
+    efuse_map.get_efuse('wake_mram_reset_wait_cycles').set(math.ceil(0.000003*fast_osc_freq_div))
+    efuse_map.get_efuse('info_2').get_field('clkdiv_setup').set(1)
+    efuse_map.get_efuse('info_2').get_field('clkdiv').set(5)
+    efuse_map.get_efuse('info_3').get_field('flash_wait').set(1)
+    efuse_map.get_efuse('flash_wait').set(math.ceil(0.00002*fast_osc_freq_div))
+
+
+
+
+if args.output is not None:
+    with open(args.output, 'w') as output_file:
+        efuse_map.gen_c_struct(args.name, output_file)

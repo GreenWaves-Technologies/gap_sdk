@@ -63,12 +63,15 @@ toolchain = os.environ.get('PULP_RISCV_GCC_TOOLCHAIN_CI')
 if toolchain is None:
 	toolchain = os.environ.get('PULP_RISCV_GCC_TOOLCHAIN')
 
-if toolchain is not None:
-	readelf = toolchain + '/bin/riscv32-unknown-elf-readelf'
-	addr2line = toolchain + '/bin/riscv32-unknown-elf-addr2line'
-else:
-	readelf = 'riscv32-unknown-elf-readelf'
-	addr2line = 'riscv32-unknown-elf-addr2line'
+# if toolchain is not None:
+# 	readelf = toolchain + '/bin/riscv32-unknown-elf-readelf'
+# 	addr2line = toolchain + '/bin/riscv32-unknown-elf-addr2line'
+# else:
+# 	readelf = 'riscv32-unknown-elf-readelf'
+# 	addr2line = 'riscv32-unknown-elf-addr2line'
+
+readelf = 'readelf'
+addr2line = 'addr2line'
 
 process = Popen((readelf + ' -s %s' % args.file).split(), stdin=PIPE, stdout=PIPE)
 
