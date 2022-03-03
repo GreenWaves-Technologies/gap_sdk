@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from functools import reduce
 import logging
 import math
 from copy import deepcopy
@@ -37,8 +38,7 @@ from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        params_type)
 from utils.stats_funcs import calc_bits
 
-from ..mult_quantization_handler import MultQuantizionHandler
-from .rescale_constant_mixin import RescaleConstantMixin
+from .rnn_mult_ne16 import NE16RNNMultQuantizionHandler, calc_bias_offset, calc_weight_q
 
 LOG = logging.getLogger('nntool.' + __name__)
 
@@ -55,15 +55,32 @@ def get_max_or_one(stat):
     gate_max = np.maximum(np.abs(stat['min']), np.abs(stat['max']))
     return np.where(gate_max == 0, 1.0, gate_max)
 
+def combine_stats(stats, *keys):
+    stats = [stats[k] for k in keys if k in stats]
+    if not stats:
+        return None
+    def reduction(state, item):
+        return {'min': min(state['min'], item['min']), 'max': max(state['max'], item['max'])}
+    return reduce(reduction, stats)
+
+def combine_qtype_ranges(qtypes, *indexes):
+    qtypes = [qtypes[i] for i in indexes if qtypes[i] is not None]
+    if not qtypes:
+        return None
+    def reduction(state, item):
+        if state is None:
+            return {'min': item.min_val, 'max': item.max_val}
+        return {'min': np.min(np.minimum(state['min'], item.min_val)), 'max': np.max(np.maximum(state['max'], item.max_val))}
+    return reduce(reduction, qtypes, None)
 
 @options(
     NE16_WEIGHT_BITS_OPTION,
     FORCE_EXTERNAL_SIZE_OPTION,
     NARROW_WEIGHTS_OPTION,
     USE_NE16_OPTION,
-    NARROW_STATE_OPTION
+    MAX_PRECISION_LIMIT_OPTION
 )
-class GRUMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
+class GRUMultMultNE16Base(NE16RNNMultQuantizionHandler):
 
     @classmethod
     def _quantize_gru(cls, params, in_qs, stats, input_bits, **kwargs):
@@ -93,59 +110,71 @@ class GRUMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
         names = {val: idx for idx, val in enumerate(
             GRUParameters.INPUT_NAMES)}
 
-        # output/state is always Q15 or Q7 symmetric
-        o_q = in_qs[names['h_state']] = QType.from_min_max_sq(
+        # o_q = in_qs[names['h_state']] = QType.from_min_max_sq(
+        #     min_val=-1,
+        #     max_val=1,
+        #     dtype=in_out_dtype,
+        #     narrow_range=opts['narrow_state'])
+
+        o_q = in_qs[names['h_state']] = QType(
+            q=15 if input_bits == 16 else 7,
+            zero_point=in_out_dtype(math.pow(2, input_bits-1)),
             min_val=-1,
             max_val=1,
-            dtype=in_out_dtype,
-            narrow_range=opts['narrow_state'])
+            dtype=in_out_dtype)
 
         # set weight qtypes
         int_num_inp = roundup(params.n_inputs, input_bits == 16)
         int_num_states = roundup(params.n_states, input_bits == 16)
-        woffs = {}
 
+        for gate in ['z', 'r', 'h']:
+            i_idx = names[f'w_2_{gate}_w']
+            r_idx = names[f'r_2_{gate}_w']
+
+            in_qs[i_idx] = calc_weight_q(in_edges[i_idx].from_node, (params.n_states, params.n_inputs),
+                (params.n_states, int_num_inp),
+                opts['weight_bits'],
+                opts.get('narrow_weights'))
+
+            in_qs[r_idx] = calc_weight_q(in_edges[r_idx].from_node, (params.n_states, params.n_states),
+                (params.n_states, int_num_states),
+                opts['weight_bits'],
+                opts.get('narrow_weights'))
+
+        # check for overflow
         in_q = limit_input_precision(
             params,
             input_bits,
             in_q,
             int_num_inp,
             opts['narrow_weights'],
-            opts['weight_bits'])
+            opts['weight_bits'],
+            opts.get('max_precision_limit', MAX_PRECISION_LIMIT_OPTION['default']),
+            w_qs=[in_qs[names[f'w_2_{gate}_w']] for gate in ['z', 'r']],
+            out_ranges=[stats.get(f'range_{gate}_gate_inp') for gate in ['z', 'r']])
 
-        # o_q = limit_input_precision(
-        #     params,
-        #     input_bits,
-        #     o_q,
-        #     int_num_states,
-        #     opts['narrow_weights'],
-        #     opts['weight_bits'],
-        #     extra_correction=-1 if opts.get('narrow_state') else 0)
+        # The state out is not limited but include this to print warnings
+        o_q = limit_input_precision(
+            params,
+            input_bits,
+            o_q,
+            int_num_states,
+            opts['narrow_weights'],
+            opts['weight_bits'],
+            0,
+            w_qs=[in_qs[names[f'r_2_{gate}_w']] for gate in ['z', 'r', 'h']],
+            out_ranges=[stats.get(f'range_{gate}_gate_state') for gate in ['z', 'r', 'h']])
 
+        # setup zero offset bias adjustment
+        woffs = {}
         for gate in ['z', 'r', 'h']:
             i_idx = names[f'w_2_{gate}_w']
             r_idx = names[f'r_2_{gate}_w']
 
-            woffs[gate] = woff_gate = [None, None]
-            woff_gate[0] = calculatate_weight_q(
-                in_qs,
-                in_edges,
-                i_idx,
-                in_q.zero_point[0],
-                (params.n_states, params.n_inputs),
-                (params.n_states, int_num_inp),
-                opts['weight_bits'],
-                opts.get('narrow_weights'))
-
-            woff_gate[1] = calculatate_weight_q(
-                in_qs,
-                in_edges,
-                r_idx,
-                o_q.zero_point[0],
-                (params.n_states, params.n_states),
-                (params.n_states, int_num_states),
-                opts['weight_bits'],
-                opts.get('narrow_weights'))
+            woffs[gate] = [
+                calc_bias_offset(in_edges[i_idx].from_node, in_qs[i_idx], in_q.zero_point),
+                calc_bias_offset(in_edges[r_idx].from_node, in_qs[r_idx], o_q.zero_point),
+            ]
 
         # get weight scales
         scale_pairs = {chan: ('w_2_%s_w' % chan, 'r_2_%s_w' % chan)
@@ -207,6 +236,7 @@ class GRUMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
                         dtype=np.int32,
                         scale=i_pscales[gate],
                         offset=i_zp_b,
+                        quantized_dimension=0
                     )
             else:
                 i_zp_b = woffs[gate][0] * qscale.qbiases.astype(
@@ -216,6 +246,7 @@ class GRUMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
                         dtype=np.int32,
                         scale=i_pscales[gate] / qscale.qbiases,
                         offset=i_zp_b,
+                        quantized_dimension=0
                     )
 
             scale_qtypes[f"r_2_{gate}_q"] = qscale = MultMulBiasScaleQType(
@@ -234,7 +265,8 @@ class GRUMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
                     dtype=np.int32,
                     scale=r_pscales[gate],
                     offset=r_zp_b,
-                    interleaved_values=interleaved_values
+                    interleaved_values=interleaved_values,
+                    quantized_dimension=0
                 )
             else:
                 r_zp_b = woffs[gate][1] * qscale.qbiases.astype(
@@ -243,7 +275,8 @@ class GRUMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
                     dtype=np.int32,
                     scale=r_pscales[gate] / qscale.qbiases,
                     offset=r_zp_b,
-                    interleaved_values=interleaved_values
+                    interleaved_values=interleaved_values,
+                    quantized_dimension=0
                 )
 
         # NOTE - for 16 bit pre-normalize the scales to give us room but make sure it isn't negative
@@ -265,7 +298,7 @@ class GRUMultMultNE16Base(RescaleConstantMixin, MultQuantizionHandler):
             'act_in': int_scale,
             'act_out': out_tanh_sig_scale,
             'act_in_q': act_in_q,
-            'act_out_q': act_out_q
+            'act_out_q': act_out_q   
         }
         scale_qtypes['i_qtype'] = QType(q=act_in_q, dtype=np.int32)
 

@@ -75,13 +75,12 @@ void run_MatAdd(void)
     printf("Allocated: %p, for %d bytes\n", L1_Memory, _L1_Memory_SIZE);
 
     /* Prepare task to be offload to Cluster. */
-    struct pi_cluster_task task = {0};
-    task.entry = cluster_main;
-    task.arg = NULL;
+    struct pi_cluster_task task;
+    pi_cluster_task(&task, cluster_main, NULL);
     task.stack_size = (uint32_t) STACK_SIZE;
 
     /* Offloading Task to cluster. */
-    pi_cluster_send_task_to_cl(&cluster_dev, &task);
+    pi_cluster_send_task(&cluster_dev, &task);
 
     pi_l1_free(&cluster_dev, L1_Memory, _L1_Memory_SIZE);
 

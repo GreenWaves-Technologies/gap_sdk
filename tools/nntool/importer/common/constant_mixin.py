@@ -47,3 +47,12 @@ class ConstantMixin():
         if qrecs is None:
             return
         qrecs[NodeId(cnode)] = QRec.scaled(out_qs=[qtype])
+
+    @classmethod
+    def move_stat(cls, inp, new_name, **kwargs):
+        cnid = NodeId(new_name)
+        onid = NodeId(inp[0])
+        qopts = kwargs.get('qopts', {})
+        if onid in qopts:
+            qopts[cnid] = qopts[onid]
+            del qopts[onid]

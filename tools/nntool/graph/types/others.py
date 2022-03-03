@@ -15,6 +15,7 @@
 
 import logging
 import math
+from functools import reduce
 
 import numpy as np
 from expressions.symbolic.basic import (Abs, Ceil, Cos, Exp, Log, Max, Min,
@@ -24,7 +25,7 @@ from graph.dim import Dim
 from utils.real_transpose import real_transpose
 
 from .base import (CanFuseToExpression, ComparableParameters,
-                   InsensitiveToQuantization, NNNodeRef,
+                   InsensitiveToQuantization,
                    NoSizeChangeParameters, Parameters, SensitiveToOrder,
                    SingleInputAndOutput, cls_op_name, expression_op, nargs,
                    not_generated)
@@ -63,7 +64,8 @@ class TransposeParameters(Parameters, SingleInputAndOutput, InsensitiveToQuantiz
     def permute(self, val):
         return [val[i] for i in self.transpose]
 
-    def does_nothing(self):
+    @property
+    def no_model_code(self):
         if not self.transpose:
             return True
         if not self.in_dims or not self.in_dims[0]:
@@ -76,8 +78,12 @@ class TransposeParameters(Parameters, SingleInputAndOutput, InsensitiveToQuantiz
         return shape_trans == sorted(shape_trans)
 
     @property
+    def does_nothing(self) -> bool:
+        return self._transpose is None
+
+    @property
     def is_not_generated(self):
-        return self.does_nothing()
+        return self.does_nothing
 
     def is_same_operation_as(self, G, other):
         if not isinstance(other, TransposeParameters):
@@ -136,7 +142,7 @@ class CopyParameters(Parameters, InsensitiveToQuantization):
 
 
 @cls_op_name('expand')
-class ExpandParameters(Parameters, InsensitiveToQuantization):
+class ExpandParameters(Parameters, SensitiveToOrder, InsensitiveToQuantization):
     def __init__(self, *args, shape=None, **kwargs):
         super(ExpandParameters, self).__init__(*args, **kwargs)
         self.shape = shape
@@ -172,9 +178,29 @@ class ExpandParameters(Parameters, InsensitiveToQuantization):
     def __str__(self):
         return f"{self.shape}"
 
+@cls_op_name('scatternd')
+class ScatterNdParameters(Parameters, SensitiveToOrder):
+    def __init__(self, *args, indices=None, updates=None, reduction=None, **kwargs):
+        super(ScatterNdParameters, self).__init__(*args, **kwargs)
+        self.indices = indices
+        self.updates = updates
+        self.reduction = reduction
+
+    def get_parameter_size(self):
+        return 0
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def get_output_size(self, in_dims):
+        return [Dim.unnamed(in_dims[0].shape)]
+
+    def __str__(self):
+        return ""
 
 @cls_op_name('quantize')
-class QuantizeParameters(Parameters):
+class QuantizeParameters(Parameters, ComparableParameters):
 
     def __init__(self, *args, from_qtype=None, to_qtype=None,
                  inserted_by_quantizer=False, **kwargs):
@@ -186,6 +212,11 @@ class QuantizeParameters(Parameters):
 
     def get_parameter_size(self):
         return 0
+
+    def is_same_operation_as(self, G, other):
+        return (isinstance(other, QuantizeParameters) and
+                self.from_qtype == other.from_qtype and
+                self.to_qtype == other.to_qtype)
 
     @property
     def can_equalize(self):
@@ -224,10 +255,11 @@ class ReverseParameters(Parameters, InsensitiveToQuantization):
 @not_generated
 class ConcatParameters(Parameters, SensitiveToOrder):
 
-    def __init__(self, *args, axis=None, axis_hint=None, **kwargs):
+    def __init__(self, *args, axis=None, **kwargs):
         super(ConcatParameters, self).__init__(*args, **kwargs)
+        if axis is None:
+            raise ValueError("axis must be set")
         self._axis = axis
-        self._axis_hint = axis_hint
 
     @property
     def graph_label(self):
@@ -245,6 +277,10 @@ class ConcatParameters(Parameters, SensitiveToOrder):
     def axis(self, val):
         self._axis = val
 
+    @property
+    def does_nothing(self) -> bool:
+        return self.in_dims and len(self.in_dims) == 1
+
     def get_parameter_size(self):
         return 0
 
@@ -252,9 +288,16 @@ class ConcatParameters(Parameters, SensitiveToOrder):
     def can_equalize(self):
         return False
 
+    @property
+    def offsets(self):
+        return reduce(
+            lambda state, in_dim: (
+                state[0] + [state[1]], state[1] + in_dim.shape[self.axis]),
+            self.in_dims,
+            ([], 0)
+        )[0]
+
     def get_output_size(self, in_dims):
-        if in_dims[0].is_named and self._axis_hint:
-            self._axis = in_dims[0].get_order_idx(self._axis_hint)
         out_dim = Dim.combine([in_dim for in_dim in in_dims], self.axis)
         return [out_dim]
 
@@ -281,8 +324,11 @@ class SplitParameters(Parameters, SensitiveToOrder):
         self.axis = axis
 
     def __call__(self, *args, **kwargs):
-        noderef = super(SplitParameters, self).__call__(*args, **kwargs)
-        return tuple(NNNodeRef(self, i, noderef.ref[1]) for i in range(len(self.act_slices)))
+        return super().__call__(*args, num_outputs=len(self.act_slices), **kwargs)
+
+    @property
+    def does_nothing(self) -> bool:
+        return self.out_dims and len(self.out_dims) == 1
 
     @property
     def graph_label(self):
@@ -308,7 +354,8 @@ class SplitParameters(Parameters, SensitiveToOrder):
         if splits:
             if in_shape[axis] is not None and any(split == -1 for split in splits):
                 rest_sz = sum(split for split in splits if split > 0)
-                splits = (split if split > 0 else in_shape[axis] - rest_sz for split in splits)
+                splits = (split if split >
+                          0 else in_shape[axis] - rest_sz for split in splits)
             for sz in splits:
                 act_slices.append([(in_idx, in_idx + sz, 1) if idx == axis else (0, shape, 1)
                                    for idx, shape in enumerate(in_shape)
@@ -392,7 +439,6 @@ class GatherParameters(Parameters, SingleInputAndOutput, SensitiveToOrder, Insen
     def __str__(self):
         return "A %s I %s" % (self.axis, self.indices)
 
-
 @cls_op_name('strided_slice')
 class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParameters, InsensitiveToQuantization):
 
@@ -403,7 +449,6 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParamet
 
         super(StridedSliceParameters, self).__init__(*args, **kwargs)
         self.act_slice = act_slice
-        self.slice_shape = tuple(int(abs(math.ceil((sl[1] - sl[0])/sl[2]))) for sl in self.act_slice)
         self.out_shape = tuple(out_shape)
 
     @property
@@ -413,6 +458,24 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParamet
     @property
     def graph_anon_label(self):
         return ['Slice'] + ["(%s,%s,%s)" % elem for elem in self.act_slice]
+
+    @property
+    def slice_shape(self):
+        return tuple(
+            int(abs(math.ceil((max(sl[1], -1) - max(sl[0], -1))/sl[2]))) for sl in self.act_slice)
+
+    @property
+    def slices_axes(self):
+        in_shape = self.in_dims[0].shape
+        return tuple(idx for idx, shapes in enumerate(zip(self.slice_shape, in_shape)) if shapes[0] != shapes[1])
+
+    @property
+    def changes_shape(self):
+        return self.slice_shape != self.out_shape
+
+    @property
+    def can_equalize(self):
+        return False
 
     def numpy_slice(self, arr: np.ndarray):
         slice_spec = [slice(elem[0], elem[1], elem[2])
@@ -447,22 +510,20 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParamet
                    for idx, dim in enumerate(self.in_dims[0].shape) if axis != idx)
 
     @property
-    def post_slice_shape(self):
-        return [(sl[1] - sl[0])//sl[2] for sl in self.act_slice]
+    def does_nothing(self) -> bool:
+        return self.no_model_code and not self.changes_shape
 
     @property
-    def changes_shape(self):
-        return len(self.post_slice_shape) > len(self.out_shape)
+    def no_model_code(self) -> bool:
+        if not self.in_dims:
+            return False
+        return self.slice_shape == tuple(self.in_dims[0].shape)
 
     def get_parameter_size(self):
         return 0
 
     def get_output_size(self, in_dims):
         return [Dim.unnamed(self.out_shape)]
-
-    @property
-    def can_equalize(self):
-        return False
 
     def __str__(self):
         return ",".join("(%s,%s,%s)" % elem for elem in self.act_slice)
@@ -675,14 +736,19 @@ class ReshapeParameters(Parameters, SingleInputAndOutput, InsensitiveToQuantizat
 
     @property
     def graph_label(self):
-        return [self.name, f'{self.old_shape} to {self.shape}']
+        return [f'Reshape({self.name})', f'{self.old_shape} to {self.shape}']
 
     @property
     def graph_anon_label(self):
         return ['Reshape', f'{self.old_shape} to {self.shape}']
 
+    @property
     def does_nothing(self):
-        return self.shape.layout_shape == self.old_shape.layout_shape
+        return tuple(self.shape.shape) == tuple(self.old_shape.shape)
+
+    @property
+    def no_model_code(self) -> bool:
+        return True
 
     def get_parameter_size(self):
         return 0
@@ -691,7 +757,7 @@ class ReshapeParameters(Parameters, SingleInputAndOutput, InsensitiveToQuantizat
         """ If the reshape is an expand or reduce dim i.e. adds or removes 1 size axes then
         return a pattern with True indicating an added axis, False a removed axis and None
         an unchanged axis"""
-        if not self.does_nothing():
+        if not self.does_nothing:
             return None
         res = []
         s1 = self._old_shape.shape.copy()
@@ -780,6 +846,14 @@ class NoOPParameters(NoSizeChangeParameters, SingleInputAndOutput, InsensitiveTo
     @property
     def can_equalize(self):
         return False
+
+    @property
+    def no_model_code(self) -> bool:
+        return True
+
+    @property
+    def does_nothing(self) -> bool:
+        return True
 
     def compute_load(self):
         return 0

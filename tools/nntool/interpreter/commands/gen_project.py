@@ -36,6 +36,7 @@ from generation.default_appl_main_template import (
 from generation.default_template import (basic_kernel_header_template,
                                          basic_kernel_source_template,
                                          default_template)
+from generation.gen_utils import write_empty
 from generation.naming_convension import DefaultNamingConvension
 from interpreter.commands.aquant import AquantCommand
 from interpreter.commands.open import OpenCommand
@@ -134,6 +135,11 @@ added."""
         self._check_quantized()
         self._check_adjusted()
 
+        if "GAP_SDK_HOME" not in os.environ or "NNTOOL_PATH" not in os.environ:
+            self.perror(
+                'you must run "source sourceme.sh" in the GAP SDK before using this command')
+            return
+
         if args.input_tensors:
             if args.input_tensors not in self.tensor_store:
                 self.perror(
@@ -217,7 +223,7 @@ This command can take a few minutes to complete."""
         self._check_graph()
         self._check_quantized()
         self._check_adjusted()
-        if "GAP_SDK_HOME" not in os.environ:
+        if "GAP_SDK_HOME" not in os.environ or "NNTOOL_PATH" not in os.environ:
             self.perror(
                 'you must run "source sourceme.sh" in the GAP SDK before using this command')
             return
@@ -281,7 +287,7 @@ This command can take a few minutes to complete."""
                     self.tensor_store[args.output_tensors] = at_map_tensors(
                         self.G, at_tensor_loader_int(fp))
 
-            match_perf = r" +((?:S\d+|Tota)[^:]+): *Cycles: +(\d+)[^:]+: +(\d+)[^:]+: +([\d<.]+)"
+            match_perf = r" +((?:S\d+|Tota)[^:]+): *Cycles: +(\d+)[^:]+: +(\d+)[^:]+: +(.+)"
             matcher = re.compile(match_perf)
             perf = matcher.findall(res.stdout)
             if not perf:
@@ -356,7 +362,9 @@ def process_script(script):
         if line.startswith('aquant'):
             # add abs path for input files and try to remake command
             args = aquant_parser.parse_args(line.rstrip().split(' ')[1:])
-            input_files = [os.path.abspath(f) for f in args.input_files if f != '']
+            input_files = [os.path.abspath(f)
+                           for f in args.input_files if f != '']
+#pylint: disable=singleton-comparison
             opts = [f"--{k} {v}" if v != True else f"--{k}" for k, v in vars(args).items()
                     if v and k != 'input_files']
             line = " ".join(['aquant'] + opts + input_files)
@@ -373,7 +381,7 @@ def gen_project(G, settings, project_folder, script_commands, overwrite=False, p
     settings['graph_produce_operinfos'] = True
 
     code_gen = CodeGenerator(
-        G, DefaultNamingConvension(G), settings)
+        G, DefaultNamingConvension(), settings)
 
     if not os.path.exists(project_folder):
         os.mkdir(project_folder)
@@ -447,7 +455,7 @@ def gen_project(G, settings, project_folder, script_commands, overwrite=False, p
             if script_commands[-1] != "save_state":
                 fp.write('save_state\n')
     if gen_atproject:
-        code_gen = CodeGenerator(G, DefaultNamingConvension(G), settings)
+        code_gen = CodeGenerator(G, DefaultNamingConvension(), settings)
         with open(os.path.join(project_folder, 'Model.c'), "w") as output_fp:
             output_fp.write(default_template(G, code_generator=code_gen))
         if G.has_expressions:
@@ -457,6 +465,12 @@ def gen_project(G, settings, project_folder, script_commands, overwrite=False, p
             with open(os.path.join(project_folder, "Expression_Kernels.h"), "w") as output_fp:
                 output_fp.write(basic_kernel_header_template(
                     G, code_generator=code_gen))
+        else:
+            write_empty(project_folder, "Expression_Kernels.c",
+                        "no expressions used")
+            write_empty(project_folder, "Expression_Kernels.h",
+                        "no expressions used")
+
         code_gen.write_constants(tensor_directory=project_folder)
     ignore_function = None if overwrite else skip_existing_files(
         project_folder)

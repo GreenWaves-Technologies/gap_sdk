@@ -38,9 +38,11 @@ Drivers
 .. toctree::
    :maxdepth: 2
 
-   ram.rst
-   flash.rst
-   camera.rst
-   fs.rst
+   adc.rst
    ble.rst
+   camera.rst
    display.rst
+   flash.rst
+   fs.rst
+   gpio.rst
+   ram.rst

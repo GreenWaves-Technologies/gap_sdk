@@ -18,11 +18,13 @@ import numpy as np
 from generation.at_types.constant_info import ConstantInfo
 from generation.at_types.tc_arg_info import (GlobalArgInfo, GlobalResetArgInfo,
                                              InputArgInfo)
+from generation.gen_utils import ModelGenerationInternalError
 from generation.generator_decorators import (QREC_FLOAT, QREC_MULT8, QREC_POW2,
                                              generation_function)
 from graph.types import ConstantInputParameters
-from graph.types.fusions import ConvFusionParameters, LinearFusionParameters
-from graph.types.linear import FcParameters
+from graph.types.fusions import (ConvFusionParameters,
+                                 LinearFusionParameters,
+                                 MatMulOpFusionParameters)
 from utils.node_id import NodeId
 from utils.numpy_helpers import interleave, packbits
 
@@ -83,13 +85,15 @@ def constant_input_globals_generator(gen, node, qrec, pnode, fnode) -> bool:
 
         if qtype.attr.ne16_biases:
             to_node = gen.G.out_edges(pnode.name)[0].to_node
-            if isinstance(to_node, (ConvFusionParameters, LinearFusionParameters)):
+            if isinstance(to_node, (ConvFusionParameters, LinearFusionParameters, MatMulOpFusionParameters)):
                 cnodes = to_node.contained_nodes()
                 quants = [gen.G.quantization[NodeId(
                     to_node, fnode)] for fnode in cnodes]
                 filter_qrec = quants[0]
             else:
                 filter_qrec = gen.G.quantization[NodeId(to_node)]
+            if 'mul_biases_q' not in filter_qrec.cache:
+                raise ModelGenerationInternalError(f"mul_biases_q not found in qrec for {to_node.name}")
             mul_qbiases = filter_qrec.cache['mul_biases_q'].qbiases
             mul_qnorms = filter_qrec.cache['mul_biases_q'].qnorms
             value = np.where(mul_qnorms > 0,

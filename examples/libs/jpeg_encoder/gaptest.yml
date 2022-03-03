@@ -1,0 +1,56 @@
+name: jpeg_encoder
+boards: []
+platforms: 
+    - board
+    - gvsoc
+os: 
+#    - freertos
+    - pulpos
+chips: 
+    - gap8
+#    - gap9
+variants:
+    monochorme_cl:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        os: 
+           - pulpos
+        chips:
+            - gap8
+        flags: COLOR_JPG=0 RUN_ON_CLUSTER=1
+    color_cl:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        os: 
+           - pulpos
+        chips:
+            - gap8
+        flags: COLOR_JPG=1 RUN_ON_CLUSTER=1
+    monochorme_fc:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        os: 
+           - pulpos
+        chips:
+            - gap8
+        flags: COLOR_JPG=0 RUN_ON_CLUSTER=0
+    color_fc:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        os: 
+           - pulpos
+        chips:
+            - gap8
+        flags: COLOR_JPG=1 RUN_ON_CLUSTER=0

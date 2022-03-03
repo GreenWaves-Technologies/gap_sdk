@@ -19,6 +19,8 @@ import logging
 from graph.types.others import PadParameters
 from graph.types.pooling import PoolingParameters
 from graph.types.tensor_arithmetic import Broadcastable
+from utils.graph import GraphView
+from utils.node_id import NodeId
 
 from ..dim import Dim
 from .base import (FilterParameters, NNEdge, NodeOptions, Parameters,
@@ -69,7 +71,7 @@ class FusionBase(Parameters):
     fusion_op_name = "!!NOT SET!!"
     quantize_internals = True
 
-    def __init__(self, name, *args, fusion_type=None, subgraph=None,
+    def __init__(self, name, *args, fusion_type=None, subgraph: GraphView=None,
                  input_mapping=None,
                  output_mapping=None,
                  in_dims=None, out_dims=None,
@@ -157,11 +159,11 @@ class FusionBase(Parameters):
         return self.fusion_op_name
 
     @property
-    def subgraph(self):
+    def subgraph(self) -> GraphView:
         return self._subgraph
 
     def contained_nodes(self):
-        return [node for node in self.subgraph.dfs()
+        return [node for node in self.subgraph.topological_sort()
                 if not isinstance(node, FusionInputOutputParameters)]
 
     def get_contained_node(self, name):
@@ -197,7 +199,7 @@ class FusionBase(Parameters):
 
     def get_output_size(self, in_dims):
         node_out_dims = []
-        for node in self.subgraph.dfs():
+        for node in self.subgraph.topological_sort():
             if isinstance(node, FusionInputParameters):
                 node_in_dims = [self.clone_dim_with_hint(
                     in_dims[node.idx], node.idx)]

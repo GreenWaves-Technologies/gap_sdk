@@ -30,6 +30,13 @@ NARROW_WEIGHTS_OPTION = {
     'default': True
 }
 
+MAX_PRECISION_LIMIT_OPTION = {
+    'name': 'max_precision_limit',
+    'type': int,
+    'help': 'maximum number of bits to degrade input scale precision by to stop overflow of accumulator.',
+    'default': 2
+}
+
 NARROW_STATE_OPTION = {
     'name': 'narrow_state',
     'type': bool,
@@ -82,6 +89,12 @@ FORCE_OUTPUT_SIZE_OPTION = {
     'default': 8
 }
 
+OUTPUT_SIZE_OPTION = {
+    'name': 'output_size',
+    'type': None,
+    'default': None
+}
+
 FORCE_EXTERNAL_SIZE_OPTION = {
     'name': 'force_external_size',
     'type': int,
@@ -127,6 +140,14 @@ FLOAT_MATH_KERNEL_TYPE_OPTION = {
     'choices': ['lut', 'fastfloat'],
     'help': 'Kernel to use for activation function',
     'default': 'fastfloat'
+}
+
+CLIP_TYPE_OPTION = {
+    'name': 'clip_type',
+    'type': str,
+    'choices': ['laplace', 'gaus', 'mix', 'none'],
+    'help': 'Clipping method for filter output activations min max. laplace or gaussian distribution or choose based on MSE or no clipping',
+    'default': 'none'
 }
 
 BIAS_SIZE_OPTION = {

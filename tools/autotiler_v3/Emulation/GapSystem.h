@@ -98,6 +98,8 @@ static int Private_call(void (*fn)(void *), void * arg, __event_cb * event)
 #define gap_setupbarrier(BarN, CoreM)
 #define gap_waitbarrier(BarN)
 #define gap_waitbarrier_cc(BarN)
+#define gap_cl_critical_enter()
+#define gap_cl_critical_exit()
 
 #define rt_event_sched_init(x)
 #define rt_event_alloc(x,y) 0
@@ -190,7 +192,8 @@ static inline void __cl_dma_memcpy_2d(uint32_t ext, uint32_t loc, uint16_t size,
 #define gap_waitbarrier_cc()            eu_bar_trig_wait_clr(eu_bar_addr(1))
 
 #endif
-
+#define gap_cl_critical_enter()         pi_cl_team_critical_enter()
+#define gap_cl_critical_exit()          pi_cl_team_critical_exit()
 #endif
 
 

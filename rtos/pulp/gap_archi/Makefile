@@ -1,7 +1,5 @@
-DOC_IP ?= rtc soc_eu efuse udma gpio adv_timer fc_mpu fc_icache_ctrl cluster_ctrl_unit apb_soc_ctrl cl_dma timer_unit ne16 i3c cluster_icache_ctrl fc_itc power_manager secured_riscv_debug non_secured_riscv_debug xip csi2 sfu fll riscv_dbg rom
+DOC_IP ?= rtc soc_eu efuse udma gpio adv_timer fc_mpu fc_icache_ctrl cluster_ctrl_unit cluster_event_unit apb_soc_ctrl cl_dma new_decompr timer_unit ne16 i3c cluster_icache_ctrl fc_itc power_manager xip csi2 sfu fll riscv_dbg rom quiddikey
 
-#TODO this doc has been removed: quiddikey
-#TODO add back udma AES when markdown is added
 
 xip:
 	./regmap/bin/regmap --name=xip \
@@ -32,6 +30,11 @@ rtc:
 		--input-md=$(GAP9_V2_HOME)/fe/ips/rtc_dolphin/docs/RTC_reference.md \
 		--header=include/archi/chips/gap9_v2/rtc/rtc \
 		--rst=doc/ips/rtc_v1.rst
+	./regmap/bin/regmap --name=rtc_internals --pretty-name='indirectly accessed registers' \
+		--input=fe/ips/rtc_dolphin/docs/RTC_reference_internals.md \
+		--input-md=$(GAP9_V2_HOME)/fe/ips/rtc_dolphin/docs/RTC_reference_internals.md \
+		--header=include/archi/chips/gap9_v2/rtc/rtc_internals \
+		--rst=doc/ips/rtc_v1_internals.rst
 
 fc_icache_ctrl:
 	./regmap/bin/regmap --name=fc_icache_ctrl \
@@ -75,6 +78,43 @@ cluster_ctrl_unit:
 		--header=include/archi/chips/gap9_v2/cluster_ctrl_unit/cluster_ctrl_unit \
 		--rst=doc/ips/cluster_ctrl_unit.rst
 
+cluster_event_unit:
+	./regmap/bin/regmap --name=cluster_event_unit_core --pretty-name='core events' \
+		--input=docs/IP_REFERENCES/CLUSTER_EVENT_UNIT_core.md \
+		--input-md=$(GAP9_V2_HOME)/docs/IP_REFERENCES/CLUSTER_EVENT_UNIT_core.md \
+		--header=include/archi/chips/gap9_v2/cluster_event_unit/cluster_event_unit \
+		--rst=doc/ips/cluster_event_unit_core.rst
+	./regmap/bin/regmap --name=cluster_event_unit_mutex --pretty-name='mutex events' \
+		--input=docs/IP_REFERENCES/CLUSTER_EVENT_UNIT_mutex.md \
+		--input-md=$(GAP9_V2_HOME)/docs/IP_REFERENCES/CLUSTER_EVENT_UNIT_mutex.md \
+		--header=include/archi/chips/gap9_v2/cluster_event_unit/cluster_event_unit \
+		--rst=doc/ips/cluster_event_unit_mutex.rst
+	./regmap/bin/regmap --name=cluster_event_unit_sw_events --pretty-name='software events' \
+		--input=docs/IP_REFERENCES/CLUSTER_EVENT_UNIT_sw_events.md \
+		--input-md=$(GAP9_V2_HOME)/docs/IP_REFERENCES/CLUSTER_EVENT_UNIT_sw_events.md \
+		--header=include/archi/chips/gap9_v2/cluster_event_unit/cluster_event_unit \
+		--rst=doc/ips/cluster_event_unit_sw_events.rst
+	./regmap/bin/regmap --name=cluster_event_unit_soc_evt --pretty-name='SoC events' \
+		--input=docs/IP_REFERENCES/CLUSTER_EVENT_UNIT_soc_evt.md \
+		--input-md=$(GAP9_V2_HOME)/docs/IP_REFERENCES/CLUSTER_EVENT_UNIT_soc_evt.md \
+		--header=include/archi/chips/gap9_v2/cluster_event_unit/cluster_event_unit \
+		--rst=doc/ips/cluster_event_unit_soc_evt.rst
+	./regmap/bin/regmap --name=cluster_event_unit_barrier --pretty-name='hardware barriers' \
+		--input=docs/IP_REFERENCES/CLUSTER_EVENT_UNIT_barrier.md \
+		--input-md=$(GAP9_V2_HOME)/docs/IP_REFERENCES/CLUSTER_EVENT_UNIT_barrier.md \
+		--header=include/archi/chips/gap9_v2/cluster_event_unit/cluster_event_unit \
+		--rst=doc/ips/cluster_event_unit_barrier.rst
+	./regmap/bin/regmap --name=cluster_event_unit_semaphore --pretty-name='semaphores' \
+		--input=docs/IP_REFERENCES/CLUSTER_EVENT_UNIT_semaphore.md \
+		--input-md=$(GAP9_V2_HOME)/docs/IP_REFERENCES/CLUSTER_EVENT_UNIT_semaphore.md \
+		--header=include/archi/chips/gap9_v2/cluster_event_unit/cluster_event_unit \
+		--rst=doc/ips/cluster_event_unit_semaphore.rst
+	./regmap/bin/regmap --name=cluster_event_unit_bitfield --pretty-name='bitfields' \
+		--input=docs/IP_REFERENCES/CLUSTER_EVENT_UNIT_bitfield.md \
+		--input-md=$(GAP9_V2_HOME)/docs/IP_REFERENCES/CLUSTER_EVENT_UNIT_bitfield.md \
+		--header=include/archi/chips/gap9_v2/cluster_event_unit/cluster_event_unit \
+		--rst=doc/ips/cluster_event_unit_bitfield.rst
+
 cluster_icache_ctrl:
 	./regmap/bin/regmap --name=cluster_icache_ctrl \
 		--input=fe/ips/hier-icache/DOC/CLUSTER_ICACHE_CTRL_reference.md \
@@ -90,7 +130,7 @@ apb_soc_ctrl:
 		--rst=doc/ips/apb_soc_ctrl.rst
 
 rom:
-	./regmap/bin/regmap --name=rom \
+	./regmap/bin/regmap --name=rom  --pretty-name='reserved eFuses'\
 		--input=docs/IP_REFERENCES/GAP9_ROM.md \
 		--input-md=$(GAP9_V2_HOME)/docs/IP_REFERENCES/GAP9_ROM.md \
 		--header=include/archi/chips/gap9_v2/rom/rom \
@@ -102,6 +142,13 @@ cl_dma:
 		--input-md=$(GAP9_V2_HOME)/fe/ips/mchan/doc/CL_DMA_reference.md \
 		--header=include/archi/chips/gap9_v2/cl_dma/cl_dma \
 		--rst=doc/ips/cl_dma.rst
+
+new_decompr:
+	./regmap/bin/regmap --name=new_decompr \
+		--input=fe/ips/mchan/doc/CL_DMA_reference.md \
+		--input-md=$(GAP9_V2_HOME)/fe/ips/new_decompr/README.md \
+		--header=include/archi/chips/gap9_v2/new_decompr/new_decompr \
+		--rst=doc/ips/new_decompr.rst
 
 timer_unit:
 	./regmap/bin/regmap --name=timer_unit \
@@ -293,7 +340,7 @@ udma_aes_dual_core:
 		--header=include/archi/chips/gap9_v2/udma_aes_dual_core/udma_aes_dual_core \
 		--rst=doc/ips/udma_aes_dual_core.rst
 
-udma:  udma_filter udma_qspi udma_hyper udma_ctrl udma_core_fifo udma_core_lin udma_core_2d udma_mram udma_i2s udma_uart udma_cpi udma_i2c udma_aes udma_aes_dual_core udma_timestamp
+udma:  udma_filter udma_qspi udma_hyper udma_ctrl udma_core_fifo udma_core_lin udma_core_2d udma_mram udma_i2s udma_uart udma_cpi udma_i2c udma_aes udma_aes_dual_core udma_timestamp udma_ffc
 
 gpio:
 	./regmap/bin/regmap \

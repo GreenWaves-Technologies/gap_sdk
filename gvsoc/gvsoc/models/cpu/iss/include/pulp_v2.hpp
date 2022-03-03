@@ -26,13 +26,13 @@
 #define PULPV2_HWLOOP_LPEND0   1
 #define PULPV2_HWLOOP_LPCOUNT0 2
 
-#define PULPV2_HWLOOP_LPSTART1 3
-#define PULPV2_HWLOOP_LPEND1   4
-#define PULPV2_HWLOOP_LPCOUNT1 5
+#define PULPV2_HWLOOP_LPSTART1 4
+#define PULPV2_HWLOOP_LPEND1   5
+#define PULPV2_HWLOOP_LPCOUNT1 6
 
-#define PULPV2_HWLOOP_LPSTART(x) (PULPV2_HWLOOP_LPSTART0 + (x)*3)
-#define PULPV2_HWLOOP_LPEND(x) (PULPV2_HWLOOP_LPEND0 + (x)*3)
-#define PULPV2_HWLOOP_LPCOUNT(x) (PULPV2_HWLOOP_LPCOUNT0 + (x)*3)
+#define PULPV2_HWLOOP_LPSTART(x) (PULPV2_HWLOOP_LPSTART0 + (x)*4)
+#define PULPV2_HWLOOP_LPEND(x) (PULPV2_HWLOOP_LPEND0 + (x)*4)
+#define PULPV2_HWLOOP_LPCOUNT(x) (PULPV2_HWLOOP_LPCOUNT0 + (x)*4)
 
 static inline iss_insn_t *LB_RR_exec_fast(iss_t *iss, iss_insn_t *insn)
 {
@@ -595,7 +595,7 @@ static inline iss_insn_t *hwloop_check_exec(iss_t *iss, iss_insn_t *insn)
 static inline void hwloop_set_start(iss_t *iss, iss_insn_t *insn, int index, iss_reg_t start)
 {
   iss->cpu.pulpv2.hwloop_regs[PULPV2_HWLOOP_LPSTART(index)] = start;
-  iss->cpu.state.hwloop_start_insn[index] = insn_cache_get(iss, start);  
+  iss->cpu.state.hwloop_start_insn[index] = insn_cache_get(iss, start);
 }
 
 static inline void hwloop_set_end(iss_t *iss, iss_insn_t *insn, int index, iss_reg_t end)

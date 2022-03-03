@@ -17,10 +17,11 @@ import numpy as np
 from graph.types import ConstantInputParameters, ExpandParameters
 from graph.types.base import NNEdge
 from importer.common.constant_mixin import ConstantMixin
+from importer.common.provisional_dim import ProvisionalDim
 from importer.onnx.common import logger
 
 from ..backend_handler import BackendHandler
-from ..handler import onnx_op, constant_only
+from ..handler import constant_only, onnx_op
 from .broadcast_mixin import BroadcastMixin
 
 
@@ -38,7 +39,6 @@ class Expand(BroadcastMixin, ConstantMixin, BackendHandler):
         y = inputs[1]
         shape = cls.get_constant(y)
 
-        pshape = cls.broadcast_to(x, shape)
         if cls.is_constant(x):
             logger.info("reducing %s to a constant", valid_name)
             x_val = cls.get_constant(x)
@@ -47,7 +47,7 @@ class Expand(BroadcastMixin, ConstantMixin, BackendHandler):
             params = ExpandParameters(valid_name, shape=shape)
             G.add_edge(NNEdge(x[0], params, from_idx=x[1]))
 
-        all_nodes[node.output[0]] = (params, 0, pshape, x[3])
+        all_nodes[node.output[0]] = (params, 0, ProvisionalDim(shape), x[3])
         return params
 
     @classmethod

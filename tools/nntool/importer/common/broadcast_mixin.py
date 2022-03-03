@@ -19,11 +19,16 @@ from graph.types import ConstantInputParameters
 
 from .provisional_dim import ProvisionalDim
 
+# reduces broadcasted constants on unknown dimensions.
+# Setting this to false can provoke conception errors in matchers
+FIX_CONSTANTS = True
 
 class BroadcastMixin(object):
 
     @classmethod
-    def get_broadcasted_shape(cls, x, y):
+    def get_broadcasted_shape(cls, x, y, is_constant=None):
+        if is_constant is None:
+            is_constant = (False, False)
         if len(x) < len(y):
             x = ([1] * (len(y) - len(x))) + x
         elif len(y) < len(x):
@@ -34,9 +39,20 @@ class BroadcastMixin(object):
             "{} and {} cannot be broadcasted".format(x, y)
 
         def broad(elem_x, elem_y):
-            if elem_x is None or elem_y is None:
-                return None
-            return elem_x if elem_y == 1 else elem_y
+            # if one element is not None then take it since that dimension will be broadcasted
+            if elem_x is None:
+                if elem_y is None or (FIX_CONSTANTS and is_constant[1] and elem_y == 1):
+                    return None
+                else:
+                    return elem_y
+            else:
+                if elem_y is None:
+                    if FIX_CONSTANTS and is_constant[0] and elem_x == 1:
+                        return None
+                    else:
+                        return elem_x
+                else:
+                    return elem_x if elem_y == 1 else elem_y
         return [broad(elem_x, elem_y) for elem_x, elem_y in zip(x, y)]
 
     @classmethod
@@ -62,8 +78,9 @@ class BroadcastMixin(object):
 
     @classmethod
     def implied_broadcast(cls, inputs):
+        is_constant = [isinstance(inp[0], ConstantInputParameters) for inp in inputs]
         x = inputs[0][2].shape
         y = inputs[1][2].shape
-        shape = cls.get_broadcasted_shape(x, y)
+        shape = cls.get_broadcasted_shape(x, y, is_constant=is_constant)
         cls._fix_constant_inputs(inputs, shape)
         return [ProvisionalDim(shape)]

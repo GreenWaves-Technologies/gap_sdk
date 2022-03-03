@@ -61,7 +61,7 @@
 #define ATXP032_PROGRAM_FLAGS (PI_OCTOSPI_FLAG_CMD_SIZE_1 | PI_OCTOSPI_FLAG_ADDR_SIZE_4 | PI_OCTOSPI_FLAG_LINE_OCTO | PI_OCTOSPI_FLAG_CMD_STR | PI_OCTOSPI_FLAG_ADDR_DTR | PI_OCTOSPI_FLAG_DATA_DTR)
 
 #define ATXP032_READ_CMD (0x0B | PI_OCTOSPI_CMD_ADDR_EVEN)
-#define ATXP032_READ_LATENCY 22
+#define ATXP032_READ_LATENCY 5
 #define ATXP032_READ_FLAGS (PI_OCTOSPI_FLAG_CMD_SIZE_1 | PI_OCTOSPI_FLAG_ADDR_SIZE_4 | PI_OCTOSPI_FLAG_LINE_OCTO | PI_OCTOSPI_FLAG_CMD_STR | PI_OCTOSPI_FLAG_ADDR_DTR | PI_OCTOSPI_FLAG_DATA_DTR)
 
 #define SECTOR_SIZE (1<<12)
@@ -248,7 +248,7 @@ static int atxp032_open(struct pi_device *device)
 
 
     // Activate octospi mode and DTR and unprotect all sectors
-    uint32_t data = 0x1b880200;
+    uint32_t data = 0x17880200;
 
     pi_octospi_op_conf_t op_ws = { .cmd=ATXP032_WRITE_STATUS_CMD, .latency=ATXP032_WRITE_STATUS_LATENCY_SPI, .flags=ATXP032_WRITE_STATUS_FLAGS_SPI };
     pi_octospi_write(&atxp032->octospi_device, 0, &data, 4, &op_ws);
@@ -262,7 +262,7 @@ static int atxp032_open(struct pi_device *device)
 
     // Activate octospi mode and DTR and unprotect all sectors
     // Since the UDMA does not support 1 byte address in DDR mode, we pack it into the data
-    char status_regs[5] = { 0x00, 0x00, 0x02, 0x88, 0x1b };
+    char status_regs[5] = { 0x00, 0x00, 0x02, 0x88, 0x17 };
 
     pi_octospi_op_conf_t op_ws = { .cmd=ATXP032_WRITE_STATUS_CMD, .latency=ATXP032_WRITE_STATUS_LATENCY_OCTO, .flags=ATXP032_WRITE_STATUS_FLAGS_OCTO };
     pi_octospi_write(&atxp032->octospi_device, 0, status_regs, 5, &op_ws);
@@ -270,6 +270,12 @@ static int atxp032_open(struct pi_device *device)
 
   // In the spec writing to volatile status register should take 200ns but RTL model take 10us to update it
   pi_time_wait_us(20);
+
+
+  if(conf->xip_en)
+  {
+      pi_octospi_ioctl(&atxp032->octospi_device, PI_OCTOSPI_IOCTL_SET_XIP_OP, (void *)&atxp032_read_op);
+  }
 
   return 0;
 

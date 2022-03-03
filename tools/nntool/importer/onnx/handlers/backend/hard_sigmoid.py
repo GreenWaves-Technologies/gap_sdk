@@ -27,9 +27,17 @@ class Sigmoid(BasicMathMixin, BackendHandler):
 
     @classmethod
     def _common(cls, node, **kwargs):
+        alpha = node.attrs.get('alpha', 0.2)
+        beta = node.attrs.get('beta', 0.5)
+        params_args = {
+            'offset': beta/alpha,
+            'upper_bound': 1/alpha,
+            'mult': alpha
+        }
         return super(Sigmoid, cls)._common(node,
                                            params_class=HSigmoidActivationParameters,
-                                           constant_operation=lambda x: np.maximum(0, np.minimum(1, 0.2 * x + 0.5)),
+                                           params_args=params_args,
+                                           constant_operation=lambda x: np.maximum(0, np.minimum(1, alpha * x + beta)),
                                            **kwargs)
 
     @classmethod

@@ -13,33 +13,43 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.dim import PadDim
-from graph.types.pooling import PoolingParameters
-from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
-from generation.new_generators.helpers.act_infos import gen_act_infos
-from generation.helpers.gen_scales import gen_scales
-from generation.at_types.at_params import NO_POOL, gen_activation_op, gen_conv_at_params, gen_pool_at_params
 import logging
-from utils.node_id import NodeId
+import os
 
 import numpy as np
+from generation.at_types.at_params import (NO_POOL, gen_activation_op,
+                                           gen_conv_at_params,
+                                           gen_pool_at_params)
 from generation.at_types.constant_info import ConstantInfo
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.at_types.tc_arg_info import GlobalArgInfo
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  GNodeArgNode, NodeBindingList)
-from generation.generators.globals.global_names import INFOS, MULSCALE, MULSHIFT
+from generation.generators.globals.global_names import (INFOS, MULSCALE,
+                                                        MULSHIFT)
 from generation.generators.kernels.autotiler_kernel import NewAutoTilerKernel
 from generation.helpers.gen_constant import gen_constant
-from generation.new_generators.generator_base import (GeneratorBase,
-                                                      paramstype, ktype)
+from generation.helpers.gen_scales import gen_scales
+from generation.new_generators.generator_base import (GeneratorBase, ktype,
+                                                      paramstype)
+from generation.new_generators.helpers.act_infos import gen_act_infos
+from graph.dim import PadDim
 from graph.types import Conv2DParameters, ConvFusionParameters
+from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from quantization.qtype import QType
+from utils.diag_collector import thread_singleton
+from utils.node_id import NodeId
+from utils.process_header import InfosBase
 
 LOG = logging.getLogger("nntool." + __name__)
 
 def verify_scalar(arr):
     return [item.item() if isinstance(item, np.ndarray) else item for item in arr]
+
+@thread_singleton
+class SQ8ActInfos(InfosBase):
+    def __init__(self) -> None:
+        super().__init__('CNN_Infos_SQ8.h', [os.environ.get('TILER_CNN_KERNEL_PATH_SQ8')])
 
 @paramstype(Conv2DParameters, ConvFusionParameters)
 @ktype('scaled')
@@ -49,7 +59,7 @@ class ConvActGenerator(GeneratorBase):
     def globals_generator(cls, gen, node, qrec, pnode, fnode) -> bool:
         if isinstance(pnode, Conv2DParameters):
             gen_scales(gen, pnode, pnode, qrec)
-            infos, infos_comment = np.array([0, 0, 0, 0, 0]), "no activation"
+            infos, infos_comment = {}, "no activation"
             filt_q = qrec
             fnode = pnode
         elif isinstance(pnode, ConvFusionParameters) and isinstance(fnode, Conv2DParameters):
@@ -62,30 +72,29 @@ class ConvActGenerator(GeneratorBase):
             elif pnode.fusion_type == "conv_pool_active":
                 infos, infos_comment = gen_act_infos(cnodes[2], quants[2])
             elif pnode.fusion_type == "conv_pool":
-                infos, infos_comment = np.array([0, 0, 0, 0, 0]), "no activation"
+                infos, infos_comment = {}, "no activation"
         else:
             return False
-        infos = np.append(infos, [0, 0, 0, 0])
-        comment = str.format("BiasQ: {}", 0) + infos_comment
-        infos[5] = 0 # BiasQ
+
+
+        infos['BIASN'] = np.int8(0)  # BiasQ
+        conv_mul_bias = filt_q.cache.get('mul_biases_q')
+        infos['PRENORM'] = np.uint8(conv_mul_bias.pre_normalization if isinstance(conv_mul_bias, MultMulBiasScaleQType) else 0)
 
         if filt_q.cache.get('ne16'):
-            conv_mul_bias = filt_q.cache.get('mul_biases_q')
-            prenorm = conv_mul_bias.pre_normalization if isinstance(conv_mul_bias, MultMulBiasScaleQType) else 0
-            pad_value = np.array(filt_q.in_qs[0].zero_point).astype(np.int16)
-            pad_value1 = np.bitwise_and(pad_value, 0xFF)
-            pad_value2 = np.bitwise_and(pad_value, 0xFF00) >> 8
-            w_offset = -np.array(filt_q.in_qs[1].zero_point).astype(np.int32)
-            w_offset1 = np.bitwise_and(w_offset, 0xFF)
-            w_offset2 = np.bitwise_and(w_offset, 0xFF00) >> 8
-            w_offset3 = np.bitwise_and(w_offset, 0xFF0000) >> 16
-            w_offset4 = np.bitwise_and(w_offset, 0xFF000000) >> 24
+            infos['NE16_PADVAL'] = np.atleast_1d(filt_q.in_qs[0].zero_point).astype(filt_q.in_qs[0].dtype)
+            infos['NE16_WOFFSET'] =  -np.array(filt_q.in_qs[1].zero_point).astype(np.int32)
+            infos_len = 'NE16_DIM'
+        else:
+            infos_len = 'DIM'
 
-            infos = np.append(
-                infos, verify_scalar([prenorm if prenorm else 0, pad_value1, pad_value2, w_offset1, w_offset2, w_offset3, w_offset4]))
+
+        infos_encoder = SQ8ActInfos()
+        contents, new_comment = infos_encoder.gen_infos_array(infos_len, **infos)
+        comment = infos_comment + new_comment
 
         cname, file_name = gen_constant(gen, pnode, fnode, INFOS)
-        const_info = ConstantInfo(file_name, QType.Pow2(bits=8, q=0, signed=True), contents=infos)
+        const_info = ConstantInfo(file_name, QType.Pow2(bits=8, q=0, signed=True), contents=contents)
         gen.globals.append(GlobalArgInfo("int8", cname,
                            gen.opts['default_global_home_location'],
                            gen.opts['default_global_exec_location'],
@@ -214,6 +223,10 @@ class ConvPoolReluKernel(NewAutoTilerKernel):
                 at_pad_ctrl = next(i for i, v in enumerate(reduction) if v)
                 LOG.debug("%s: generating pad control block", node_name)
                 self.gen_ctrl.PadType = at_pad_ctrl
+        # if conv_params is not None and conv_params.padding != 0:
+        #     self.gen_ctrl.explicit_pad_conv = (conv_params.padding.l) | (conv_params.padding.r << 8) | (conv_params.padding.t << 16) | (conv_params.padding.b << 24)
+        # if pool_params is not None and pool_params.padding != 0:
+        #     self.gen_ctrl.explicit_pad_pool = (pool_params.padding.l) | (pool_params.padding.r << 8) | (pool_params.padding.t << 16) | (pool_params.padding.b << 24)
 
         attrs = {
             'in_size': in_q.dtype_bits//8 if in_q.signed else -in_q.dtype_bits//8,

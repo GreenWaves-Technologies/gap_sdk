@@ -16,6 +16,8 @@
 
 import numpy as np
 
+from generation.code_block import CodeBlock
+
 from .symbol import Constant, Symbol, Variable, environment
 from .variable_container import VariableContainer
 
@@ -81,16 +83,17 @@ class Function(VariableContainer, Symbol):
                     for elem in self._contents]
         return self._eval(*contents, **kwargs)
 
-    def _calculate(self, calculate_ranges=False, track_results=None, **kwargs):
+    def _calculate(self, calculate_ranges=False, track_results=None, dequantize_outputs=False, **kwargs):
         contents = [elem.calculate(calculate_ranges=calculate_ranges,
                                    track_results=track_results,
+                                   dequantize_outputs=dequantize_outputs,
                                    **kwargs)
                     for elem in self._contents]
         res = self._eval(*contents, **kwargs)
         if calculate_ranges:
             self.control.add_stat(self, res.value)
         if track_results is not None:
-            if self.qrec is not None:
+            if self.qrec is not None and dequantize_outputs:
                 track_results[self.name] = self.qrec.dequantize(
                     res.value.copy())
             else:
@@ -135,6 +138,38 @@ class Function(VariableContainer, Symbol):
 
     def c_expr(self, *args, **kwargs) -> str:
         return self._c_expr(*(arg.c_expr(*args, **kwargs) for arg in self._contents))
+
+    def c_block(self, code_block=None, tags=None, with_comment=False, **kwargs):
+        if code_block is None:
+            code_block = CodeBlock()
+        if tags is not None:
+            args = []
+            for arg in self._contents:
+                arg.c_block(code_block=code_block, tags=tags,
+                            with_comment=with_comment, **kwargs)
+                if arg.tag:
+                    if arg in tags:
+                        args.append(tags[arg])
+                    else:
+                        name = tags.get(arg, f'{self.SYMBOL_PREFEX}{arg.name}')
+                        if isinstance(name, tuple):
+                            name = name[0].c_expr()
+                        args.append(name)
+                else:
+                    args.append(code_block.lines.pop(-1).strip())
+            if self.tag:
+                if self.comment and with_comment:
+                    code_block.write(f'// {self.comment}')
+                name = tags.get(self, f'{self.ctype} {self.SYMBOL_PREFEX}{self.name}')
+                if isinstance(name, tuple):
+                    name = name[0].c_expr(
+                        dtype=name[0].dtype, declare=name[1], **kwargs)
+                code_block.write(f'{name} = {self._c_expr(*args)};')
+            else:
+                code_block.write(f'{self._c_expr(*args)}')
+        else:
+            code_block.write(self.c_expr(*args, **kwargs))
+        return code_block
 
     @property
     def py_lambda(self) -> str:

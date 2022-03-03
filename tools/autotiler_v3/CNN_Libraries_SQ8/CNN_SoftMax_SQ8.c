@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
+#include <stdio.h>
+#include <math.h>
+#include "CNN_BasicKernels_SQ8.h"
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpointer-sign"
 #pragma GCC diagnostic ignored "-Wsign-compare"
-#include <stdio.h>
-#include <math.h>
-#include "CNN_BasicKernels_SQ8.h"
 
 static int CoreCountDynamic = 1;
 static int ActiveCore = gap_ncore();

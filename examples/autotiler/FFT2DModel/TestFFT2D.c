@@ -103,12 +103,10 @@ void fft_2d(void)
     }
 
     struct pi_cluster_task *task = pmsis_l2_malloc(sizeof(struct pi_cluster_task));
-    memset(task, 0, sizeof(struct pi_cluster_task));
-    task->entry = (void *)Process;
-    task->arg = (void *) NULL;
+    pi_cluster_task(task, (void *)Process, (void *) NULL);
     task->stack_size = (uint32_t) STACK_SIZE;
 
-    pi_cluster_send_task_to_cl(&cluster_dev, task);
+    pi_cluster_send_task(&cluster_dev, task);
 
     // Close the cluster
     pi_cluster_close(&cluster_dev);

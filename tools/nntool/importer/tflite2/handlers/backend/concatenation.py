@@ -61,6 +61,8 @@ class Concatenation(ConstantMixin, BackendHandler):
 
         inputs = [all_nodes[t] for t in node.input]
         inp_shapes = [input[2].shape for input in inputs]
+        if not all(len(shape) == len(inp_shapes[0]) for shape in inp_shapes[1:]):
+            raise ValueError(f"Concat importer: {node.name} doesn't have all the shapes of same lenght {inp_shapes}")
 
         buffer_idxes = [tensor.buffer_idx for tensor in node.input]
         non_zero_idxes = [idx for idx in buffer_idxes if idx != 0]
@@ -76,6 +78,8 @@ class Concatenation(ConstantMixin, BackendHandler):
                     inputs[dup_idx] = tuple([cparams, 0] + list(dup_inp[2:]))
 
         axis = node_opts.Axis()
+        if axis < 0:
+            axis += len(inp_shapes[0])
         if any(inp_shape[axis] is None for inp_shape in inp_shapes):
             raise ValueError("concat on undefined axis in node %s" % node.name)
 
@@ -92,7 +96,7 @@ class Concatenation(ConstantMixin, BackendHandler):
             params = ConstantInputParameters(node.name, value=value)
         else:
             axis -= sum(1 if dim is None else 0 for dim in pout_shape[:axis:])
-            params = ConcatParameters(node.name, axis=axis, axis_hint=None)
+            params = ConcatParameters(node.name, axis=axis)
 
             for idx, inp in enumerate(inputs):
                 inp_node, inp_idx = cls._maybe_insert_reshape(G, inp, inp_shapes[idx], pout_shape)

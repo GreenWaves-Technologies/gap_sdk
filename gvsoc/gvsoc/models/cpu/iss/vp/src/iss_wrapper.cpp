@@ -287,6 +287,11 @@ void iss_wrapper::clock_sync(void *__this, bool active)
 
   _this->clock_active = active;
 
+  if (_this->busy_itf.is_bound())
+  {
+    _this->busy_itf.sync(active);
+  }
+
   // TODO this could be better handler is the clock would be taken into
   // account in the core state machine
   uint8_t value = active && _this->is_active_reg.get();
@@ -1330,8 +1335,7 @@ int iss_wrapper::build()
     this->insn_groups_power.resize(1);
     power.new_power_source("power_insn", &this->insn_groups_power[0], this->get_js_config()->get("**/insn"));
   }
-  power.new_power_source("power_clock_gated", &clock_gated_power, this->get_js_config()->get("**/clock_gated"));
-  power.new_power_source("leakage", &leakage_power, this->get_js_config()->get("**/leakage"));
+  power.new_power_source("background", &background_power, this->get_js_config()->get("**/power_models/background"));
 
   data.set_resp_meth(&iss_wrapper::data_response);
   data.set_grant_meth(&iss_wrapper::data_grant);
@@ -1353,6 +1357,8 @@ int iss_wrapper::build()
   irq_req_itf.set_sync_meth(&iss_wrapper::irq_req_sync);
   new_slave_port("irq_req", &irq_req_itf);
   new_master_port("irq_ack", &irq_ack_itf);
+
+  new_master_port("busy", &busy_itf);
 
   fetchen_itf.set_sync_meth(&iss_wrapper::fetchen_sync);
   new_slave_port("fetchen", &fetchen_itf);
@@ -1424,14 +1430,6 @@ void iss_wrapper::start()
     iss_register_debug_info(this, x->get_str().c_str());
   }
 
-  if (this->get_js_config()->get("**/binaries") != NULL)
-  {
-    for (auto x:this->get_js_config()->get("**/binaries")->get_elems())
-    {
-      this->binaries_trace_event.event_string("static enable " + x->get_str());
-    }
-  }
-
   trace.msg("ISS start (fetch: %d, is_active: %d, boot_addr: 0x%lx)\n", fetch_enable_reg.get(), is_active_reg.get(), get_config_int("boot_addr"));
 
 #ifdef USE_TRDB
@@ -1439,7 +1437,8 @@ void iss_wrapper::start()
   INIT_LIST_HEAD(&this->trdb_packet_list);
 #endif
 
-  this->leakage_power.leakage_power_start();
+  this->background_power.leakage_power_start();
+  this->background_power.dynamic_power_start();
 
   this->gdbserver = (vp::Gdbserver_engine *)this->get_service("gdbserver");
 
@@ -1493,6 +1492,14 @@ void iss_wrapper::reset(bool active)
     if (this->gdbserver)
     {
       this->halted.set(true);
+    }
+
+    if (this->get_js_config()->get("**/binaries") != NULL)
+    {
+      for (auto x:this->get_js_config()->get("**/binaries")->get_elems())
+      {
+        this->binaries_trace_event.event_string("static enable " + x->get_str());
+      }
     }
 
     check_state();

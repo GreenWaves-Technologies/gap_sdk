@@ -26,7 +26,9 @@ def create_parser():
 	parser.add_argument('--fft_lut_file', required="--params_json" not in sys.argv,
 						help="path to fft lut file")
 	parser.add_argument('--mfcc_bf_lut_file', default=None,
-						help="path to fft lut file")
+						help="path to mfcc lut file")
+	parser.add_argument('--imel_lut_file', default=None,
+						help="path to inverse mel lut file")
 	parser.add_argument('--sample_rate', default=16000, type=int)
 	parser.add_argument('--name_suffix', default="", type=str)
 	parser.add_argument('--frame_size', required="--params_json" not in sys.argv, type=int,
@@ -81,6 +83,7 @@ def main():
 
 	fft_lut_file     = args.fft_lut_file     if not "fft_lut_file"	   in models_params else models_params["fft_lut_file"]
 	mfcc_bf_lut_file = args.mfcc_bf_lut_file if not "mfcc_bf_lut_file" in models_params else models_params["mfcc_bf_lut_file"]
+	imel_lut_file    = args.imel_lut_file    if not "imel_lut_file"    in models_params else models_params["imel_lut_file"]
 	use_tf_mfcc      = args.use_tf_mfcc      if not "use_tf_mfcc"	   in models_params else models_params["use_tf_mfcc"]
 	use_librosa      = args.use_librosa      if not "use_librosa"	   in models_params else models_params["use_librosa"]
 	sample_rate      = args.sample_rate      if not "sample_rate"	   in models_params else models_params["sample_rate"]
@@ -218,10 +221,19 @@ def main():
 			from SetupLUT import GenMFCC_FB
 			filters = GenMFCC_FB(n_fft, mfcc_bank_cnt, Fmin=fmin, Fmax=fmax, sample_rate=sample_rate, dtype=lut_dtype)
 
-		MfccLUT, HeadCoeff = GenMelFilterBanksCode(filters, mfcc_bank_cnt, fmin, fmax, lut_dtype, data_type, name_suffix)
+		MelLUT, NCoeffMEL = GenMelFilterBanksCode(filters, mfcc_bank_cnt, fmin, fmax, lut_dtype, data_type, name_suffix)
 
 		with open(mfcc_bf_lut_file, "w") as f:
-			f.write(MfccLUT)
+			f.write(MelLUT)
+
+	if imel_lut_file:
+		# Inverse matrix of filterbank generated with least squares algorithm
+		# A.T*b = A.T*A*x^
+		# x^ = (A.T*A)^-1 * A.T * b
+		inverse_mel_fb = np.matmul(np.linalg.inv(np.matmul(filters, filters.T)), filters)
+		ImelLUT = array_to_def_c_file(inverse_mel_fb.flatten(), f"ImelLUT{name_suffix}", data_type, inverse_mel_fb.size, elem_in_rows=inverse_mel_fb.size)
+		with open(imel_lut_file, "w") as f:
+			f.write(ImelLUT)
 
 	if args.save_params_header:
 		with open(args.save_params_header, "w") as f:
@@ -230,11 +242,11 @@ def main():
 			f.write("#define\t{:21}{:>10}\n".format("FRAME_STEP", frame_step))
 			f.write("#define\t{:21}{:>10}\n".format("N_FFT", n_fft))
 			f.write("#define\t{:21}{:>10}\n".format("DATA_TYPE", 2 if dtype=="float16" else (3 if dtype=="float32" else (1 if dtype=="fix32_scal" else 0))))
-			if mfcc_bf_lut_file:
+			if mfcc_bf_lut_file or imel_lut_file:
 				f.write("#define\t{:21}{:>10}\n".format("MFCC_BANK_CNT", mfcc_bank_cnt))
 				f.write("#define\t{:21}{:>10}\n".format("FMIN", fmin))
 				f.write("#define\t{:21}{:>10}\n".format("FMAX", fmax))
-				f.write("#define\t{:21}{:>10}\n".format("MFCC_COEFF_CNT", HeadCoeff+1))
+				f.write("#define\t{:21}{:>10}\n".format("MFCC_COEFF_CNT", NCoeffMEL+1))
 				f.write("#define\t{:21}{:>10}\n".format("N_DCT", n_dct))
 
 

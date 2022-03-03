@@ -13,14 +13,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
+import math
+
 import numpy as np
 from bfloat16 import bfloat16
 from quantization.qtype import DTYPE_GAP_CTYPE
 from scipy.special import expit
 
 from .function import Function
-from .symbol import (Constant, Rational, c_headers, copy_props, environment,
-                     handles, handlesr, nargs)
+from .symbol import (Constant, QRecBase, Rational, Symbol, Variable, c_headers,
+                     copy_props, environment, handles, handlesr, nargs)
+
+LOG = logging.getLogger('nntool.'+__name__)
 
 
 @nargs(2)
@@ -29,7 +34,8 @@ from .symbol import (Constant, Rational, c_headers, copy_props, environment,
 class Add(Function):
 
     def _impl(self, *args, **kwargs):
-        return np.add(args[0], args[1], dtype=self.dtype)
+        res = np.add(args[0], args[1], dtype=self.dtype)
+        return res
 
     def _py_expr(self, *args, **kwargs):
         return "np.add(%s, %s)" % (args[0], args[1])
@@ -178,6 +184,7 @@ class GapAbs(Abs):
     def _c_expr(self, *args, **kwargs):
         return "gap_abs(%s)" % (args[0])
 
+
 @nargs(1)
 class Round(Function):
 
@@ -271,6 +278,7 @@ class Sqrt(Function):
     def _c_expr(self, *args, **kwargs):
         return "sqrtf(%s)" % (args[0],)
 
+
 @nargs(1)
 @c_headers('<math.h>')
 class RSqrt(Function):
@@ -283,6 +291,7 @@ class RSqrt(Function):
 
     def _c_expr(self, *args, **kwargs):
         return "1.0f/sqrtf(%s)" % (args[0],)
+
 
 @nargs(1)
 @c_headers('<math.h>')
@@ -353,13 +362,14 @@ class Square(Function):
     def _c_expr(self, *args, **kwargs):
         return f"square({args[0]}))"
 
+
 @nargs(2)
 @c_headers('<math.h>')
 class Pow(Function):
 
     def _impl(self, *args, **kwargs):
         if any(b < 0 and e < 1 for b, e in np.broadcast(*args)):
-            raise ValueError(
+            LOG.warning(
                 'fractional powers are being passed to a negative base for Pow operator')
         return np.power(args[0], args[1], dtype=self.dtype)
 
@@ -452,6 +462,8 @@ class CompoundFunction(Function):
         self._inner_function = self._eval(*args, **kwargs)
         # self._inner_function.name = self.name
         self._inner_function.qrec = self.qrec
+        self._inner_function.tag = self.tag
+        self._inner_function.comment = self.comment
 
     def _collect_globals(self) -> dict:
         global_dict = self.ENVIRONMENT or {}
@@ -470,6 +482,9 @@ class CompoundFunction(Function):
         func = self._inner_function.resolve(**kwargs)
         # func.name = self.name
         func.qrec = self.qrec
+        if isinstance(func, Function):
+            func.tag = self.tag
+            func.comment = self.comment
         return func
 
     def _eval(self, *args, **kwargs):
@@ -491,6 +506,14 @@ class CompoundFunction(Function):
 
     def _c_expr(self, *args, **kwargs):
         return self._inner_function.c_expr(*args, **kwargs)
+
+    def c_block(self, code_block=None, tags=None, **kwargs):
+        if tags is not None and self._inner_function not in tags:
+            name = tags.get(self, f'{self.SYMBOL_PREFEX}{self.name}')
+            if isinstance(name, str):
+                name = (Variable(name, dtype=self.dtype), True)
+            tags[self._inner_function] = name
+        return self._inner_function.c_block(code_block=code_block, tags=tags, **kwargs)
 
 
 @nargs(1)
@@ -536,32 +559,123 @@ class Relu(CompoundFunction):
                 return args[0]
 
 
+@nargs(3)
+class ClipFloat(CompoundFunction):
+
+    def _eval(self, *args, **kwargs):
+        return Min(Max(args[0], args[1], dtype=self.dtype), args[2], dtype=self.dtype)
+
+
 @nargs(1)
 @copy_props('_from_qrec', '_to_qrec')
-class ConvertFloatScaled(CompoundFunction):
-    def __init__(self, *args, from_qrec=None, to_qrec=None, **kwargs):
+class ConvertQuantization(CompoundFunction):
+    def __init__(self, *args, from_qrec: QRecBase=None, to_qrec: QRecBase=None, **kwargs):
         self._from_qrec = from_qrec
         self._to_qrec = to_qrec
         super().__init__(*args, **kwargs)
 
     @property
-    def from_qrec(self):
+    def from_qrec(self) -> QRecBase:
         return self._from_qrec
 
     @property
-    def to_qrec(self):
+    def from_is_float(self) -> bool:
+        return self._from_qrec.dtype in [np.float16, np.float32, bfloat16]
+
+    @property
+    def from_is_fix(self) -> bool:
+        return self._from_qrec.dtype in [np.int8, np.uint8, np.int16, np.uint16, np.int32]
+
+    @property
+    def to_is_float(self) -> bool:
+        return self._to_qrec.dtype in [np.float16, np.float32, bfloat16]
+
+    @property
+    def to_is_fix(self) -> bool:
+        return self._to_qrec.dtype in [np.int8, np.uint8, np.int16, np.uint16, np.int32]
+
+    @property
+    def to_qrec(self) -> QRecBase:
         return self._to_qrec
 
-    def _eval_float_to_quant(self, *args, **kwargs):
-        raise NotImplementedError()
+    def _eval_float_to_fix(self, *args, **kwargs) -> Symbol:
+        to_qrec = self.to_qrec
+        from_qrec = self.from_qrec
+        scaled_val = Mul(
+            args[0],
+            Constant(
+                [math.pow(2, to_qrec.q)/to_qrec.scale],
+                dtype=from_qrec.dtype),
+            dtype=from_qrec.dtype)
+        if to_qrec.zero_point != 0:
+            # need to add zero_point plus rounding
+            scaled_val = Add(
+                scaled_val,
+                Constant([to_qrec.zero_point + 0.5], dtype=from_qrec.dtype),
+                dtype=from_qrec.dtype)
+        else:
+            # Just add rounding
+            scaled_val = Add(
+                scaled_val,
+                Constant([0.5], dtype=from_qrec.dtype),
+                dtype=from_qrec.dtype)
+        iinfo = np.iinfo(to_qrec.dtype)
+        return Cast(
+            ClipFloat(
+                scaled_val,
+                Constant(iinfo.min, dtype=from_qrec.dtype),
+                Constant(iinfo.max, dtype=from_qrec.dtype),
+                dtype=from_qrec.dtype),
+            dtype=to_qrec.dtype,
+            tag=self.tag,
+            comment=self.comment)
 
-    def _eval_quant_to_float(self, *args, **kwargs):
-        raise NotImplementedError()
+    def _eval_fix_to_float(self, *args, **kwargs) -> Symbol:
+        to_qrec = self.to_qrec
+        from_qrec = self.from_qrec
+        float_val = Cast(args[0], dtype=to_qrec.dtype)
+        if from_qrec.zero_point != 0:
+            float_val = Sub(
+                float_val,
+                Constant([from_qrec.zero_point], dtype=to_qrec.dtype),
+                dtype=to_qrec.dtype)
+        float_val = Mul(
+            float_val,
+            Constant(
+                [from_qrec.scale/math.pow(2, from_qrec.q)],
+                dtype=to_qrec.dtype),
+            dtype=to_qrec.dtype,
+            tag=self.tag,
+            comment=self.comment)
+        return float_val
 
-    def _eval(self, *args, **kwargs):
-        if self._from_qrec.dtype == np.int16 or self._from_qrec.dtype == bfloat16:
-            return self._eval_float_to_quant(*args, **kwargs)
-        return self._eval_quant_to_float(*args, **kwargs)
+    def _eval(self, *args, **kwargs) -> Symbol:
+        if self.from_is_float:
+            if self.to_is_fix:
+                return self._eval_float_to_fix(*args, **kwargs)
+            elif self.to_is_float:
+                if self.to_qrec.dtype != self.from_qrec.dtype:
+                    return Cast(
+                        *args,
+                        dtype=self.to_qrec.dtype,
+                        **kwargs)
+                return args[0]
+        elif self.from_is_fix:
+            if self.to_is_float:
+                return self._eval_fix_to_float(*args, **kwargs)
+            elif self.to_is_fix:
+                # if self.to_qrec.dtype == self.from_qrec.dtype:
+                #     return args[0]
+                # sign_change = from_qrec.signed != to_qrec.signed
+                # growing = from_qrec.size < to_qrec.size
+                # reducing = from_qrec.size > to_qrec.size
+                # zeropoint_change = from_qrec.zero_point != to_qrec.zero_point
+                # scale_change = from_qrec.scale != to_qrec.scale
+                # q_change = from_qrec.q != to_qrec.q
+                raise NotImplementedError()
+
+        raise ValueError('unsupported conversion')
+
 
 @nargs(2)
 class SquaredDifference(CompoundFunction):

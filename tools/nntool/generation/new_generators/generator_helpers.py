@@ -30,6 +30,15 @@ PHASE_METHODS = {
     'globals': 'globals_generator',
 }
 
+def test_option(cache, k, v):
+    if isinstance(v, bool):
+        return cache.get(k, False) == v
+    elif v is None:
+        return cache.get(k, None) is None
+    else:
+        return cache.get(k) == v
+
+
 class NewGenerator():
     def __init__(self) -> None:
         self._generators = {}
@@ -62,8 +71,8 @@ class NewGenerator():
                 gen_class = None
             if gen_class:
                 if gen_class.QREC_OPTIONS is not None:
-                    if not all(qrec.cache.get(k) == v for k, v in gen_class.QREC_OPTIONS.items()):
-                        return res
+                    if not all(test_option(qrec.cache, k, v) for k, v in gen_class.QREC_OPTIONS.items()):
+                        continue
                 LOG.debug("gen phase %s: matched generator class %s",
                             phase_name,
                             gen_class.__name__)

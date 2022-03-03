@@ -35,6 +35,7 @@ reference_input_dirs = [
         "../rtos/pmsis/pmsis_api/include/pmsis/rtos/",
         "../rtos/pmsis/pmsis_api/include/pmsis/cluster/",
         "../rtos/pmsis/pmsis_api/include/pmsis/platforms/",
+        "../rtos/pmsis/pmsis_api/include/pmsis/",
         "../rtos/pmsis/pmsis_bsp/include/",
         "source/reference/builtins/headers/",
     ]
@@ -85,6 +86,10 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 #
 html_theme = "sphinx_rtd_theme"
 html_logo = "_static/logo.png"
+
+html_theme_options = {
+        'navigation_depth' : -1,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

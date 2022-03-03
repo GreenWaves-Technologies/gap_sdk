@@ -55,6 +55,10 @@ extern unsigned int __L3_Read, __L3_Write, __L2_Read, __L2_Write;
 
 #define AT_QSPIRAM_FREE(dev,ptr,size) free(ptr)
 
+#define AT_OSPIRAM_ALLOC(dev,size) malloc(size)
+
+#define AT_OSPIRAM_FREE(dev,ptr,size) free(ptr)
+
 #define AT_L2_ALLOC(dev,size) malloc(size)
 
 #define AT_L2_FREE(dev,ptr,size) free(ptr)
@@ -307,6 +311,78 @@ do { \
 
 #define AT_QSPIRAM_CL_WAIT(dev,event) 
 
+
+/*
+ * OSpiram
+ */
+
+#define AT_OSPIRAM_TYPE 0
+
+typedef int         AT_OSPIRAM_CONF_T;
+typedef int         AT_OSPIRAM_T;
+typedef char *      AT_OSPIRAM_EXT_ADDR_TYPE;
+typedef char *      AT_OSPIRAM_LOC_ADDR_TYPE;
+typedef int         AT_OSPIRAM_FC_EVENT;
+typedef int         AT_OSPIRAM_CL_EVENT;
+typedef char *      AT_OSPIRAM_POINTER;
+typedef char *      AT_OSPIRAM_INT_ADDR_TYPE;
+
+#define AT_OSPIRAM_EXT2LOC 0
+#define AT_OSPIRAM_LOC2EXT 1
+
+#define AT_OSPIRAM_CONF_INIT(dev,type,name) 
+
+#define AT_OSPIRAM_OPEN(dev,conf,err) \
+  do { *(err) = 0; } while (0)
+
+#define AT_OSPIRAM_CLOSE(dev) 
+
+#define AT_OSPIRAM_FC_COPY(dev,ext,loc,size,dir,event) \
+do { \
+  int i; \
+  char *To   = (dir==AT_OSPIRAM_EXT2LOC)?((char *) (loc)):((char *) (ext)); \
+  char *From = (dir==AT_OSPIRAM_EXT2LOC)?((char *) (ext)):((char *) (loc)); \
+ \
+  if (dir==AT_OSPIRAM_EXT2LOC) { \
+    if (1) __L3_Read += size; else __L2_Read += size; \
+  } else { \
+    if (1) __L3_Write += size; else __L2_Write += size; \
+  } \
+ \
+  for (i=0; i<size; i++) To[i] = From[i]; \
+} while (0)
+
+#define AT_OSPIRAM_FC_COPY2D(dev,ext,loc,size,stride,length,dir,event) \
+do { \
+  int CopyIn = (dir==AT_OSPIRAM_EXT2LOC); \
+  char *To   = CopyIn?((char *) (loc)):((char *) (ext)); \
+  char *From = CopyIn?((char *) (ext)):((char *) (loc)); \
+  int i, j, Chunk; \
+ \
+  if (dir==AT_OSPIRAM_EXT2LOC) { \
+    if (1) __L3_Read += size; else __L2_Read += size; \
+  } else { \
+    if (1) __L3_Write += size; else __L2_Write += size; \
+  } \
+  for (Chunk=0; Chunk<size; Chunk+=length)  { \
+    for (i=0; i<length; i++) To[i] = From[i]; \
+      if (CopyIn) { \
+      From += stride; To += length; \
+    } else { \
+      To += stride; From += length; \
+    } \
+  } \
+} while (0)
+
+#define AT_OSPIRAM_FC_WAIT(dev,event) 
+
+#define AT_OSPIRAM_CL_COPY(dev,ext,loc,size,dir,event) AT_OSPIRAM_FC_COPY(dev,ext,loc,size,dir,event)
+
+#define AT_OSPIRAM_CL_COPY2D(dev,ext,loc,size,stride,len,dir,event) AT_OSPIRAM_FC_COPY2D(dev,ext,loc,size,stride,len,dir,event)
+
+#define AT_OSPIRAM_CL_WAIT(dev,event) 
+
+
 /*
  * Spiflash
  */
@@ -414,6 +490,79 @@ static inline void __at_qspiflash_fs_copy_2d(FILE *file, unsigned int ext, void 
   __at_qspiflash_fs_copy_2d(*(file), ext, loc, size, stride, len, dir)
 
 #define AT_QSPIFLASH_FS_CL_WAIT(file,event) 
+
+/*
+ * OSPIflash FS
+ */
+
+#define AT_OSPIFLASH_FS_TYPE 1
+
+typedef int            AT_OSPIFLASH_FS_CONF_T;
+typedef FILE*          AT_OSPIFLASH_FS_T;
+typedef unsigned int   AT_OSPIFLASH_FS_EXT_ADDR_TYPE;
+typedef void *         AT_OSPIFLASH_FS_INT_ADDR_TYPE;
+typedef int            AT_OSPIFLASH_FS_FC_EVENT;
+typedef int            AT_OSPIFLASH_FS_CL_EVENT;
+
+#define AT_OSPIFLASH_FS_EXT2LOC 0
+#define AT_OSPIFLASH_FS_LOC2EXT 1
+
+static inline void __at_ospiflash_fs_copy(FILE *file, unsigned int ext, void *loc, int size, int dir)
+{
+  fseek(file, ext, SEEK_SET);
+  if (dir==AT_QSPIFLASH_FS_EXT2LOC) {
+    fwrite(loc, 1, size, file); __L3_Read += size;
+  } else {
+    fread(loc, 1, size, file); __L3_Write += size;
+  }
+}
+
+static inline void __at_ospiflash_fs_copy_2d(FILE *file, unsigned int ext, void *loc, int size, int stride, int length, int dir)
+{
+  int Chunk;
+  for (Chunk=0; Chunk<size; Chunk+=length)
+  {
+    if (length > size)
+      length = size;
+
+    fseek(file, ext, SEEK_SET);
+    if (dir==AT_QSPIFLASH_FS_EXT2LOC) fread(loc, 1, length, file);
+    else fwrite(loc, 1, length, file);
+
+    loc = ((char *)loc) + length;
+    ext += stride;
+  }
+}
+
+
+#define AT_OSPIFLASH_FS_CONF_INIT(dev,type,name) 
+
+#define AT_OSPIFLASH_FS_OPEN(file,conf,filename,err) \
+  do { *(file) = fopen(filename, "r"); *(err) = *(file) == NULL; } while(0)
+
+#define AT_OSPIFLASH_FS_OPEN_WRITE(file,conf,filename,err) \
+  do { *(file) = fopen(filename, "w"); *(err) = *(file) == NULL; } while(0)
+
+#define AT_OSPIFLASH_FS_OPEN_SET_SIZE(file, size) 
+
+#define AT_OSPIFLASH_FS_CLOSE(file) \
+  fclose(*file)
+
+#define AT_OSPIFLASH_FS_FC_COPY(file,ext,loc,size,dir,event) \
+  __at_ospiflash_fs_copy(*(file), ext, loc, size, dir)
+
+#define AT_OSPIFLASH_FS_FC_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
+  __at_ospiflash_fs_copy_2d(*(file), ext, loc, size, stride, len, dir)
+
+#define AT_OSPIFLASH_FS_FC_WAIT(file,event) 
+
+#define AT_OSPIFLASH_FS_CL_COPY(file,ext,loc,size,dir,event) \
+  __at_ospiflash_fs_copy(*(file), ext, loc, size, dir)
+
+#define AT_OSPIFLASH_FS_CL_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
+  __at_ospiflash_fs_copy_2d(*(file), ext, loc, size, stride, len, dir)
+
+#define AT_OSPIFLASH_FS_CL_WAIT(file,event) 
 
 
 /*

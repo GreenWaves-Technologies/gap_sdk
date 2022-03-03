@@ -14,16 +14,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import math
+from xml.etree.ElementTree import Comment
 
 import numpy as np
-from numpy.core.getlimits import iinfo
 from expressions.symbolic.function import Function
 
 from ..basic import Add, Cast, CompoundFunction, LShift, Mul, Sub, copy_props
-from ..symbol import c_headers, nargs
+from ..symbol import QuantizedConstant, c_headers, nargs
 from .clip_norm import Norm
 from .q15_scale_q_rec import Q15ScaleQRec
-from .quantized_constant import QuantizedConstant
 
 
 @nargs(2)
@@ -54,7 +53,7 @@ class MulRN(Function):
 @c_headers('"Gap.h"')
 @copy_props('from_qrec', 'to_qrec', 'num_bits')
 class ScaleQuantized(CompoundFunction):
-    def __init__(self, *args, from_qrec=None, to_qrec=None, num_bits=15, **kwargs):
+    def __init__(self, *args, from_qrec=None, to_qrec=None, num_bits=8, **kwargs):
         self._from_qrec = from_qrec
         self._to_qrec = to_qrec
         self._qbias, self._qnorm = None, None
@@ -87,7 +86,13 @@ class ScaleQuantized(CompoundFunction):
         # this should be safe as we never go much above Q15 and the scaling step
         # is also a Q15
         if isinstance(sym, ScaleQuantized):
-            return ScaleQuantized(*sym.contents, from_qrec=sym.from_qrec, to_qrec=self.to_qrec, num_bits=min(self._num_bits, sym.num_bits))
+            return ScaleQuantized(
+                *sym.contents,
+                from_qrec=sym.from_qrec,
+                to_qrec=self.to_qrec,
+                num_bits=min(self._num_bits, sym.num_bits),
+                tag=self.tag,
+                comment=self.comment)
         # Check if we do nothing
         if self._from_qrec == self._to_qrec:
             return sym
@@ -130,7 +135,8 @@ class ScaleQuantized(CompoundFunction):
                 ),
                 #pylint: disable=invalid-unary-operand-type
                 QuantizedConstant(-qnorm, dtype=np.int8),
-                name=self.name
+                name=self.name,
+                dtype=self._to_qrec.dtype
             )
         elif qnorm > 0:
             sym = Norm(
@@ -140,7 +146,8 @@ class ScaleQuantized(CompoundFunction):
                     dtype=self._to_qrec.dtype
                 ),
                 QuantizedConstant(qnorm, dtype=np.int8),
-                name=self.name
+                name=self.name,
+                dtype=self._to_qrec.dtype
             )
         else:
             sym = Mul(
@@ -157,6 +164,8 @@ class ScaleQuantized(CompoundFunction):
 
         if self._to_qrec.dtype != np.int32:
             sym = Cast(sym, dtype=self._to_qrec.dtype)
+        sym.tag = self.tag
+        sym.comment=self.comment
         return sym
 
     def __repr__(self) -> str:

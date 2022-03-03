@@ -20,6 +20,7 @@ import numpy as np
 from graph.types import GlobalPoolingParameters
 from graph.types.global_pooling import (GlobalAveragePoolParameters,
                                         GlobalSumPoolParameters)
+from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
 from quantization.unified_quantization_handler import (in_qs_constraint,
@@ -48,44 +49,48 @@ class GlobalPoolingMult(MultQuantizionHandler):
     def _quantize(cls, params, in_qs, stats, **kwargs):
         # copy in_qs because we may modify it
         in_qs = in_qs.copy()
-        opts = kwargs['opts']
+        opts = kwargs.get('opts', {})
         fusion = kwargs.get('fusion', None)
 
         force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
         force_out_q = force_out_qs and force_out_qs[0]
-        G = kwargs['G']
         in_q = in_qs[0]
-
-        cls.check_valid_ranges(params, stats, idx=0, dirs='in')
-        min_val = stats['range_in'][0]['min']
-        max_val = stats['range_in'][0]['max']
 
         if fusion:
             # Global pooling fused with activations need to have only the activation scale
+            #o_q = QType(scale=in_q.scale, dtype=np.int32)
             o_q = deepcopy(in_q)
-            o_q.dtype = np.int32
         elif force_out_q:
             if force_out_q.zero_point != in_q.zero_point:
                 return None
             o_q = force_out_q
-            LOG.warning('node %s output forced to range %s/%s  %s - actual range %s/%s',
-                        params.name, o_q.min, o_q.max, "asymmetric" if o_q.asymmetric else "symmetric",
-                        min_val, max_val)
+            LOG.warning('node %s output forced to range %s/%s  %s',
+                        params.name, o_q.min, o_q.max, "asymmetric" if o_q.asymmetric else "symmetric")
         elif isinstance(params, GlobalAveragePoolParameters) or isinstance(params, GlobalSumPoolParameters):
+            cls.check_valid_ranges(params, stats, idx=0, dirs='in')
+            in_qs = cls.force_symmetric(in_qs)
+            if in_qs is None:
+                return None
+            in_q = in_qs[0]
+ 
             # scaling needs to be based on stats and zero point
             o_q = QType.from_min_max_sq(stats['range_out'][0]['min'],
                                         stats['range_out'][0]['max'],
                                         dtype=out_dtype,
-                                        asymmetric=(stats['range_out'][0]['min'] == 0 and in_q.zero_point == -128))
+                                        asymmetric=False)
         else:
             o_q = deepcopy(in_q)
 
-        if opts['hwc']:
+        if opts.get('hwc'):
             cls.check_order(params, [['h', 'w', 'c']], [['h', 'w', 'c']])
         elif params.in_dims_hint:
             cls.check_order(params, [['c', 'h', 'w']], [['c', 'h', 'w']])
+        scale_mul_biases_q = MultMulBiasScaleQType(dtype=np.uint8)
+        scale_mul_biases_q.scale = in_q.scale/o_q.scale
         return QRec.scaled(in_qs=[in_q],
-                           out_qs=[o_q])
+                           out_qs=[o_q],
+                           scale_mul_biases_q=scale_mul_biases_q
+                           )
 
     @classmethod
     def _get_in_qs_from_stats(cls, params, stats, in_qs, **kwargs):

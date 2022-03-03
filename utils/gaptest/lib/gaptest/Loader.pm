@@ -144,6 +144,15 @@ sub load_test_variant {
         $test_variant{flags} = "";
     }
 
+    $test_variant{compile_only} = 0;
+    if (defined $section->{compile_only})
+    {
+        if ($section->{compile_only} eq "true")
+        {
+            $test_variant{compile_only} = 1;
+        }
+    }
+
     if(defined $section->{duration})
     {
         $test_variant{duration} = $section->{duration};

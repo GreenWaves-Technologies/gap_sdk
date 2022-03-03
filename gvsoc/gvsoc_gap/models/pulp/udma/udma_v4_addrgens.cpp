@@ -134,6 +134,7 @@ void Udma_addrgen_linear::cfg_ctrl_req(uint64_t reg_offset, int size, uint8_t *v
 
 vp::io_req_status_e Udma_addrgen_linear::access(uint64_t offset, int size, uint8_t *value, bool is_write)
 {
+
     if (this->regmap.access(offset, size, value, is_write))
         return vp::IO_REQ_INVALID;
 

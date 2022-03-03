@@ -72,9 +72,9 @@ typedef struct {
     F16 NMSThr;
     short int n_max_bb;
     short int *bbox_idx;
-} Ker_SSD_NMS_ArgT;
+} Ker_SSD_NMS_Arg_f16_T;
 
-void Ker_SSD_NMS(Ker_SSD_NMS_ArgT *Arg);
+void Ker_SSD_NMS_f16(Ker_SSD_NMS_Arg_f16_T *Arg);
 
 
 

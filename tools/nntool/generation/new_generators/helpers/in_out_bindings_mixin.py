@@ -40,3 +40,17 @@ class InOutBindingsMixin():
             NodeBindingList(cname, GNodeArgEdge(in_eparams[0]),
                             GNodeArgEdge(out_eparams[0], "GNA_OUT"), GNodeArgNode(node, "infos")))
 
+    @classmethod
+    def set_multi_in_out_bindings(cls, gen, in_eparams, out_eparams, cname, node, qrec):
+        gen.bindings.append(
+            CommentBindingList("Node {} in_qs [{}] out_qs [{}]", node.name,
+                            ",".join(str(in_q) for in_q in qrec.in_qs),
+                            ",".join(str(out_q) for out_q in qrec.out_qs))
+        )
+
+        # the input order of the generated function can vary since it passes through a set
+        params = [GNodeArgEdge(in_eparams[idx]) for idx in node.input_shuffle] + \
+            [GNodeArgEdge(out_eparams[idx], "GNA_OUT") for idx in node.output_shuffle]
+        gen.bindings.append(
+            NodeBindingList(cname, *params)
+        )

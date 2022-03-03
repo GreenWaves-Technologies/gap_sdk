@@ -4,7 +4,20 @@ from numbers import Number
 
 from onnx import TensorProto, mapping, helper
 
-logger = logging.getLogger('nntool.' + __name__)
+_logger = logging.getLogger('nntool.' + __name__)
+
+class logger:
+    @staticmethod
+    def info(*args, **kwargs):
+        _logger.info(*args, **kwargs)
+
+    @staticmethod
+    def warning(*args, **kwargs):
+        _logger.warning(*args, **kwargs)
+
+    @staticmethod
+    def debug(*args, **kwargs):
+        _logger.debug(*args, **kwargs)
 
 def get_unique_suffix():
     """ Get unique suffix by using first 8 chars from uuid.uuid4

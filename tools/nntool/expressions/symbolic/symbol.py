@@ -19,7 +19,7 @@ from functools import reduce
 import numpy as np
 from bfloat16 import bfloat16
 from generation.code_block import CodeBlock
-from quantization.qtype import DTYPE_GAP_CTYPE
+from quantization.qtype import DTYPE_GAP_CTYPE, DTYPES
 
 
 class SymbolStats():
@@ -64,17 +64,21 @@ class SymbolStats():
 
 class QRecBase():
     DTYPE_TO_CTYPE = {
-        np.int8: 'int8_t',
-        np.int16: 'int16_t',
-        np.int32: 'int32_t',
-        np.uint8: 'uint8_t',
-        np.uint16: 'uint16_t',
-        np.uint32: 'uint32_t',
+        np.int8: 'signed char',
+        np.int16: 'short',
+        np.int32: 'int',
+        np.uint8: 'unsigned char',
+        np.uint16: 'unsigned short',
+        np.uint32: 'unsigned int',
         np.float32: 'float',
         bfloat16: 'F16',
         np.float16: 'F16'
     }
     def __init__(self, dtype=None) -> None:
+        if isinstance(dtype, np.dtype):
+            dtype = dtype.type
+        if dtype is not None and dtype not in self.DTYPE_TO_CTYPE:
+            raise ValueError('unknown dtype')
         self._dtype = dtype
 
     @property
@@ -89,6 +93,14 @@ class QRecBase():
     def ctype(self):
         return self.DTYPE_TO_CTYPE[self.dtype]
 
+    @property
+    def signed(self):
+        return DTYPES[self.dtype][1]
+
+    @property
+    def size(self):
+        return DTYPES[self.dtype][0]
+
 class Symbol():
     NARGS = None
     CURRENT_CONTROL = SymbolStats()
@@ -96,9 +108,10 @@ class Symbol():
     COUNTS = {}
     C_HEADERS = []
     COPY_PROPS = tuple()
+    SYMBOL_PREFEX = '_SYMBOL_'
 
 #pylint: disable=unused-argument
-    def __init__(self, *args, name="", shape=None, dtype=np.float32, qrec: QRecBase = None, **kwargs):
+    def __init__(self, *args, name="", shape=None, dtype=np.float32, qrec: QRecBase = None, tag=None, comment: str=None, **kwargs):
         super(Symbol, self).__init__(**kwargs)
         if self.NARGS is not None and len(args) != self.NARGS:
             raise ValueError("wrong number of arguments to Symbol %s"%self.__class__.__name__)
@@ -107,12 +120,30 @@ class Symbol():
         self._dtype = dtype
         self._shape = shape
         self._qrec = qrec
+        self._tag = tag
+        self._comment = comment
 
     @classmethod
     def get_name(cls, cls_to_name):
         name = "%s%s" % (cls_to_name.__name__, cls.COUNTS.setdefault(cls_to_name, 0))
         cls.COUNTS[cls_to_name] += 1
         return name
+
+    @property
+    def tag(self):
+        return self._tag
+
+    @tag.setter
+    def tag(self, val):
+        self._tag = val
+
+    @property
+    def comment(self):
+        return self._comment
+
+    @comment.setter
+    def comment(self, val):
+        self._comment = val
 
     @property
     def qrec(self):
@@ -154,6 +185,10 @@ class Symbol():
         return self._dtype
 
     @property
+    def ctype(self):
+        return QRecBase.DTYPE_TO_CTYPE[self.dtype]
+
+    @property
     def name(self):
         return self._name
 
@@ -182,10 +217,11 @@ class Symbol():
         cls.CURRENT_CONTROL = control
 
     @staticmethod
-    def extend_shapes(*shapes):
+    def extend_shapes(*shapes, max_length=None):
         if len(shapes) == 1:
             return list(shapes)
-        max_length = max(len(x) for x in shapes)
+        if max_length is None:
+            max_length = max(len(x) for x in shapes)
         return [tuple([1] * (max_length - len(x)) + list(x)) for x in shapes]
 
     @staticmethod
@@ -226,7 +262,10 @@ class Symbol():
 
     def calculate(self, calculate_ranges=False, **kwargs):
         """Given a set of substitions for variable in kwargs calculate a result"""
-        return self._calculate(calculate_ranges=calculate_ranges, **kwargs)
+        val = self._calculate(calculate_ranges=calculate_ranges, **kwargs)
+        if self.tag and 'details' in kwargs:
+            kwargs['details'][self.tag[0]] = val
+        return val
 
     def collect_globals(self) -> dict:
         """Returns a dict of globals necessary to execute a lambda of this symbol. Globals
@@ -330,10 +369,19 @@ class Symbol():
     def c_expr(self, *args, **kwargs):
         return self._c_expr([], **kwargs)
 
-    def c_block(self, code_block=None, **kwargs):
+    def c_block(self, code_block=None, with_comment=False, tags=None, **kwargs):
         if code_block is None:
-            code_block = CodeBlock
-        code_block.write(self.c_expr)
+            code_block = CodeBlock()
+        if tags is not None and self.tag:
+            if self.comment and with_comment:
+                code_block.write(f'// {self.comment}')
+            name = tags.get(self, f'{self.ctype} {self.SYMBOL_PREFEX}{self.name}')
+            if isinstance(name, tuple):
+                name = name[0].c_expr(dtype=name[0].dtype, declare=name[1], **kwargs)
+            code_block.write(f'{name} = {self._c_expr([], **kwargs)};')
+        else:
+            code_block.write(self._c_expr([], **kwargs))
+        return code_block
 
     def _equivalent(self, other) -> bool:
         pass
@@ -466,7 +514,7 @@ class Constant(Symbol):
             return f"(F16){print_float_constant(val)}"
         elif self.dtype == np.float32:
             return print_float_constant(val)
-        return val
+        return str(val)
 
     def __repr__(self) -> str:
         return str(self._value)
@@ -524,6 +572,7 @@ class Variable(Symbol):
         self._shape = shape
         self._index_vars = None
         self._ispointer = False
+        self._cindex = None
 
     @property
     def shape(self):
@@ -561,6 +610,14 @@ class Variable(Symbol):
         return {self._name: self}
 
     @property
+    def cindex(self):
+        return self._cindex
+
+    @cindex.setter
+    def cindex(self, val):
+        self._cindex = val
+
+    @property
     def index_vars(self):
         return self._index_vars
 
@@ -586,11 +643,11 @@ class Variable(Symbol):
             val = np.array(kwargs[self.name])
             if self.shape is not None:
                 val = np.reshape(val, self.shape)
-            quantize_inputs = kwargs.get('quantize_inputs', False)
-            if quantize_inputs is True or isinstance(quantize_inputs, Iterable) and self.name in quantize_inputs:
-                if self.qrec is None:
-                    raise ValueError("can't quantize %s. no quantization record is set."%self.name)
-                val = self.qrec.quantize_and_clip(val)
+            # quantize_inputs = kwargs.get('quantize_inputs', False)
+            # if quantize_inputs is True or isinstance(quantize_inputs, Iterable) and self.name in quantize_inputs:
+            #     if self.qrec is None:
+            #         raise ValueError("can't quantize %s. no quantization record is set."%self.name)
+            #     val = self.qrec.quantize_and_clip(val)
             if calculate_ranges:
                 self.control.add_stat(self, val)
             return val
@@ -645,8 +702,8 @@ class Variable(Symbol):
 
 #pylint: disable=arguments-differ
     def _c_expr(self, *args, declare=False, dtype=None, pointer=None, iteration_space=None, **kwargs):
-        if iteration_space:
-            return iteration_space.c_indexed_var(self.name)
+        if iteration_space and not self.name.startswith(self.SYMBOL_PREFEX):
+            return iteration_space.c_indexed_var(self.name, declare=declare)
         if pointer is None:
             pointer = self._ispointer
         if declare:
@@ -666,3 +723,17 @@ class Variable(Symbol):
 
     def __repr__(self) -> str:
         return f'{self.name}'
+
+class QuantizedConstant(Constant):
+    def __init__(self, *args, dtype=np.int32, **kwargs):
+        super().__init__(*args, dtype=dtype, **kwargs)
+
+class QuantizedValue(Symbol):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _calculate(self, calculate_ranges=False, **kwargs):
+        raise ValueError('wrapper class for quantization purposes - not designed to be evaluated')
+
+    def _impl(self, *args, **kwargs):
+        raise ValueError('wrapper class for quantization purposes - not designed to be evaluated')

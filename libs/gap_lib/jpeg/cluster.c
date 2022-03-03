@@ -30,8 +30,38 @@
 #ifdef PMSIS_DRIVERS
     #define RT_USER_EVENT (CL_USER_EVENT)
     #define eu_evt_trig_from_id(x,y) (hal_eu_cluster_evt_trig_set(x,y))
+#if defined(__GAP9__)
+    #define eu_evt_maskWaitAndClr(x) (hal_cl_eu_evt_mask_wait_and_clear(x))
+#else
     #define eu_evt_maskWaitAndClr(x) (hal_cl_eu_evt_mask_wait_clear(x))
 #endif
+#else
+    #define RT_USER_EVENT 6
+#endif
+
+#define FLOAT2FIX(f)  ((int)((f) * (1 << 11)))
+#define FIXQ 11
+
+void cl_rgb_to_y(unsigned char r, unsigned char g, unsigned char b, short int *y)
+{
+    int a = FLOAT2FIX( 0.2990f) * r + FLOAT2FIX(0.5870f) * g + FLOAT2FIX(0.1140f) * b - ((short int)128 << FIXQ);
+    //printf("%f ",FIX2FP(*y,11));
+    //if(*y > (105<<11)) *y = 105 << 11;
+    *y = (short int) (a >> (FIXQ - 1));
+    //printf("%f\n",FIX2FP(*y,0));
+}
+void cl_rgb_to_cb(unsigned char r, unsigned char g, unsigned char b, short int *u)
+{
+    int a = FLOAT2FIX(-0.1687f) * r - FLOAT2FIX(0.3313f) * g + FLOAT2FIX(0.5000f) * b;
+    *u = (short int) (a >> (FIXQ - 1));
+}
+
+void cl_rgb_to_cr(unsigned char r, unsigned char g, unsigned char b, short int *v)
+{
+    int a  = FLOAT2FIX( 0.5000f) * r - FLOAT2FIX(0.4187f) * g - FLOAT2FIX(0.0813f) * b ;
+    *v = (short int)(a >> (FIXQ - 1));
+}
+
 
 static inline void queue_init(block_queue_t *queue)
 {
@@ -279,7 +309,12 @@ static inline int pop_ready_block(cl_enc_t *enc)
 static int exec_dct(cl_enc_t *enc, cl_enc_block_t *block)
 {
   const signed short *FDctFactors = enc->constants->FDCT_FACTORS;
-  const unsigned char *QuantLUT = enc->constants->QUANT_TAB_LUMIN;
+  unsigned char *QuantLUT;
+  
+  if(enc->comp==0)
+    QuantLUT = (unsigned char *) enc->constants->QUANT_TAB_LUMIN;
+  else
+    QuantLUT = (unsigned char *) enc->constants->QUANT_TAB_CHROM;
   short int *DU = block->data;
   //printf("[%p] DCT\n", block);
 
@@ -326,8 +361,12 @@ static int exec_dct(cl_enc_t *enc, cl_enc_block_t *block)
 
 static void exec_quantization(cl_enc_t *enc, cl_enc_block_t *block)
 {
+  unsigned char *QuantLUT;
   const unsigned char *ZigZagLUT = enc->constants->ZIGZAG_LUT;
-  const unsigned char *QuantLUT = enc->constants->QUANT_TAB_LUMIN;
+  if(enc->comp==0)
+  QuantLUT = (unsigned char *) enc->constants->QUANT_TAB_LUMIN;
+  else
+  QuantLUT = (unsigned char *) enc->constants->QUANT_TAB_CHROM;
   short int *DU = block->data;
     //printf("[%p] Quantization\n", block);
 
@@ -392,11 +431,23 @@ static void exec_quantization(cl_enc_t *enc, cl_enc_block_t *block)
 
 static void exec_bitstream(cl_enc_t *enc, cl_enc_block_t *block)
 {
-  const unsigned short *RLE_DC_LUT = enc->constants->HUFTAB_LUMIN_DC_Code;
-  const unsigned char *RLE_DC_Size_LUT = enc->constants->HUFTAB_LUMIN_DC_Size;
-  const unsigned short *RLE_AC_LUT = enc->constants->HUFTAB_LUMIN_AC_Code;
-  const unsigned char *RLE_AC_Size_LUT = enc->constants->HUFTAB_LUMIN_AC_Size;
 
+  unsigned short *RLE_DC_LUT;
+  unsigned char *RLE_DC_Size_LUT;
+  unsigned short *RLE_AC_LUT;
+  unsigned char *RLE_AC_Size_LUT;
+  
+  if(enc->comp==0){
+    RLE_DC_LUT = (unsigned short *) enc->constants->HUFTAB_LUMIN_DC_Code;
+    RLE_DC_Size_LUT = (unsigned char *) enc->constants->HUFTAB_LUMIN_DC_Size;
+    RLE_AC_LUT = (unsigned short *) enc->constants->HUFTAB_LUMIN_AC_Code;
+    RLE_AC_Size_LUT = (unsigned char *) enc->constants->HUFTAB_LUMIN_AC_Size;
+  }else{
+    RLE_DC_LUT = (unsigned short *) enc->constants->HUFTAB_CHROM_DC_Code;
+    RLE_DC_Size_LUT = (unsigned char *) enc->constants->HUFTAB_CHROM_DC_Size;
+    RLE_AC_LUT = (unsigned short *) enc->constants->HUFTAB_CHROM_AC_Code;
+    RLE_AC_Size_LUT = (unsigned char *) enc->constants->HUFTAB_CHROM_AC_Size;
+  }
   // As only 1 core at the same time can produce the bitstream, loop until we can't
   // produce it anymore to free blocks as fast as possible.
   while(1)
@@ -548,12 +599,18 @@ static int check_fetch_block(cl_enc_t *enc)
   if (!block->prev_du)
     block->vp = enc->prev_du;
   pi_cl_team_critical_exit();
-  uint32_t ext = enc->image + enc->width * block->y + block->x;
+  
 
   //printf("[%p] Fetching block (id: %d, x: %d, y: %d, ext: 0x%lx, loc: 0x%lx)\n", block, block->id, block->x, block->y, ext, (uint32_t)block->data);
-
-  pi_cl_dma_cmd_2d(ext, (uint32_t)block->data, 64, enc->width, 8, PI_CL_DMA_DIR_EXT2LOC, &block->dma_cmd);
-
+  
+  if(enc->color==1){
+    uint32_t ext = enc->image + (enc->width * block->y + block->x)*3;
+    pi_cl_dma_cmd_2d(ext, (uint32_t)block->data, 64*3, enc->width*3, 8*3, PI_CL_DMA_DIR_EXT2LOC, &block->dma_cmd);
+  }
+  else{ 
+    uint32_t ext = enc->image + (enc->width * block->y + block->x);
+    pi_cl_dma_cmd_2d(ext, (uint32_t)block->data, 64, enc->width, 8, PI_CL_DMA_DIR_EXT2LOC, &block->dma_cmd);
+  }
   pi_cl_team_critical_enter();
 
   queue_push(&enc->fetched_blocks, block);
@@ -605,6 +662,42 @@ static void __jpeg_encoder_process_pe_entry(void *arg)
 
       unsigned char *data = (unsigned char *)block->data;
       signed short *data_s = block->data;
+      if(enc->color==1){
+        if(enc->comp==0){
+          for (int i=0; i<64; i++)
+          {
+            cl_rgb_to_y(data[i*3],
+                   data[i*3+1],
+                   data[i*3+2],
+                   &data_s[i]);
+          }
+        }
+        else if(enc->comp==1){
+          for (int i=0; i<64; i++)
+          {
+            cl_rgb_to_cb(data[i*3],
+                   data[i*3+1],
+                   data[i*3+2],
+                   &data_s[i]);
+          }
+        }
+        else if(enc->comp==2){
+          for (int i=0; i<64; i++)
+          {
+            cl_rgb_to_cr(data[i*3],
+                   data[i*3+1],
+                   data[i*3+2],
+                   &data_s[i]);
+          }
+        }
+      }
+
+      else{
+        for (int i=63; i>=0; i--)
+        {
+          data_s[i] = ((signed short)data[i] - 128) << 1;
+        }
+      }
 
       if (block->y + 8 > enc->height || block->x + 8 > enc->width)
       {
@@ -621,15 +714,10 @@ static void __jpeg_encoder_process_pe_entry(void *arg)
           {
             if (i >= y || j >= x)
             {
-              data[i*8+j] = 0x1;
+              data_s[i*8+j] = 0x0;
             }
           }      
         }
-      }
-
-      for (int i=63; i>=0; i--)
-      {
-        data_s[i] = ((signed short)data[i] - 128) << 2;
       }
 
       process_du_cluster(enc, block, 0);
@@ -673,6 +761,8 @@ static void __jpeg_encoder_process_cl_entry(void *arg)
   cl_enc.current_bitstream = &cl_enc.l1_bitstream[0][0];
   cl_enc.current_ext_bitstream = cl_enc.bitstream;
   cl_enc.pending_dma = 0;
+  cl_enc.color=enc->color;
+  cl_enc.comp=enc->comp;
 
   queue_init(&cl_enc.fetched_blocks);
   queue_init(&cl_enc.dct_blocks);
@@ -748,7 +838,8 @@ void __jpeg_encoder_process_cl(jpeg_encoder_t *enc, pi_buffer_t *image, pi_buffe
 
   pi_cluster_task(&enc->cluster_task, __jpeg_encoder_process_cl_entry, enc);
 
-  pi_cluster_send_task_to_cl_async(&enc->cluster_dev, &enc->cluster_task, task);
+  pi_cluster_send_task_to_cl(&enc->cluster_dev, &enc->cluster_task);
+  
 }
 
 

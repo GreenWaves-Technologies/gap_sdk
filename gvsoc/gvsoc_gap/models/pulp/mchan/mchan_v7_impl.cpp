@@ -196,6 +196,7 @@ private:
   void account_transfered_bytes(Mchan_cmd *cmd, int bytes);
   void send_req_to_ext(Mchan_cmd *cmd, vp::io_req *req);
   void handle_ext_write_req_end(Mchan_cmd *cmd, vp::io_req *req);
+  void cmd_start(int cmd_id);
 
   vp::trace     trace;
 
@@ -239,8 +240,13 @@ private:
   int64_t *loc_port_ready_cycle;
 
   bool ext_is_stalled;
+  int nb_cmd_started;
 
   vp::trace     cmd_events[MCHAN_NB_COUNTERS];
+
+  vp::wire_master<bool> busy_itf;
+  vp::power::power_source background_power;
+  vp::power::power_source active_power;
 };
 
 void Mchan_channel::reset()
@@ -396,8 +402,7 @@ bool Mchan_channel::check_command(Mchan_cmd *cmd)
   top->trace.msg(vp::trace::LEVEL_TRACE, "Incrementing counter (id: %d, bytes: %d, remaining bytes: %d)\n", current_counter, cmd->size, top->pending_bytes[current_counter]);
 
   // Enqueue the command to the core queue
-  uint8_t one = 1;
-  this->top->cmd_events[cmd->counter_id].event(&one);
+  this->top->cmd_start(cmd->counter_id);
 
   pending_cmds->push(cmd);
 
@@ -526,6 +531,20 @@ void Mchan_channel::trigger_event(Mchan_cmd *cmd)
   }
 }
 
+void mchan::cmd_start(int cmd_id)
+{
+    uint8_t one = 1;
+    this->cmd_events[cmd_id].event(&one);
+    this->nb_cmd_started++;
+    if (this->nb_cmd_started == 1)
+    {
+        if (this->busy_itf.is_bound())
+        {
+            this->active_power.dynamic_power_start();
+            this->busy_itf.sync(1);
+        }
+    }
+}
 
 void mchan::ext_grant(void *__this, vp::io_req *req)
 {
@@ -876,6 +895,10 @@ void mchan::send_req()
   {
     ext_is_stalled = true;
   }
+  else
+  {
+    trace.force_warning("Got error during transfer (addr: 0x%lx, size: 0x%x)\n", cmd->source, size);
+  }
 }
 
 void mchan::check_ext_read_handler(void *__this, vp::clock_event *event)
@@ -920,8 +943,17 @@ void mchan::check_ext_write_handler(void *__this, vp::clock_event *event)
 
 void mchan::handle_cmd_termination(Mchan_cmd *cmd)
 {
-  this->cmd_events[cmd->counter_id].event(NULL);
-  free_command(cmd);
+    this->cmd_events[cmd->counter_id].event(NULL);
+    this->nb_cmd_started--;
+    if (this->nb_cmd_started == 0)
+    {
+        if (this->busy_itf.is_bound())
+        {
+            this->active_power.dynamic_power_stop();
+            this->busy_itf.sync(0);
+        }
+    }
+    free_command(cmd);
 }
 
 void mchan::account_transfered_bytes(Mchan_cmd *cmd, int bytes)
@@ -1148,6 +1180,7 @@ void mchan::check_queue()
 int mchan::build()
 {
   traces.new_trace("trace", &this->trace, vp::DEBUG);
+  new_master_port("busy", &this->busy_itf);
 
   for (int i=0; i<nb_channels; i++)
   {
@@ -1159,11 +1192,16 @@ int mchan::build()
     traces.new_trace_event("channel_" + std::to_string(i), &this->cmd_events[i], 8);
   }
 
+  this->power.new_power_source("background", &this->background_power, this->get_js_config()->get("**/power_models/background"));
+  this->power.new_power_source("active", &this->active_power, this->get_js_config()->get("**/power_models/active"));
+
   return 0;
 }
 
 void mchan::start()
 {
+    this->background_power.leakage_power_start();
+    this->background_power.dynamic_power_start();
 }
 
 void mchan::reset(bool active)
@@ -1187,6 +1225,7 @@ void mchan::reset(bool active)
       loc_port_ready_cycle[i] = 0;
     }
 
+    this->nb_cmd_started = 0;
     first_alloc_pending_req = NULL;
     last_alloc_pending_req = NULL;
     nb_core_read_cmd = 0;

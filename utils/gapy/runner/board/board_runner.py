@@ -38,49 +38,77 @@ class Runner(runner.default_runner.Runner):
 
 
     def flash(self):
-        flash = self.get_boot_flash()
-        if flash.get_bool('content/flash'):
+        for flash in self.get_flashs():
+            if flash.get_bool('content/flash'):
 
-            image = flash.get_str('content/image')
+                image = flash.get_str('content/image')
 
-            if os.environ.get('GAP_USE_PLPBRIDGE') is not None:
-                cmd = 'plpbridge --chip=%s --verbose 10 --cable=%s --flash-image=%s flash wait' % (os.environ.get('TARGET_NAME'), os.environ.get("PLPBRIDGE_CABLE"), image)
-
-            else:
-                if os.environ.get('GAPY_OPENOCD_CABLE') is not None:
-                    self.config.set('openocd/cable', os.environ.get('GAPY_OPENOCD_CABLE'))
-
-                openocd = self.config.get_str("openocd/path")
-                cable = self.config.get_str('openocd/cable')
-                script = self.config.get_str('openocd/script')
-                image_size = os.path.getsize(image)
-                gap_tools = os.environ.get('GAP_OPENOCD_TOOLS')
-
-                if self.config.get_str('**/chip_family') == 'gap':
-
-                    if flash.get_str('datasheet/type') == 'spi':
-                        flasher_script = 'gap_flash_raw_spi'
-                    else:
-                        flasher_script = 'gap_flash_raw_hyper'
-
-                    cmd = '%s -d0 -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script tcl/flash_image.tcl; script tcl/jtag_boot.tcl; %s %s %d %s; exit;"' % (openocd, cable, script, flasher_script, image, image_size, gap_tools)
+                if os.environ.get('GAP_USE_PLPBRIDGE') is not None:
+                    cmd = 'plpbridge --chip=%s --verbose 10 --cable=%s --flash-image=%s flash wait' % (os.environ.get('TARGET_NAME'), os.environ.get("PLPBRIDGE_CABLE"), image)
 
                 else:
+                    if os.environ.get('GAPY_OPENOCD_CABLE') is not None:
+                        self.config.set('openocd/cable', os.environ.get('GAPY_OPENOCD_CABLE'))
 
-                    if flash.get_str('datasheet/type') == 'spi':
-                        flasher_script = 'gap9_flash_raw_spi'
-                    else: 
-                        if self.config.get_str('**/chip/name') == 'vega':
-                            flasher_script = 'vega_flash_raw_hyper'
+                    openocd = self.config.get_str("openocd/path")
+                    cable = self.config.get_str('openocd/cable')
+                    script = self.config.get_str('openocd/script')
+                    image_size = os.path.getsize(image)
+                    gap_tools = os.environ.get('GAP_OPENOCD_TOOLS')
+
+                    wsl    = self.config.get_str('runner/wsl')
+                    if wsl is None:
+                        wsl_image = image
+                    else:
+                        path_header = '\\"//wsl$/' + wsl
+                        path_footer = '\\"'
+                        wsl_image = path_header + image + path_footer
+                        script = os.environ.get('OPENOCD_CHIP_TARGET')
+
+                    if self.config.get_str('**/chip_family') == 'gap':
+
+                        if flash.get_str('datasheet/type') == 'spi':
+                            flasher_script = 'gap_flash_raw_spi'
                         else:
-                            flasher_script = 'gap9_flash_raw_hyper'
+                            flasher_script = 'gap_flash_raw_hyper'
 
-                    cmd = '%s -d0 -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script %s/tcl/flash_image.tcl; %s %s %d %s; exit;"' % (openocd, cable, script, gap_tools, flasher_script, image, image_size, gap_tools)
+                        cmd = '%s -d0 -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script tcl/flash_image.tcl; script tcl/jtag_boot.tcl; %s %s %d %s; exit;"' % (openocd, cable, script, flasher_script, image, image_size, gap_tools)
 
-            print ('Flashing image with command:')
-            print (cmd)
-            
-            return os.system(cmd)
+                    elif self.config.get_str('**/chip/name') == 'vega':
+
+                        cmd = '%s -d0 -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -f "%s" -f "%s" -f "%s/tcl/flash_image.tcl" -c "vega_flash_raw_hyper %s %d %s; exit;"' % (openocd, cable, script, gap_tools, wsl_image, image_size, gap_tools)
+
+                    else:
+
+                        if flash.get_str('datasheet/type') == 'mram':
+
+                            flasher_binary = gap_tools + '/gap_bins/gap_flasher-gap9_evk-mram.elf'
+                            sector_size = 0x2000
+
+                        else:
+
+                            if os.environ.get('BOARD_NAME') == 'gap9_evk':
+                                if self.config.get_str('runner/platform') == 'fpga':
+                                    flasher_binary = gap_tools + '/gap_bins/gap_flasher-gap9_evk-fpga.elf'
+                                else:
+                                    flasher_binary = gap_tools + '/gap_bins/gap_flasher-gap9_evk.elf'
+                                sector_size = 0x1000
+                            else:
+                                if self.config.get_str('runner/platform') == 'fpga':
+                                    flasher_binary = gap_tools + '/gap_bins/gap_flasher-gapuino9.elf'
+                                    sector_size = 0x40000
+                                else:
+                                    # This is for the variant of socketed gap9mod with atxp032
+                                    flasher_binary = gap_tools + '/gap_bins/gap_flasher-gap9_v2.elf'
+                                    sector_size = 0x1000
+
+                        cmd = '%s -d0 -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -f "%s" -f "%s" -f "%s/tcl/flash_image.tcl" -c "gap9_flash_raw %s %d %s 0x%x; exit;"' % (openocd, cable, script, gap_tools, wsl_image, image_size, flasher_binary, sector_size)
+
+                print ('Flashing image with command:')
+                print (cmd)
+                
+                if os.system(cmd):
+                    return -1
         
         return 0
 

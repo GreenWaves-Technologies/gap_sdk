@@ -27,7 +27,7 @@ LOG = logging.getLogger("nntool." + __name__)
 class BatchNormalizationParameters(NoSizeChangeParameters, SingleInputAndOutput, SensitiveToOrder):
 
     #pylint: disable-msg=too-many-arguments
-    def __init__(self, name, scale=None, bias=None, running_mean=None,
+    def __init__(self, name, scale=None, bias=None, running_mean=None, axis=0,
                  running_variance=None, spatial=None, momentum=None, epsilon=None, **kwargs):
         super(BatchNormalizationParameters, self).__init__(name, **kwargs)
         self.scale = scale
@@ -37,6 +37,7 @@ class BatchNormalizationParameters(NoSizeChangeParameters, SingleInputAndOutput,
         self.spatial = spatial
         self.momentum = momentum
         self.epsilon = epsilon
+        self.axis = axis
 
     @property
     def can_equalize(self):
@@ -80,7 +81,7 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Compa
         # The multiplier parameter correspond to the channel multiplier option
         # in tensorflow. There are multiplier filters per input channel in
         # a depthwise convolution
-        if groups is None:
+        if groups is None or groups == 0:
             self.groups = 1
             self.cannot_be_dw = True
         else:
@@ -107,7 +108,7 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Compa
         self._ker_in_order = ker_in_order
         self._ker_out_order = ker_out_order
 
-        LOG.debug("created CON2D %s", str(self))
+        LOG.debug("created CON2D %s %s", self.name, str(self))
 
     @property
     def graph_label(self):

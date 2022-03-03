@@ -13,21 +13,27 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.fusions import PaddedAddFusionParameters
 import logging
 from functools import reduce
 
 import numpy as np
 from generation.at_types.at_params import NO_ACTIVATION, gen_active_at_params
+from generation.at_types.constant_info import ConstantInfo
 from generation.at_types.gen_ctrl import GenCtrl
+from generation.at_types.tc_arg_info import GlobalArgInfo
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  GNodeArgNode, NodeBindingList)
-from generation.generators.globals.mult8_infos_generator import act_infos
+from generation.generators.globals.global_names import INFOS
 from generation.generators.kernels.autotiler_kernel import NewAutoTilerKernel
+from generation.helpers.gen_constant import gen_constant
 from generation.new_generators.generator_base import (GeneratorBase, ktype,
                                                       paramstype)
-from graph.types import ActivationFusionBase, MatrixAddParameters, BroadcastableActivationFusion
-from quantization.multiplicative.mulbias import set_add_in_scale
+from generation.new_generators.helpers.act_infos import gen_act_infos
+from generation.new_generators.mult8.conv_pool_mult8 import SQ8ActInfos
+from graph.types import (ActivationFusionBase, BroadcastableActivationFusion,
+                         MatrixAddParameters)
+from graph.types.fusions import PaddedAddFusionParameters
+from quantization.qtype import QType
 from utils.node_id import NodeId
 
 LOG = logging.getLogger("nntool." + __name__)
@@ -43,37 +49,45 @@ class MatAddSQ8Generator(GeneratorBase):
         if isinstance(pnode, (ActivationFusionBase, BroadcastableActivationFusion)):
             cnodes = pnode.contained_nodes()
             quants = [gen.G.quantization[NodeId(pnode, cnode)] for cnode in cnodes]
-            if isinstance(fnode, MatrixAddParameters):
-                set_add_in_scale(quants[0])
-                if not quants[0].in_qs[0].signed:
-                    add_quant_bias_value1 = np.bitwise_and(quants[0].cache['add_bias_offset'], 0xFF)
-                    add_quant_bias_value2 = np.bitwise_and(quants[0].cache['add_bias_offset'], 0xFF00) >> 8
-                else:
-                    add_quant_bias_value1 = add_quant_bias_value2 = None
-
-                act_infos(gen, pnode, pnode, cnodes[1], quants[1],
-                          extra1=quants[0].cache['scale_in_mul_biases_q'].qbiases[0],
-                          extra2=quants[0].cache['scale_in_mul_biases_q'].qnorms[0],
-                          extra3=quants[0].cache['scale_mul_biases_q'].qbiases[0],
-                          extra4=quants[0].cache['scale_mul_biases_q'].qnorms[0],
-                          extra5=add_quant_bias_value1,
-                          extra6=add_quant_bias_value2)
-                return True
+            add_node = cnodes[0]
+            if isinstance(add_node, MatrixAddParameters):
+                if fnode:
+                    return True
+                infos, acomments = gen_act_infos(cnodes[1], quants[1])
+                add_quant = quants[0]
             else:
                 return False
-        set_add_in_scale(qrec)
-        if not qrec.in_qs[0].signed:
-            add_quant_bias_value1 = np.bitwise_and(qrec.cache['add_bias_offset'], 0xFF)
-            add_quant_bias_value2 = np.bitwise_and(qrec.cache['add_bias_offset'], 0xFF00) >> 8
         else:
-            add_quant_bias_value1 = add_quant_bias_value2 = None
-        act_infos(gen, pnode, pnode, None, None,
-                extra1=qrec.cache['scale_in_mul_biases_q'].qbiases[0],
-                extra2=qrec.cache['scale_in_mul_biases_q'].qnorms[0],
-                extra3=qrec.cache['scale_mul_biases_q'].qbiases[0],
-                extra4=qrec.cache['scale_mul_biases_q'].qnorms[0],
-                extra5=add_quant_bias_value1,
-                extra6=add_quant_bias_value2)
+            add_node = pnode
+            add_quant = qrec
+            infos = {}
+            acomments = "no activation - "
+
+        infos.update({
+            'IN1SCALE': add_quant.cache['scale_in_mul_biases_q'].qbiases,
+            'IN1SCALEN': add_quant.cache['scale_in_mul_biases_q'].qnorms,
+            'OUTSCALE': add_quant.cache['scale_mul_biases_q'].qbiases,
+            'OUTSCALEN': add_quant.cache['scale_mul_biases_q'].qnorms
+        })
+        if not add_quant.in_qs[0].signed:
+            infos['ADD_BIAS'] = add_quant.cache['add_bias_offset']
+            infos_len = 'ASYM_ADD_DIM'
+        else:
+            infos_len = 'DIM'
+
+
+        infos_encoder = SQ8ActInfos()
+        contents, new_comment = infos_encoder.gen_infos_array(infos_len, **infos)
+        comments = acomments + new_comment
+
+        cname, file_name = gen_constant(gen, pnode, pnode, INFOS)
+        const_info = ConstantInfo(file_name, QType.Pow2(
+            bits=8, q=0, signed=True), contents=contents)
+        gen.globals.append(GlobalArgInfo("int8", cname,
+                                        gen.opts['default_global_home_location'],
+                                        gen.opts['default_global_exec_location'],
+                                        const_info=const_info,
+                                        comment=comments))
         return True
 
     @classmethod
@@ -89,7 +103,7 @@ class MatAddSQ8Generator(GeneratorBase):
         else:
             out_q = qrec
 
-        set_add_in_scale(qrec)
+        # set_add_in_scale(qrec)
         scaled_idx = qrec.cache['scaled_idx']
         not_scaled_idx = 0 if scaled_idx else 1
         gen.bindings.append(

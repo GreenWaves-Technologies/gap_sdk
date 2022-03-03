@@ -8,38 +8,45 @@ Register map
 Overview
 """"""""
 
+
+Refer to :ref:`GAP9 address map<REF_MEMORY_MAP_DETAIL>` for the base address to be used.
+
 .. table:: 
+    :align: center
+    :widths: 40 12 12 90
 
-    +---------------------------------------+------+-----+---------------------------------------------+
-    |                 Name                  |Offset|Width|                 Description                 |
-    +=======================================+======+=====+=============================================+
-    |:ref:`CMD<efuse_CMD>`                  |     0|   32|CMD register for efuses                      |
-    +---------------------------------------+------+-----+---------------------------------------------+
-    |:ref:`CFG<efuse_CFG>`                  |     4|   32|CFG register for timings                     |
-    +---------------------------------------+------+-----+---------------------------------------------+
-    |:ref:`PAGE_PROTECT<efuse_PAGE_PROTECT>`|     8|   32|Protection (RO mode) register for efuse pages|
-    +---------------------------------------+------+-----+---------------------------------------------+
+    +----------------------------------------+------+-----+---------------------------------------------+
+    |                  Name                  |Offset|Width|                 Description                 |
+    +========================================+======+=====+=============================================+
+    |:ref:`CMD<efuse__CMD>`                  |     0|   32|CMD register for eFuses                      |
+    +----------------------------------------+------+-----+---------------------------------------------+
+    |:ref:`CFG<efuse__CFG>`                  |     4|   32|CFG register for timings                     |
+    +----------------------------------------+------+-----+---------------------------------------------+
+    |:ref:`PAGE_PROTECT<efuse__PAGE_PROTECT>`|     8|   32|Protection (RO mode) register for eFuse pages|
+    +----------------------------------------+------+-----+---------------------------------------------+
 
-.. _efuse_CMD:
+.. _efuse__CMD:
 
 CMD
 """
 
-CMD register for efuses
+CMD register for eFuses
 
 .. table:: 
+    :align: center
+    :widths: 13 12 45 24 85
 
-    +-----+---+-----+-----------------+
-    |Bit #|R/W|Name |   Description   |
-    +=====+===+=====+=================+
-    |    0|R/W|READ |Enable read mode |
-    +-----+---+-----+-----------------+
-    |    1|R/W|WRITE|Enable write mode|
-    +-----+---+-----+-----------------+
-    |    2|R/W|IDLE |Enable idle mode |
-    +-----+---+-----+-----------------+
+    +-----+---+-----+-----+-----------------+
+    |Bit #|R/W|Name |Reset|   Description   |
+    +=====+===+=====+=====+=================+
+    |    0|R/W|READ |0x0  |Enable read mode |
+    +-----+---+-----+-----+-----------------+
+    |    1|R/W|WRITE|0x0  |Enable write mode|
+    +-----+---+-----+-----+-----------------+
+    |    2|R/W|IDLE |0x0  |Enable idle mode |
+    +-----+---+-----+-----+-----------------+
 
-.. _efuse_CFG:
+.. _efuse__CFG:
 
 CFG
 """
@@ -47,29 +54,36 @@ CFG
 CFG register for timings
 
 .. table:: 
+    :align: center
+    :widths: 13 12 45 24 85
 
-    +-----+---+-----------+----------------------------------+
-    |Bit #|R/W|   Name    |           Description            |
-    +=====+===+===========+==================================+
-    |5:0  |R/W|CNT_TARGET0|Enable or Disable TLB mode        |
-    +-----+---+-----------+----------------------------------+
-    |15:6 |R/W|CNT_TARGET1|Flag to check whether device is RO|
-    +-----+---+-----------+----------------------------------+
-    |29:16|R/W|CNT_TARGET2|Flag to check whether device is RO|
-    +-----+---+-----------+----------------------------------+
-    |31:30|R/W|MARGIN     |Flag to check whether device is RO|
-    +-----+---+-----------+----------------------------------+
+    +-----+---+-----------+-----+---------------------------------------+
+    |Bit #|R/W|   Name    |Reset|              Description              |
+    +=====+===+===========+=====+=======================================+
+    |5:0  |R/W|CNT_TARGET0|0x2  |Counter value to generate short delays |
+    +-----+---+-----------+-----+---------------------------------------+
+    |15:6 |R/W|CNT_TARGET1|0x32 |Counter value to generate medium delays|
+    +-----+---+-----------+-----+---------------------------------------+
+    |29:16|R/W|CNT_TARGET2|0x1F4|Counter value to generate long delays  |
+    +-----+---+-----------+-----+---------------------------------------+
+    |31:30|R/W|MARGIN     |0x0  |EFuse read margin                      |
+    +-----+---+-----------+-----+---------------------------------------+
 
-.. _efuse_PAGE_PROTECT:
+.. _efuse__PAGE_PROTECT:
 
 PAGE_PROTECT
 """"""""""""
 
-Protection (RO mode) register for efuse pages
+Protection (RO mode) register for eFuse pages
 
 .. table:: 
+    :align: center
+    :widths: 13 12 45 24 85
 
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
+    +-----+---+---------+-----+-----------------------------------------------------------------+
+    |Bit #|R/W|  Name   |Reset|                           Description                           |
+    +=====+===+=========+=====+=================================================================+
+    |7:0  |R/W|PROTECTED|0x0  |Protected pages. Bit *i* is 1 means page *i* is in read only mode|
+    +-----+---+---------+-----+-----------------------------------------------------------------+
+    |31   |R/W|LOCK     |0x0  |If 1, PAGE_PROTECT register cannot be overwritten                |
+    +-----+---+---------+-----+-----------------------------------------------------------------+

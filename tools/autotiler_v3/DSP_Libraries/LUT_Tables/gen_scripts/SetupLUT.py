@@ -117,7 +117,14 @@ def SetupLiftCoeff(L, N, dtype="int"):
 def GenMelFilterBanksCode(filters, mfcc_bank_cnt, fmin, fmax, dtype, data_type, name_suffix):
 	HeadCoeff = 0
 	MFCC_Coeff = []
-	for i, filt in enumerate(filters):
+	if dtype == "int":
+		quant_filters = FP2FIX(filters, MFCC_COEFF_DYN)
+	elif dtype == "float16":
+		quant_filters = filters.astype(np.float16)
+	else:
+		quant_filters = filters.astype(np.float32)
+
+	for i, filt in enumerate(quant_filters):
 		if np.all(filt == 0):
 			Start = 0
 			Stop = 0
@@ -130,22 +137,17 @@ def GenMelFilterBanksCode(filters, mfcc_bank_cnt, fmin, fmax, dtype, data_type, 
 			Items = Stop - Start + 1
 		print("Filter {}: Start: {} Stop: {} Base: {} Items: {}".format(i, Start, Stop, Base, Items))
 		for j in range(Items):
-			if dtype == "int":
-				MFCC_Coeff.append(FP2FIX(filt[Start+j], MFCC_COEFF_DYN))
-			elif dtype == "float16":
-				MFCC_Coeff.append(filt[Start+j].astype(np.float16))
-			else:
-				MFCC_Coeff.append(filt[Start+j])
+			MFCC_Coeff.append(filt[Start+j])
 		HeadCoeff += Items
 
-	Out_str =  "#define MFCC_COEFF_CNT\t{}\n\n".format(HeadCoeff+1)
-	Out_str += "/* Filter Bank bands:\n\n"
+	#Out_str =  "#define MFCC_COEFF_CNT\t{}\n\n".format(HeadCoeff+1)
+	Out_str  = "/* Filter Bank bands:\n\n"
 	Out_str += "\tMinimum Frequency: {} Hz\n".format(fmin)
 	Out_str += "\tMaximum Frequency: {} Hz*/\n\n".format(fmax)
 
 	Out_str += "PI_L2 fbank_type_t MFCC_FilterBank{}[{}] = {{\n".format(name_suffix, mfcc_bank_cnt)
 	HeadCoeff = 0
-	for i, filt in enumerate(filters):
+	for i, filt in enumerate(quant_filters):
 		if np.all(filt == 0):
 			Start = 0
 			Stop = 0

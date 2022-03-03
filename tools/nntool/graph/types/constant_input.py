@@ -53,7 +53,7 @@ class ConstantInputParameters(InputBaseParameters):
     def __call__(self, graph):
         if graph.__class__.__name__ != 'NNGraph':
             raise ValueError('expecting NNGraph as parameter')
-        return NNNodeRef(self, 0, graph)
+        return NNNodeRef(graph, self, 0)
 
     @classmethod
     def fake(cls, G, val):

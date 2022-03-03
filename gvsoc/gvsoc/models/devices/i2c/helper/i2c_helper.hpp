@@ -41,9 +41,18 @@ typedef enum {
 
 typedef enum {
     I2C_INTERNAL_IDLE,
+    I2C_INTERNAL_WAIT_START,
+    I2C_INTERNAL_WAIT_STOP,
     I2C_INTERNAL_START,
+    I2C_INTERNAL_WAIT_DATA,
     I2C_INTERNAL_DATA,
+    I2C_INTERNAL_DATA_READ,
     I2C_INTERNAL_ACK,
+    I2C_INTERNAL_STOP_CLOCK,
+    I2C_INTERNAL_STOP_CLOCK_WAIT,
+    I2C_INTERNAL_RESTART,
+    I2C_INTERNAL_STOP_0,
+    I2C_INTERNAL_STOP_1,
 } i2c_internal_state_e;
 
 typedef std::function<void(i2c_operation_e id, i2c_status_e status, int value)> i2c_callback_t;
@@ -66,7 +75,7 @@ typedef std::function<void(vp::clock_event* event)> i2c_cancel_event_fn_t;
  */
 class I2C_helper {
     public:
-        I2C_helper(vp::component* parent, vp::i2c_master* itf, i2c_enqueue_event_fn_t event, i2c_cancel_event_fn_t cancel_event);
+        I2C_helper(vp::component* parent, vp::i2c_master* itf, i2c_enqueue_event_fn_t event, i2c_cancel_event_fn_t cancel_event, std::string trace_path="");
 
         // TO be called when pin values change
         void update_pins(int scl, int sda);
@@ -106,7 +115,7 @@ class I2C_helper {
         /******************/
         /* Static methods */
         /******************/
-        static void st_data_event_handler(void* __this, vp::clock_event* event);
+        static void fsm_event_handler(void* __this, vp::clock_event* event);
         static void st_clock_event_handler(void* __this, vp::clock_event* event);
         static void i2c_sync(void *__this, int scl, int sda);
 
@@ -117,13 +126,17 @@ class I2C_helper {
 
         void start_clock(void);
         void stop_clock(void);
+        void clock_toggle(void);
         void enqueue_clock_toggle(void);
         void enqueue_data_change(int new_sda);
+        void fsm_enqueue_event(int64_t delay);
+        void send_data_bit();
 
-        void fsm_step(int scl, int sda);
+        void fsm_step();
 
         void sync_pins(void);
-        void empty_queues(void);
+
+        std::string get_state_name(i2c_internal_state_e state);
 
         /*************/
         /* Externals */
@@ -149,7 +162,7 @@ class I2C_helper {
         /* Runtime data */
         /****************/
         vp::clock_event clock_event;
-        vp::clock_event data_event;
+        vp::clock_event fsm_event;
 
         i2c_internal_state_e internal_state;
 
@@ -164,8 +177,6 @@ class I2C_helper {
 
         int sda_rise; /* sda sampled on scl rising edge */
 
-        std::queue<int> send_bit_queue;
-        std::queue<int> recv_bit_queue;
         int expected_bit_value; /* checked when scl is rising */
 
         bool check_sent;
@@ -175,5 +186,16 @@ class I2C_helper {
         bool is_starting;
 
         bool is_clock_enabled;
-        bool is_clock_low; /* tell if clock is in low or high state */
+        int clock_value;
+
+        vp::trace trace;
+
+        int ack_value;
+
+        uint8_t pending_data;
+        int pending_data_bits;
+        bool fsm_waiting;
+
+        int input_scl;
+        int input_sda;
 };

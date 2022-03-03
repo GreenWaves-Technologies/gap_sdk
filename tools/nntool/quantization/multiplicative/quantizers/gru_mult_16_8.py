@@ -34,7 +34,6 @@ from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        params_type)
 
 from ..mult_quantization_handler import MultQuantizionHandler
-from .rescale_constant_mixin import RescaleConstantMixin
 
 LOG = logging.getLogger('nntool.' + __name__)
 
@@ -55,7 +54,7 @@ WEIGHTS_DTYPE = np.int8
 @in_qs_constraint({'dtype': np.int16})
 @out_qs_constraint({'dtype': np.int16})
 @option_constraint(force_external_size=16, use_ne16={None, False})
-class GRUMult16x8(RescaleConstantMixin, MultQuantizionHandler):
+class GRUMult16x8(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
@@ -117,14 +116,10 @@ class GRUMult16x8(RescaleConstantMixin, MultQuantizionHandler):
         in_qs[names['h_state']] = state_q
         o_q = state_q
 
-        in_qs[names['z_b']].scale = int_scale
-        in_qs[names['z_b']].dtype = BIAS_DTYPE
-        in_qs[names['r_b']].scale = int_scale
-        in_qs[names['r_b']].dtype = BIAS_DTYPE
-        in_qs[names['w_h_b']].scale = in_scale * wWh_scale
-        in_qs[names['w_h_b']].dtype = BIAS_DTYPE
-        in_qs[names['r_h_b']].scale = state_scale * rWh_scale
-        in_qs[names['r_h_b']].dtype = BIAS_DTYPE
+        in_qs[names['z_b']] = QType(scale=int_scale, dtype=BIAS_DTYPE)
+        in_qs[names['r_b']] = QType(scale=int_scale, dtype=BIAS_DTYPE)
+        in_qs[names['w_h_b']] = QType(scale=in_scale * wWh_scale, dtype=BIAS_DTYPE)
+        in_qs[names['r_h_b']] = QType(scale=state_scale * rWh_scale, dtype=BIAS_DTYPE)
 
         return QRec.scaled(
             in_qs=in_qs,

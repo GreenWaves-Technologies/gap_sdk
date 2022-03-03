@@ -68,6 +68,7 @@ class Cluster(st.Component):
         #
 
         self.add_properties(self.load_property_file(config_file))
+        self.add_properties({ 'power_models': self.load_property_file(self.get_property("power_models_file"))})
 
         nb_pe               = self.get_property('nb_pe', int)
         cluster_size        = self.get_property('mapping/size', int)
@@ -111,7 +112,7 @@ class Cluster(st.Component):
         demux_periph_ico = Router(self, 'demux_periph_ico')
 
         # MCHAN
-        mchan = Mchan(self, 'dma', nb_channels=nb_pe+1)
+        mchan = Mchan(self, 'dma', nb_channels=nb_pe+1, power_models_file="gap/gap9/power_models/mchan.json")
 
         # Timer
         timer = Timer(self, 'timer')
@@ -141,6 +142,7 @@ class Cluster(st.Component):
 
         # Cores
         for i in range(0, nb_pe):
+            self.bind(pes[i], 'busy', self, 'core_busy_%d' % i)
             self.bind(pes[i], 'data', l1, 'data_pe_%d' % i)
             self.bind(pes[i], 'fetch', icache, 'input_%d' % i)
             self.bind(pes[i], 'irq_ack', event_unit, 'irq_ack_%d' % i)
@@ -211,6 +213,7 @@ class Cluster(st.Component):
         # MCHAN
         self.bind(mchan, 'ext_irq_itf', self, 'dma_irq')
         self.bind(mchan, 'ext_itf', cluster_ico, 'input')
+        self.bind(mchan, 'busy', self, 'dma_busy')
 
         for i in range(0, 4):
             self.bind(mchan, 'loc_itf_%d' % i, l1, 'dma_in_%d' % i)
@@ -222,11 +225,13 @@ class Cluster(st.Component):
     
         # Timer
         self.bind(self, 'ref_clock', timer, 'ref_clock')
+        self.bind(timer, 'busy', self, 'timer0_busy')
         for i in range(0, nb_pe):
             self.bind(timer, 'irq_itf_0', event_unit, 'in_event_%d_pe_%d' % (timer_irq_0, i))
             self.bind(timer, 'irq_itf_1', event_unit, 'in_event_%d_pe_%d' % (timer_irq_1, i))
 
         # Cluster control
+        self.bind(cluster_control, 'clock_gating_en', self, 'cluster_clock_gating_en')
         for i in range(0, nb_pe):
             self.bind(cluster_control, 'bootaddr_%d' % i, pes[i], 'bootaddr')
             self.bind(cluster_control, 'fetchen_%d' % i, pes[i], 'fetchen')

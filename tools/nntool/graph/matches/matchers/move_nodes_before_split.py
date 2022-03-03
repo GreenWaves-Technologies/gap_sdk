@@ -14,7 +14,7 @@ import logging
 
 from graph.types import NNEdge
 from graph.types.base import ComparableParameters
-from graph.types.others import SplitParameters
+from graph.types.others import ReshapeParameters, SplitParameters, StridedSliceParameters, TransposeParameters
 from quantization.quantizer.new_quantizer import NewQuantizer
 from utils.graph import GraphView
 from utils.node_id import NodeId
@@ -43,6 +43,9 @@ class MoveNodesBeforeSplit(Matcher):
         if len(first_node.in_dims) > 1 or len(first_node.out_dims) > 1:
             return None
         if first_node.in_dims[0] != first_node.out_dims[0]:
+            return None
+        # actually transpose can be moved and reshape and sss maybe but the split needs to be modified
+        if isinstance(first_node, (TransposeParameters, ReshapeParameters, StridedSliceParameters)):
             return None
         for edge in out_edges[1::]:
             if not isinstance(edge.to_node, ComparableParameters):

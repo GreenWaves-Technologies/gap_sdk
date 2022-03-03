@@ -1,4 +1,4 @@
-# Copyright (C) 2021  GreenWaves Technologies, SAS
+# Copyright (C) 2021, 2022  GreenWaves Technologies, SAS
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -13,29 +13,26 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from functools import reduce
 import logging
 from collections.abc import MutableSet
 from copy import deepcopy
 from typing import Iterator, Sequence
 
-from graph.dim import Dim
-from graph.types import (BinaryOpParameters, ConcatParameters,
-                         ConstantInputParameters, FcParameters,
-                         InputParameters, LinearFusionParameters,
-                         OutputParameters, PadParameters, ReshapeParameters,
-                         ReverseParameters, StridedSliceParameters,
-                         TransposeParameters, ActivationParameters)
-from graph.types.base import NNEdge, SensitiveToOrder
-from graph.types.others import CopyParameters, UnaryOpParameters
-from graph.types.tensor_arithmetic import Broadcastable
-from utils.compatible_transposes import (find_all_compatible_transposes,
-                                         find_combination)
+from graph.types import (ActivationParameters, BinaryOpParameters,
+                         Broadcastable, ConcatParameters,
+                         ConstantInputParameters, CopyParameters, FcParameters,
+                         GlobalPoolingParameters, InputParameters,
+                         LinearFusionParameters, NNEdge, OutputParameters,
+                         PadParameters, PowOpParameters, ReshapeParameters,
+                         ReverseParameters, SensitiveToOrder,
+                         StridedSliceParameters, TransposeParameters,
+                         UnaryOpParameters)
+from utils.compatible_transposes import reverse_reshape
 from utils.graph import Node
-from utils.graph_utils.copy_expressions import do_transpose
 from utils.node_id import NodeId
 
-from .eliminate_transposes_actions import (Action, DeleteReshapeAction,
+from .eliminate_transposes_actions import (Action, CantContinueError,
+                                           DeleteReshapeAction,
                                            DeleteTransposeAction,
                                            EndActionDown, EndActionUp,
                                            InsertReshapeAction,
@@ -46,11 +43,11 @@ from .eliminate_transposes_actions import (Action, DeleteReshapeAction,
                                            SetReshapeAction,
                                            SetTransposeAction,
                                            SwitchBatchLinearAction,
-                                           TransposePad, TransposeReverse,
+                                           TransposePad,
+                                           TransposeReverse,
                                            TransposeSlidedSlice)
-from .transpose_helpers import (apply_transpose, get_reshape_transpose,
-                                identity_transpose, reshape_is_transpose,
-                                reverse_transpose, reverses_transpose,
+from .transpose_helpers import (apply_transpose, identity_transpose,
+                                reverse_transpose, reverses_transpose_up,
                                 transpose_does_nothing)
 
 LOG = logging.getLogger("nntool." + __name__)
@@ -67,7 +64,7 @@ def debug(msg):
 TRANSIENT_ACTIONS = {
     PadParameters: TransposePad,
     ReverseParameters: TransposeReverse,
-    StridedSliceParameters: TransposeSlidedSlice
+    StridedSliceParameters: TransposeSlidedSlice,
 }
 
 NODES_TO_EXPLORE_UP = {
@@ -75,10 +72,6 @@ NODES_TO_EXPLORE_UP = {
     BinaryOpParameters,
     Broadcastable
 }
-
-
-class CantContinueError(Exception):
-    pass
 
 
 class TransposeHistory():
@@ -140,13 +133,13 @@ class VisitedNodes(MutableSet):
 
     def visit_up(self, node, idx):
         val = self._nodes.setdefault(node, set())
-        val.add('up{idx}')
+        val.add(f'up{idx}')
 
     def visited_up(self, node, idx=None) -> set:
         visited = self._nodes.get(node, set())
         if idx is None:
             return any(k.startswith('up') for k in visited)
-        return 'up{idx}' in visited or 'up*' in visited
+        return f'up{idx}' in visited or 'up*' in visited
 
     def visited_direction(self, direction, idx, node) -> bool:
         return f'{direction}{idx}' in self._nodes.get(node, set())
@@ -180,55 +173,6 @@ class VisitedNodes(MutableSet):
         return "{" + ",".join(f"{repr(node)}: {visited}" for node, visited in self._nodes.items()) + "}"
 
 
-def is_broadcasted(from_shape, to_shape):
-    from_len = len(from_shape)
-    to_len = len(to_shape)
-    if from_len >= to_len:
-        return False
-    return tuple(([1] * (to_len - from_len)) + list(from_shape)) == tuple(to_shape)
-
-
-def expand_to_len(trans, length):
-    extra = length-len(trans)
-    return tuple(list(range(extra)) + [dim + extra for dim in trans])
-
-
-def reverse_reshape(trans, from_shape, to_shape):
-    """reverses the effect of this reshape on the transpose"""
-    # if the from_shape -> to_shape is actually a broadcast reshape
-    # i.e. 4, 10, 1 -> 1, 4, 10, 1 we absolutely need to keep the order 4, 10, 1 in
-    # the transpose however the 2 1s in the result are ambiguous so handle this as a
-    # (simple) special case. Just expand the transpose with no transpose at the start
-    # and expand_len + original transpose dim at the end
-    if len(from_shape) == 0 or len(to_shape) == 0:
-        return None
-    if is_broadcasted(from_shape, to_shape):
-        return expand_to_len(trans, len(to_shape))
-
-    return next(iter([t for t in find_all_compatible_transposes(find_combination(from_shape, to_shape), trans)
-                      if len(t) == len(to_shape)]), None)
-
-
-def none_or_idx(trans, idx):
-    return None if trans[idx] is None else idx
-
-
-def reverse_broadcast(old_shape, new_shape, transpose):
-    old_shape_idx = new_shape_idx = 0
-    res_pos = {}
-    while old_shape_idx < len(old_shape) or new_shape_idx < len(new_shape):
-        if old_shape_idx < len(old_shape) and old_shape[old_shape_idx] == new_shape[new_shape_idx]:
-            res_pos[old_shape_idx] = new_shape_idx
-            old_shape_idx += 1
-            new_shape_idx += 1
-        elif new_shape_idx < len(new_shape) and new_shape[new_shape_idx] == 1:
-            new_shape_idx += 1
-        else:
-            raise ValueError(
-                f'reverse broadcast not possible between {old_shape} and {new_shape}')
-    return tuple([res_pos[idx] for idx in transpose] + [idx for idx, _ in enumerate(new_shape) if idx not in res_pos.values()])
-
-
 def requires_reshape(trans1, trans2, dim):
     """Checks if layout shape doesn't change but a reshape is necessary due to 1 position"""
     if (tuple(dim.shape) != tuple(dim.layout_shape) and
@@ -240,57 +184,38 @@ def requires_reshape(trans1, trans2, dim):
     return False
 
 
-def strip_nones(trans):
-    return [i for i in trans if i is not None]
-
-
-def broadcast_reduce(out_shape, in_shape, transpose):
-    """Looking at a broadcasted input that has a lower rank than out_shape find
-    the equivalent transpose to the transpose on the broadcasted shape before
-    the broadcast
-
-    Args:
-        out_shape (Sequence): The full shape of the output of the broadcasted operation
-        in_shape (Sequence): The shape of the unbroadcasted input
-        transpose (Sequence): The transpose on the output
-
-    Returns:
-        Tuple: The in shape, the broadcasted in shape, the equivalent transpose
-    """
-    diff_shape = len(out_shape) - len(in_shape)
-    # broadcast shape with nones
-    exp_in_shape = ([None] * diff_shape) + list(range(len(in_shape)))
-    # apply the reverse of the transpose. now we have the broadcasted shape before the transpose
-    transpose_exp_in_shape = apply_transpose(
-        exp_in_shape, reverse_transpose(transpose))
-    # strip the nones and reverse the result. This gives the transpose of the unbroadcasted shape
-    new_transpose = reverse_transpose(strip_nones(transpose_exp_in_shape))
-    new_shape = ([1] * diff_shape) + in_shape
-    return in_shape, new_shape, new_transpose
-
-
-def broadcast_expand(out_shape, in_shape, transpose):
-    diff_shape = len(out_shape) - len(in_shape)
-    exp_in_shape = ([None] * diff_shape) + list(range(len(in_shape)))
-    transpose_exp_in_shape = apply_transpose(exp_in_shape, transpose)
-    new_transpose = list(range(diff_shape)) + \
-        [dim + diff_shape for dim in transpose]
-    new_shape = ([1] * diff_shape) + in_shape
-    return in_shape, new_shape, new_transpose
-
-
 def check_for_null_transpose(node, transpose):
     if transpose is None:
-        raise CantContinueError(
-            f"can't continue at {node.name}")  # @IgnoreException
+        raise CantContinueError(f"can't continue at {node.name}")  # @IgnoreException
 
 
 def check_continue(visited_nodes: VisitedNodes, cur_visited_nodes: VisitedNodes, exclude_nodes, node, direction, idx):
+    """Checks to see if we should skip visiting node on edge
+
+    Args:
+        visited_nodes (VisitedNodes): All nodes visited in previous eliminations
+        cur_visited_nodes (VisitedNodes): Nodes visited on this branch
+        exclude_nodes (Sequence[Parameters]): Don't visit these nodes
+        node (Parameters): Node on edge
+        direction (str): direction of visit 'down' or 'up'
+        idx (int): edge index
+
+    Raises:
+        CantContinueError: Fail this transpose test
+
+    Returns:
+        bool: True if skip False if visit
+    """
     all_visited = visited_nodes | cur_visited_nodes
-    if direction == 'up' and all_visited.visited_down(node):
-        return True
-    if direction == 'down' and all_visited.visited_up(node):
-        raise CantContinueError()  # @IgnoreException
+    # if the node is sensitive to order then even if we have already visited it down
+    # we must visit it up and vice versa so that we maybe insert a reshape/transpose after it
+    if not isinstance(node, SensitiveToOrder):
+        if direction == 'up' and all_visited.visited_down(node):
+            # trying to visit node that was already visited in the other direction.
+            return True
+        if direction == 'down' and all_visited.visited_up(node):
+            # trying to visit node that was already visited in the other direction.
+            return True
     if all_visited.visited_direction(direction, idx, node):
         raise CantContinueError()  # @IgnoreException
     if node in exclude_nodes:
@@ -298,16 +223,11 @@ def check_continue(visited_nodes: VisitedNodes, cur_visited_nodes: VisitedNodes,
     return False
 
 
-def strip_leading_ones(shape, in_len):
-    res = []
-    seen_dim = False
-    for dim in shape:
-        if seen_dim:
-            res.append(dim)
-        elif dim != 1:
-            res.append(dim)
-            seen_dim = True
-    return res
+def strip_leading_dim(shape, dim=1):
+    res = list(shape.copy())
+    while len(res) > 1 and res[0] == dim:
+        res.pop(0)
+    return tuple(res)
 
 
 def compute_max_shape(dims):
@@ -344,9 +264,9 @@ def search_down(G, node, exclude_nodes, visited_nodes: VisitedNodes, in_edge,
         node : The node to look at
         visited_nodes : Nodes already traversed
         in_edge : The edge we are arriving on at this node
-        transpose_history : A history of the reshapes passed that did not allow us to determine the transpose
-        transpose : The current transpose being propagated. Can be None to indicate that we cannot translate
-                    the transpose via that reshape
+        transpose_history : A history of the reshapes passed that did not allow us
+                            to determine the transpose. Transposes
+                            are in the downwards direction.
 
     Returns:
         A tuple of a list of actions and a list of nodes traversed
@@ -386,7 +306,7 @@ def search_down(G, node, exclude_nodes, visited_nodes: VisitedNodes, in_edge,
 
     # if arriving on a broadcasted input the transpose needs to be expanded
     # since the transpose is only acting on the broadcasted dimensions no reshape is necessary
-    if isinstance(node, Broadcastable) and len(in_shape) != node.out_dims[0].rank:
+    if isinstance(node, (Broadcastable, PowOpParameters)) and len(in_shape) != node.out_dims[0].rank:
         check_for_null_transpose(node, transpose)
         # This could be an expression so need to broadcaset the output
         max_shape = compute_max_shape(node.out_dims)
@@ -415,15 +335,15 @@ def search_down(G, node, exclude_nodes, visited_nodes: VisitedNodes, in_edge,
             if len(edge_in_shape) != len(max_shape):
                 # strip the broadcasted axis from the transpose
                 b_axes = broadcasted_axes(edge_in_shape, max_shape)
-                transpose_without_broadcast = strip_axes_from_transpose(
-                    reverse_transpose(transpose), b_axes)
-                # from shape will be the old shape with the unbroadcasted transpose
+                # Transpose moving down through the broadcast - strip the broadcast off it
+                transpose_without_broadcast = strip_axes_from_transpose(transpose, b_axes)
+                # from shape will be the old shape with the reversed unbroadcasted transpose - i.e. going up
                 from_shape = apply_transpose(
-                    edge_in_shape, transpose_without_broadcast)
-                # to shape is the broadcasted input shape with the transpose with the leading ones removed
+                    edge_in_shape, reverse_transpose(transpose_without_broadcast))
+                # to shape is the broadcasted input shape with the reverse transpose with the leading ones removed
                 broadcasted_shape = ([1] * len(b_axes)) + list(edge_in_shape)
-                to_shape = strip_leading_ones(apply_transpose(
-                    broadcasted_shape, reverse_transpose(transpose)), len(from_shape))
+                to_shape = strip_leading_dim(apply_transpose(
+                    broadcasted_shape, reverse_transpose(transpose)))
                 # if they are not equal insert a reshape
                 if from_shape != to_shape:
                     info(
@@ -457,27 +377,36 @@ def search_down(G, node, exclude_nodes, visited_nodes: VisitedNodes, in_edge,
         if filter_node.batch_size > 1:
             info(
                 f"rejected {node.name} - multibatch linear layer - inserting transpose {transpose}")
-            return [InsertTransposeAction(node, direction='in', idx=in_edge.to_idx, transpose=transpose), EndActionDown(node)], cur_visited_nodes
+            return [
+                InsertTransposeAction(
+                    node, direction='in', idx=in_edge.to_idx, transpose=transpose),
+                EndActionDown(node)], cur_visited_nodes
         info(
             f"accepted {node.name} - linear layer reorder input - {transpose}")
         qrec = G.quantization and G.quantization[NodeId(node)]
-        return cur_actions + [ReorderLinearAction.in_from_history(node, transpose_history, qrec), EndActionDown(node)], cur_visited_nodes
+        return cur_actions + [
+            ReorderLinearAction.in_from_history(node, transpose_history, qrec),
+            EndActionDown(node)], cur_visited_nodes
 
     if isinstance(node, TransposeParameters):
-        # TODO - Might be able to get rid of this and check history
         check_for_null_transpose(node, transpose)
-        if reverses_transpose(transpose, node.transpose, node.out_dims[0]):
+        reverses_transpose, old_shape = reverses_transpose_up(transpose, node.transpose, node.out_dims[0])
+        if reverses_transpose:
             info(
                 f"accepted {node.name} - transpose {node.transpose} reversed in by {transpose} on {node.in_dims[0]}")
-            reshape = requires_reshape(
-                transpose, node.transpose, node.in_dims[0])
-            if reshape:
+            if old_shape:
+                reshape = (old_shape, node.out_dims[0].shape)
                 info(f"requires reshape {reshape[0]} -> {reshape[1]}")
+            else:
+                reshape = None
             return [DeleteTransposeAction(node, reshape=reshape), EndActionDown(node)], cur_visited_nodes
         new_transpose = apply_transpose(transpose, node.transpose)
         info(
-            f"rejected {node.name} - transpose - does not reverse - absorbing {transpose} into {node.transpose} -> {new_transpose}")
-        return [SetTransposeAction(node, new_transpose), EndActionDown(node)], cur_visited_nodes
+            f"rejected {node.name} - transpose - does not reverse - absorbing {transpose} "
+            f"into {node.transpose} -> {new_transpose}")
+        return [
+            SetTransposeAction(node, new_transpose),
+            EndActionDown(node)], cur_visited_nodes
 
     if isinstance(node, OutputParameters):
         # TODO - Might be able to get rid of this and check history
@@ -485,7 +414,10 @@ def search_down(G, node, exclude_nodes, visited_nodes: VisitedNodes, in_edge,
         if node.fixed_order:
             info(
                 f"rejected {node.name} - fixed order output - inserting transpose {transpose}")
-            return [InsertTransposeAction(node, direction='in', idx=in_edge.to_idx, transpose=transpose), EndActionDown(node)], cur_visited_nodes
+            return [
+                InsertTransposeAction(
+                    node, direction='in', idx=in_edge.to_idx, transpose=transpose),
+                EndActionDown(node)], cur_visited_nodes
         info(
             f"accepted {node.name} - output without fixed order - transpose output {transpose}")
         # No change here since the output dimensions will be computed by the shape inference
@@ -494,22 +426,19 @@ def search_down(G, node, exclude_nodes, visited_nodes: VisitedNodes, in_edge,
     if isinstance(node, StridedSliceParameters) and node.slice_shape != node.out_shape:
         # strided slice that is also reshaping
         check_for_null_transpose(node, transpose)
-        new_transpose = reverse_transpose(reverse_reshape(
-            reverse_transpose(transpose), node.slice_shape, node.out_shape))
+        new_transpose, from_shape, to_shape = reverse_reshape(
+            transpose, node.slice_shape, node.out_shape)
         if new_transpose is None:
             info(
-                f"rejected {node.name} - transpose out - does not reverse - inserting transpose {transpose}")
+                f"rejected {node.name} - cannot pass slice reshape - inserting transpose {transpose}")
             return [InsertTransposeAction(node, direction='in', idx=in_edge.to_idx, transpose=transpose),
                     EndActionDown(node)], cur_visited_nodes
 
         cur_actions.append(TransposeSlidedSlice(
-            node, reverse_transpose(transpose), transpose_out=reverse_transpose(new_transpose), dir="down"))
+            node, transpose, out_shape=to_shape, dir="down"))
 
         if identity_transpose(new_transpose):
             return cur_actions + [EndActionDown(node)], cur_visited_nodes
-
-        from_shape = do_transpose(reverse_transpose(
-            transpose), node.slice_shape) if transpose is not None else None
 
         transpose_history = transpose_history + \
             [TransposeHistory(node, node.slice_shape,
@@ -522,49 +451,21 @@ def search_down(G, node, exclude_nodes, visited_nodes: VisitedNodes, in_edge,
     elif isinstance(node, ReshapeParameters):
         # TODO - Might be able to get rid of this and check history
         check_for_null_transpose(node, transpose)
-        if reshape_is_transpose(node.old_shape.shape, node.shape.shape):
-            # if the reshape looks like a transpose then treat it as one. THe reshape rewriter sometimes gets
-            # the order wrong in this case
-            old_transpose = get_reshape_transpose(
-                node.old_shape.shape, node.shape.shape)
-            if reverses_transpose(transpose, old_transpose):
-                cur_actions += [
-                    DeleteReshapeAction(
-                        node
-                    )
-                ]
-                return cur_actions + [
-                    DeleteReshapeAction(
-                        node
-                    ),
-                    EndActionDown(node)], cur_visited_nodes
-            new_transpose = apply_transpose(
-                transpose, old_transpose)
-            info(
-                f"pass reshape that is transpose {node.name} down trans: old {transpose} new {new_transpose} shape: old {node.old_shape} new {node.shape}")
-            # insert an action to rewrite the reshape shapes
-            from_shape = apply_transpose(
-                node.old_shape.shape, reverse_transpose(transpose))
-            to_shape = apply_transpose(
-                node.shape.shape, reverse_transpose(transpose))
-        else:
-            # the transpose that we are actually applying is the reverse of the transpose that we are propagating down
-            # So we reverse the transpose before evaluating the reshape and then reverse the result
-            new_transpose = reverse_transpose(reverse_reshape(
-                reverse_transpose(transpose), node.old_shape, node.shape))
-            info(
-                f"pass reshape {node.name} down trans: old {transpose} new {new_transpose} shape: old {node.old_shape} new {node.shape}")
+        new_transpose, from_shape, to_shape = reverse_reshape(
+            transpose, node.old_shape, node.shape)
+        info(
+            f"pass reshape {node.name} down trans: old {transpose} new {new_transpose} "
+            f"shape: old {node.old_shape} new {node.shape}")
 
-            if new_transpose is None and len(node.shape) > 1:
-                info(
-                    f"rejected {node.name} - transpose out - does not reverse - inserting transpose {transpose}")
-                return [InsertTransposeAction(node, direction='in', idx=in_edge.to_idx, transpose=transpose), EndActionDown(node)], cur_visited_nodes
+        if new_transpose is None and len(node.shape) > 1:
+            info(
+                f"rejected {node.name} - cannot pass reshape - inserting transpose {transpose}")
+            return [
+                InsertTransposeAction(
+                    node, direction='in', idx=in_edge.to_idx, transpose=transpose),
+                EndActionDown(node)], cur_visited_nodes
 
-            # insert an action to rewrite the reshape shapes
-            from_shape = apply_transpose(node.old_shape.shape,
-                                         reverse_transpose(transpose)) if transpose is not None else None
-            to_shape = apply_transpose(node.shape.shape, reverse_transpose(
-                new_transpose)) if new_transpose is not None else None
+        # insert an action to rewrite the reshape shapes
         info(f"rewrite reshape to {from_shape}->{to_shape}")
         if from_shape is None or to_shape is None or from_shape != to_shape:
             cur_actions += [
@@ -590,16 +491,21 @@ def search_down(G, node, exclude_nodes, visited_nodes: VisitedNodes, in_edge,
 
         if new_transpose is None:
             try:
-                return continue_down(G, node, exclude_nodes, visited_nodes, cur_visited_nodes.copy(), cur_actions.copy(), transpose_history, new_transpose)
+                return continue_down(G, node, exclude_nodes, visited_nodes, cur_visited_nodes.copy(),
+                                     cur_actions.copy(), transpose_history, new_transpose)
             except CantContinueError as ex:
                 if transpose is None:
                     raise ex
                 info(
-                    f"rejected {node.name} - transpose out - does not reverse - inserting transpose {transpose}")
-                return [InsertTransposeAction(node, direction='in', idx=in_edge.to_idx, transpose=transpose), EndActionDown(node)], cur_visited_nodes
+                    f"rejected {node.name} - cannot continue {ex} - inserting transpose {transpose}")
+                return [
+                    InsertTransposeAction(
+                        node, direction='in', idx=in_edge.to_idx, transpose=transpose),
+                    EndActionDown(node)], cur_visited_nodes
         transpose = new_transpose
 
-    return continue_down(G, node, exclude_nodes, visited_nodes, cur_visited_nodes, cur_actions, transpose_history, transpose)
+    return continue_down(G, node, exclude_nodes, visited_nodes, cur_visited_nodes,
+                         cur_actions, transpose_history, transpose)
 
 
 def continue_down(G, node, exclude_nodes, visited_nodes, cur_visited_nodes, cur_actions, transpose_history, transpose):
@@ -607,7 +513,7 @@ def continue_down(G, node, exclude_nodes, visited_nodes, cur_visited_nodes, cur_
         if check_continue(visited_nodes, cur_visited_nodes, exclude_nodes, edge.to_node, 'down', edge.to_idx):
             continue
         new_actions, visited_down_nodes = search_down(
-            G, edge.to_node, exclude_nodes, visited_nodes | cur_visited_nodes, edge, transpose_history)
+            G, edge.to_node, exclude_nodes, visited_nodes | cur_visited_nodes, edge, transpose_history.copy())
         cur_visited_nodes |= visited_down_nodes
         cur_actions += new_actions
     return cur_actions, cur_visited_nodes
@@ -622,7 +528,8 @@ def search_up(G, node, exclude_nodes, visited_nodes, out_edge, transpose_history
         info(
             f'accepted {node.name} - single dimension transpose')
         return [EndActionUp(node)], cur_visited_nodes
-    if isinstance(node, SensitiveToOrder) and transpose_does_nothing(reverse_transpose(transpose), node.out_dims[out_edge.from_idx].shape):
+    if (isinstance(node, SensitiveToOrder) and
+            transpose_does_nothing(reverse_transpose(transpose), node.out_dims[out_edge.from_idx].shape)):
         new_shape = apply_transpose(
             node.out_dims[out_edge.from_idx].shape, reverse_transpose(transpose))
         # could be that the transpose does nothing to the data layout but still changes the positions of
@@ -644,7 +551,10 @@ def search_up(G, node, exclude_nodes, visited_nodes, out_edge, transpose_history
         check_for_null_transpose(node, transpose)
         info(
             f'rejected {node.name}  - sensitive to order - inserting transpose {transpose}')
-        return [InsertTransposeAction(node, direction='out', idx=out_edge.from_idx, out_edge=out_edge, transpose=reverse_transpose(transpose)), EndActionUp(node)], cur_visited_nodes
+        return [
+            InsertTransposeAction(node, direction='out', idx=out_edge.from_idx,
+                                  out_edge=out_edge, transpose=reverse_transpose(transpose)),
+            EndActionUp(node)], cur_visited_nodes
 
     cur_actions = []
 
@@ -665,7 +575,9 @@ def search_up(G, node, exclude_nodes, visited_nodes, out_edge, transpose_history
             exclude_nodes,
             visited_nodes | cur_visited_nodes,
             edge,
-            [TransposeHistory(node, node.out_dims[edge.from_idx], transpose, apply_transpose(node.out_dims[edge.from_idx], transpose))])
+            [
+                TransposeHistory(node, node.out_dims[edge.from_idx], transpose,
+                                 apply_transpose(node.out_dims[edge.from_idx], transpose))])
         cur_visited_nodes |= visited_down_nodes
         cur_actions += new_actions
 
@@ -681,15 +593,20 @@ def search_up(G, node, exclude_nodes, visited_nodes, out_edge, transpose_history
                     f"accepted {node.name} - linear layer switch batch dimension")
                 return cur_actions + [SwitchBatchLinearAction(node), EndActionUp(node)], cur_visited_nodes
             info(f"rejected {node.name} - batched linear")
-            return [InsertTransposeAction(node, direction='out', idx=out_edge.from_idx, out_edge=out_edge, transpose=reverse_transpose(transpose)), EndActionUp(node)], cur_visited_nodes
+            return [
+                InsertTransposeAction(node, direction='out', idx=out_edge.from_idx,
+                                      out_edge=out_edge, transpose=reverse_transpose(transpose)),
+                EndActionUp(node)], cur_visited_nodes
         info(f"accepted {node.name} - linear layer reorder output")
         qrec = G.quantization and G.quantization[NodeId(node)]
-        return cur_actions + [ReorderLinearAction.out_from_history(node, transpose_history, qrec), EndActionUp(node)], cur_visited_nodes
+        return cur_actions + [
+            ReorderLinearAction.out_from_history(
+                node, transpose_history, qrec),
+            EndActionUp(node)], cur_visited_nodes
 
     # Transpose may reverse the propagated transpose or be reordered
     if isinstance(node, TransposeParameters):
         check_for_null_transpose(node, transpose)
-        # TODO - in_dims or out_dims - 99% sure in_dims
         if tuple(node.transpose) == tuple(transpose):
             info(
                 f"accepted {node.name} - transpose {node.transpose} equals {transpose} on {node.in_dims[0]}")
@@ -697,11 +614,18 @@ def search_up(G, node, exclude_nodes, visited_nodes, out_edge, transpose_history
                 node.transpose, transpose, node.out_dims[0])
             if reshape:
                 info(f"requires reshape {reshape[0]} -> {reshape[1]}")
-            return cur_actions + [DeleteTransposeAction(node, reshape=reshape), EndActionUp(node)], cur_visited_nodes
-        # TODO - This should merge with the existing Transpose
-        new_transpose = apply_transpose(node.transpose, transpose)
+            return cur_actions + [
+                DeleteTransposeAction(node, reshape=reshape), EndActionUp(node)], cur_visited_nodes
+
+        # absorb transpose in a -> tranpose T1 -> b -> existing trans node T2 -> c
+        # a -> TNew -> c
+        # Apply reversed T1 to T2
+
+        new_transpose = apply_transpose(
+            node.transpose, reverse_transpose(transpose))
         info(
-            f"rejected {node.name} - transpose - does not reverse - absorbing {transpose} into {node.transpose} -> {new_transpose}")
+            f"rejected {node.name} - transpose - does not reverse - absorbing "
+            f"{transpose} into {node.transpose} -> {new_transpose}")
         return [SetTransposeAction(node, new_transpose), EndActionDown(node)], cur_visited_nodes
 
     # Input can be reordered if not frozen
@@ -709,30 +633,48 @@ def search_up(G, node, exclude_nodes, visited_nodes, out_edge, transpose_history
         check_for_null_transpose(node, transpose)
         if node.fixed_order:
             info(f"rejected {node.name} - fixed order input")
-            return [InsertTransposeAction(node, direction='out', idx=out_edge.from_idx, out_edge=out_edge, transpose=transpose), EndActionUp(node)], cur_visited_nodes
+            return [
+                InsertTransposeAction(node, direction='out', idx=out_edge.from_idx,
+                                      out_edge=out_edge, transpose=transpose), EndActionUp(node)], cur_visited_nodes
 
         info(
             f"accepted {node.name} - input without fixed order - transpose input {reverse_transpose(transpose)}")
-        return cur_actions + [ReorderInputDims.from_history(node, transpose_history, transpose=reverse_transpose(transpose)), EndActionUp(node)], cur_visited_nodes
+        return cur_actions + [
+            ReorderInputDims.from_history(
+                node, transpose_history, transpose=reverse_transpose(transpose)),
+            EndActionUp(node)], cur_visited_nodes
 
     # Constant can be reordered
     if isinstance(node, ConstantInputParameters):
         check_for_null_transpose(node, transpose)
         info(
             f"accepted {node.name} - constant input - transpose constant {transpose}")
-        return cur_actions + [ReorderConstantInput.from_history(node, transpose_history, transpose=reverse_transpose(transpose)), EndActionUp(node)], cur_visited_nodes
+        return cur_actions + [
+            ReorderConstantInput.from_history(
+                node, transpose_history, transpose=reverse_transpose(transpose)),
+            EndActionUp(node)], cur_visited_nodes
 
     # Conditions that can pass through the Transpose
     if isinstance(node, StridedSliceParameters) and node.changes_shape:
-        reversed_below = reverse_transpose(transpose)
-        reversed_above = reverse_broadcast(
-            node.out_shape, node.post_slice_shape, reversed_below)
-        new_transpose = reverse_transpose(reversed_above)
+        # special case for a strided slice that also has a reshape
+        check_for_null_transpose(node, transpose)
+        new_transpose, from_shape, to_shape = reverse_reshape(
+            transpose, node.slice_shape, node.out_shape, going_up=True)
+        if new_transpose is None:
+            info(
+                f"rejected {node.name} - cannot pass slice reshape - inserting transpose {transpose}")
+            return [InsertTransposeAction(node, direction='out', idx=0, transpose=reverse_transpose(transpose)),
+                    EndActionDown(node)], cur_visited_nodes
+
+        cur_actions.append(TransposeSlidedSlice(
+            node, reverse_transpose(transpose), out_shape=to_shape))
+
+        if identity_transpose(new_transpose):
+            return cur_actions + [EndActionUp(node)], cur_visited_nodes
+
         transpose_history = transpose_history + \
             [TransposeHistory(node, node.out_shape,
-                              new_transpose, node.post_slice_shape)]
-        cur_actions.append(
-            TransposeSlidedSlice(node, reversed_above, "up", transpose))
+                              new_transpose, node.in_dims[0].shape)]
         transpose = new_transpose
     elif node.__class__ in TRANSIENT_ACTIONS:
         check_for_null_transpose(node, transpose)
@@ -742,26 +684,28 @@ def search_up(G, node, exclude_nodes, visited_nodes, out_edge, transpose_history
 
     elif isinstance(node, ReshapeParameters):
         check_for_null_transpose(node, transpose)  # TODO - may eliminate
-        new_transpose = reverse_reshape(reverse_transpose(
-            transpose), node.shape, node.old_shape)
+        # reversed transpose is being propagated up
+        new_transpose, from_shape, to_shape = reverse_reshape(
+            transpose, node.old_shape, node.shape, going_up=True)
         # if the upwards shape has one dimension we keep going since we want to find
         # nodes such as a linear layer that can reorder their output filters
         # This could be extended to recurrent layers for the inner dimension
         info(
-            f"pass reshape {node.name} up trans: old {transpose} new {new_transpose} shape: {node.old_shape} -> {node.shape}")
+            f"pass reshape {node.name} up trans: old {transpose} new {new_transpose} "
+            f"shape: {node.old_shape} -> {node.shape}")
         if new_transpose is None and len(node.old_shape) > 1:
-            info(f"rejected {node.name} - transpose in - does not reverse")
-            return [InsertTransposeAction(node, direction='out', idx=out_edge.from_idx, out_edge=out_edge, transpose=reverse_transpose(transpose)), EndActionUp(node)], cur_visited_nodes
+            info(f"rejected {node.name} - cannot pass reshape - inserting transpose {transpose}")
+            # since we are going up the transpose is in the up direction so needs to be reversed
+            return [
+                InsertTransposeAction(node, direction='out', idx=out_edge.from_idx,
+                                      out_edge=out_edge, transpose=reverse_transpose(transpose)),
+                EndActionUp(node)], cur_visited_nodes
 
         # insert an action to rewrite the reshape shapes
-        from_shape = node.old_shape.calc_transpose(
-            new_transpose) if new_transpose is not None else None
-        to_shape = node.shape.calc_transpose(
-            reverse_transpose(transpose)) if transpose is not None else None
         transpose_history = transpose_history + \
             [TransposeHistory(node, node.shape, new_transpose, node.old_shape)]
         info(f"rewrite reshape to {from_shape}->{to_shape}")
-        if from_shape is None or to_shape is None or from_shape.shape != to_shape.shape:
+        if from_shape is None or to_shape is None or from_shape != to_shape:
             cur_actions.extend([
                 SetReshapeAction(
                     node,
@@ -782,16 +726,21 @@ def search_up(G, node, exclude_nodes, visited_nodes, out_edge, transpose_history
         if new_transpose is None:
             try:
                 # @IgnoreException
-                return continue_up(G, node, exclude_nodes, visited_nodes, cur_visited_nodes.copy(), cur_actions.copy(), transpose_history, transpose)
+                return continue_up(G, node, exclude_nodes, visited_nodes, cur_visited_nodes.copy(),
+                                   cur_actions.copy(), transpose_history, transpose)
             except CantContinueError as ex:
                 if transpose is None:
                     raise ex
-                info(f"rejected {node.name} - transpose in - does not reverse")
-                return [InsertTransposeAction(node, direction='out', idx=out_edge.from_idx, out_edge=out_edge, transpose=reverse_transpose(transpose)), EndActionUp(node)], cur_visited_nodes
+                info(f"rejected {node.name} - cannot continue {ex} - inserting transpose {transpose}")
+                return [
+                    InsertTransposeAction(node, direction='out', idx=out_edge.from_idx,
+                                          out_edge=out_edge, transpose=reverse_transpose(transpose)),
+                    EndActionUp(node)], cur_visited_nodes
         transpose = new_transpose
 
     # Continue to visit upwards
-    return continue_up(G, node, exclude_nodes, visited_nodes, cur_visited_nodes, cur_actions, transpose_history, transpose)
+    return continue_up(G, node, exclude_nodes, visited_nodes, cur_visited_nodes,
+                       cur_actions, transpose_history, transpose)
 
 
 def continue_up(G, node, exclude_nodes, visited_nodes, cur_visited_nodes, cur_actions, transpose_history, transpose):
@@ -803,19 +752,18 @@ def continue_up(G, node, exclude_nodes, visited_nodes, cur_visited_nodes, cur_ac
         if check_continue(visited_nodes, cur_visited_nodes, exclude_nodes, edge.from_node, 'up', edge.from_idx):
             continue
         edge_in_shape = node.in_dims[edge.to_idx].shape
-        if isinstance(node, Broadcastable) and len(edge_in_shape) != node.out_dims[0].rank:
+        if isinstance(node, (Broadcastable, PowOpParameters)) and len(edge_in_shape) != node.out_dims[0].rank:
             max_shape = compute_max_shape(node.out_dims)
             b_axes = broadcasted_axes(edge_in_shape, max_shape)
 
-            transpose_without_broadcast = strip_axes_from_transpose(
-                reverse_transpose(transpose), b_axes)
+            transpose_without_broadcast = strip_axes_from_transpose(transpose, b_axes)
             # from shape will be the old shape with the unbroadcasted transpose
             from_shape = apply_transpose(
-                edge_in_shape, transpose_without_broadcast)
+                edge_in_shape, reverse_transpose(transpose_without_broadcast))
             # to shape is the broadcasted input shape with the transpose with the leading ones removed
             broadcasted_shape = ([1] * len(b_axes)) + list(edge_in_shape)
-            to_shape = strip_leading_ones(apply_transpose(
-                broadcasted_shape, reverse_transpose(transpose)), len(from_shape))
+            to_shape = strip_leading_dim(apply_transpose(
+                broadcasted_shape, reverse_transpose(transpose)))
             # if they are not equal insert a reshape
             if from_shape != to_shape:
                 info(
@@ -897,7 +845,8 @@ def combine_transposes(G):
     for tstart, tend in trans_pairs:
         new_transpose = apply_transpose(tstart.transpose, tend.transpose)
         info(
-            f'combine transposes {tstart.name} and {tend.name} {tstart.transpose} & {tend.transpose} -> {new_transpose}')
+            f'combine transposes {tstart.name} and {tend.name} {tstart.transpose} & '
+            f'{tend.transpose} -> {new_transpose}')
         tstart.transpose = new_transpose
         G.remove_and_reconnect(tend, edge_class=NNEdge)
 
@@ -949,10 +898,12 @@ def delete_step_idx(G, action: DeleteTransposeAction):
     return G.in_edges(action.node)[0].from_node.step_idx
 
 
-def eliminate_transposes(G, debug_function=None, steps=None, single_step=False, do_silly=True):
+def eliminate_transposes(G, debug_function=None, steps=None, single_step=False, do_silly=True, only_up=False):
     info("eliminating unnecessary transposes")
     found_results = True
     pass_count = 0
+    # keep trying to eliminate until we can't do more
+    # This should not loop since there is a bias in pushing transposes down
     while found_results:
         if steps is not None:
             if pass_count >= steps:
@@ -966,7 +917,8 @@ def eliminate_transposes(G, debug_function=None, steps=None, single_step=False, 
         visited_nodes = set()
         actions = []
         info(f"search for transposes +++ STEP {pass_count}")
-        transposes = G.nodes(node_classes=TransposeParameters)
+        transposes = sorted(
+            G.nodes(node_classes=TransposeParameters), key=lambda node: node.name)
         while transposes:
             transpose_node = transposes.pop(0)
             if transpose_node in visited_nodes:
@@ -999,6 +951,8 @@ def eliminate_transposes(G, debug_function=None, steps=None, single_step=False, 
                 cur_actions_up.insert(0, DeleteTransposeAction(transpose_node))
             # search down for elimination
             try:
+                if only_up:
+                    raise CantContinueError
                 cur_visited_down = VisitedNodes()
                 cur_visited_down.visit_down(transpose_node, 0)
                 cur_actions_down = []
@@ -1033,7 +987,7 @@ def eliminate_transposes(G, debug_function=None, steps=None, single_step=False, 
             down_count = count_eliminated(cur_actions_down)
             # if the count is zero then the transpose has been eliminated however
             # 1 is better than 0 since another real transpose was deleted rather than a reorder etc
-            # always choose up before down since up is where we will transpose constants rather than reshaping them
+            # always favor up before down since up is where we will transpose constants
             if up_count > 0 and up_count >= down_count:
                 info(
                     f'found elimination for {transpose_node.name} upwards - {up_count} eliminated')
@@ -1043,7 +997,7 @@ def eliminate_transposes(G, debug_function=None, steps=None, single_step=False, 
                 visited_nodes.add(transpose_node)
                 if single_step or steps is not None:
                     break
-            # if transpose cannot be removed upwards movement push the transpose down if it actually moved
+            # if transpose cannot be removed upwards push the transpose down if it actually moved
             elif down_count > 0 or (down_count == 0 and transpose_moved(G, cur_actions_down)):
                 info(
                     f'found elimination for {transpose_node.name} downwards - {down_count} eliminated')
@@ -1054,8 +1008,7 @@ def eliminate_transposes(G, debug_function=None, steps=None, single_step=False, 
                 if single_step or steps is not None:
                     break
             else:
-                info(
-                    f'no elimination for {transpose_node.name} found')
+                info(f'no elimination for {transpose_node.name} found')
 
         if found_results:
             info("eliminate transposes")

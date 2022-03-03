@@ -19,12 +19,12 @@ from graph.types import (ActivationParameters, ConcatParameters,
                          MatrixAddParameters, MatrixMulParameters, NNEdge,
                          PoolingParameters, ReluActivationParameters,
                          ReshapeParameters, TransposeParameters, MatMulTransposedParameters)
-from graph.types.others import ReverseParameters, StridedSliceParameters
+from graph.types.others import QuantizeParameters, ReverseParameters, StridedSliceParameters
 from graph.types.tensor_arithmetic import MatMulOpParameters
 from utils.graph import GraphView
 from utils.node_id import NodeId
 
-from ..matcher import Matcher, match_name, groups, run_before, description, needs_valid_dimension
+from ..matcher import Matcher, match_name, groups, run_before, description, needs_valid_dimension, run_qtune_on_match
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -40,35 +40,41 @@ class MoveNodeUpMatcher(Matcher):
     ValidNodes = None
 
     def execute_tests(self, G, tests, node):
-        if len(G.out_edges(node.name)) > 1:
-            return False
         return any(isinstance(node, test) if inspect.isclass(test) else test(node) for test in tests)
 
-    def find_home_for_node(self,
-                           G,
-                           node,
-                           edge=None):
-        if edge is None:
-            in_edge = G.in_edges(node.name)[0]
-            yield from self.find_home_for_node(G,
-                                               node,
-                                               edge=in_edge)
-        elif self.execute_tests(G, self.ValidNodesToPass, edge.from_node):
-            if isinstance(edge.from_node, ConcatParameters):
-                for in_edge in G.in_edges(edge.from_node.name):
+    def find_home_for_node(self, G, node, first=True):
+        # search up for a place to move a node such as an activation to to allow it to fuse properly
+        if self.execute_tests(G, self.ValidNodes, node):
+            # should only see node to move at start
+            if not first:
+                raise LocationNotFoundError()  # @IgnoreException
+            in_edge = G.in_edges(node)[0]
+            yield from self.find_home_for_node(G, in_edge.from_node, first=False)
+        elif self.execute_tests(G, self.ValidNodesToPass, node):
+            # intermediate nodes cannot have multiple outputs
+            if len(G.out_edges(node)) > 1:
+                raise LocationNotFoundError()  # @IgnoreException
+            # Concat can have multiple inputs that must all acccept moved node
+            if isinstance(node, ConcatParameters):
+                # important to use indexed here so the order is always the same
+                for in_edge in G.indexed_in_edges(node):
                     yield from self.find_home_for_node(G,
-                                                       node,
-                                                       edge=in_edge)
+                                                       in_edge.from_node,
+                                                       first=False)
             else:
-                in_edge = G.in_edges(edge.from_node.name)[0]
+                in_edge = G.in_edges(node.name)[0]
                 yield from self.find_home_for_node(G,
-                                                   node,
-                                                   edge=in_edge)
-        elif self.execute_tests(G, self.ValidFusions, edge.from_node):
-            yield edge
+                                                   in_edge.from_node,
+                                                   first=False)
+        elif self.execute_tests(G, self.ValidFusions, node):
+            out_edges = G.out_edges(node)
+            # Node to move after can only have one output
+            if len(out_edges) > 1:
+                raise LocationNotFoundError()  # @IgnoreException
+            # yeild the edge that node needs to move onto
+            yield out_edges[0]
         else:
-
-            raise LocationNotFoundError() # @IgnoreException
+            raise LocationNotFoundError()  # @IgnoreException
 
     @staticmethod
     def move_node(G, node, edges):
@@ -88,7 +94,7 @@ class MoveNodeUpMatcher(Matcher):
                      node.name, edge.from_node.name, edge.to_node.name)
             if cnt > 0:
                 new_node = deepcopy(node)
-                new_node.name = f'{original_node.name}_{cnt}'
+                new_node.name = G.unique_name(f'{original_node.name}_{cnt}')
             else:
                 new_node = node
             cnt += 1
@@ -135,15 +141,17 @@ class MoveNodeUpMatcher(Matcher):
              "Should be run before match_gap_ * fusions.")
 @needs_valid_dimension(True)
 @run_before('fuse_gap_convs', 'fuse_gap_linear', 'fuse_gap_pool', 'fuse_op_activation_scale8', 'fuse_op_activation_pow2')
+@run_qtune_on_match
 class MoveActivationsMatcherScale8(MoveNodeUpMatcher):
 
     ValidNodesToPass = (ReshapeParameters, StridedSliceParameters, ReverseParameters,
-                        TransposeParameters, ConcatParameters)
+                        TransposeParameters, ConcatParameters, QuantizeParameters)
     ValidFusions = (Conv2DParameters, FcParameters, PoolingParameters,
                     GlobalPoolingParameters, MatrixAddParameters, MatrixMulParameters,
                     MatMulOpParameters, MatMulTransposedParameters)
 
     ValidNodes = (ActivationParameters,)
+
 
 @groups('scaled')
 @match_name("move_pooling_scale8")
@@ -153,9 +161,7 @@ class MoveActivationsMatcherScale8(MoveNodeUpMatcher):
 @run_before('fuse_gap_convs', 'fuse_gap_linear', 'fuse_gap_pool', 'fuse_op_activation_scale8')
 class MoveMaxPoolMatcherScale8(MoveNodeUpMatcher):
 
-
-    ValidNodesToPass = (ReshapeParameters, TransposeParameters,
-                        ReluActivationParameters, ConcatParameters)
+    ValidNodesToPass = (ReluActivationParameters, ConcatParameters)
     ValidFusions = (Conv2DParameters, FcParameters)
     ValidNodes = (lambda node: isinstance(
         node, PoolingParameters) and node.pool_type == "max",)

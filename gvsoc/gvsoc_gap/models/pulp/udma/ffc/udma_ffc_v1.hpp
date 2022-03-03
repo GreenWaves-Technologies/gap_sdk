@@ -281,6 +281,9 @@ class Ffc_periph : public Udma_periph
 
         /** FFC TX channel, used to transmit data to the FFC */
         Ffc_tx_channel *tx_channel;
+
+        /** Busy signal for VCD tracing */
+        vp::reg_8 busy;
 };
 
 

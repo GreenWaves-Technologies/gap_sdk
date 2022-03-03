@@ -18,10 +18,9 @@ from copy import deepcopy
 
 import numpy as np
 from execution.graph_executer import GraphExecuter
-from graph.types import (FilterParameters, LSTMParameters,
-                         MultiplicativeBiasParameters, RNNBaseParameters)
-from graph.types.expression_fusion import ExpressionFusionParameters
 from graph.types.fusions import FusionBase, FusionInputParameters
+from stats.ranges_utils import collect_stat, update_ranges
+from utils.json_serializable import JsonSerializable
 from utils.node_id import NodeId
 
 from .stats_collector import GraphStatsCollector
@@ -41,10 +40,75 @@ def update_peraxis(var, arr: np.ndarray):
         per_axis_elem['max'] = np.maximum(
             per_axis_elem['max'], arr.max(axis=other_axis))
 
+class Rolling(JsonSerializable):
+    def __init__(self) -> None:
+        self._values = []
 
-def update_ema(ema, value, decay):
-    ema = value * decay + (1 - decay) * ema
-    return ema
+    def __float__(self):
+        if not self._values:
+            return 0
+        return float(np.sum(self._values)/len(self._values))
+
+    def add_val(self, val: float):
+        self._values.append(val)
+
+    def _encapsulate(self):
+        return float(self)
+
+    def __mul__(self, other):
+        return float(self).__mul__(other)
+
+    def __add__(self, other):
+        return float(self).__add__(other)
+
+    def __truediv__(self, other):
+        return float(self).__truediv__(other)
+
+    def __floordiv__(self, other):
+        return float(self).__floordiv__(other)
+
+    def __mod__(self, other):
+        return float(self).__mod__(other)
+
+    def __divmod__(self, other):
+        return float(self).__divmod__(other)
+
+    def __pow__(self, other):
+        return float(self).__pow__(other)
+
+    def __sub__(self, other):
+        return float(self).__sub__(other)
+
+    def __radd__(self, other):
+        return float(self).__radd__(other)
+
+    def __rsub__(self, other):
+        return float(self).__rsub__(other)
+
+    def __rmul__(self, other):
+        return float(self).__rmul__(other)
+
+    def __rtruediv__(self, other):
+        return float(self).__rtruediv__(other)
+
+    def __rfloordiv__(self, other):
+        return float(self).__rfloordiv__(other)
+
+    def __rmod__(self, other):
+        return float(self).__rmod__(other)
+
+    def __rpow__(self, other):
+        return float(self).__rpow__(other)
+
+    @classmethod
+    def _dencapsulate(cls, val):
+        return val
+
+    def __repr__(self) -> str:
+        return f'{float(self)}'
+
+    def __str__(self) -> str:
+        return f'{float(self)}'
 
 
 class ActivationRangesCollector(GraphStatsCollector):
@@ -55,40 +119,10 @@ class ActivationRangesCollector(GraphStatsCollector):
         self.use_ema = use_ema
         self.ema_decay = ema_decay
 
-    def update_expression_ranges(self, stat, details):
-        if 'expression' in stat:
-            stat = stat['expression']
-            for sym_name, rec in details.items():
-                if sym_name == "results":
-                    continue
-                stat_rec = stat.setdefault(
-                    sym_name, {'min': float('inf'), 'max': float('-inf')})
-                stat_rec['min'] = min(stat_rec['min'], rec['min'])
-                stat_rec['max'] = max(stat_rec['max'], rec['max'])
-        else:
-            stat['expression'] = deepcopy(details)
 
-    def collect_stat(self, stat, name, details, details_name=None):
-        range_stat = stat.get(name)
-        if not range_stat:
-            range_stat = {'min': float('inf'), 'max': float('-inf')}
-            stat[name] = range_stat
-        if details_name is None:
-            self.update_ranges(
-                range_stat, details[name]['min'], details[name]['max'])
-        else:
-            self.update_ranges(
-                range_stat, details['min_' + details_name], details['max_' + details_name])
-
-    def update_ranges(self, range_out, tensor_min, tensor_max):
-        if self.use_ema and all([range_out['min'] != float('inf'), range_out['max'] != float('-inf')]):
-            range_out['min'] = update_ema(
-                range_out['min'], tensor_min, self.ema_decay)
-            range_out['max'] = update_ema(
-                range_out['max'], tensor_max, self.ema_decay)
-        else:
-            range_out['min'] = min(range_out['min'], tensor_min)
-            range_out['max'] = max(range_out['max'], tensor_max)
+    def collect_stat(self, stat: dict, name, details, details_name=None):
+        ema_decay = self.ema_decay if self.use_ema else None
+        collect_stat(stat, name, details, details_name=details_name, ema_decay=ema_decay)
 
     def collect_stats(self, G, input_tensors, step_idx=None):
         if self._graph_execution is None:
@@ -113,7 +147,9 @@ class ActivationRangesCollector(GraphStatsCollector):
                     {
                         'min': float('inf'),
                         'max': float('-inf'),
-                        'std': 0.0
+                        'std': Rolling(),
+                        'mean': Rolling(),
+                        'b': Rolling()
                     } for _ in output_tensors]
                 stat = {
                     'range_in': range_in,
@@ -145,26 +181,18 @@ class ActivationRangesCollector(GraphStatsCollector):
 
             for idx, tensor in enumerate(output_tensors):
                 range_out = stat['range_out'][idx]
-                self.update_ranges(range_out, tensor.min(), tensor.max())
-                range_out['std'] = np.std(tensor)
+                ema_decay = self.ema_decay if self.use_ema else None
+                update_ranges(range_out, tensor.min(), tensor.max(), ema_decay=ema_decay)
+                range_out['std'].add_val(np.std(tensor))
+                mean = np.mean(tensor)
+                range_out['mean'].add_val(mean)
+                range_out['b'].add_val(np.mean(np.abs(tensor - mean)))
                 update_peraxis(range_out, tensor)
 
-            if isinstance(node, FilterParameters):
-                if details:
-                    self.collect_stat(stat, 'range_acc',
-                                      details, details_name='acc')
-                    if isinstance(node, MultiplicativeBiasParameters) and node.has_mul_bias:
-                        self.collect_stat(
-                            stat, 'range_pre_mul_bias', details, details_name='pre_mul_bias')
-            elif isinstance(node, RNNBaseParameters):
-                if details:
-                    for k in details:
-                        if k.startswith('range_'):
-                            self.collect_stat(stat, k, details)
-            elif isinstance(node, ExpressionFusionParameters):
-                if details:
-                    self.update_expression_ranges(stat, details)
-            elif isinstance(node, FusionBase) and pnode.quantize_internals:
+            if details:
+                node.details_collector(self.stats, stat, details)
+
+            if isinstance(node, FusionBase) and pnode.quantize_internals:
                 for inode in node.subgraph.nodes(node_classes=FusionInputParameters):
                     finput_in_stat = stat['range_in'][inode.idx]
                     for edge in node.subgraph.out_edges(inode.name):

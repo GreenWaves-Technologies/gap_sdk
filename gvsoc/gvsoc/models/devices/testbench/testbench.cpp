@@ -1353,6 +1353,21 @@ std::string Testbench::handle_command(Gv_proxy *proxy, FILE *req_file, FILE *rep
                             config->rx_file_reader.type = 0;
                         }
                     }
+                    else if (name == "encoding")
+                    {
+                        if (value_str == "asis")
+                        {
+                            config->rx_file_reader.encoding = PI_TESTBENCH_I2S_VERIF_FILE_ENCODING_TYPE_ASIS;
+                        }
+                        else if (value_str == "plusminus")
+                        {
+                            config->rx_file_reader.encoding = PI_TESTBENCH_I2S_VERIF_FILE_ENCODING_TYPE_PLUSMINUS;
+                        }
+                        else
+                        {
+                            config->rx_file_reader.encoding = PI_TESTBENCH_I2S_VERIF_FILE_ENCODING_TYPE_ASIS;
+                        }
+                    }
                 }
 
                 config->type = PI_TESTBENCH_I2S_VERIF_RX_FILE_READER;
@@ -1408,6 +1423,21 @@ std::string Testbench::handle_command(Gv_proxy *proxy, FILE *req_file, FILE *rep
                         else
                         {
                             config->tx_file_dumper.type = 0;
+                        }
+                    }
+                    else if (name == "encoding")
+                    {
+                        if (value_str == "asis")
+                        {
+                            config->tx_file_dumper.encoding = PI_TESTBENCH_I2S_VERIF_FILE_ENCODING_TYPE_ASIS;
+                        }
+                        else if (value_str == "plusminus")
+                        {
+                            config->tx_file_dumper.encoding = PI_TESTBENCH_I2S_VERIF_FILE_ENCODING_TYPE_PLUSMINUS;
+                        }
+                        else
+                        {
+                            config->tx_file_dumper.encoding = PI_TESTBENCH_I2S_VERIF_FILE_ENCODING_TYPE_ASIS;
                         }
                     }
                 }

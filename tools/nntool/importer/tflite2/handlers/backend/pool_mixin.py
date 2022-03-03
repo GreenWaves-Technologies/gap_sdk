@@ -19,6 +19,7 @@ from graph.types.base import NNEdge
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.tflite_schema_head.Pool2DOptions import Pool2DOptions
 from utils.node_id import NodeId
+from importer.common.check_batchdim import check_batchdim
 
 from .filter_pad_mixin import FilterPadMixin
 
@@ -34,6 +35,8 @@ class PoolMixin(FilterPadMixin):
 
         inputs = [all_nodes[inp] for inp in node.input]
         x = inputs[0]
+        x = check_batchdim(G, x, node.name)
+
         x = cls.remove_known_batch_dimension(G, x, node)
         x_shape = x[2].shape
         in_c = x_shape[1]

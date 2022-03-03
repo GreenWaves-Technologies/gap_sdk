@@ -92,6 +92,18 @@ static int hyperram_open(struct pi_device *device)
       goto error2;
   }
 
+
+#if defined(WINBOND_HYPER)
+  hyper_crt0_set(REG_ACCESS);
+  hyper_crt1_set(REG_ACCESS);
+  hyperram->reg_value = 0x9f10;
+  pi_hyper_write(&hyperram->hyper_device, 0x1000, &hyperram->reg_value, 2);
+  pi_hyper_read(&hyperram->hyper_device, 0x1000, &hyperram->reg_value, 2);
+  //printf("Reg value of 0x80001000 = %lx\n", hyperram->reg_value);
+  hyper_crt0_set(MEM_ACCESS);
+  hyper_crt1_set(MEM_ACCESS);
+#endif
+
 #if defined(__GAP9__)
 
   pi_hyper_ioctl(&hyperram->hyper_device, PI_HYPER_IOCTL_ENABLE_AES, (void*) 0);

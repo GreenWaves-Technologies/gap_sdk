@@ -74,7 +74,7 @@ minimal: pulp-os freertos gapy.all openocd_tools.all plptest.all
 
 # Compat
 sdk: all
-mini_checkout: pmsis-bsp.checkout pmsis-api.checkout examples.checkout
+mini_checkout: examples.checkout
 freertos: freertos.all mini_checkout
 
 
@@ -86,13 +86,6 @@ install_others: | $(INSTALL_BIN_DIR)
 	$(CP) $(GAP_SDK_HOME)/tools/ld $(INSTALL_DIR)
 	$(CP) $(GAP_SDK_HOME)/utils/rules $(INSTALL_DIR)
 
-
-# Sources
-pmsis-bsp.checkout:
-	git submodule update --init rtos/pmsis/pmsis_bsp
-
-pmsis-api.checkout:
-	git submodule update --init rtos/pmsis/pmsis_api
 
 # This rules is to compile pmsis-bsp for pulp os on gap8, wihtout having to recompile the whole sdk
 pmsis-bsp.build:

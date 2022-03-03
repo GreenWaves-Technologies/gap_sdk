@@ -121,6 +121,13 @@ class RNNMixin(object):
             t = tensors['forward' if i == 0 else 'backward']
             for idx, name in enumerate(rnn_params.INPUT_NAMES):
                 if name == 'input':
+                    # x_shape = x[2].shape
+                    # new_shape = [x_shape[0] if x_shape[0] is not None else 1, x_shape[-1]]
+                    # reshape_param = ReshapeParameters(f"{valid_name}_reshape", old_shape=x_shape, shape=new_shape)
+                    # G.add_edge(
+                    #     NNEdge(from_node=x[0], to_node=reshape_param, from_idx=x[1], to_idx=0))
+                    # G.add_edge(
+                    #     NNEdge(from_node=reshape_param, to_node=rnn_params, from_idx=0, to_idx=0))
                     G.add_edge(
                         NNEdge(from_node=x[0], to_node=rnn_params, from_idx=x[1], to_idx=0))
                     continue

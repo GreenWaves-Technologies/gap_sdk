@@ -1,16 +1,12 @@
 #include "pmsis.h"
 #include "AesLib.h"
 
-#define TEST_BUFF_SIZE      (40600) 
+#define TEST_BUFF_SIZE      (40600)
 #define TEST_KEY_HI         (0x1122334455667788)
 #define TEST_KEY_LO         (0x9900AABBCCDDEEFF)
 #define TEST_IV             (0x1122334455667788)
 
-#if defined (__PULP_OS__)
-RT_FC_DATA aes_data_t aes_data;
-#else
-GAP_FC_DATA aes_data_t aes_data;
-#endif
+PI_FC_L1 aes_data_t aes_data;
 
 static void load_key(unsigned char * key, unsigned char * iv)
 {
@@ -58,7 +54,7 @@ void aes128()
     pi_perf_start();
 
     cycles[0] = pi_perf_read(PI_PERF_CYCLES);
-    
+
 	AesBuildLUT(&aes_data);
 
     pi_perf_stop();
@@ -77,7 +73,7 @@ void aes128()
     cycles[3] = pi_perf_read(PI_PERF_CYCLES);
 
     for(int i=0 ; i<bufferSize; i++)
-    {   
+    {
         if (buffer[i] != buffer_dec[i] )
             printf("ERROR of enc/dec on %d\n", i);
     }

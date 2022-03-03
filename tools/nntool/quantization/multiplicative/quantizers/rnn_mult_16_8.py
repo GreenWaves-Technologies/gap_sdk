@@ -31,7 +31,6 @@ from quantization.unified_quantization_handler import (in_qs_constraint,
 from utils.node_id import NodeId
 
 from ..mult_quantization_handler import MultQuantizionHandler
-from .rescale_constant_mixin import RescaleConstantMixin
 
 LOG = logging.getLogger('nntool.' + __name__)
 
@@ -46,7 +45,7 @@ LOG = logging.getLogger('nntool.' + __name__)
 @in_qs_constraint({'dtype': np.int16})
 @out_qs_constraint({'dtype': np.int16})
 @option_constraint(force_external_size=16, use_ne16={False, None})
-class RNNMultMult16x8(RescaleConstantMixin, MultQuantizionHandler):
+class RNNMultMult16x8(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
@@ -93,9 +92,7 @@ class RNNMultMult16x8(RescaleConstantMixin, MultQuantizionHandler):
         i_2_a_q = MultMulBiasScaleQType(
             scale=in_qs[0].scale * in_qs[names['i_2_i_w']].scale/act_input_scale)
 
-        in_qs[names['i_b']].scale = o_q.scale * in_qs[names['r_2_i_w']].scale
-        in_qs[names['i_b']].dtype = np.int32
-        # cls.rescale_constant(input_nodes['i_b'], state_w_scale, qrecs, dtype=np.int32)
+        in_qs[names['i_b']] = QType(scale=o_q.scale * in_qs[names['r_2_i_w']].scale, dtype=np.int32)
         act_output_scale = math.pow(2, -15)
         s_2_s_q = MultMulBiasScaleQType(
             scale=o_q.scale * in_qs[names['r_2_i_w']].scale/act_input_scale)

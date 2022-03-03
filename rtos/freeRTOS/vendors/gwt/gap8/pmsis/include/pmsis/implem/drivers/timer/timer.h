@@ -32,6 +32,7 @@
 #define __PI_TIMER_H__
 
 #include <stdint.h>
+#include "pmsis/chips/gap8/timer.h"
 #include "pmsis/targets/target.h"
 #include "pmsis/implem/hal/hal.h"
 
@@ -56,6 +57,7 @@
  *****************************************************************************/
 
 /* @brief Timers. */
+#if 0
 typedef enum
 {
     SYS_TIMER  = 0,             /*!< FC_TIMER_0 used as SysTick timer by preemptive RTOS. */
@@ -64,6 +66,8 @@ typedef enum
     CL_TIMER_0 = 2,             /*!< Cluster Timer_Low. */
     CL_TIMER_1 = 3              /*!< Cluster Timer_High. */
 } timer_e;
+#endif
+typedef pi_timer_e timer_e;
 
 /*******************************************************************************
  * Function declaration

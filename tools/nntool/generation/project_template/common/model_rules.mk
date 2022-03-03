@@ -35,29 +35,29 @@ $(MODEL_BUILD):
 # The model is already available at AT_MODEL_PATH
 
 ifndef MODEL_AT_ONLY
- $(MODEL_PATH): $(TRAINED_MODEL) | $(MODEL_BUILD)
+$(MODEL_PATH): $(TRAINED_MODEL) | $(MODEL_BUILD)
 	cp $< $@
 
-  # Creates an NNTOOL state file by running the commands in the script
-  # These commands could be run interactively
-  # The commands:
-  # 	Adjust the model to match AutoTiler tensor order
-  #	Fuse nodes together to match fused AutoTiler generators
-  #	Quantize the graph if not already done with tflite quantization
-  #	Save the graph state files
+# Creates an NNTOOL state file by running the commands in the script
+# These commands could be run interactively
+# The commands:
+# 	Adjust the model to match AutoTiler tensor order
+#	Fuse nodes together to match fused AutoTiler generators
+#	Quantize the graph if not already done with tflite quantization
+#	Save the graph state files
 
-  $(MODEL_STATE): $(MODEL_PATH) $(IMAGES) $(NNTOOL_SCRIPT) | $(MODEL_BUILD)
+$(MODEL_STATE): $(MODEL_PATH) $(IMAGES) $(NNTOOL_SCRIPT) | $(MODEL_BUILD)
 	echo "GENERATING NNTOOL STATE FILE"
 	$(NNTOOL) -s $(NNTOOL_SCRIPT) $< $(NNTOOL_EXTRA_FLAGS)
 
-  nntool_state: $(MODEL_STATE)
+nntool_state: $(MODEL_STATE)
 
-  # Runs NNTOOL with its state file to generate the autotiler model code
+# Runs NNTOOL with its state file to generate the autotiler model code
 
-  $(AT_MODEL_PATH) $(MODEL_EXPRESSIONS): $(MODEL_STATE) $(MODEL_PATH) | $(MODEL_BUILD)
+$(AT_MODEL_PATH) $(MODEL_EXPRESSIONS): $(MODEL_STATE) $(MODEL_PATH) | $(MODEL_BUILD)
 	echo "GENERATING AUTOTILER MODEL"
 	$(NNTOOL) -g -M $(MODEL_BUILD) -m $(MODEL_SRC) -T $(TENSORS_DIR) -H $(MODEL_HEADER) $(MODEL_GENFLAGS_EXTRA) $<
-  nntool_gen: $(AT_MODEL_PATH)
+nntool_gen: $(AT_MODEL_PATH)
 endif
 
 # Build the code generator from the model code
@@ -73,7 +73,7 @@ $(MODEL_GEN_C): $(MODEL_GEN_EXE)
 	$(MODEL_GEN_EXE) -o $(MODEL_BUILD) -c $(MODEL_BUILD) $(MODEL_GEN_EXTRA_FLAGS)
 
 # A phony target to simplify including this in the main Makefile
-model: $(MODEL_GEN_C)
+model: $(MODEL_GEN_C) $(MODEL_EXPRESSIONS)
 
 clean_at_model:
 	$(RM) $(MODEL_GEN_EXE)

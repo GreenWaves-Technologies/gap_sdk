@@ -23,7 +23,9 @@ from ..unified_quantization_handler import (QuantizionHandler, needs_stats,
 FLOAT_DTYPES = {
     'bfloat16': bfloat16,
     'float16': np.float16,
-    'float32': np.float32
+    'ieee16': np.float16,
+    'float32': np.float32,
+    'ieee32': np.float32
 }
 
 #pylint: disable=abstract-method
@@ -63,3 +65,10 @@ class FloatQuantizionHandler(QuantizionHandler):
                     for idx, dim in enumerate(params.in_dims)]
         return [QType(dtype=dtype) if dim is not None else None
                 for idx, dim in enumerate(params.in_dims)]
+
+    @classmethod
+    def get_min_max(cls, stats, idx=0, direction='out'):
+        if stats:
+            return (stats[f'range_{direction}'][idx]['min'],
+            stats[f'range_{direction}'][idx]['max'])
+        return None, None

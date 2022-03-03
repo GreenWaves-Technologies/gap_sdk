@@ -40,7 +40,6 @@ from ..importer_base import ImporterBase
 from .common import LOG, check
 from .common.handler_helper import get_all_backend_handlers
 from .fix_split_in_edges import fix_split_in_edges
-from .remove_concats import remove_concats
 
 # pylint: disable=E1101
 
@@ -104,7 +103,6 @@ class TFLiteImporter(ImporterBase):
         RemoveReshapesBeforeLinear().match(G)
         # DrawGraphReporter().report(G)
         G.add_dimensions()
-        remove_concats(G)
         if opts['remove_quantize_ops']:
             RemoveQuantizeOperators().match(G)
             G.add_dimensions()

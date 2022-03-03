@@ -67,6 +67,15 @@ void system_init(void);
  */
 void system_setup_systick(uint32_t tick_rate_hz);
 
+
+/**
+ * @brief Setup timer used for wait_time.
+ *
+ * This function sets up high timer at REF CLK / 2 tick rate.
+ *
+ */
+void system_setup_timer(void);
+
 /**
  * @brief Update the SystemCoreClock variable.
  *

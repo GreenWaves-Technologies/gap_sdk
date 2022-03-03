@@ -108,6 +108,7 @@ void I2c_tx_channel::handle_pending_word(void *__this, vp::clock_event *event)
   if (_this->periph->waiting_rx)
   {
     _this->periph->prev_scl ^= 1;
+    _this->periph->trace.msg("Sync (scl: %d, sda: %d)\n", _this->periph->prev_scl, 0);    
     _this->periph->i2c_itf.sync(_this->periph->prev_scl, 0);
 
     if (_this->periph->prev_scl)

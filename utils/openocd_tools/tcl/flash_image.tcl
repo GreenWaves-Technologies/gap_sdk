@@ -252,18 +252,18 @@ proc gap_flash_raw_hyper {image_name image_size gap_tools_path} {
 # specific for gap9
 # will need to adapt the same way as gap builder to 
 # pass all parameters for the name
-proc gap9_flash_raw_hyper {image_name image_size gap_tools_path} {
+proc gap9_flash_raw {image_name image_size flasher_binary sector_size} {
     # flash the flasher
     puts "--------------------------"
-    puts "begining flash session (hyperflash)"
+    puts "begining flash session
     puts "--------------------------"
     puts "load flasher to L2 memory"
     # need to pass board name as arg -- TODO: unify command name
-    load_and_start_binary ${gap_tools_path}/gap_bins/gap_flasher-gapuino9.elf 0x1c010180
+    load_and_start_binary ${flasher_binary} 0x1c010180
     sleep 100
     # flash the flash image with the flasher
     puts "Instruct flasher to begin flash per se"
-    gap_flasher_ctrl $image_name $image_size 0 0x40000 0 0x1c010090
+    gap_flasher_ctrl $image_name $image_size 0 $sector_size 0 0x1c010090
     sleep 2
     puts "--------------------------"
     puts "flasher is done!"

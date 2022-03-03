@@ -18,6 +18,7 @@ import logging
 from graph.dim import Dim
 from graph.types import (ConstantInputParameters, NNEdge, Parameters,
                          SensitiveToOrder, SingleInputAndOutput)
+from stats.ranges_utils import collect_stat
 
 from .base import cls_op_name, nargs
 
@@ -59,6 +60,10 @@ class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
     @property
     def graph_anon_label(self):
         return ["Filt"]
+
+    def details_collector(self, stats, stat, details):
+        for k in filter(lambda x: x.startswith('range_'), details):
+            collect_stat(stat, k, details[k])
 
     def get_parameter_size(self):
         return 0

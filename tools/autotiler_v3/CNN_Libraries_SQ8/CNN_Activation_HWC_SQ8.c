@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#if 0
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wextra"
@@ -908,17 +909,17 @@ void KerParReduct_CC_HSigmoid_HWC_USQ16(KerConvLinReduct_SQ8_T *Arg)
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
 	int Prenorm = Infos[AT_INF_PRENORM];
-
+	// Output is asymmetric with zeropoint at 0
 	for (int i=First; i<Last; i++) {
-		for (int c=0; c<Feat/2; c++) {
-	                int Acc0 = gap_clipu(AT_SCALE(AT_NORM(In[i*Feat + 2*c+0], Prenorm), Scale[2*c],   ScaleN[2*c  ]), 16);
-	                int Acc1 = gap_clipu(AT_SCALE(AT_NORM(In[i*Feat + 2*c+1], Prenorm), Scale[2*c+1], ScaleN[2*c+1]), 16);
+		for (int c=0; c<Feat; c++) {
+	                int Acc0 = AT_SCALE(AT_NORM(In[i*Feat + 2*c+0], Prenorm), Scale[2*c],   ScaleN[2*c  ]);
+	                int Acc1 = AT_SCALE(AT_NORM(In[i*Feat + 2*c+1], Prenorm), Scale[2*c+1], ScaleN[2*c+1]);
 
 			Out[i*Feat + 2*c  ] = gap_clipu(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN), 16);
 			Out[i*Feat + 2*c+1] = gap_clipu(AT_SCALE(AT_CLIP_POS(Acc1 + B0, A0) * C0, ActScale, ActScaleN), 16);
 	        }
 	        if (Feat&0x1) {
-	                int Acc0 = gap_clipu(AT_SCALE(AT_NORM(In[i*Feat + Feat-1], Prenorm), Scale[Feat-1], ScaleN[Feat-1]), 16);
+	                int Acc0 = AT_SCALE(AT_NORM(In[i*Feat + Feat-1], Prenorm), Scale[Feat-1], ScaleN[Feat-1]);
 	                Out[i*Feat + Feat-1] = gap_clipu(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN), 16);
 	        }
 	}
@@ -940,7 +941,7 @@ void KerParReduct_CC_HSwish_HWC_USQ16(KerConvLinReduct_SQ8_T *Arg)
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
 	int Prenorm = Infos[AT_INF_PRENORM];
-
+	// Output is asymmetric with zeropoint at 0
 	for (int i=First; i<Last; i++) {
 		for (int c=0; c<Feat/2; c++) {
 	                int Acc0 = gap_clipu(AT_SCALE(AT_NORM(In[i*Feat + 2*c+0], Prenorm), Scale[2*c  ], ScaleN[2*c  ]), 16);
@@ -1011,18 +1012,18 @@ void KerParReduct_CC_Sigmoid_HWC_USQ16(KerConvLinReduct_SQ8_T *Arg)
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
 	int Prenorm = Infos[AT_INF_PRENORM];
-
+	// Output is asymmetric with zeropoint at 0
 	for (int i=First; i<Last; i++) {
 		for (int c=0; c<Feat/2; c++) {
-	                int Acc0 = gap_clipu(AT_SCALE(AT_NORM(In[i*Feat + 2*c+0], Prenorm), Scale[2*c  ], ScaleN[2*c  ]), 16);
-	                int Acc1 = gap_clipu(AT_SCALE(AT_NORM(In[i*Feat + 2*c+1], Prenorm), Scale[2*c+1], ScaleN[2*c+1]), 16);
+	                int Acc0 = gap_clip(AT_SCALE(AT_NORM(In[i*Feat + 2*c+0], Prenorm), Scale[2*c  ], ScaleN[2*c  ]), 15);
+	                int Acc1 = gap_clip(AT_SCALE(AT_NORM(In[i*Feat + 2*c+1], Prenorm), Scale[2*c+1], ScaleN[2*c+1]), 15);
 
-			Out[i*Feat + 2*c  ] = gap_clipu(AT_SCALE(Sigmoid(Acc0 << 8), ActScale, ActScaleN), 16);
-			Out[i*Feat + 2*c+1] = gap_clipu(AT_SCALE(Sigmoid(Acc1 << 8), ActScale, ActScaleN), 16);
+			Out[i*Feat + 2*c  ] = gap_clipu(AT_SCALE(SigmoidU(Acc0), ActScale, ActScaleN), 16);
+			Out[i*Feat + 2*c+1] = gap_clipu(AT_SCALE(SigmoidU(Acc1), ActScale, ActScaleN), 16);
 	        }
 	        if (Feat&0x1) {
-	                int Acc0 = gap_clipu(AT_SCALE(AT_NORM(In[i*Feat + Feat-1], Prenorm), Scale[Feat-1], ScaleN[Feat-1]), 16);
-	                Out[i*Feat + Feat-1] = gap_clipu(AT_SCALE(Sigmoid(Acc0 << 8) >> 8, ActScale, ActScaleN), 16);
+	                int Acc0 = gap_clip(AT_SCALE(AT_NORM(In[i*Feat + Feat-1], Prenorm), Scale[Feat-1], ScaleN[Feat-1]), 15);
+	                Out[i*Feat + Feat-1] = gap_clipu(AT_SCALE(SigmoidU(Acc0), ActScale, ActScaleN), 16);
 	        }
 	}
 	gap_waitbarrier(0);
@@ -1049,12 +1050,12 @@ void KerParReduct_CC_Tanh_HWC_USQ16(KerConvLinReduct_SQ8_T *Arg)
 	                int Acc0 = gap_clip(AT_SCALE(AT_NORM(In[i*Feat + 2*c+0], Prenorm), Scale[2*c  ], ScaleN[2*c  ]), 15);
 	                int Acc1 = gap_clip(AT_SCALE(AT_NORM(In[i*Feat + 2*c+1], Prenorm), Scale[2*c+1], ScaleN[2*c+1]), 15);
 
-			Out[i*Feat + 2*c  ] = gap_clip(AT_SCALE(Tanh(Acc0 << 8), ActScale, ActScaleN), 15);
-			Out[i*Feat + 2*c+1] = gap_clip(AT_SCALE(Tanh(Acc1 << 8), ActScale, ActScaleN), 15);
+			Out[i*Feat + 2*c  ] = (unsigned short) (gap_clip(AT_SCALE(Tanh(Acc0), ActScale, ActScaleN), 15) + 32768);
+			Out[i*Feat + 2*c+1] = (unsigned short) (gap_clip(AT_SCALE(Tanh(Acc1), ActScale, ActScaleN), 15) + 32768);
 	        }
 	        if (Feat&0x1) {
 	                int Acc0 = gap_clip(AT_SCALE(AT_NORM(In[i*Feat + Feat-1], Prenorm), Scale[Feat-1], ScaleN[Feat-1]), 15);
-	                Out[i*Feat + Feat-1] = gap_clip(AT_SCALE(Tanh(Acc0 << 8) >> 8, ActScale, ActScaleN), 15);
+	                Out[i*Feat + Feat-1] = (unsigned short) (gap_clip(AT_SCALE(Tanh(Acc0), ActScale, ActScaleN), 15)  + 32768);
 	        }
 	}
 	gap_waitbarrier(0);
@@ -1372,8 +1373,6 @@ void KerParPool_PoolNxMStrideSxSyBody__HWC_USQ8(
 
 
 
-#define AT_INF_NE16_PADVAL      10
-
 void KerParPool_MaxPoolNxMStrideSxSy__HWC_USQ8(KerPool_HWC_USQ8_T *Arg)
 {
 	unsigned int FSx=Arg->FS, Sx=Arg->S;
@@ -1399,4 +1398,5 @@ void KerParPool_MaxPoolNxMStrideSxSy__HWC_USQ8(KerPool_HWC_USQ8_T *Arg)
 	gap_waitbarrier(0);
 }
 
+#endif
 #pragma GCC diagnostic pop

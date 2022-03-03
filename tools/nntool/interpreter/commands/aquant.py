@@ -14,9 +14,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
+import glob
 import logging
+import pickle
+from pathlib import Path
 
 from cmd2 import Cmd2ArgumentParser, with_argparser
+from cmd2.cmd2 import Cmd
+from interpreter.commands.qtune import load_options
 from interpreter.nntool_shell_base import (NNToolShellBase,
                                            store_once_in_history)
 from interpreter.shell_utils import glob_input_files, input_options
@@ -45,6 +50,12 @@ class AquantCommand(NNToolShellBase):
     parser_aquant.add_argument('-s', '--scheme',
                                type=str, choices=QUANTIZATION_SCHEMES, default='SQ8',
                                help='quantize with scaling factors (TFlite quantization-like) [default] or POW2')
+    parser_aquant.add_argument('--stats',
+                               completer_method=Cmd.path_complete,
+                               help='pickle file containing statistics')
+    parser_aquant.add_argument('--json',
+                               completer_method=Cmd.path_complete,
+                               help='json file file containing saved quantization options using qtunesave command')
     add_options_to_parser(parser_aquant)
     input_options(parser_aquant)
 
@@ -57,9 +68,24 @@ Attempt to calculate quantization for graph using one or more sample input files
         stats_collector = ActivationRangesCollector()
         # if replaying state file then load the activation stats if they are present
         opts = get_options_from_args(args)
+
+        if args.json:
+            json_path = Path(args.json)
+            if not json_path.exists() or not json_path.is_file():
+                self.perror(f'{json_path} does not exist or is not a file')
+                return
+            json_opts = load_options(json_path)
+            json_opts.update(opts)
+            opts = json_opts
+
         state = ConstantInputParameters.save_compression_state(self.G)
         try:
-            if self.replaying_history and self.history_stats:
+            if args.stats:
+                stats_file = glob.glob(args.stats)
+                stats_file = stats_file[0] if stats_file else args.stats
+                with open(stats_file, 'rb') as file_pointer:
+                    astats = pickle.load(file_pointer)
+            elif self.replaying_history and self.history_stats:
                 astats = self.history_stats
             else:
                 input_args = self._get_input_args(args)

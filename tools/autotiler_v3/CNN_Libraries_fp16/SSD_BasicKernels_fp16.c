@@ -61,12 +61,12 @@ void Ker_SSD_Init_f16(Ker_SSD_Init_Arg_f16_T  *KerArg0)
 }
 
 // The actual code that does the tile addition
-void Ker_SSD_Decoder_fp16(Ker_SSD_Decoder_Arg_fp16_T  *KerArg0 )
+void Ker_SSD_Decoder_f16(Ker_SSD_Decoder_Arg_f16_T  *KerArg0 )
 {
     unsigned int CoreId = gap_coreid();
-    unsigned int Chunk  = ChunkSize(KerArg0->H);
+    unsigned int Chunk  = ChunkSize(KerArg0->N_Anchors);
     unsigned int First  = CoreId*Chunk;
-    unsigned int Last   = (First+Chunk > KerArg0->H) ? (KerArg0->H) : (First+Chunk);
+    unsigned int Last   = (First+Chunk > KerArg0->N_Anchors) ? (KerArg0->N_Anchors) : (First+Chunk);
     bbox_f16_t * bbox   = KerArg0->bbox_buf;
     F16 * scores        = KerArg0->classes_in;
     int num_classes     = KerArg0->N_Classes;
@@ -152,7 +152,7 @@ static int16_t KerIoverU(F16 a_x, F16 a_y, F16 a_w, F16 a_h,
 }
 
 
-static void KerNonMaxSuppress(bbox_t * boundbxs, float iouThres, int nnbb){
+static void KerNonMaxSuppress(bbox_f16_t * boundbxs, float iouThres, int nnbb){
     //BBOX value are in Q14 and non_max_threshold in Q14
     int idx, idx_int;
     //Non-max supression
@@ -175,7 +175,7 @@ static void KerNonMaxSuppress(bbox_t * boundbxs, float iouThres, int nnbb){
     }
 }
 
-void Ker_SSD_NMS(Ker_SSD_NMS_ArgT  *KerArg0 )
+void Ker_SSD_NMS_f16(Ker_SSD_NMS_Arg_f16_T  *KerArg0 )
 {
     
     short int bbox_idx_max = *(KerArg0->bbox_idx);

@@ -29,8 +29,8 @@ void FFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format)
     LUTSize = Arg->Nfft*sizeof(short);
 
 
-    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->SwapLUT, (AT_L2_INT_ADDR_TYPE) Arg->L1_SwapLUT,  LUTSize,  0, &DmaR_Evt2);
-    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->Twiddles, (AT_L2_INT_ADDR_TYPE)Arg->L1_Twiddles, TwidSize, 0, &DmaR_Evt1);
+    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->SwapLUT,  (AT_L2_INT_ADDR_TYPE) Arg->L1_SwapLUT,  LUTSize,  0, &DmaR_Evt1);
+    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->Twiddles, (AT_L2_INT_ADDR_TYPE) Arg->L1_Twiddles, TwidSize, 0, &DmaR_Evt2);
 
     AT_L2_WAIT(0, &DmaR_Evt1);
     AT_L2_WAIT(0, &DmaR_Evt2);
@@ -42,8 +42,8 @@ void RFFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format)
     AT_L2_EVENT DmaR_Evt1, DmaR_Evt2, DmaR_Evt3;
     int TwidSize, RTwidSize, LUTSize;
 
-    if (Arg->Radix == 2) TwidSize = Arg->Nfft * sizeof(short);
-    else TwidSize = 3 * Arg->Nfft * (sizeof(short)/2);
+    if (Arg->Radix == 2) TwidSize = (Arg->Nfft>>1) * sizeof(short);
+    else TwidSize = 3 * (Arg->Nfft>>1) * (sizeof(short)/2);
 
     // when floating 32, size is double
     if (format==1) TwidSize *=2;
@@ -52,10 +52,9 @@ void RFFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format)
     if (format==1) RTwidSize = Arg->Nfft * sizeof(float);
     else           RTwidSize = Arg->Nfft * sizeof(short);
 
-
-    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->SwapLUT, (AT_L2_INT_ADDR_TYPE) Arg->L1_SwapLUT,  LUTSize,  0, &DmaR_Evt1);
-    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->Twiddles, (AT_L2_INT_ADDR_TYPE)Arg->L1_Twiddles, TwidSize, 0, &DmaR_Evt2);
-    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->RTwiddles, (AT_L2_INT_ADDR_TYPE)Arg->L1_RTwiddles, RTwidSize, 0, &DmaR_Evt3);
+    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->SwapLUT,   (AT_L2_INT_ADDR_TYPE) Arg->L1_SwapLUT,   LUTSize,   0, &DmaR_Evt1);
+    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->Twiddles,  (AT_L2_INT_ADDR_TYPE) Arg->L1_Twiddles,  TwidSize,  0, &DmaR_Evt2);
+    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->RTwiddles, (AT_L2_INT_ADDR_TYPE) Arg->L1_RTwiddles, RTwidSize, 0, &DmaR_Evt3);
 
     AT_L2_WAIT(0, &DmaR_Evt1);
     AT_L2_WAIT(0, &DmaR_Evt2);
@@ -492,7 +491,7 @@ void Radix4FFT_DIF_Par_Fix16(FFT_Arg_T *Arg)
         int iCnt1, iCnt2, iCnt3,
             iL,    iM,    iQ,
             iA,    iB,    iC,     iD;
-        unsigned int iLog4N  = (gap_fl1(N_fft))>>1;
+        int iLog4N  = (gap_fl1(N_fft))>>1;
         v2s *DataV  = (v2s *) Data;
         v2s *CoeffV = (v2s *) Twiddles;
         unsigned int CoreId;
@@ -580,7 +579,7 @@ void Radix4FFT_DIF_Par_Fix32(FFT_Arg_T *Arg)
         int iCnt1, iCnt2, iCnt3,
             iL,    iM,    iQ,
             iA,    iB,    iC,     iD;
-        unsigned int iLog4N  = (gap_fl1(N_fft))>>1;
+        int iLog4N  = (gap_fl1(N_fft))>>1;
         unsigned int CoreId;
         int First, Last, Chunk;
 
@@ -656,7 +655,7 @@ void Radix4FFT_DIF_Par_f16(FFT_Arg_T *Arg)
         int iCnt1, iCnt2, iCnt3,
             iL,    iM,    iQ,
             iA,    iB,    iC,     iD;
-        unsigned int iLog4N  = (gap_fl1(N_fft))>>1;
+        int iLog4N  = (gap_fl1(N_fft))>>1;
         F16V_DSP *DataV  = (F16V_DSP *) Data;
         F16V_DSP *CoeffV = (F16V_DSP *) Twiddles;
         unsigned int CoreId;
@@ -746,7 +745,7 @@ void Radix4FFT_DIF_Par_f32(FFT_Arg_T *Arg)
         int iCnt1, iCnt2, iCnt3,
             iL,    iM,    iQ,
             iA,    iB,    iC,     iD;
-        unsigned int iLog4N  = (gap_fl1(N_fft))>>1;
+        int iLog4N  = (gap_fl1(N_fft))>>1;
         unsigned int CoreId;
         int First, Last, Chunk;
 
@@ -1428,7 +1427,7 @@ void Radix2FFT_DIF_Par_Fix32_Scal(FFT_scal_Arg_T *Arg)
         // reset the shift table
         Chunk = N_fft/nbcore;
         First =  CoreId*Chunk; Last = Min( First+Chunk,N_fft);
-        for (int i = First; i < Last; i++) shift_fft[i]=0; 
+        for (unsigned int i = First; i < Last; i++) shift_fft[i]=0; 
         gap_waitbarrier(0);
 
         // compute fft 
@@ -1656,14 +1655,17 @@ void RFFT_DIF_Par_Fix16(RFFT_Arg_T *Arg){
         if (CoreId == 0){
                 xBR = pB[0][0];
                 xBI = pB[0][1];
-                xAR = pA[0][0];
-                xAI = pA[0][1];
          
                 // real(tw * (xB - xA)) = twR * (xBR - xAR) - twI * (xBI - xAI);
                 // imag(tw * (xB - xA)) = twI * (xBR - xAR) + twR * (xBI - xAI);
-                RFFT_Out[0][0] = ( xBR + xAR + xBI + xAI ) >> 2;
-                RFFT_Out[0][1] = ( xAI - xBI + xBR - xAR ) >> 2;
                 // XA(1) = 1/2*( U1 - imag(U2) +  i*( U1 +imag(U2) ));
+                RFFT_Out[0][0] = ( xBR + xBI ) >> 1;
+                RFFT_Out[0][1] = 0;
+
+                // Gr(N) = Gr(0) - Gi(0)
+                // Gi(N) = 0
+                RFFT_Out[k+1][0] = ( xBR - xBI );
+                RFFT_Out[k+1][1] = 0;
         }
         gap_waitbarrier(0);
 
@@ -1697,16 +1699,6 @@ void RFFT_DIF_Par_Fix16(RFFT_Arg_T *Arg){
                 t1 = gap_add2div4(-xA, gap_cplxconj(xB));
                 t2 = gap_add2div4( xA, gap_cplxconj(xB));
                 RFFT_Out[i] = gap_cplxmuls(tw, t1) + t2;
-        }
-        if (CoreId == 0){
-                xBR = pB[-(k-1)][0];
-                xBI = pB[-(k-1)][1];
-                xAR = pA[ (k-1)][0];
-                xAI = pA[ (k-1)][1];
-                RFFT_Out[k][0] = ( xBR + xAR - xBI - xAI ) >> 2;
-                // TODO - CHECK
-                // RFFT_Out[k][1] = ( xAI - xBI - xBR + xAR ) >> 2;
-                RFFT_Out[k][1] = 0;
         }
         gap_waitbarrier(0);
 #ifdef PRINTDEB
@@ -1854,14 +1846,14 @@ void RFFT_DIF_Par_f16(RFFT_Arg_T *Arg){
         if (CoreId == 0){
                 xBR = pB[0][0];
                 xBI = pB[0][1];
-                xAR = pA[0][0];
-                xAI = pA[0][1];
          
                 // real(tw * (xB - xA)) = twR * (xBR - xAR) - twI * (xBI - xAI);
                 // imag(tw * (xB - xA)) = twI * (xBR - xAR) + twR * (xBI - xAI);
-                RFFT_Out[0][0] = 0.5f * ( xBR + xAR + xBI + xAI );
-                RFFT_Out[0][1] = 0.5f * ( xAI - xBI + xBR - xAR );
+                RFFT_Out[0][0] = xBR + xBI;
+                RFFT_Out[0][1] = 0.0f;
                 // XA(1) = 1/2*( U1 - imag(U2) +  i*( U1 +imag(U2) ));
+                RFFT_Out[k+1][0] = xBR - xBI;
+                RFFT_Out[k+1][1] = 0.0f;
         }
         gap_waitbarrier(0);
 
@@ -1896,15 +1888,6 @@ void RFFT_DIF_Par_f16(RFFT_Arg_T *Arg){
                 t1 = t2 - xA;
                 t2 = t2 + xA;
                 RFFT_Out[i] = (CplxMult_f16(tw, t1) + t2) * (F16V_DSP) {0.5f, 0.5f};
-        }
-        if (CoreId == 0){
-                xBR = pB[-(k-1)][0];
-                xBI = pB[-(k-1)][1];
-                xAR = pA[(k-1)][0];
-                xAI = pA[(k-1)][1];
-                RFFT_Out[k][0] = 0.5f * ( xBR + xAR - xBI - xAI );
-                // RFFT_Out[k][1] = 0.5f * ( xAI - xBI - xBR + xAR );
-                RFFT_Out[k][1] = 0.0f;
         }
         gap_waitbarrier(0);
 #ifdef PRINTDEB
@@ -1947,10 +1930,10 @@ void RFFT_DIF_Par_f32(RFFT_Arg_T *Arg){
         if (CoreId == 0){
                 xBR = pB[0];
                 xBI = pB[1];
-                xAR = pA[0];
-                xAI = pA[1];
-                RFFT_Out[0] = 0.5f * ( xBR + xAR + xBI + xAI );
-                RFFT_Out[1] = 0.5f * ( xAI - xBI + xBR - xAR );
+                RFFT_Out[0] = xBR + xBI;
+                RFFT_Out[1] = 0.0f;
+                RFFT_Out[2*(k+1)]   = xBR - xBI;
+                RFFT_Out[2*(k+1)+1] = 0.0f;
         }
         gap_waitbarrier(0);
 
@@ -1998,16 +1981,6 @@ void RFFT_DIF_Par_f32(RFFT_Arg_T *Arg){
 
                 RFFT_Out[2*i]   = 0.5f * (xAR + xBR + p0 + p3 ); //xAR
                 RFFT_Out[2*i+1] = 0.5f * (xAI - xBI + p1 - p2 ); //xAI
-                // printf("%d %f %f\n", i, RFFT_Out[2*i] ,RFFT_Out[2*i+1] );
-        }
-        if (CoreId == 0){
-                xBR = pB[-2*(k-1)];
-                xBI = pB[-2*(k-1)+1];
-                xAR = pA[2*(k-1)];
-                xAI = pA[2*(k-1)+1];
-                RFFT_Out[2*k]   = 0.5f * ( xBR + xAR - xBI - xAI );
-                RFFT_Out[2*k+1] = 0.0f;
-                // RFFT_Out[2*k+1] = 0.5f * ( xAI - xBI - xBR + xAR );
         }
         gap_waitbarrier(0);
 #ifdef PRINTDEB
@@ -2040,9 +2013,10 @@ void IRFFT_DIF_Par_Fix16(RFFT_Arg_T *Arg){
         if (CoreId == 0){
                 xAR = pA[0][0];
                 xAI = pA[0][1];
+                xBR = pA[k+1][0];
 
-                RFFT_Out[0][0] = (xAR + xAI) >> 1;
-                RFFT_Out[0][1] = (xAR - xAI) >> 1;
+                RFFT_Out[0][0] = (xAR + xAI + xBR) >> 1;
+                RFFT_Out[0][1] = (xAR + xAI - xBR) >> 1;
         }
         Chunk = ChunkSize(k);
         First = CoreId*Chunk; Last = Min(First+Chunk, k);
@@ -2111,9 +2085,10 @@ void IRFFT_DIF_Par_f16(RFFT_Arg_T *Arg){
         if (CoreId == 0){
                 xAR = pA[0][0];
                 xAI = pA[0][1];
+                xBR = pA[k+1][0];
 
-                RFFT_Out[0][0] = 0.5f * ( xAR + xAI );
-                RFFT_Out[0][1] = 0.5f * ( xAR - xAI );
+                RFFT_Out[0][0] = 0.5f * ( xAR + xAI + xBR);
+                RFFT_Out[0][1] = 0.5f * ( xAR + xAI - xBR);
         }
         Chunk = ChunkSize(k);
         First = CoreId*Chunk; Last = Min(First+Chunk, k);
@@ -2185,9 +2160,10 @@ void IRFFT_DIF_Par_f32(RFFT_Arg_T *Arg){
         if (CoreId == 0){
                 xAR = pA[0];
                 xAI = pA[1];
+                xBR = pA[2*(k+1)];
 
-                RFFT_Out[0] = 0.5f * ( xAR + xAI );
-                RFFT_Out[1] = 0.5f * ( xAR - xAI );
+                RFFT_Out[0] = 0.5f * ( xAR + xAI + xBR );
+                RFFT_Out[1] = 0.5f * ( xAR + xAI - xBR );
         }
         Chunk = ChunkSize(k);
         First = CoreId*Chunk; Last = Min(First+Chunk, k);

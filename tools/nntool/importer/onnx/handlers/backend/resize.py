@@ -14,8 +14,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
+from pytest import param
 from graph.dim import Dim
 from graph.types import NNEdge, ReshapeParameters
+from graph.types.constant_input import ConstantInputParameters
 from graph.types.resizers import (BilinearResizerParameters,
                                   NearestNeighborResizerParameters)
 from importer.common.constant_mixin import ConstantMixin
@@ -51,6 +53,13 @@ class Resize(ConstantMixin, BackendHandler):
         else:
             sizes = [None if x_shape[idx] is None else dim
                     for idx, dim in enumerate(sizes)]
+        
+        if np.prod([sz for sz in sizes if sz is not None]) == 0:
+            logger.warn(f'{valid_name} has null output shape')
+            params = ConstantInputParameters(valid_name, value=np.array([]))
+            all_nodes[node.output[0]] = (params, 0, ProvisionalDim([]), x[3])
+            return params
+
         if spatial_size == 1:
             sizes.insert(-1, 1)
 

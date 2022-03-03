@@ -122,9 +122,13 @@ parser.add_argument('command', metavar='CMD', type=str, nargs='*',
 parser.add_argument("--config", dest="config_name", default=None, help="specify the system configuration name")
 
 parser.add_argument("--config-def", dest="configDef", action="append", default=None, help="Specifies json files containing configurations definition")
+parser.add_argument("--property", dest="properties", action="append", default=[], help="Specifies property")
+parser.add_argument("--tag", dest="tags", action="append", default=[], help="Specifies tag")
 parser.add_argument("--testset", dest="testset", action="append", default=None, metavar="PATH", help="Path to the testset. Default: %(default)s")
 parser.add_argument("--cmd", dest="commands", action="append", default=None, metavar="PATH", help="Add command to be executed. Default: %(default)s")
+parser.add_argument("--cmd-exclude", dest="commands_exclude", action="append", default=None, metavar="PATH", help="Add command to be excluded. Default: %(default)s")
 parser.add_argument("--gui", dest="gui", action="store_true", help="Opens user interface")
+parser.add_argument("--no-fail", dest="no_fail", action="store_true", help="Return an error if there is any test failure")
 parser.add_argument("--dry-run", dest="dry_run", action="store_true", help="Dry run")
 parser.add_argument("--threads", dest="threads", default=None, type=int, help="Specify the number of worker threads")
 parser.add_argument("--load-average", dest="load_average", default=0.9, type=float, help="Specify the system average load that this tool should try to respect, from 0 to 1")
@@ -183,11 +187,24 @@ def command_handle():
 if len(args.command) == 0 and not args.gui:
   args.command.append('run')
 
+if os.environ.get('PLPTEST_DEFAULT_PROPERTIES') is not None:
+  properties = []
+  for prop in os.environ.get('PLPTEST_DEFAULT_PROPERTIES').split(' '):
+    properties.append(prop)
+
+  args.properties = properties + args.properties
+
+if os.environ.get('PMSIS_OS') is not None:
+  args.properties.append('os=%s' % os.environ.get('PMSIS_OS'))
+
+if os.environ.get('PMSIS_PLATFORM') is not None:
+  args.properties.append('platform=%s' % os.environ.get('PMSIS_PLATFORM'))
+
 runner = TestRunner(
     nbThreads=args.threads, stdout=args.stdout, safe_stdout=args.safe_stdout, maxOutputLen=args.maxOutputLen,
     maxTimeout=args.maxTimeout, worker_pool=args.worker_pool, db=args.db, average_load=args.load_average,
-    bench_csv_file=bench_csv_file, bench_regexp=args.bench_regexp, commands=args.commands, dry_run=args.dry_run,
-    server=args.gui
+    bench_csv_file=bench_csv_file, bench_regexp=args.bench_regexp, commands=args.commands, exclude_commands=args.commands_exclude, dry_run=args.dry_run,
+    server=args.gui, properties=args.properties, tags=args.tags
 )
 for testset in args.testset:
   runner.addTestset(testset)
@@ -212,3 +229,6 @@ if bench_csv_file is not None:
     csv_writer = csv.writer(file)
     for key, value in bench_csv_file.items():
       csv_writer.writerow([key] + value)
+
+if args.no_fail:
+  exit(runner.plpobjects.status())

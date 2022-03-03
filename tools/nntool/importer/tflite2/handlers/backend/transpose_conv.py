@@ -12,7 +12,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.dim import Conv2DFilterDim, PadDim, StrideDim
+import numpy as np
+from graph.types.constant_input import ConstantInputParameters
+from graph.dim import Conv2DFilterDim, Dim, PadDim, StrideDim
 from graph.types import NNEdge, TransposeConv2DParameters
 from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
@@ -20,6 +22,7 @@ from importer.tflite2.common.tflite_node import TFLiteNode
 from importer.tflite2.tflite_schema_head.Padding import Padding
 from importer.tflite2.tflite_schema_head.TransposeConvOptions import \
     TransposeConvOptions
+from importer.common.check_batchdim import check_batchdim
 
 from ..backend_handler import BackendHandler
 from ..handler import tflite_op, partial_support, ps_description
@@ -41,17 +44,22 @@ class TransposeConv(ConstantMixin, FilterMixin, BackendHandler):
 
         inputs = [all_nodes[t] for t in node.input]
         x = inputs[2]
+        x = check_batchdim(G, x, node.name)
         x_shape = x[2].shape
         in_b, in_h, in_w, in_c = tuple(x_shape)
         pout_shape = [dim if x_shape[idx] is not None else None for idx,
                       dim in enumerate(cls.get_constant(inputs[0]))]
         out_b, out_h, out_w, out_c = tuple(pout_shape)
 
+
         filt = inputs[1]
         weights_node = filt[0]
         filt_shape = filt[2].shape
         # # ['in_c', 'h', 'w', 'out_c']
         filt_out_c, filt_h, filt_w, filt_in_c = tuple(filt_shape)
+        bias_node = ConstantInputParameters(f'{node.name}_bias',
+                                                        dims=Dim.unnamed([filt_out_c]),
+                                                        value=np.zeros([filt_out_c], dtype=np.float32))  # TODO - check
 
         filt_dim = Conv2DFilterDim(filt_h, filt_w,
                                    filt_out_c, in_c=filt_in_c)
@@ -82,6 +90,7 @@ class TransposeConv(ConstantMixin, FilterMixin, BackendHandler):
         G.add_edge(
             NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         G.add_edge(NNEdge(from_node=weights_node, to_node=params, to_idx=1))
+        G.add_edge(NNEdge(from_node=bias_node, to_node=params, to_idx=2))
         pout_dims = ProvisionalDim(pout_shape)
 
         all_nodes[node.output[0]] = (params, 0, pout_dims)

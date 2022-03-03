@@ -53,7 +53,7 @@ def expand_padding(from_shape, to_shape, padding):
 @match_name('fuse_pad')
 @description('Fuse pad operation to subsequent Convolution or Pool')
 @groups('*')
-@run_before('match_gap_conv', 'match_gap_pool')
+@run_before('fuse_gap_convs', 'fuse_gap_pool')
 class MatchFusePad(Matcher):
     @staticmethod
     def remove_padding(shape, padding):

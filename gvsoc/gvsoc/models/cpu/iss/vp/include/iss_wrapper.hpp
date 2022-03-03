@@ -113,6 +113,7 @@ public:
 
   vp::wire_slave<int>      irq_req_itf;
   vp::wire_master<int>     irq_ack_itf;
+  vp::wire_master<bool>     busy_itf;
 
   vp::wire_master<bool>    flush_cache_req_itf;
   vp::wire_slave<bool>     flush_cache_ack_itf;
@@ -142,8 +143,7 @@ public:
   vp::reg_1     do_step;
 
   std::vector<vp::power::power_source> insn_groups_power;
-  vp::power::power_source clock_gated_power;
-  vp::power::power_source leakage_power;
+  vp::power::power_source background_power;
 
   vp::trace     state_event;
   vp::trace     pc_trace_event;

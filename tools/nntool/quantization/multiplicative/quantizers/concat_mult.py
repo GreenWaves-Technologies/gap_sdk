@@ -30,8 +30,8 @@ LOG = logging.getLogger('nntool.' + __name__)
 
 
 @params_type(ConcatParameters)
-@in_qs_constraint(MatchAll({'dtype': set([np.int8, np.uint8])}))
-@out_qs_constraint({'dtype': set([np.int8, np.uint8])})
+@in_qs_constraint(MatchAll({'dtype': {np.int8, np.uint8, np.int16, np.uint16}}))
+@out_qs_constraint({'dtype': {np.int8, np.uint8, np.int16, np.uint16}})
 @needs_stats(False)
 class ConcatMult(MultQuantizionHandler, ConcatMixin):
 
@@ -47,6 +47,13 @@ class ConcatMult(MultQuantizionHandler, ConcatMixin):
         # fits the most int bits
         # TODO - Need to handle unsigned / signed
         # take maximum amount of inputs of a type to force that type
+
+        # get min and max representable range from each QType
+        # get max size dtype qtypes
+        # if one can represent range then return that
+        # else return new with same dtype
+        # vote for asymmetric
+ 
         max_scale_idx = max(
             [(idx, in_q.scale) for idx, in_q in enumerate(in_qs)], key=lambda x: x[1])[0]
         return in_qs[max_scale_idx]

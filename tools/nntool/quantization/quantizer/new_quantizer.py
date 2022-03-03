@@ -15,10 +15,13 @@
 
 import logging
 from functools import reduce
-from operator import attrgetter
 
+from graph.matches.matchers.duplicate_operations import \
+    MatchDuplicateOperations
+from graph.matches.matchers.insert_copies import MatchInsertCopies
 from graph.matches.matchers.remove_copies import RemoveCopies
-from graph.matches.matchers.remove_unnecessary_quantize_operators import RemoveUnnecessaryQuantizeOperators
+from graph.matches.matchers.remove_unnecessary_quantize_operators import \
+    RemoveUnnecessaryQuantizeOperators
 from graph.types import (FusionBase, FusionInputParameters,
                          FusionOutputParameters, QuantizeParameters)
 from graph.types.base import NNEdge
@@ -92,6 +95,14 @@ class NewQuantizer():
 
     def set_options(self, **kwargs):
         self._options.update(kwargs)
+
+    def update_options(self, new_options):
+        for k, v in new_options.items():
+            old_v = self._options.get(k, None)
+            if isinstance(old_v, dict) and isinstance(v, dict):
+                old_v.update(v)
+            else:
+                self._options[k] = v
 
     @property
     def schemes(self):
@@ -287,14 +298,36 @@ class NewQuantizer():
             return qtypes[0]
         raise CantContinueError()
 
-    def get_outqtypes_up(self, G, node):
+    @staticmethod
+    def most_precise(qtypes, stat):
+        # reduce to unique qtypes and sort most precise first
+        sorted_qtypes = sorted(
+            reduce(
+                lambda s, x: s if x in s else s + [x],
+                qtypes,
+                []),
+            key=QType.precision_key(), reverse=True)
+        if sorted_qtypes[0].is_floating:
+            return sorted_qtypes[0]
+        assert stat
+        # here none are float
+        # choose closest to range with max bits
+        max_bits = max(x.bits for x in sorted_qtypes)
+        sorted_qtypes = filter(lambda x: x.bits == max_bits, sorted_qtypes)
+        sorted_qtypes = sorted(
+            sorted_qtypes,
+            key=lambda x: abs(x.min - stat['min']) + abs(x.max - stat['max']))
+        return sorted_qtypes[0]
+        
+
+    def get_outqtypes_up(self, G, node, stat):
         # this function copes with the conflict on output edges which is the most complicated scenario since
         # there can be multiple competing forces. This only handles the cases that we have seen in real models
         # or been able to emulate in synthetic models.
         qtypes = []
-        for cur_qtypes, forced_qtypes in [zip(*[(self.get_qtype_forced_up(edge), self.get_conflict_up(edge))
-                                                for edge in edge_bundle])
-                                          for edge_bundle in G.indexed_out_edges(node)]:
+        for (cur_qtypes, forced_qtypes), edge_idx in [(zip(*[(self.get_qtype_forced_up(edge), self.get_conflict_up(edge))
+                                                             for edge in edge_bundle]), idx)
+                                                      for idx, edge_bundle in enumerate(G.indexed_out_edges(node))]:
             forced_qtypes = no_nones(forced_qtypes)
             if not forced_qtypes:
                 qtypes.append(None)
@@ -304,30 +337,10 @@ class NewQuantizer():
                     qtypes.append(forced_qtypes[0])
                     continue
             else:
-                # more than one output edge
-                if any(qtype.is_floating for qtype in forced_qtypes):
-                    return sorted(forced_qtypes, key=attrgetter('bits'))[-1]
-                uniq_cur_qtypes = reduce(
-                    lambda s, x: s if x in s else s + [x], cur_qtypes, [])
-                if len(uniq_cur_qtypes) == 1:
-                    uniq_cur_qtype = uniq_cur_qtypes[0]
-                    if len(cur_qtypes) > len(forced_qtypes):
-                        qtypes.append(uniq_cur_qtype)
-                        continue
-                    else:
-                        # all outputs are forced. we want to keep the one that best represents
-                        # the output so we calculate the maximum overlapping range
-                        # TODO - what about 16 bit versus 8 bit - if the range overlap is similar
-                        # then lower scale should be taken into account
-                        range_diffs = sorted([(qtype, min(qtype.max, uniq_cur_qtype.max_val) - max(
-                            qtype.min, uniq_cur_qtype.min_val)) for qtype in forced_qtypes], key=lambda x: x[1])
-                        qtypes.append(range_diffs[-1][0])
-                        continue
-            cur_qtypes = ",".join(str(qtype) for qtype in cur_qtypes)
-            forced_qtypes = ",".join(str(qtype) for qtype in forced_qtypes)
-            raise NotImplementedError(
-                f'unexpected quantization conflict seen cur {cur_qtypes} forced {forced_qtypes}'
-                ' - please contact GreenWaves')
+                edge_stat = stat and stat['range_out'][edge_idx]
+                qtypes.append(self.most_precise(cur_qtypes + forced_qtypes, edge_stat))
+                continue
+
         return qtypes
 
     def get_outqtypes_up_fusion(self, G, node):
@@ -364,6 +377,7 @@ class NewQuantizer():
             node_options = self._options.get(nid, {})
             opts.update({k: v for k, v in node_options.items()
                          if k in opts})
+            opts['set_on_node'] = list(node_options.keys())
         else:
             opts = {k: v for k, v in self._options.items()
                     if not isinstance(k, NodeId)}
@@ -411,7 +425,8 @@ class NewQuantizer():
             'all_stats': self._stats,
             'fusion': fusion,
             'cur_G': cur_G,
-            'graph_update': self._postprocess
+            'graph_update': self._postprocess,
+            'qset': self.qset
         }
         if set_out_qs:
             kwargs['out_qs'] = out_qs
@@ -625,7 +640,7 @@ class NewQuantizer():
         self.set_qtype_up(edge, qrec.in_qs[edge.to_idx])
         if self.is_conflict(edge):
             if fusion:
-                raise CantContinueError()
+                raise CantContinueError()  # @IgnoreException
             if not was_conflict:
                 self.report_conflict(edge)
         else:
@@ -723,7 +738,7 @@ class NewQuantizer():
             for edge in edge_bundle:
                 was_conflict = self.is_conflict(
                     edge) if edge in self._qtypes else False
-                self.set_qtype_up(edge, out_qtypes[edge.from_idx])
+                self.set_qtype_down(edge, out_qtypes[edge.from_idx])
                 if self.is_conflict(edge):
                     if not was_conflict:
                         self.report_conflict(edge)
@@ -743,13 +758,13 @@ class NewQuantizer():
 
     def evaluate(self, cur_G, node, direction, qrecs, fusion=None):
         in_qs = self.get_inqtypes_down(cur_G, node)
-        if fusion:
-            out_qs = self.get_outqtypes_up_fusion(cur_G, node)
-        else:
-            out_qs = self.get_outqtypes_up(cur_G, node)
         nid = NodeId(node) if fusion is None else NodeId(fusion, fnode=node)
         pnid = NodeId(node) if fusion is None else NodeId(fusion)
         stat = self._stats.get(nid, None)
+        if fusion:
+            out_qs = self.get_outqtypes_up_fusion(cur_G, node)
+        else:
+            out_qs = self.get_outqtypes_up(cur_G, node, stat)
         opts = self.get_options(pnid)
         scheme_priority = self.get_scheme_priority(pnid)
         if isinstance(node, FusionBase) and node.quantize_internals:
@@ -793,7 +808,8 @@ class NewQuantizer():
                 if not self.is_conflict(out_edge):
                     continue
                 qrecs.update(self.elimination_pass_down(cur_G,
-                                                        out_edge, self.get_qtype_down(out_edge),
+                                                        out_edge, self.get_qtype_down(
+                                                            out_edge),
                                                         visited + [node], fusion=fusion))
 
     def continue_up(self, cur_G, qrecs, visited, node, qrec, exclude_edge=None, fusion=None):
@@ -881,6 +897,9 @@ class NewQuantizer():
             for out_edge in self._graph.out_edges(qnode):
                 self._qtypes[out_edge] = to_qtype
         RemoveCopies().match(self._graph)
+        MatchDuplicateOperations(
+            limit_to_dest_classes=QuantizeParameters).match(self._graph)
+        MatchInsertCopies().match(self._graph)
 
     def remove_quantizers(self, only_inserted=False):
         for node in self._graph.nodes(node_classes=QuantizeParameters):

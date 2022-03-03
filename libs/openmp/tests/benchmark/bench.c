@@ -169,8 +169,8 @@ void launch_test(void)
     uint32_t errors = 0;
     uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();
 
-    struct pi_device cluster_dev = {0};
-    struct pi_cluster_conf cl_conf = {0};
+    struct pi_device cluster_dev;
+    struct pi_cluster_conf cl_conf;
 
     /* Init cluster configuration structure. */
     pi_cluster_conf_init(&cl_conf);
@@ -184,9 +184,8 @@ void launch_test(void)
     }
 
     /* Prepare cluster task and send it to cluster. */
-    struct pi_cluster_task cl_task = {0};
-    cl_task.entry = test_entry;
-    cl_task.arg = NULL;
+    struct pi_cluster_task cl_task;
+    pi_cluster_task(&cl_task, test_entry, NULL);
 
     pi_cluster_send_task_to_cl(&cluster_dev, &cl_task);
 

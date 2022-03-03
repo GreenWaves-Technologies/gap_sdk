@@ -120,7 +120,7 @@ class ConvTranspose(BackendHandler, ConstantMixin):
                                                   dims=Dim.unnamed(
                                                       biases.shape))
 
-        padding, dilations, strides, output_padding = cls.calc_shapes(node, spatial_size, Dim2D((h, w)), Dim2D((filt_h, filt_w)))
+        padding, dilations, strides, output_padding = cls.calc_shapes(node, spatial_size, Dim2D(h, w), Dim2D(filt_h, filt_w))
 
         params = TransposeConv2DParameters(valid_name,
                                   filt=filt_dim,

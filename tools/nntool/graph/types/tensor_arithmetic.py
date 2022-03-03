@@ -219,7 +219,7 @@ class MatMulOpParameters(Parameters, SensitiveToOrder):
         col_m1 = self.in_dims[0].shape[-1]
         col_m2 = self.in_dims[1].shape[-2] if isinstance(self, MatMulTransposedParameters) else self.in_dims[1].shape[-1]
         n_mat = np.prod(self.in_dims[1].shape[:-2])
-        return n_mat * (line_m1 * col_m1 * col_m2)
+        return int(n_mat * (line_m1 * col_m1 * col_m2))
 
     def get_output_size(self, in_dims):
         x_shape = list(in_dims[0].shape).copy()

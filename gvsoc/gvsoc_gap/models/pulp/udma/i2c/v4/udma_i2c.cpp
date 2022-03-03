@@ -38,7 +38,8 @@ I2c_periph::I2c_periph(udma *top, int id, int itf_id) :
                 _2),
             std::bind(&I2c_periph::i2c_cancel_event,
                 this,
-                _1)
+                _1),
+                "i2c" + std::to_string(itf_id)
             ),
     is_waiting_i2c_start(false),
     is_waiting_i2c_data(false),
@@ -295,7 +296,7 @@ void I2c_periph::i2c_sync(void *__this, int scl, int sda)
 
 void I2c_periph::ucode_handler(ucode_data_t data)
 {
-    //I2C_PERIPH_FPRINTF("[I2C] ucode_handler: data.id=%d\n", data.id);
+    I2C_PERIPH_FPRINTF("[I2C] ucode_handler: data.id=0x%x\n", data.id);
     switch(data.id)
     {
         case CMD_MISC_NOP:
@@ -367,11 +368,10 @@ void I2c_periph::ucode_handler(ucode_data_t data)
             }
             break;
         case CMD_LEAD_RECV:
-            if (this->repeat_downcounter == 0)
+            if (this->repeat_downcounter > 0)
             {
-                this->repeat_downcounter = 1;
+                this->is_waiting_i2c_data = true;
             }
-            this->is_waiting_i2c_data = true;
             break;
         case CMD_LEAD_RECV_LAST:
             // TODO
@@ -576,7 +576,7 @@ void I2c_periph::i2c_helper_callback(i2c_operation_e id, i2c_status_e status, in
 
 void I2c_periph::i2c_start(void)
 {
-    if (!this->i2c_helper.is_busy())
+    if (1) //!this->i2c_helper.is_busy())
     {
         I2C_PERIPH_FPRINTF("Sending start directly\n");
         this->is_waiting_i2c_start = true;

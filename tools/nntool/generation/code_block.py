@@ -15,11 +15,38 @@
 
 QUOTE = lambda s: '"'+s+'"'
 
+
 class CodeBlock():
+
+    class CommentWriter():
+        def __init__(self, cb, max_len) -> None:
+            self._cb = cb
+            self._max_len = max_len
+            self.reset()
+
+        def write(self, comment):
+            for elem in comment.split(' '):
+                if self._cur_len + len(elem) + 1 > self._max_len:
+                    self.end()
+                self._cur_line.append(elem)
+                self._cur_len += len(elem) + 1
+
+        def end(self):
+            self._cb.write(f'// {" ".join(self._cur_line)}')
+            self.reset()
+
+        def reset(self):
+            self._cur_line = []
+            self._cur_len = len(self._cb.get_indent()) + 3
+
     def __init__(self, starting_indent=0, indent_char="    "):
         self._indent = starting_indent
         self._indent_char = indent_char
         self._lines = []
+
+    @property
+    def lines(self):
+        return self._lines
 
     def indent(self):
         self._indent += 1
@@ -59,6 +86,9 @@ class CodeBlock():
         fmt = self.get_indent() + fmt
         self._lines.insert(0, fmt.format(*args))
         return self
+
+    def start_long_comment(self, max_len=80):
+        return CodeBlock.CommentWriter(self, max_len)
 
     def comment(self, fmt, *args):
         fmt = self.get_indent() + '// ' + fmt

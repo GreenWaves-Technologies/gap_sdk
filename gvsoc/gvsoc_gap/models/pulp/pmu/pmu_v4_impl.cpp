@@ -236,6 +236,7 @@ public:
 private:
   pmu *top;
   vp::wire_master<bool>  reset_itf;
+  vp::wire_master<int>  power_itf;
   pmu_icu_state states[16];
   int index;
   int current_supply_state;
@@ -706,6 +707,11 @@ void pmu_icu::icu_ctrl_req(bool is_write, uint16_t pwdata)
     }
   }
 
+  if (this->power_itf.is_bound())
+  {
+    this->power_itf.sync(state->supply == MAESTRO_ICU_SUPPLY_ON);
+  }
+
   this->current_supply_state = state->supply;
 
   top->picl_reply();
@@ -797,6 +803,7 @@ pmu_icu::pmu_icu(pmu *top, int index)
 : pmu_picl_slave(top), top(top), index(index)
 {
   top->new_master_port("icu" + std::to_string(index) + "_reset", &this->reset_itf);
+  top->new_master_port("icu" + std::to_string(index) + "_power", &this->power_itf);
 
   for (int i=0; i<16; i++)
   {

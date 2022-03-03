@@ -14,22 +14,30 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
+
+import numpy as np
 
 from generation.at_types.at_params import NO_ACTIVATION, gen_activation_op
+from generation.at_types.constant_info import ConstantInfo
 from generation.at_types.gen_ctrl import GenCtrl
+from generation.at_types.tc_arg_info import GlobalArgInfo
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  GNodeArgNode, NodeBindingList)
-from generation.generators.globals.mult8_infos_generator import act_infos
+from generation.generators.globals.global_names import INFOS
 from generation.generators.kernels.autotiler_kernel import NewAutoTilerKernel
+from generation.helpers.gen_constant import gen_constant
 from generation.new_generators.generator_base import (GeneratorBase, ktype,
                                                       paramstype)
+from generation.new_generators.helpers.act_infos import gen_act_infos
+from generation.new_generators.mult8.conv_pool_mult8 import SQ8ActInfos
 from generation.new_generators.mult8.matadd_mult8 import make_three_dims
-from graph.types import MatrixAddParameters, ActivationParameters, PaddedAddFusionParameters
-from quantization.multiplicative.mulbias import compute_in_out_scale, set_add_in_scale
+from graph.types import (ActivationParameters, MatrixAddParameters,
+                         PaddedAddFusionParameters)
+from quantization.qtype import QType
 from utils.node_id import NodeId
 
 LOG = logging.getLogger("nntool." + __name__)
-
 
 @paramstype(PaddedAddFusionParameters)
 @ktype("scaled")
@@ -37,37 +45,69 @@ class PaddedMatAddSQ8Generator(GeneratorBase):
 
     @classmethod
     def globals_generator(cls, gen, node, qrec, pnode, fnode) -> bool:
-        cnodes = node.contained_nodes()
-        quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
-        for qrec in quants:
-            compute_in_out_scale(qrec)
-        act_node = [cnode for cnode in cnodes if isinstance(
-            cnode, ActivationParameters)]
-        act_node = act_node[0] if act_node else None
-        act_qrec = quants[-1] if act_node else None
-        set_add_in_scale(quants[1])
-        act_infos(gen, pnode, pnode, act_node, act_qrec,
-                  extra1=quants[1].cache['scale_in_mul_biases_q'].qbiases[0],
-                  extra2=quants[1].cache['scale_in_mul_biases_q'].qnorms[0],
-                  extra3=quants[1].cache['scale_mul_biases_q'].qbiases[0],
-                  extra4=quants[1].cache['scale_mul_biases_q'].qnorms[0])
-        act_infos(gen, pnode, cnodes[0], act_node, act_qrec, extra_name="Pad",
-                  extra1=quants[1].cache['scale_mul_biases_q'].qbiases[0],
-                  extra2=quants[1].cache['scale_mul_biases_q'].qnorms[0])
+        cnodes = pnode.contained_nodes()
+        quants = [gen.G.quantization[NodeId(pnode, cnode)] for cnode in cnodes]
+
+        if len(cnodes) == 3:
+            assert isinstance(cnodes[2], ActivationParameters)
+            infos, acomments = gen_act_infos(cnodes[2], quants[2])
+        else:
+            infos, acomments = {}, "no activation"
+
+        # TODO: Why separate infos? Ask Marco
+
+        infos1 = infos.copy()
+        infos1.update({
+            'IN1SCALE': quants[1].cache['scale_in_mul_biases_q'].qbiases,
+            'IN1SCALEN': quants[1].cache['scale_in_mul_biases_q'].qnorms,
+            'OUTSCALE': quants[1].cache['scale_mul_biases_q'].qbiases,
+            'OUTSCALEN': quants[1].cache['scale_mul_biases_q'].qnorms
+        })
+        infos_encoder = SQ8ActInfos()
+        contents, comments = infos_encoder.gen_infos_array('DIM', **infos1)
+
+        cname, file_name = gen_constant(gen, pnode, pnode, INFOS)
+        const_info = ConstantInfo(file_name, QType.Pow2(
+            bits=8, q=0, signed=True), contents=contents)
+        gen.globals.append(GlobalArgInfo("int8", cname,
+                                        gen.opts['default_global_home_location'],
+                                        gen.opts['default_global_exec_location'],
+                                        const_info=const_info,
+                                        comment=comments))
+
+        # Padded part needs to apply out scale of the matadd + act scale
+        double_scale = MultMulBiasScaleQType(
+            dtype=np.uint8,
+            scale=quants[1].cache['scale_mul_biases_q'].scale * quants[2].cache['scale_mul_biases_q'].scale \
+                if len(cnodes) == 3 else \
+                  quants[1].cache['scale_mul_biases_q'].scale
+        )
+        infos['actscale'] = double_scale.qbiases
+        infos['actscalen'] = double_scale.qnorms
+        infos_encoder = SQ8ActInfos()
+        contents, comments = infos_encoder.gen_infos_array('DIM', **infos)
+
+        cname, file_name = gen_constant(gen, pnode, cnodes[0], INFOS, extra_name='Pad')
+        const_info = ConstantInfo(file_name, QType.Pow2(
+            bits=8, q=0, signed=True), contents=contents)
+        gen.globals.append(GlobalArgInfo("int8", cname,
+                                        gen.opts['default_global_home_location'],
+                                        gen.opts['default_global_exec_location'],
+                                        const_info=const_info,
+                                        comment=comments))
         return True
 
+
     @classmethod
-    def bindings_generator(cls, gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
-        step_idx = node.step_idx
-        cnodes = node.contained_nodes()
-        quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
+    def bindings_generator(cls, gen, pnode, qrec, in_eparams, out_eparams, cname) -> bool:
+        cnodes = pnode.contained_nodes()
+        quants = [gen.G.quantization[NodeId(pnode, fnode)] for fnode in cnodes]
         add_node = [node for node in cnodes if isinstance(
             node, MatrixAddParameters)]
         if add_node:
             quants = [gen.G.quantization[NodeId(
-                node, fnode)] for fnode in cnodes]
+                pnode, fnode)] for fnode in cnodes]
 
-        set_add_in_scale(quants[1])
         scaled_idx = quants[1].cache['scaled_idx']
         not_scaled_idx = 0 if scaled_idx else 1
         gen.bindings.append(
@@ -78,8 +118,8 @@ class PaddedMatAddSQ8Generator(GeneratorBase):
             NodeBindingList(cname, GNodeArgEdge(in_eparams[scaled_idx]),
                             GNodeArgEdge(in_eparams[not_scaled_idx]),
                             GNodeArgEdge(out_eparams[0], "GNA_OUT"),
-                            GNodeArgNode(node, 'infos'),
-                            GNodeArgNode(node.contained_nodes()[0], 'infos')
+                            GNodeArgNode(pnode, 'infos'),
+                            GNodeArgNode(cnodes[0], 'infos')
                             ))
         return True
 

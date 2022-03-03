@@ -26,7 +26,8 @@
 #define pi_data_free(x,y)     pmsis_l2_malloc_free(x,y)
 
 #define PI_TASK_IMPLEM                          \
-    uint8_t destroy;
+    uint8_t destroy;                            \
+    uint32_t time;
 
 #define PI_TASK_IMPLEM_NB_DATA 9
 

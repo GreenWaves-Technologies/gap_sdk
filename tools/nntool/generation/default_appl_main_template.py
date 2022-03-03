@@ -57,7 +57,6 @@ int test_${gen.project_name}(void)
      * Put here Your input settings
      * <---------------
      */
-    
 
 #ifndef __EMUL__
     /* Configure And open cluster. */
@@ -70,22 +69,19 @@ int test_${gen.project_name}(void)
         printf("Cluster open failed !\\n");
         pmsis_exit(-4);
     }
-    int cur_fc_freq = pi_freq_set(PI_FREQ_DOMAIN_FC, ${gen.opts['fc_freq']});
-    if (cur_fc_freq == -1)
+
+    /* Frequency Settings: defined in the Makefile */
+    int cur_fc_freq = pi_freq_set(PI_FREQ_DOMAIN_FC, FREQ_FC*1000*1000);
+    int cur_cl_freq = pi_freq_set(PI_FREQ_DOMAIN_CL, FREQ_CL*1000*1000);
+    int cur_pe_freq = pi_freq_set(PI_FREQ_DOMAIN_PERIPH, FREQ_PE*1000*1000);
+    if (cur_fc_freq == -1 || cur_cl_freq == -1 || cur_pe_freq == -1)
     {
         printf("Error changing frequency !\\nTest failed...\\n");
         pmsis_exit(-4);
     }
+	printf("FC Frequency as %d Hz, CL Frequency = %d Hz, PERIIPH Frequency = %d Hz\\n", 
+            pi_freq_get(PI_FREQ_DOMAIN_FC), pi_freq_get(PI_FREQ_DOMAIN_CL), pi_freq_get(PI_FREQ_DOMAIN_PERIPH));
 
-    int cur_cl_freq = pi_freq_set(PI_FREQ_DOMAIN_CL, ${gen.opts['cl_freq']});
-    if (cur_cl_freq == -1)
-    {
-        printf("Error changing frequency !\\nTest failed...\\n");
-        pmsis_exit(-5);
-    }
-#ifdef __GAP9__
-    pi_freq_set(PI_FREQ_DOMAIN_PERIPH, 250000000);
-#endif
 #endif
     // IMPORTANT - MUST BE CALLED AFTER THE CLUSTER IS SWITCHED ON!!!!
     printf("Constructor\\n");
@@ -99,7 +95,8 @@ int test_${gen.project_name}(void)
 
     printf("Call cluster\\n");
 #ifndef __EMUL__
-    struct pi_cluster_task task = {0};
+    struct pi_cluster_task task;
+    pi_cluster_task(&task,NULL,NULL);
     task.entry = cluster;
     task.arg = NULL;
     task.stack_size = (unsigned int) STACK_SIZE;
@@ -186,7 +183,7 @@ MODEL_BUILD=BUILD_MODEL$(MODEL_SUFFIX)
 
 TRAINED_MODEL = ${os.path.split(G.graph_identity.filename)[1]}
 
-MODEL_EXPRESSIONS = ${"$(MODEL_BUILD)/" + gen.opts['basic_kernel_source_file'] if gen.G.has_expressions else ""}
+MODEL_EXPRESSIONS = ${"$(MODEL_BUILD)/" + gen.opts['basic_kernel_source_file']}
 
 NNTOOL_EXTRA_FLAGS += ${open_args}
 ${"MODEL_QUANTIZED=1" if quantized else ""}
@@ -200,6 +197,15 @@ TARGET_L3_SIZE = ${gen.opts['l3_size']}
 CLUSTER_STACK_SIZE=${gen.opts['cluster_stack_size']}
 CLUSTER_SLAVE_STACK_SIZE=${gen.opts['cluster_slave_stack_size']}
 CLUSTER_NUM_CORES=${gen.opts['cluster_num_cores']}
+
+# FLASH and RAM type
+FLASH_TYPE = ${"MRAM" if gen.opts['l3_flash_device'] == 'AT_MEM_L3_MRAMFLASH' else \
+               "QSPI" if gen.opts['l3_flash_device'] == 'AT_MEM_L3_QSPIFLASH' else \
+               "OSPI" if gen.opts['l3_flash_device'] == 'AT_MEM_L3_OSPIFLASH' else \
+               "HYPER"}
+RAM_TYPE   = ${"QSPI" if gen.opts['l3_ram_device'] == 'AT_MEM_L3_QSPIRAM' else \
+               "OSPI" if gen.opts['l3_ram_device'] == 'AT_MEM_L3_OSPIRAM' else \
+               "HYPER"}
 
 NNTOOL_SCRIPT = nntool_script
 ${"APP_CFLAGS += -DSTD_FLOAT" if any(qrec[1].out_qs[0].dtype == np.float16 for qrec in G.quantization.sorted_iterator(G)) else ""}
@@ -225,7 +231,7 @@ MODEL_BUILD=BUILD_MODEL$(MODEL_SUFFIX)
 
 AT_MODEL_PATH=${model_path}
 
-MODEL_EXPRESSIONS = ${gen.opts['basic_kernel_source_file'] if gen.G.has_expressions else ""}
+MODEL_EXPRESSIONS = ${gen.opts['basic_kernel_source_file']}
 
 ${"MODEL_QUANTIZED=1" if quantized else ""}
 

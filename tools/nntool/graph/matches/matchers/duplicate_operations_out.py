@@ -23,7 +23,7 @@ from ..matcher import Matcher, description, groups, match_name, run_before
 LOG = logging.getLogger("nntool." + __name__)
 
 
-@match_name("match_duplicate_operations_out")
+@match_name("duplicate_operations_out")
 @description("""Removes operations that are duplicates on the same out edge""")
 @run_before("*")
 @groups('*')
@@ -37,7 +37,8 @@ class MatchDuplicateOperationsOut(Matcher):
         out_edges_bundle = [G.indexed_out_edges(node.name) for node in nodes]
         if any(len(out_edges) != 1 or len(out_edges[0]) != 1 for out_edges in out_edges_bundle):
             return result
-        if any(not isinstance(node, ComparableParameters) or not node.is_same_operation_as(G, nodes[0])
+        # node == nodes[0] added since node could be a multi input expression
+        if any(not isinstance(node, ComparableParameters) or not node.is_same_operation_as(G, nodes[0]) or node == nodes[0]
                for node in nodes[1::]):
             return result
         if not result:

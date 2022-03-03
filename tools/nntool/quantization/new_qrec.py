@@ -158,7 +158,7 @@ class QRec():
         del params
         if ktype == "symmetric":
             if self._auto_dequantize_outputs:
-                return [self.out_qs[idx].dequantize(output_tensor) for idx, output_tensor in enumerate(output_tensors)]
+                return [self.out_qs[idx].dequantize(x) for idx, x in enumerate(output_tensors)]
             output_tensors = [self.out_qs[idx].clip(output_tensor)
                               for idx, output_tensor in enumerate(output_tensors)]
         return output_tensors

@@ -14,21 +14,24 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from cmd2 import Cmd2ArgumentParser, with_argparser
-from interpreter.nntool_shell_base import NNToolShellBase
+from interpreter.nntool_shell_base import NODE_SELECTOR_HELP, NNToolShellBase
 from graph.manipulations.extract import extract_node
 
 class ExtractCommand(NNToolShellBase):
     # EXTRACT COMMAND
     parser_extract = Cmd2ArgumentParser()
     parser_extract.add_argument('step',
-                                type=int,
-                                help='step number to extract')
+                              help='step to extract. ' + NODE_SELECTOR_HELP,
+                              completer_method=NNToolShellBase.node_step_or_name_completer(allow_comma=True))
 
     @with_argparser(parser_extract)
     def do_extract(self, args):
         """
-Extracts a single step out of a graph and forms a new graph with inputs and outputs to this step."""
+Extracts a single step out of a graph and forms a new graph with inputs (and constants) and outputs to this step."""
         self._check_graph()
-        if args.step < 0 or args.step > len(self.G.graph_state.steps):
-            self.perror("step must be between 0 and {}".format(len(self.G.graph_state.steps)))
-        extract_node(self.G, self.G.graph_state.steps[args.step]['node'])
+        nodes, _ = self.get_node_step_or_name(args.step, allow_comma=True)
+        if not nodes:
+            self.perror('node not found')
+        if len(nodes) > 1:
+            self.perror('only one node can be extracted')
+        extract_node(self.G, nodes[0])

@@ -940,6 +940,18 @@ static bool hwloop_read(iss_t *iss, int reg, iss_reg_t *value) {
 
 static bool hwloop_write(iss_t *iss, int reg, unsigned int value) {
   iss->cpu.pulpv2.hwloop_regs[reg] = value;
+
+  // Since the HW loop is using decode instruction for the HW loop start to jump faster
+  // we need to recompute it when it is modified.
+  if (reg == 0)
+  {
+      iss->cpu.state.hwloop_start_insn[0] = insn_cache_get(iss, value);
+  }
+  else if (reg == 4)
+  {
+      iss->cpu.state.hwloop_start_insn[1] = insn_cache_get(iss, value);
+  }
+
   return false;
 }
 

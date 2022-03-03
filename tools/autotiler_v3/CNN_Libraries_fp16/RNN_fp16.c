@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+
 #include <stdio.h>
 #include "CNN_BasicKernels_fp16.h"
 
@@ -486,3 +492,5 @@ void GRU_ParKer_fp16(KerGRU_fp16_T *Arg)
 	gap_waitbarrier(0);
 }
 #endif
+
+#pragma GCC diagnostic pop

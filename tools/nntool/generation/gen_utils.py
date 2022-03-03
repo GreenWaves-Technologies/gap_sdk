@@ -13,6 +13,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import os
+
+from utils.exception import NNToolInternelError
+
+
 def at_bits(qtype):
     if qtype is None:
         return 0
@@ -32,3 +37,11 @@ def at_q(qtype):
 
 def at_bits_and_q(qtype):
     return "{}, {}".format(at_bits(qtype), qtype.q)
+
+def write_empty(model_directory, model_file, comment):
+    model_path = os.path.join(model_directory, model_file)
+    with open(model_path, "w") as output_fp:
+        output_fp.write(f"/** {comment}\n**/")
+
+class ModelGenerationInternalError(NNToolInternelError):
+    pass

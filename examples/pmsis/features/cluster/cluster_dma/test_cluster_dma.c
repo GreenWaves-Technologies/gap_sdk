@@ -144,9 +144,8 @@ void test_cluster_dma(void)
         pi_cluster_close(&cluster_dev);
         pmsis_exit(-5);
     }
-    memset(task, 0, sizeof(struct pi_cluster_task));
-    task->entry = master_entry;
-    task->arg = &cl_arg;
+    
+    pi_cluster_task(task, master_entry, &cl_arg);
 
     printf("Sending task.\n");
     #if defined(ASYNC)

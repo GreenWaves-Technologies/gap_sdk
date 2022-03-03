@@ -1,0 +1,25 @@
+name: hyper_ram_multi_thread
+platforms:
+    - gvsoc
+os:
+    - freertos
+chips:
+    - gap8
+    - gap9
+variants:
+    std:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ~
+        compile_only: true
+    async:
+        name: async
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ASYNC=1
+        compile_only: true

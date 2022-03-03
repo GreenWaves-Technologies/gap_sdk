@@ -101,8 +101,8 @@ class MatMulMixin(PromoteLinearMixin):
                 NNEdge(from_node=y[0], to_node=trans2, from_idx=y[1], to_idx=0))
             G.add_edge(
                 NNEdge(from_node=trans2, to_node=params, from_idx=0, to_idx=1))
-            biases_params = ConstantInputParameters(f'{valid_name}_biases', dims=Dim.unnamed([out_dims[0].shape[1]]),
-                                                    value=np.zeros((out_dims[0].shape[1]), dtype=np.float32))
+            biases_params = ConstantInputParameters(f'{valid_name}_biases', dims=Dim.unnamed([out_dims[0].shape[-1]]),
+                                                    value=np.zeros((out_dims[0].shape[-1]), dtype=np.float32))
             G.add_edge(NNEdge(from_node=biases_params,
                               to_node=params, to_idx=2))
 

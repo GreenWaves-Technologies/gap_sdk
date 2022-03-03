@@ -1,7 +1,7 @@
 # User Test
 #------------------------------------
 
-PMSIS_OS?=pulpos
+#PMSIS_OS?=pulpos
 APP              = test
 APP_SRCS        += FFTRunTest.c $(AT_HOME)/DSP_Libraries/FFT_Library.c $(AT_HOME)/DSP_Libraries/LUT_Tables/TwiddlesDef.c $(AT_HOME)/DSP_Libraries/LUT_Tables/SwapTablesDef.c 
 APP_INC	        += 

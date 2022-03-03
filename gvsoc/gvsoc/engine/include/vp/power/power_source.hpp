@@ -25,51 +25,78 @@
 #include "vp/vp_data.hpp"
 
 
+inline void vp::power::power_source::turn_on()
+{
+    this->is_on = true;
+    this->is_dynamic_power_on = true;
+    this->check();
+}
+
+
+inline void vp::power::power_source::turn_off()
+{
+    this->is_on = false;
+    this->is_dynamic_power_on = false;
+    this->check();
+}
+
+inline void vp::power::power_source::turn_dynamic_power_on()
+{
+    this->is_dynamic_power_on = true;
+    this->check();
+}
+
+inline void vp::power::power_source::turn_dynamic_power_off()
+{
+    this->is_dynamic_power_on = false;
+    this->check();
+}
+
 
 inline void vp::power::power_source::leakage_power_start()
 {
-    // Only start accounting leakage if not already done and if leakage is defined
-    if (!this->is_on && this->leakage != -1)
+    // Only start if leakage is defined
+    if (this->leakage != -1)
     {
-        this->trace->inc_leakage_power(this->leakage);
+        this->is_leakage_power_started = true;
+        this->check();
     }
-    this->is_on = true;
 }
 
 
 
 inline void vp::power::power_source::leakage_power_stop()
 {
-    // Only stop accounting leakage if not already done and if leakage is defined
-    if (this->is_on && this->leakage != -1)
+    // Only stop if leakage is defined
+    if (this->leakage != -1)
     {
-        this->trace->inc_leakage_power(-this->leakage);
+        this->is_leakage_power_started = false;
+        this->check();
     }
-    this->is_on = false;
 }
 
 
 
 inline void vp::power::power_source::dynamic_power_start()
 {
-    // Only start accounting background power if not already done and if it is is defined
-    if (!this->is_on && this->background_power != -1)
+    // Only start accounting background power if it is is defined
+    if (this->background_power != -1)
     {
-        this->trace->inc_dynamic_power(this->background_power);
+        this->is_dynamic_power_started = true;
+        this->check();
     }
-    this->is_on = true;
 }
 
 
 
 inline void vp::power::power_source::dynamic_power_stop()
 {
-    // Only stop accounting background power if not already done and if it is is defined
-    if (this->is_on && this->background_power != -1)
+    // Only stop accounting background power if it is is defined
+    if (this->background_power != -1)
     {
-        this->trace->inc_dynamic_power(-this->background_power);
+        this->is_dynamic_power_started = false;
+        this->check();
     }
-    this->is_on = false;
 }
 
 
@@ -77,7 +104,7 @@ inline void vp::power::power_source::dynamic_power_stop()
 inline void vp::power::power_source::account_energy_quantum()
 {
     // Only account energy is a quantum is defined
-    if (this->quantum != -1)
+    if (this->is_on && this->is_dynamic_power_on && this->quantum != -1)
     {
         this->trace->inc_dynamic_energy(this->quantum);
     }

@@ -148,9 +148,41 @@ namespace vp
              */
             void setup(double temp, double volt, double freq);
 
+            /**
+             * @brief Turn on a power source
+             *
+             * This power source should be turned on when its power domain is turned on, in order to start consuming power
+             */
+            void turn_on();
+
+            /**
+             * @brief Turn off a power source
+             *
+             * This power source should be turned off when its power domain is turned off, in order to stop consuming power
+             */
+            void turn_off();
+
+            /**
+             * @brief Turn on a power source
+             *
+             * This power source should be turned on when its power domain is turned on, in order to start consuming power
+             */
+            void turn_dynamic_power_on();
+
+            /**
+             * @brief Turn off a power source
+             *
+             * This power source should be turned off when its power domain is turned off, in order to stop consuming power
+             */
+            void turn_dynamic_power_off();
+
         private:
-            Linear_table *table = NULL;  // Table of power values for all supported temperatures and voltages
-                                        // imported from the json configuration given when trace was initialized.
+            void check();
+
+            Linear_table *dyn_table = NULL;  // Table of power values for all supported temperatures and voltages
+                                     // imported from the json configuration given when trace was initialized.
+            Linear_table *leakage_table = NULL;  // Table of power values for all supported temperatures and voltages
+                                     // imported from the json configuration given when trace was initialized.
             double quantum;          // Current quantumm of energy, for quantum-based power consumption.
                                      // The current value is estimated depending on voltage and temperature according
                                      // to the provided json configuration.
@@ -162,7 +194,12 @@ namespace vp
                                      // to the provided json configuration.
             component *top;          // Top component containing the power source
             power_trace *trace;      // Power trace where the power consumption should be reported.
-            bool is_on = false;      // True is the source is on and backgroun-power and leakage should be reported
+            bool is_dynamic_power_started = false;      // True is the source consuming dynamic backgroun power
+            bool is_leakage_power_started = false;      // True is the source should start consuming leakage power
+            bool is_on = false;      // True is the power domain containing the power source is on and backgroun-power and leakage should be reported
+            bool is_dynamic_power_on = false;      // True is the power domain containing the power source is on and backgroun-power and leakage should be reported
+            bool dynamic_power_is_on_sync = false;
+            bool leakage_power_is_on_sync = false;
         };
 
 
@@ -327,12 +364,16 @@ namespace vp
             // power consumed.
             void account_leakage_power();
 
-            // Check if the current amount of cycle energy is not for the current cycle
+            // Check if the current amount of power due to quantum of energies
+            // is not for the current cycle
             // (by checking the timestamp), and if not, reset it to zero.
-            inline void flush_dynamic_energy_for_cycle();
+            inline void flush_quantum_power_for_cycle();
 
-            // Get the amount of energy spent in the current cycle
-            inline double get_dynamic_energy_for_cycle();
+            // Get the average power of the current cycle due to quantums of energy
+            inline double get_quantum_power_for_cycle();
+
+            // Get the energy spent in the current cycle due to quantums of energy
+            inline double get_quantum_energy_for_cycle();
 
             // Return the total amount of dynamic energy spent since the beginning
             // of the report windows (since report_start was called)
@@ -363,7 +404,7 @@ namespace vp
             int64_t curent_cycle_timestamp;   // Timestamp of the current cycle, used to compute energy spent in the
                                               // current cycle. As soon as current time is different, the timestamp
                                               // is set to current time and the current energy is set to 0.
-            double dynamic_energy_for_cycle;  // Amount of energy spent in the current cycle.
+            double quantum_power_for_cycle;  // Power spent by quentum of energy in the current cycle.
                                               // It is increased everytime a quantum of energy is
                                               // spent and reset to zero when the current cycle is
                                               // over. It is mostly used to compute the instant power
@@ -468,6 +509,15 @@ namespace vp
              */
             vp::power::power_trace *get_power_trace() { return &this->power_trace; }
 
+            /**
+             * @brief Set power supply state
+             * 
+             * This sets the power supply for this component and all his childs.
+             * 
+             * @param state Supply state
+             */
+            void power_supply_set_all(int state);
+
         protected:
             /**
              * @brief Get the report energy from childs object
@@ -516,10 +566,15 @@ namespace vp
             // Get instant power for this component and the whole hierarchy below him.
             double get_power_from_self_and_childs();
 
+            // Set power supply state
+            static void power_supply_sync(void *_this, int state);
+
             component &top;                                // Component containing the power component object
             vp::power::power_trace power_trace;            // Default power trace of this component
             std::vector<vp::power::power_trace *> traces;  // Vector of power traces of this component
+            std::vector<vp::power::power_source *> sources;  // Vector of power sources of this component
             power::engine *engine = NULL;                  // Power engine
+            vp::wire_slave<int> power_port;                // Slave port for setting power supply state
         };
 
 
@@ -541,6 +596,8 @@ namespace vp
              * @param top Top component of teh simulated system.
              */
             engine(vp::component *top);
+
+            ~engine();
 
             /**
              * @brief Start power report generation
@@ -570,6 +627,8 @@ namespace vp
             std::vector<vp::power::power_trace *> traces; // Vector of all traces.
 
             vp::component *top;  // Top component of the simulated architecture
+
+            FILE *file; // File where the power reports are dumped
         };
 
     };

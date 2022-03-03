@@ -21,21 +21,19 @@
 #ifndef __POS_IMPLEM_PE_H__
 #define __POS_IMPLEM_PE_H__
 
+static inline void pi_cl_team_barrier();
 
 static inline void pos_team_cc_barrier()
 {
-#ifdef ARCHI_CC_CORE_ID
-    eu_bar_trig_wait_clr(eu_bar_addr(1));
-#else
     eu_bar_trig_wait_clr(eu_bar_addr(0));
-#endif
 }
 
 
 static inline void pos_team_config_offload(int nb_cores)
 {
     unsigned int core_mask = ((1<<nb_cores) - 1);
-    eu_dispatch_team_config(core_mask);
+    unsigned int dispatch_core_mask = __BITCLR(core_mask, 1, 0);
+    eu_dispatch_team_config(dispatch_core_mask);
     eu_bar_setup_mask(eu_bar_addr(0), core_mask, core_mask);
     // Configure the barrier so that the rendez-vous is between slave cores but the master
     // also receives the notification so that it can wait for the offload termination.
@@ -60,7 +58,7 @@ static inline void pos_team_offload_preset(void (*entry)(void *), void *arg)
 
 static inline void pos_team_offload_wait()
 {
-    pos_team_cc_barrier();
+    pi_cl_team_barrier();
 }
 
 
@@ -72,37 +70,44 @@ static inline int pi_cl_team_nb_cores()
 
 #ifdef CONFIG_PE_TASK
 
-static inline void pi_cluster_pe_task_init(pi_cluster_pe_task_t *task, void (*entry)(pi_cluster_pe_task_t *task, int id))
+extern void pi_cl_workitem_empty_callback(void *arg);
+
+static inline void pi_cl_workitem_init(pi_cl_workitem_t *task, void (*entry)(pi_cl_workitem_t *task, int id))
 {
     task->entry = entry;
     task->nb_cores = 1;
-    task->stacks = NULL;
-    task->callback_entry = NULL;
+    task->callback_entry = pi_cl_workitem_empty_callback;
     task->piped_task = NULL;
 }
 
-static inline void pi_cluster_pe_task_nb_cores(pi_cluster_pe_task_t *task, unsigned int nb_cores)
+static inline void pi_cl_workitem_set_nb_tasks(pi_cl_workitem_t *task, unsigned int nb_cores)
 {
     task->nb_cores = nb_cores;
 }
 
-static inline void pi_cluster_pe_task_callback(pi_cluster_pe_task_t *task, void (*callback)(void *arg), void *arg)
+static inline void pi_cl_workitem_set_callback(pi_cl_workitem_t *task, void (*callback)(void *arg), void *arg)
 {
     task->callback_entry = callback;
     task->callback_arg = arg;
 }
 
-static inline void pi_cluster_pe_task_arg(pi_cluster_pe_task_t *task, int index, uint32_t value)
+static inline void pi_cl_workitem_set_arg(pi_cl_workitem_t *task, int index, uint32_t value)
 {
     task->args[index] = value;
 }
 
-static inline void pi_cluster_pe_task_push(pi_cluster_pe_task_t *task)
+static inline uint32_t pi_cl_workitem_get_arg(pi_cl_workitem_t *task, int index)
+{
+    return task->args[index];
+}
+
+static inline void pi_cl_workitem_push(pi_cl_workitem_t *task)
 {
     task->next = NULL;
     task->nb_done_cores = task->nb_cores;
     task->nb_cores_popped = 0;
     eu_mutex_lock_from_id(0);
+    pos_pending_task++;
     if (pos_cluster_pool.first_pe_task)
     {
         pos_cluster_pool.last_pe_task->next = task;
@@ -119,7 +124,7 @@ static inline void pi_cluster_pe_task_push(pi_cluster_pe_task_t *task)
 }
 
 
-static inline void pi_cluster_pe_task_wait(pi_cluster_pe_task_t *task)
+static inline void pi_cl_workitem_wait(pi_cl_workitem_t *task)
 {
     while(*(volatile int8_t *)&task->nb_done_cores != 0)
     {
@@ -128,7 +133,7 @@ static inline void pi_cluster_pe_task_wait(pi_cluster_pe_task_t *task)
 }
 
 
-static inline void pi_cluster_pe_piped_task_push(pi_cluster_pe_task_t *task, pi_cluster_pe_task_t *piped_task)
+static inline void pi_cluster_pe_piped_task_push(pi_cl_workitem_t *task, pi_cl_workitem_t *piped_task)
 {
     piped_task->next = NULL;
     piped_task->nb_done_cores = piped_task->nb_cores;
@@ -173,9 +178,7 @@ static inline void pi_cl_team_preset_fork(void (*entry)(void *), void *arg)
 {
     pos_team_offload_preset(entry, arg);
 
-#ifndef ARCHI_CC_CORE_ID
     entry(arg);
-#endif
 
     pos_team_offload_wait();
 }
@@ -184,23 +187,52 @@ static inline void pi_cl_team_fork(int nb_cores, void (*entry)(void *), void *ar
 {
     pos_team_offload(nb_cores, entry, arg);
 
-#ifndef ARCHI_CC_CORE_ID
     entry(arg);
-#endif
 
     pos_team_offload_wait();
 }
 
+static inline void pi_cl_team_fork_pe_entry(pi_cl_workitem_t *task, int id)
+{
+    void (*entry)(void *) = (void (*)(void *))pi_cl_workitem_get_arg(task, 0);
+    void *arg = (void *)pi_cl_workitem_get_arg(task, 1);
+    entry(arg);
+}
 
 static inline void pi_cl_team_fork_cc(int nb_cores, void (*entry)(void *), void *arg)
 {
-    pos_team_offload(nb_cores, entry, arg);
+    pi_cl_workitem_t workitem;
+
+    if (nb_cores == 0)
+    {
+        nb_cores = pi_cl_team_nb_cores();
+    }
+    if ((unsigned int)nb_cores == pi_cl_cluster_nb_pe_cores()+1)
+    {
+        nb_cores = pi_cl_cluster_nb_pe_cores();
+    }
+
+    uint32_t core_mask = ((1<<nb_cores)-1) | (1<<ARCHI_CC_CORE_ID);
+    eu_bar_setup_mask(eu_bar_addr(0), core_mask, core_mask);
+
+    pi_cl_workitem_init(&workitem, pi_cl_team_fork_pe_entry);
+    pi_cl_workitem_set_arg(&workitem, 0, (uint32_t)entry);
+    pi_cl_workitem_set_arg(&workitem, 1, (uint32_t)arg);
+    pi_cl_workitem_set_nb_tasks(&workitem, nb_cores);
+    pi_cl_workitem_push(&workitem);
 
     entry(arg);
 
-    pos_team_offload_wait();
-}
+    pi_cl_workitem_wait(&workitem);
 
+    core_mask = (1 << pi_cluster_get_task_nb_cores()) - 1;
+    eu_bar_setup_mask(eu_bar_addr(0), core_mask, core_mask);
+
+    // Since we used workitems in a non-standard way, same workitem was pushed several times
+    // for callbacks, now we need to undo it
+    pos_cluster_pool.first_call_from_pe = NULL;
+    pos_pending_task = 0;
+}
 
 static inline void pi_cl_team_critical_enter(void)
 {

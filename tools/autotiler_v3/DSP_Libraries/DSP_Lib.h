@@ -121,9 +121,9 @@ typedef struct {
 } FFT_InstallArg_T;
 
 typedef struct fbank_type_ {
-	short int Start;
-	short int Items;
-	short int Base;
+	unsigned short int Start;
+	unsigned short int Items;
+	unsigned short int Base;
 } fbank_type_t;
 
 typedef struct {
@@ -230,6 +230,19 @@ typedef struct {
 	int FrameSize;
 	int FFT_Dim;
 } Windowing_T;
+
+typedef struct {
+        void * __restrict__ In1;
+        void * __restrict__ In2;
+        void * __restrict__ Out;
+        void *BufferColIn2;
+        unsigned int W_In1;
+        unsigned int H_In1;
+        unsigned int W_In2;
+        unsigned int W_Out;
+        unsigned int OutFirstCol;
+        int ColFirst;
+} MatMul_DSP_T;
 
 /********************************************************************************************************************************************************************/
 /****************** FFT Library  ************************************************************************************************************************************/
@@ -352,5 +365,10 @@ extern void WindowingReal2Cmplx_f16(Windowing_T *Arg);
 extern void WindowingReal2Cmplx_PadCenter_f16(Windowing_T *Arg);
 extern void WindowingReal2Real_f16(Windowing_T *Arg);
 extern void WindowingReal2Real_PadCenter_f16(Windowing_T *Arg);
+
+extern void KerParMatMulDSP_fp16(MatMul_DSP_T *Arg);
+extern void KerParMatMulDSPT_fp16(MatMul_DSP_T *Arg);
+extern void KerParMatMulDSP_fp32(MatMul_DSP_T *Arg);
+extern void KerParMatMulDSPT_fp32(MatMul_DSP_T *Arg);
 
 #endif //DSP_LIB_H

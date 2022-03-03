@@ -29,6 +29,30 @@ int MFCC_Generator(
 	int OutFFT 		/* If output FFT beside mel spect */
 	);
 
+int DSP_MatMul_Generator(
+	char *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+	int ColM1,
+	int LineM1,
+	int ColM2,
+	int LineM2,
+
+	int TransposedIn2,
+	int DataType
+);
+
+int IMel_Generator(
+	char *Name,
+	CNN_GenControl_T *Ctrl,
+	int NFrames,
+	int Nfft,
+	int NMelBanks,
+	int SizeMelCoeff,
+	int DataType
+	);
+
 int RFFT_2D_Generator(
 	char *Name,
 	CNN_GenControl_T *Ctrl,

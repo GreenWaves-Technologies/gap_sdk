@@ -3,367 +3,310 @@
 #
 
 import regmap as rmap
-import mistune as mt
-from bs4 import BeautifulSoup
-import bs4
-import html2text as htt
+import marko
+from marko import Markdown
+from marko.ext.gfm import gfm, GFM
+from marko.ast_renderer import ASTRenderer
 
-# def get_name(field):
-    # if field[0].isdigit():
-        # field = '_' + field
-    # return field.replace(' ', '_')
-# 
-# def get_description(field):
-    # return field.replace('\n', ' ').replace('\r', ' ')
+class Node(object):
 
-def is_header(n): return n.name[0] == 'h'
+    def __init__(self, is_table=False):
+        self.children = []
+        self.level = None
+        self.is_table = is_table
+        self.tables = []
 
-def header_name(level): return 'h' + str(level)
+    def get_table(self, index=0):
+        if index >= len(self.tables):
+            return None
 
-def header_node_level(hn):
-    assert hn.name[0] == 'h'
-    return int(hn.name[1])
+        return self.tables[index]
 
-def build_header_hierarchy(node, hier = []):
-    pass
+    def add_header(self, node):
+        self.children.append(node)
 
-def get_description(node):
-    description_header_level = header_node_level(node)
-    description_nodes = []
-    for i in node.find_next_siblings():
-        if is_header(i): break
-        else:
-            description_nodes.append(i)
+    def add_children(self, node):
+        self.children.append(node)
 
-    description_html = "".join(map(str, description_nodes))
-    description_text = htt.html2text(description_html)
-    return description_text
+        if node.is_table:
+            self.tables.append(node)
 
+    def is_header(self):
+        return self.level is not None
 
-def get_register_node(current_node, reg_name):
-    for register_header in current_node.find_next_siblings(header_name(header_node_level(current_node)+1)):
-        name = register_header.decode_contents()
+    def get_level(self):
+        return self.level
 
-        if name == reg_name:
-            return register_header
+    def set_header(self, level, title):
+        self.level = level
+        self.title = title
 
-    return None
+    def dump(self, indent=''):
+        if self.is_header():
+            print (indent + self.title)
 
-def get_register_field_table(current_node):
-    for i in current_node.find_next_siblings('table'):
-        headrow = i.thead.tr
-        if headrow.th:
-            s = headrow.th.decode_contents().lower()
-            if 'field name' in s:
-                # looks like a valid register table
-                return i
+        for child in self.children:
+            child.dump('  ' + indent)
 
-    return None
-
-def get_table_index(table, name=None, names=[]):
-
-    search_names = []
-
-    search_names += names
-
-    if name is not None:
-        search_names.append(name)
-
-    for name in search_names:
-        headrow = table.thead.tr
-        r = []
-
-        for field_el in headrow('th'):
-            r.append(field_el.decode_contents().lower())
-
-        if not name.lower() in r:
-            continue
-        return r.index(name.lower())
-
-    return -1
-
-def get_register_field_node(current_node, field_name):
-    for register_header in current_node.find_next_siblings(header_name(header_node_level(current_node)+2)):
-        name = register_header.decode_contents()
-
-        if name == field_name:
-            return register_header
-
-    return None
-
-def get_top_node(bs, current_node, name):
-    for i in bs(header_name(header_node_level(current_node) +1)):
-        if name in i.decode_contents().lower():
-            return i
-
-    return None
-
-def get_nodes(current_node, level=1):
-    return current_node.find_next_siblings(header_name(header_node_level(current_node)+level))
-
-def get_node(current_node, name, level=1):
-    for node in get_nodes(current_node, level):
-        if node.decode_contents() == name:
-            return node
-    return None
-
-def get_table(table_node):
-    table = []
-    for row in table_node.tbody('tr'):
-        r = []
-        for el in row('td'):
-            r.append(el.decode_contents())
-        table.append(r)
-
-    return table
-
-def get_table_node(current_node, name):
-    for i in current_node.find_next_siblings('table'):
-        headrow = i.thead.tr
-        if headrow.th:
-            s = headrow.th.decode_contents().lower()
-            if name.lower() in s:
-                return i
-    
-    return None
-
-def import_md(regmap, path, registers=[]):
-    with open(path, "rt") as fh:
-        raw_text = fh.read()
-        html_text = mt.markdown(raw_text)
-        with open(path+'.html', 'wt') as fh2: fh2.write(html_text)
-        bs = BeautifulSoup(html_text, "html.parser")
-
-        block = {}
-
-        most_headers_names = ['h'+str(i) for i in range(1, 10)]
-
-        # get block name, first header
-        name_header_node = bs(most_headers_names)[0]
-        if name_header_node:
-            block['name'] = name_header_node.decode_contents()
-        else:
-            raise RuntimeError("Cannot find block name header")
-
-        # get block description
-        # first header with 'description' in it
-        description_header_node = None
-        for i in bs(header_name(header_node_level(name_header_node) +1)):
-            if 'description' in i.decode_contents().lower():
-                description_header_node = i
-                break
-
-        if not description_header_node:
-            raise RuntimeError("Cannot find a description header")
-            
-        # description nodes
-        # between description header and next header of another hierarchy
-        block['description'] = get_description(description_header_node)
-
-        # register table
-        # find an header named register
-        # with the same hierarchy than description
-        register_header_node = None
-        for i in bs(header_name(header_node_level(name_header_node) +1)):
-            if 'register' in i.decode_contents().lower():
-                register_header_node = i
-                break
-
-        if not register_header_node:
-            raise RuntimeError("Cannot find a register header")
-
-        # find the register table, should be just after this header
-        register_table = None
-        for i in register_header_node.find_next_siblings('table'):
-            headrow = i.thead.tr
-            if headrow.th:
-                s = headrow.th.decode_contents().lower()
-                if 'register name' in s:
-                    # looks like a valid register table
-                    register_table = i
-                    break
+    def get(self, name):
+        if self.is_header() and self.title == name:
+            return self
         
-        for reg_name in registers:
-            reg = regmap.add_register(
-                rmap.Register(
-                    name=reg_name
-                )
-            )
+        for child in self.children:
+            ast = child.get(name)
+            if ast is not None:
+                return ast
+
+        return None
 
 
-        # parse registers
-        for register_row in register_table.tbody('tr'):
-            r = []
-            for register_el in register_row('td'):
-                r.append(register_el.decode_contents())
+class Document(Node):
 
-            reg = regmap.add_register(
-                rmap.Register(
-                name=r[0],
-                offset=int(r[1], 0)
-                )
-            )
+    def __init__(self, md):
+        super(Document, self).__init__()
 
-            try:
-                default_index = get_table_index(register_table, 'Properties')
-                if default_index != -1:
-                    for prop in r[default_index].split():
-                        key, value = prop.split('=')
-                        if key == 'template':
-                            reg.template = value
+        last_headers = [self] + [None] * 6
+        last_header = None
 
-                default_index = get_table_index(register_table, 'Size')
-                if default_index != -1:
-                    # Too many IPs has wrong register width, hard-code it to 32 bits
-                    reg.width = 32 # int(r[default_index], 0)
-
-                default_index = get_table_index(register_table, names=['Default', 'Reset Value'])
-                if default_index != -1:
-                    reg.reset = int(r[default_index], 0)
-
-                desc_index = get_table_index(register_table, 'Description')
-                if desc_index == -1:
-                    desc_index = get_table_index(register_table, 'Short description')
-
-                if desc_index != -1:
-                    if len(r) > desc_index:
-                        reg.desc = r[desc_index]
-
-                do_reset_index = get_table_index(register_table, 'Reset')
-                if do_reset_index != -1:
-                    reg.do_reset = int(r[do_reset_index])
-
-            except:
-                print ('Caught error while parsing register (name: %s)' % r[0])
-                raise
-
-
-        # Now for each register parse the field table
-        for register in regmap.get_registers():
-            node = get_register_node(register_header_node, register.get_field_template())
-
-            if node is not None and register.desc is None:
-                description = get_description(node)
-                register.desc = description
+        for child in md.children:
+            node = parse_md(child)
 
             if node is not None:
-                fields_table = get_register_field_table(node)
+                if node.is_header():
+                    if last_headers[node.get_level() - 1] is not None:
+                        last_headers[node.get_level() - 1].add_header(node)
 
-                if fields_table is not None:
-                    for field_row in fields_table.tbody('tr'):
-                        r = []
-                        for field_el in field_row('td'):
-                            r.append(field_el.decode_contents())
+                    last_headers[node.get_level()] = node
+                    last_header = node
 
-                        name_index = get_table_index(fields_table, names=['Field Name'])
-                        bit_index = get_table_index(fields_table, names=['Offset', 'Bit', 'Bit Position'])
-                        width_index = get_table_index(fields_table, names=['Size', 'Width'])
-                        access_index = get_table_index(fields_table, names=['Host Access Type', 'Access Type'])
-                        reset_index = get_table_index(fields_table, names=['Default', 'Reset Value'])
+                else:
+                    if last_header is not None:
+                        last_header.add_children(node)
 
-                        regfield = register.add_regfield(
-                            rmap.Regfield(
-                                name=r[name_index],
-                                width=int(r[width_index], 0),
-                                bit=int(r[bit_index], 0),
-                                access=r[access_index]
-                            )
-                        )
 
-                        desc_index = get_table_index(fields_table, 'Description')
-                        if desc_index == -1:
-                            desc_index = get_table_index(fields_table, 'Short description')
+class Heading(Node):
 
-                        if desc_index != -1:
-                            register.get_regfield(r[0]).desc = r[desc_index]
+    def __init__(self, md):
+        super(Heading, self).__init__()
+
+        self.set_header(md.level, md.children[0].children)
+
+
+class Table(Node):
+
+    def __init__(self, md):
+        super(Table, self).__init__(is_table=True)
+
+        nb_cols = md._num_of_cols
+
+        self.table = []
+
+        for md_row in md.children:
+
+            row = [None]*nb_cols
+
+            index = 0
+            for cell in md_row.children:
+                if len(cell.children) > 0:
+                    row[index] = cell.children[0].children
+                else:
+                    row[index] = ''
+                index += 1
+
+            self.table.append(row)
+
+        self.names = []
+
+        for name in self.table[0]:
+            self.names.append(name.lower())
+
+    def get_index(self, names):
+        for name in names:
+            if name.lower() in self.names:
+                return self.names.index(name.lower())
+
+        return -1
+
+    def get_elem(self, row, index):
+        if index is None:
+            return None
+
+        return self.table[row+1][index]
+
+    def get_elem_int(self, row, index):
+        elem = self.get_elem(row, index)
+        if elem is not None:
+            return int(elem, 0)
+        return None
+    
+    def get_size(self):
+        return len(self.table) - 1
+
+
+
+def parse_md(md):
+    if type(md) == marko.block.Document:
+        return Document(md)
+
+    elif type(md) == marko.block.Heading:
+        return Heading(md)
+
+    elif type(md) == marko.ext.gfm.elements.Table:
+        return Table(md)
+
+    #print (type(md))
+
+
+    return None
+
+
+
+def import_md(regmap, path, registers=[]):
+    
+    with open(path, "rt") as fh:
+        ast = parse_md(gfm.parse(fh.read()))
+
+        registers_ast = ast.get('Registers')
+        if registers_ast is None:
+            raise RuntimeError("Didn't find section 'Registers'")
+
+        table = registers_ast.get_table()
+        if table is None:
+            raise RuntimeError("Didn't find table in section 'Registers'")
+
+        for reg_name in registers:
+            reg = regmap.add_register(rmap.Register(name=reg_name))
+
+        name_index = table.get_index(names=['Register Name', 'Name'])
+        offset_index = table.get_index(names=['Offset', 'Address'])
+        width_index = table.get_index(names=['Size'])
+        properties_index = table.get_index(names=['Properties'])
+        reset_index = table.get_index(names=['Default', 'Reset Value'])
+        description_index = table.get_index(names=['Description', 'Short description'])
+        do_reset_index = table.get_index(names=['Reset'])
+
+        for index in range(0, table.get_size()):
+            reg = regmap.add_register(rmap.Register(
+                name=table.get_elem(index, name_index),
+                offset=table.get_elem_int(index, offset_index)
+            ))
+
+            if properties_index != -1:
+                for prop in table.get_elem(index, properties_index).split():
+                    key, value = prop.split('=')
+                    if key == 'template':
+                        reg.template = value
+
+            if width_index != -1:
+                # Too many IPs has wrong register width, hard-code it to 32 bits
+                reg.width = 32 #table.get_elem_int(index, width_index)
+
+            if reset_index != -1:
+                reg.reset = table.get_elem_int(index, reset_index)
+
+            if description_index != -1:
+                reg.desc = table.get_elem(index, description_index)
+
+            if do_reset_index != -1:
+                reg.do_reset = table.get_elem_int(index, do_reset_index)
+
+
+        for register in regmap.get_registers():
+            reg_name = register.get_field_template()
+            register_ast = ast.get(reg_name)
+            if register_ast is None:
+                print ("WARNING: Didn't find section for register %s" % reg_name)
+
+            else:
+                fields_ast = register_ast.get('Fields')
+                if fields_ast is not None:
+                    table = fields_ast.get_table()
+                else:
+                    table = register_ast.get_table()
+
+                if table is None:
+                    print ("WARNING: Didn't find table in section %s" % reg_name)
+                else:
+                    name_index = table.get_index(names=['Field Name'])
+                    bit_index = table.get_index(names=['Offset', 'Bit', 'Bit Position'])
+                    width_index = table.get_index(names=['Size', 'Width'])
+                    access_index = table.get_index(names=['Host Access Type', 'Access Type'])
+                    reset_index = table.get_index(names=['Default', 'Reset Value'])
+                    description_index = table.get_index(names=['Description', 'Short description'])
+                    
+                    for index in range(0, table.get_size()):
+                        regfield = register.add_regfield(rmap.Regfield(
+                            name=table.get_elem(index, name_index),
+                            width=table.get_elem_int(index, width_index),
+                            bit=table.get_elem_int(index, bit_index),
+                            access=table.get_elem(index, access_index)
+                        ))
 
                         if reset_index != -1:
-                            regfield.reset = int(r[reset_index], 0)
+                            regfield.reset = table.get_elem_int(index, reset_index)
+                            regfield.reset_txt = table.get_elem(index, reset_index)
+                        else:
+                            regfield.reset_txt = "--"
 
-            for field in register.get_fields():
-                field_node = get_register_field_node(node, field.name)
+                        if description_index != -1:
+                            regfield.desc = table.get_elem(index, description_index)
 
-                if field_node is not None and field.desc is None:
-                    description = get_description(field_node)
-                    field.desc = description
-
-        commands_top_node = get_top_node(bs, name_header_node, 'commands')
-
-        if commands_top_node is not None:
-            for command_node in get_nodes(commands_top_node, 1):
-                cmdmap = rmap.Cmdmap(name=command_node.decode_contents())
+        commands_ast = ast.get('Commands')
+        if commands_ast is not None:
+            for command_ast in commands_ast.children:
+                cmdmap = rmap.Cmdmap(name=command_ast.title)
                 regmap.add_cmdmap(cmdmap)
+                
+                table = command_ast.get_table();
+                if table is None:
+                    raise RuntimeError("Didn't find table in section 'Commands'")
 
-                table_node = get_table_node(command_node, 'Command Name')
+                name_index = table.get_index(names=['Command Name'])
+                size_index = table.get_index(names=['Size'])
+                id_index = table.get_index(names=['Command field', 'id'])
+                description_index = table.get_index(names=['Description', 'Short description'])
 
-                if table_node is not None:
+                for index in range(0, table.get_size()):
+                    if  size_index != -1:
+                        size = table.get_elem_int(index, size_index)
+                    else:
+                        size = 32
 
-                    size_index = get_table_index(table_node, 'Size')
-                    id_index = get_table_index(table_node, 'Command field')
-                    if id_index == -1:
-                        id_index = get_table_index(table_node, 'id')
+                    cmdmap.add_cmd(rmap.Cmd(
+                        name=table.get_elem(index, name_index),
+                        code=table.get_elem(index, id_index),
+                        width=size,
+                        desc=table.get_elem(index, description_index)
+                    ))
 
-                    for row in get_table(table_node):
+                for cmd in cmdmap.get_cmds():
+                    cmd_name = cmd.name
+                    cmd_ast = ast.get(cmd_name)
+                    if cmd_ast is None:
+                        print ("WARNING: Didn't find section for command %s" % cmd_name)
 
-                        if size_index != -1:
-                            size = int(row[size_index], 0)
-                        else:
-                            size = 32
+                    else:
+                        fields_ast = cmd_ast.get('Fields')
 
-                        cmdmap.add_cmd(
-                            rmap.Cmd(
-                                name=row[0],
-                                code=row[id_index],
-                                width=size
-                            )
-                        )
+                    if fields_ast is not None:
+                        table = fields_ast.get_table()
+                    else:
+                        table = cmd_ast.get_table()
 
-                        desc_index = get_table_index(get_table_node(command_node, 'Command Name'), 'Description')
-                        if desc_index == -1:
-                            desc_index = get_table_index(get_table_node(command_node, 'Command Name'), 'Short description')
+                    if table is None:
+                        print ("WARNING: Didn't find table in section %s" % cmd_name)
+                    else:
+                        name_index = table.get_index(names=['Field Name'])
+                        bit_index = table.get_index(names=['Offset', 'Bit', 'Bit Position'])
+                        width_index = table.get_index(names=['Size', 'Width'])
+                        value_index = table.get_index(names=['Value'])
+                        description_index = table.get_index(names=['Description', 'Short description'])
 
-                        if desc_index != -1 and len(row) >= desc_index + 1:
-                            cmdmap.get_cmd(row[0]).desc = row[desc_index]
-
-                    for cmd in cmdmap.get_cmds():
-                        node = get_node(command_node, cmd.name)
-
-                        if node is not None:
-                            if cmd.desc is None:
-                                cmd.desc = get_description(node)
-
-                            table = get_table_node(node, 'Field Name')
-
-                        if node is not None and table is not None:
-
-                            for row in get_table(table):
-                                cmd.add_cmdfield(
-                                    rmap.Cmdfield(
-                                        name=row[0],
-                                        width=int(row[2], 0),
-                                        offset=int(row[1], 0),
-                                        value=row[3]
-                                    )
-                                )
-
-                                desc_index = get_table_index(get_table_node(node, 'Field Name'), 'Description')
-                                if desc_index == -1:
-                                    desc_index = get_table_index(get_table_node(node, 'Field Name'), 'Short description')
-
-                                if desc_index != -1 and len(row) >= desc_index + 1:
-                                    cmd.get_cmdfield(row[0]).desc = row[desc_index]
-
-                                if cmd.get_cmdfield(row[0]).desc is None:
-                                    desc_node = get_node(node, row[0], 2)
-                                    if desc_node is not None:
-                                        cmd.get_cmdfield(row[0]).desc = get_description(desc_node)
-
-                        else:
-                            cmd.add_cmdfield(
-                                rmap.Cmdfield(
-                                    value=cmd.code,
-                                    width=cmd.width,
-                                    name=cmd.name,
-                                    offset=0
-                                )
-                            )
+                        for index in range(0, table.get_size()):
+                            cmd.add_cmdfield(rmap.Cmdfield(
+                                name=table.get_elem(index, name_index),
+                                width=table.get_elem_int(index, width_index),
+                                offset=table.get_elem_int(index, bit_index),
+                                value=table.get_elem(index, value_index),
+                                desc=table.get_elem(index, description_index)
+                            ))

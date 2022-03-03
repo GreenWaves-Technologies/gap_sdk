@@ -19,21 +19,23 @@
 include $(PMSIS_BSP_DIR)/src.mk
 
 ifeq ($(BOARD_NAME), gapuino)
-PMSIS_BSP_SRC = $(GAPUINO_SRC)
+PMSIS_BSP_SRC += $(GAPUINO_SRC)
 else ifeq ($(BOARD_NAME), gapoc_a)
-PMSIS_BSP_SRC = $(GAPOC_A_SRC)
+PMSIS_BSP_SRC += $(GAPOC_A_SRC)
 else ifeq ($(BOARD_NAME), gapoc_a_revb)
-PMSIS_BSP_SRC = $(GAPOC_A_SRC)
+PMSIS_BSP_SRC += $(GAPOC_A_SRC)
 else ifeq ($(BOARD_NAME), gapoc_b)
-PMSIS_BSP_SRC = $(GAPOC_B_SRC)
+PMSIS_BSP_SRC += $(GAPOC_B_SRC)
 else ifeq ($(BOARD_NAME), gapoc_b_revb)
-PMSIS_BSP_SRC = $(GAPOC_B_SRC)
+PMSIS_BSP_SRC += $(GAPOC_B_SRC)
 else ifeq ($(BOARD_NAME), vega)
-PMSIS_BSP_SRC = $(VEGA_SRC)
+PMSIS_BSP_SRC += $(VEGA_SRC)
 else ifeq ($(BOARD_NAME), gap9_v2)
-PMSIS_BSP_SRC = $(GAP9_SRC)
+PMSIS_BSP_SRC += $(GAP9_SRC)
 else ifeq ($(BOARD_NAME), ai_deck)
-PMSIS_BSP_SRC = $(AI_DECK_SRC)
+PMSIS_BSP_SRC += $(AI_DECK_SRC)
+else ifeq ($(BOARD_NAME), gap9_evk)
+PMSIS_BSP_SRC += $(GAP9_EVK_SRC)
 endif
 
 EXCLUDE_FROM_SRCS= transport/transport.c transport/nina_w10/nina_w10.c

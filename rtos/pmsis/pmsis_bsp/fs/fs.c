@@ -340,19 +340,21 @@ void __pi_cl_fs_copy_req_exec(void *_req);
 void __pi_cl_fs_copy_req_done(void *_req)
 {
     pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
+    pi_cl_fs_req_t *next_req;
     pi_fs_file_t *file = req->file;
     pi_fs_data_t *fs = req->file->fs_data;
     pi_task_t *task = &fs->cl_req_task;
 
-    cl_notify_task_done(&(req->copy.done), req->copy.cid);
-
     uint32_t irq = disable_irq();
     fs->cluster_reqs_first = (void *)req->callback.next;
-    req = fs->cluster_reqs_first;
+    next_req = fs->cluster_reqs_first;
     restore_irq(irq);
-    if (req)
+
+    cl_notify_task_done(&(req->copy.done), req->copy.cid);
+
+    if (next_req)
     {
-        __pi_cl_fs_copy_req_exec(req);
+        __pi_cl_fs_copy_req_exec(next_req);
     }
 }
 

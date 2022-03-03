@@ -26,6 +26,9 @@ class FloatQRec(QRecBase):
         self._min_val = min_val
         self._max_val = max_val
 
+    def __repr__(self) -> str:
+        return self._dtype.__name__
+
     @property
     def min_val(self):
         return self._min_val

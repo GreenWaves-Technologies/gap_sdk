@@ -1,4 +1,4 @@
-# Copyright (C) 2020  GreenWaves Technologies, SAS
+# Copyright (C) 2020, 2021, 2022  GreenWaves Technologies, SAS
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -17,6 +17,7 @@ from copy import deepcopy
 
 import numpy as np
 from graph.types import MatrixAddParameters, MatrixSubParameters
+from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
 from quantization.unified_quantization_handler import (in_qs_constraint,
@@ -37,6 +38,7 @@ class AddSubMultBase(MultQuantizionHandler):
             params, MatrixAddParameters) else None
         if not asym:
             in_qs = cls.force_symmetric_and_dtype(in_qs)
+
         if in_qs is None:
             return None
 
@@ -61,8 +63,42 @@ class AddSubMultBase(MultQuantizionHandler):
             in_qs = [in_q.set_forced(flags=['dtype']) for in_q in in_qs]
         else:
             o_q.set_forced(flags=['dtype', 'zero_point'])
-            in_qs = [in_q.set_forced(flags=['dtype', 'zero_point']) for in_q in in_qs]
-        return QRec.scaled(in_qs=in_qs, out_qs=[o_q], scaled_idx=scaled_idx, ne16=asym)
+            in_qs = [in_q.set_forced(flags=['dtype', 'zero_point'])
+                     for in_q in in_qs]
+        qrec = QRec.scaled(in_qs=in_qs, out_qs=[o_q], ne16=asym)
+
+        if scaled_idx is None:
+            scaled_idx = (1 if qrec.in_qs[1].scale >
+                          qrec.in_qs[0].scale else 0)
+        qrec.cache['scaled_idx'] = scaled_idx
+
+        not_scaled_idx = 0 if scaled_idx else 1
+        scale_mul_biases_q = qrec.cache['scale_mul_biases_q'] = MultMulBiasScaleQType(
+            dtype=np.uint8)
+        scale_mul_biases_q.scale = qrec.in_qs[not_scaled_idx].scale / \
+            qrec.out_qs[0].scale
+
+        scale_in_mul_biases_q = qrec.cache['scale_in_mul_biases_q'] = MultMulBiasScaleQType(
+            dtype=np.uint8)
+        scale_in_mul_biases_q.scale = qrec.in_qs[scaled_idx].scale / \
+            qrec.in_qs[not_scaled_idx].scale
+
+        if qrec.in_qs[0].zero_point or qrec.in_qs[1].zero_point or qrec.out_qs[0].zero_point:
+            # (C - Zc)*Sc = (A - Za)*Sa + (B - Zb)*Sb =
+            # C = Sa/Sc*(A + B*Sb/Sa - Za - Zb*Sb/Sa) + Zc =
+            #   = Sa/Sc*(A + B*Sb/Sa) + (Zc - Sa/Sc*(Za + Zb*Sb/Sa))
+            #                           |---------- bias ----------|
+            add_bias = (
+                qrec.out_qs[0].zero_point - qrec.cache['scale_mul_biases_q'].scale *
+                (qrec.in_qs[not_scaled_idx].zero_point +
+                 scale_in_mul_biases_q.scale * qrec.in_qs[scaled_idx].zero_point)
+            )
+        else:
+            add_bias = 0
+
+        qrec.cache['add_bias_offset'] = np.round(add_bias).astype(np.int16)
+        return qrec
+
 
 @params_type(MatrixAddParameters, MatrixSubParameters)
 @in_qs_constraint({'dtype': np.int8},
@@ -73,6 +109,7 @@ class AddSubMult8x8(AddSubMultBase):
     def _quantize(cls, params, in_qs, stats, **kwargs):
         return cls._quantize_sw(params, in_qs, stats, np.int8, **kwargs)
 
+
 @params_type(MatrixAddParameters, MatrixSubParameters)
 @in_qs_constraint({'dtype': np.int16},
                   {'dtype': np.int16})
@@ -81,6 +118,7 @@ class AddSubMult16x16(AddSubMultBase):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         return cls._quantize_sw(params, in_qs, stats, np.int16, **kwargs)
+
 
 @params_type(MatrixAddParameters, MatrixSubParameters)
 @in_qs_constraint({'dtype': np.uint8},

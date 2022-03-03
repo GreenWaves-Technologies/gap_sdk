@@ -721,6 +721,8 @@ static int CNN_MatTranspose_Internal(
 	add_kernel_arg_func_t AddKArgDimFunc = AddKernelArgDim;
         cnn_kernel_arg_datatype_func_t CNN_ArgDtype = CNN_ArgDataType;
 
+        if (Size < 0) CNN_ArgDtype = CNN_ArgDataTypeUns;
+
         if (Ctrl) {
                 if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
                 if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
@@ -731,6 +733,7 @@ static int CNN_MatTranspose_Internal(
         if (HWC) {
                 return CNN_3DTensorPermute(Name, Ctrl, Feat, Size, Width, Height, KOP_MATPERM_HWC2WHC);
         }
+        if (Size < 0) Size = -Size;
         unsigned long long int LayerOp = Width*Height*Feat*Size;
         unsigned long long int LayerBandwidth = 0;
 
@@ -889,6 +892,11 @@ int CNN_3DTensorPermute(
 
 	add_kernel_arg_func_t AddKArgDimFunc = AddKernelArgDim;
         cnn_kernel_arg_datatype_func_t CNN_ArgDtype = CNN_ArgDataType;
+
+        if (Size < 0) {
+                CNN_ArgDtype = CNN_ArgDataTypeUns;
+                Size = -Size;
+        }
 
 	if (Ctrl) {
 		if (Ctrl->HWC != -1) HWC = Ctrl->HWC;

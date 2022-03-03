@@ -52,7 +52,7 @@ class OptionList(JsonSerializable):
 
     def __getattr__(self, name):
         upper_name = name.upper()
-        valid_options = super(OptionList, self).__getattribute__('_valid_options')
+        valid_options = super(OptionList, self).__getattribute__('_valid_options') # @IgnoreException
         options = super(OptionList, self).__getattribute__('_options')
         if upper_name in valid_options:
             return options.get(upper_name)

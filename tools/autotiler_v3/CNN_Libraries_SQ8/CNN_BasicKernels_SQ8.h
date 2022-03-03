@@ -20,6 +20,7 @@
 
 #include "../CNN_Libraries/CNN_Copy.h"
 #include "CNN_AT_Misc.h"
+#include "CNN_Infos_SQ8.h"
 
 #ifdef GENASM
 #ifdef __EMUL__
@@ -28,32 +29,6 @@
 #endif
 #endif
 
-#define AT_INF_BIASL_SM         0
-#define AT_INF_ACTSCALE		0
-#define AT_INF_ACTSCALEN	1
-#define AT_INF_A0		2
-#define AT_INF_B0		3
-#define AT_INF_C0		4
-
-#define AT_INF_BIASN		5
-#define AT_INF_IN1SCALE		5
-#define AT_INF_SCALE		5
-#define AT_INF_GLOBAL_SUM_SCALE	5
-
-#define AT_INF_SCALEN		6
-#define AT_INF_IN1SCALEN	6
-#define AT_INF_GLOBAL_SUM_SCALEN 6
-
-#define AT_INF_OUTSCALE		7
-#define AT_INF_OUTSCALEN	8
-
-#define AT_INF_DIM		9
-
-#define AT_INF_PRENORM          9
-#define AT_INF_SQ16_DIM         10
-
-#define AT_INF_ADD_BIAS		9
-#define AT_INF_ASYM_ADD_DIM	11
 
 #ifndef Prec
 #define Prec 			(10)
@@ -64,12 +39,13 @@ typedef enum {
         ACT_RELU,
         ACT_RELUN,
         ACT_HSIGMOID,
+        ACT_HTANH,
         ACT_HSWISH,
         ACT_LEAKYRELU,
         ACT_SIGMOID,
         ACT_TANH,
-		ACT_RELUM,
-		ACT_RELUMN
+	ACT_RELUM,
+	ACT_RELUMN
 } CNN_ActivationOper_T;
 
 /******************************************************************************************************************
@@ -176,6 +152,7 @@ typedef struct {
         unsigned short int Feat;              	/**< Input Features */
         unsigned short int Wo;			/**< Output tile width */
         unsigned short int Ho;			/**< Output tile height */
+        signed char * __restrict__ Infos;       /**< Scaling and constants data */
 } Ker_MM_Pool_SQ8_T;
 
 typedef struct {
@@ -192,6 +169,7 @@ typedef struct {
         unsigned short int Feat;              	/**< Input Features */
         unsigned short int Wo;			/**< Output tile width */
         unsigned short int Ho;			/**< Output tile height */
+        signed char * __restrict__ Infos;       /**< Scaling and constants data */
 } Ker_MM_Pool_USQ8_T;
 
 typedef struct {
@@ -208,6 +186,7 @@ typedef struct {
         unsigned short int Feat;              	/**< Input Features */
         unsigned short int Wo;			/**< Output tile width */
         unsigned short int Ho;			/**< Output tile height */
+        signed char * __restrict__ Infos;       /**< Scaling and constants data */
 } Ker_MM_Pool_SQ16_T;
 
 typedef struct {
@@ -224,6 +203,7 @@ typedef struct {
         unsigned short int Feat;              	/**< Input Features */
         unsigned short int Wo;			/**< Output tile width */
         unsigned short int Ho;			/**< Output tile height */
+        signed char * __restrict__ Infos;       /**< Scaling and constants data */
 } Ker_MM_Pool_USQ16_T;
 
 /******************************************************************************************************************
@@ -655,12 +635,6 @@ extern void KerParConv3x3D4x1Stride1x1_SQ8(KerConv_SQ8_T *Arg);
 extern void KerParConv3x3D8x1Stride1x1_SQ8(KerConv_SQ8_T *Arg);
 extern void KerParConv3x3DxD2Stride1x1_SQ8(KerConv_SQ8_T *Arg);
 
-extern void KerPar_MM_Conv2D_SQ8(Ker_MM_Conv_SQ8_T *Arg);
-extern void KerPar_MM_Conv1D_SQ8(Ker_MM_Conv_SQ8_T *Arg);
-extern void KerPar_MM_Conv1D_ReLU_SQ8(Ker_MM_Conv_SQ8_T *Arg);
-extern void KerPar_MM_Conv1D_ReLUN_SQ8(Ker_MM_Conv_SQ8_T *Arg);
-extern void KerPar_MM_Conv1D_LeakyReLU_SQ8(Ker_MM_Conv_SQ8_T *Arg);
-
 extern void KerConv1x1Stride1_SQ8(KerConv_SQ8_T *Arg);
 extern void KerConv1x1Stride2_SQ8(KerConv_SQ8_T *Arg);
 extern void KerConv1x1StrideS_SQ8(KerConv_SQ8_T *Arg);
@@ -841,10 +815,66 @@ extern void KerConvDWNxMDxDyStrideSxSyB32_SQ8(KerConv_SQ8_T *Arg);
 extern unsigned short int SIGMOID_LUT_uint16[];
 
 int SigmoidTable(int x, unsigned short int * table);
+int SigmoidTableUnsigned(int x, unsigned short int * table);
 int TanhTable(int x, unsigned short int * table);
 
 #define Tanh(__x) TanhTable((__x), SIGMOID_LUT_uint16)
 #define Sigmoid(__x) SigmoidTable((__x), SIGMOID_LUT_uint16)
+#define SigmoidU(__x) SigmoidTableUnsigned((__x), SIGMOID_LUT_uint16)
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch"
+#define decl(__t, __v) __t __v
+#define arr_at_as(__arr, __offset, __t) *((__t *) &__arr[__offset])
+#define OUT_CLIP(__acc, __is_unsigned, __n_bits) (__is_unsigned)?gap_clipu(__acc, __n_bits):gap_clip(__acc, (__n_bits-1))
+#define ACT_SWITCH(__acc, __act_type, __act_scale, __act_scalen, __a0, __b0, __c0, __in_n_bits, __is_unsigned) \
+do { \
+	switch (__act_type) { \
+		case ACT_NONE: \
+			break; \
+		case ACT_RELU: \
+			__acc = AT_SCALE(Max(0, __acc), __act_scale, __act_scalen); \
+			break; \
+		case ACT_RELUN: \
+			__acc = AT_SCALE(AT_CLIP_POS(__acc, __a0), __act_scale, __act_scalen); \
+			break; \
+		case ACT_RELUM: \
+			__acc = AT_SCALE(Max(__a0, __acc), __act_scale, __act_scalen); \
+			break; \
+		case ACT_RELUMN: \
+			__acc = AT_SCALE(Max(__a0, Min(__acc, __b0)), __act_scale, __act_scalen); \
+			break; \
+		case ACT_HSIGMOID: \
+			__acc = AT_SCALE(AT_CLIP_POS(__acc + __b0, __a0), __act_scale, __act_scalen) + __c0; \
+			break; \
+		case ACT_HSWISH: \
+			__acc = AT_SCALE(AT_CLIP_POS(__acc + __b0, __a0) * __acc, __act_scale, __act_scalen) + __c0; \
+			break; \
+		case ACT_LEAKYRELU: \
+			{ \
+				int Neg0 = gap_bitextractu(__acc, 1, 31), Pos0 = !Neg0; \
+				int Acc0N = AT_NORM(__acc * __a0, 7); \
+				__acc = AT_SCALE((Neg0*Acc0N+Pos0*__acc), __act_scale, __act_scalen) + __b0; \
+			} \
+			break; \
+		case ACT_SIGMOID: \
+			{ \
+				int Acc0N = __acc << ((__in_n_bits==8)?8:0); \
+				__acc = AT_SCALE(Sigmoid(Acc0N),  __act_scale, __act_scalen); \
+			} \
+			break; \
+		case ACT_TANH: \
+			{ \
+				int Acc0N = __acc << ((__in_n_bits==8)?8:0); \
+				if (!__is_unsigned) __acc = AT_SCALE(Tanh(Acc0N), __act_scale, __act_scalen); \
+				else 		    __acc = AT_SCALE(Tanh(Acc0N), __act_scale, __act_scalen) + __a0; \
+			} \
+			break; \
+		case ACT_HTANH: \
+			break; \
+	} \
+} while(0)
+#pragma GCC diagnostic pop
 
 /*
  * Input Scaling and reduction to 8b then channel centric activation, Out location != In location. Features are evaluated in parallel
@@ -866,6 +896,7 @@ extern void KerParReduct_CC_CHW2HWC_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg);
 extern void KerParReduct_CC_CHW2HWC_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg);
 extern void KerParReduct_CC_CHW2HWC_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg);
 extern void KerParReduct_CC_CHW2HWC_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerParReduct_CC_CHW2HWC_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg);
 extern void KerParReduct_CC_CHW2HWC_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg);
 
 /*
@@ -922,6 +953,17 @@ extern void KerParReduct_CC_LeakyReLU_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg);
 extern void KerParReduct_CC_Sigmoid_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg);
 extern void KerParReduct_CC_Tanh_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg);
 
+extern void KerParReduct_CC_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerParReduct_CC_ReLU_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerParReduct_CC_ReLUN_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerParReduct_CC_ReLUM_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerParReduct_CC_ReLUMN_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerParReduct_CC_HSigmoid_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerParReduct_CC_HSwish_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerParReduct_CC_LeakyReLU_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerParReduct_CC_Sigmoid_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerParReduct_CC_Tanh_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg);
+
 extern void KerParReduct_CC_HWC_SQ16(KerConvLinReduct_SQ8_T *Arg);
 extern void KerParReduct_CC_ReLU_HWC_SQ16(KerConvLinReduct_SQ8_T *Arg);
 extern void KerParReduct_CC_ReLUN_HWC_SQ16(KerConvLinReduct_SQ8_T *Arg);
@@ -962,6 +1004,11 @@ extern void KerReduct_CC_NoScale_ReLU_USQ8(KerConvLinReduct_SQ8_T *Arg);
 extern void KerReduct_CC_NoScale_ReLUN_USQ8(KerConvLinReduct_SQ8_T *Arg);
 extern void KerReduct_CC_NoScale_ReLUM_USQ8(KerConvLinReduct_SQ8_T *Arg);
 extern void KerReduct_CC_NoScale_ReLUMN_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReduct_CC_NoScale_HSigmoid_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReduct_CC_NoScale_HSwish_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReduct_CC_NoScale_LeakyReLU_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReduct_CC_NoScale_Sigmoid_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReduct_CC_NoScale_Tanh_USQ8(KerConvLinReduct_SQ8_T *Arg);
 
 extern void KerReduct_CC_NoScale_SQ16(KerConvLinReduct_SQ8_T *Arg);
 extern void KerReduct_CC_NoScale_ReLU_SQ16(KerConvLinReduct_SQ8_T *Arg);
@@ -979,6 +1026,57 @@ extern void KerReduct_CC_NoScale_ReLU_USQ16(KerConvLinReduct_SQ8_T *Arg);
 extern void KerReduct_CC_NoScale_ReLUN_USQ16(KerConvLinReduct_SQ8_T *Arg);
 extern void KerReduct_CC_NoScale_ReLUM_USQ16(KerConvLinReduct_SQ8_T *Arg);
 extern void KerReduct_CC_NoScale_ReLUMN_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReduct_CC_NoScale_HSigmoid_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReduct_CC_NoScale_HSwish_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReduct_CC_NoScale_LeakyReLU_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReduct_CC_NoScale_Sigmoid_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReduct_CC_NoScale_Tanh_USQ16(KerConvLinReduct_SQ8_T *Arg);
+
+
+extern void KerReductIO_CC_NoScale_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLU_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUM_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUMN_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg);
+
+extern void KerReductIO_CC_NoScale_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLU_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUN_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUM_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUMN_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSigmoid_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSwish_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_LeakyReLU_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Sigmoid_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Tanh_USQ8(KerConvLinReduct_SQ8_T *Arg);
+
+extern void KerReductIO_CC_NoScale_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLU_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUN_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUM_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUMN_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSigmoid_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSwish_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_LeakyReLU_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Sigmoid_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Tanh_SQ16(KerConvLinReduct_SQ8_T *Arg);
+
+extern void KerReductIO_CC_NoScale_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLU_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUN_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUM_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUMN_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSigmoid_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSwish_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_LeakyReLU_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Sigmoid_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Tanh_USQ16(KerConvLinReduct_SQ8_T *Arg);
+
 
 /******************************************************************************************************************
           Stand alone activation. Parallel Feature, Feature Parallel
@@ -990,7 +1088,6 @@ extern void KerReduct_CC_NoScale_ReLUMN_USQ16(KerConvLinReduct_SQ8_T *Arg);
  * Standalone Scaled Activation, Features are evaluated one after the other in parallel
 */
 extern void Ker_ActNone_SQ8(KerActivation_SQ8_T *Arg);
-extern void Ker_Scale_SQ8(KerActivation_SQ8_T *Arg);
 extern void Ker_ReLU_SQ8(KerActivation_SQ8_T *Arg);
 extern void Ker_ReLUN_SQ8(KerActivation_SQ8_T *Arg);
 extern void Ker_ReLUM_SQ8(KerActivation_SQ8_T *Arg);
@@ -1000,18 +1097,6 @@ extern void Ker_HSwish_SQ8(KerActivation_SQ8_T *Arg);
 extern void Ker_LeakyReLU_SQ8(KerActivation_SQ8_T *Arg);
 extern void Ker_Sigmoid_SQ8(KerActivation_SQ8_T *Arg);
 extern void Ker_Tanh_SQ8(KerActivation_SQ8_T *Arg);
-
-extern void Ker_ActNone_ScaleIn_SQ8(KerActivation_SQ8_T *Arg);
-extern void Ker_ReLU_ScaleIn_SQ8(KerActivation_SQ8_T *Arg);
-extern void Ker_ReLUN_ScaleIn_SQ8(KerActivation_SQ8_T *Arg);
-extern void Ker_ReLUM_ScaleIn_SQ8(KerActivation_SQ8_T *Arg);
-extern void Ker_ReLUMN_ScaleIn_SQ8(KerActivation_SQ8_T *Arg);
-extern void Ker_HSigmoid_ScaleIn_SQ8(KerActivation_SQ8_T *Arg);
-extern void Ker_HSwish_ScaleIn_SQ8(KerActivation_SQ8_T *Arg);
-extern void Ker_LeakyReLU_ScaleIn_SQ8(KerActivation_SQ8_T *Arg);
-extern void Ker_Sigmoid_ScaleIn_SQ8(KerActivation_SQ8_T *Arg);
-extern void Ker_Tanh_ScaleIn_SQ8(KerActivation_SQ8_T *Arg);
-
 
 /******************************************************************************************************************
 	Pooling group.
@@ -1077,12 +1162,93 @@ extern void KerParGlobalSumPoolFullFeat_ReLUM_SQ8(KerGlobalPool_SQ8_T *Arg);
 extern void KerParGlobalSumPoolFullFeat_ReLUMN_SQ8(KerGlobalPool_SQ8_T *Arg);
 
 /* Pooling Basic Kernels for HWC Layers layout */
-extern void KerParMaxPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg);
-extern void KerParAvgPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg);
-extern void KerParPool_MaxPoolNxMStrideSxSy__HWC_USQ8(KerPool_HWC_USQ8_T *Arg);
-
 extern void KerParMaxPoolNxMStrideSxSy_HWC_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLU_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUN_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUM_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUMN_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSigmoid_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSwish_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_LeakyReLU_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Sigmoid_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Tanh_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+
+extern void KerParMaxPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLU_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUN_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUM_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUMN_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSigmoid_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSwish_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_LeakyReLU_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Sigmoid_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Tanh_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+
 extern void KerParAvgPoolNxMStrideSxSy_HWC_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLU_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUN_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUM_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUMN_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSigmoid_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSwish_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_LeakyReLU_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Sigmoid_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Tanh_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+
+extern void KerParAvgPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLU_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUN_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUM_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUMN_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSigmoid_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSwish_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_LeakyReLU_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Sigmoid_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Tanh_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+
+extern void KerParMaxPoolNxMStrideSxSy_HWC_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLU_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUN_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUM_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUMN_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSigmoid_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSwish_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_LeakyReLU_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Sigmoid_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Tanh_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+
+extern void KerParMaxPoolNxMStrideSxSy_HWC_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLU_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUN_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUM_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUMN_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSigmoid_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSwish_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_LeakyReLU_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Sigmoid_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Tanh_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+
+extern void KerParAvgPoolNxMStrideSxSy_HWC_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLU_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUN_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUM_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUMN_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSigmoid_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSwish_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_LeakyReLU_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Sigmoid_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Tanh_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+
+extern void KerParAvgPoolNxMStrideSxSy_HWC_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLU_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUN_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUM_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUMN_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSigmoid_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSwish_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_LeakyReLU_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Sigmoid_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Tanh_USQ16(Ker_MM_Pool_USQ16_T *Arg);
 
 /*************************************************************************************************************************************************
 	Pooling group.
@@ -1136,51 +1302,101 @@ extern void KerMatAdd_ReLUMN_USQ8(KerMat3_SQ8_T *Arg);
 extern void KerParMatMulB8_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulB8_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulB8_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB8_ReLUM_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB8_ReLUMN_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB8_LeakyReLU_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB8_HSwish_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB8_HSigmoid_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB8_Sigmoid_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB8_Tanh_SQ8(KerMatMul_SQ8_T *Arg);
+
 extern void KerParMatMulSxSyB8_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulSxSyB8_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulSxSyB8_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB8_ReLUM_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB8_ReLUMN_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB8_LeakyReLU_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB8_HSwish_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB8_HSigmoid_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB8_Sigmoid_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB8_Tanh_SQ8(KerMatMul_SQ8_T *Arg);
 
 extern void KerParMatMulB16_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulB16_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulB16_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB16_ReLUM_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB16_ReLUMN_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB16_LeakyReLU_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB16_HSwish_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB16_HSigmoid_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB16_Sigmoid_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB16_Tanh_SQ8(KerMatMul_SQ8_T *Arg);
+
 extern void KerParMatMulSxSyB16_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulSxSyB16_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulSxSyB16_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB16_ReLUM_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB16_ReLUMN_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB16_LeakyReLU_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB16_HSwish_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB16_HSigmoid_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB16_Sigmoid_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB16_Tanh_SQ8(KerMatMul_SQ8_T *Arg);
 
 extern void KerParMatMulB32_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulB32_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulB32_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB32_ReLUM_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB32_ReLUMN_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB32_LeakyReLU_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB32_HSwish_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB32_HSigmoid_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB32_Sigmoid_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB32_Tanh_SQ8(KerMatMul_SQ8_T *Arg);
 
-extern void KerParMatMulB32_2x4_SQ8(KerMatMul_SQ8_T *Arg);
-extern void KerParMatMulB32_2x4_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
-
-extern void KerParMatMulB32_2x4_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
-extern void KerParMatMulB32_2x4_ReLU_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
-extern void KerParMatMulB32_2x4_ReLUN_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
-
-extern void KerParMatMulNoBias_2x4_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
-extern void KerParMatMulNoBias_2x4_ReLU_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
-extern void KerParMatMulNoBias_2x4_ReLUN_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulB32_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulB32_ReLU_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulB32_ReLUN_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulB32_ReLUM_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulB32_ReLUMN_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulB32_LeakyReLU_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulB32_HSwish_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulB32_HSigmoid_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulB32_Sigmoid_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulB32_Tanh_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
 
 extern void KerParMatMulTransposedB32_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulTransposedB32_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulTransposedB32_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
-
-extern void KerParMatMulTransposedNoBias_SQ8(KerMatMul_SQ8_T *Arg);
-extern void KerParMatMulTransposedNoBias_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
-extern void KerParMatMulTransposedNoBias_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_ReLUM_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_ReLUMN_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_LeakyReLU_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_HSwish_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_HSigmoid_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_Sigmoid_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_Tanh_SQ8(KerMatMul_SQ8_T *Arg);
 
 extern void KerParMatMulTransposedB32_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
 extern void KerParMatMulTransposedB32_ReLU_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
 extern void KerParMatMulTransposedB32_ReLUN_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
-
-extern void KerParMatMulTransposedNoBias_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
-extern void KerParMatMulTransposedNoBias_ReLU_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
-extern void KerParMatMulTransposedNoBias_ReLUN_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_ReLUM_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_ReLUMN_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_LeakyReLU_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_HSwish_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_HSigmoid_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_Sigmoid_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
+extern void KerParMatMulTransposedB32_Tanh_PL_SQ8(KerMatMul_PL_SQ8_T *Arg);
 
 extern void KerParMatMulSxSyB32_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulSxSyB32_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulSxSyB32_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB32_ReLUM_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB32_ReLUMN_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB32_LeakyReLU_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB32_HSwish_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB32_HSigmoid_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB32_Sigmoid_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulSxSyB32_Tanh_SQ8(KerMatMul_SQ8_T *Arg);
 
 /*************************************************************************************************************************************************
 	Matrix mult with channel centric scaling for small first matrix in the product, goal is to improve parallelism in this specific situation
@@ -1194,42 +1410,160 @@ extern void KerParMatMulSxSyB32_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulB8_SF_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulB8_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulB8_ReLUN_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB8_ReLUM_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB8_ReLUMN_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB8_LeakyReLU_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB8_HSwish_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB8_HSigmoid_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB8_Sigmoid_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB8_Tanh_SF_SQ8(KerMatMul_SQ8_T *Arg);
 
 extern void KerParMatMulB16_SF_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulB16_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulB16_ReLUN_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB16_ReLUM_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB16_ReLUMN_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB16_LeakyReLU_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB16_HSwish_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB16_HSigmoid_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB16_Sigmoid_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB16_Tanh_SF_SQ8(KerMatMul_SQ8_T *Arg);
 
 extern void KerParMatMulB32_SF_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulB32_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg);
-extern void KerParMatMulB32_2x4_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg);
 extern void KerParMatMulB32_ReLUN_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB32_ReLUM_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB32_ReLUMN_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB32_LeakyReLU_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB32_HSwish_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB32_HSigmoid_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB32_Sigmoid_SF_SQ8(KerMatMul_SQ8_T *Arg);
+extern void KerParMatMulB32_Tanh_SF_SQ8(KerMatMul_SQ8_T *Arg);
+
+/*************************************************************************************************************************************************
+	Convolutions based on Matric Multiplication, i.e. im2col. CHW and HWC
+*************************************************************************************************************************************************/
+
+extern void KerPar_MM_Conv1D_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_ReLU_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_ReLUN_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_ReLUM_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_ReLUMN_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_LeakyReLU_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_HSwish_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_HSigmoid_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_Sigmoid_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_Tanh_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+
+extern void KerPar_MM_Conv1D_DxDy_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_ReLU_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_ReLUN_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_ReLUM_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_ReLUMN_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_LeakyReLU_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_HSwish_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_HSigmoid_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_Sigmoid_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_Tanh_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+
+extern void KerPar_MM_Conv2D_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_ReLU_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_ReLUN_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_ReLUM_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_ReLUMN_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_LeakyReLU_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_HSwish_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_HSigmoid_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_Sigmoid_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_Tanh_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+
+extern void KerPar_MM_Conv2D_DxDy_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_ReLU_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_ReLUN_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_ReLUM_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_ReLUMN_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_LeakyReLU_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_HSwish_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_HSigmoid_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_Sigmoid_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_Tanh_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 
 extern void KerPar_MM_Conv1x1_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 extern void KerPar_MM_Conv1x1_ReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1x1_ReLUN_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1x1_ReLUM_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1x1_ReLUMN_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1x1_LeakyReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1x1_HSwish_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1x1_HSigmoid_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1x1_Sigmoid_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1x1_Tanh_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 
 extern void Ker_MM_Conv1x1_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 extern void Ker_MM_Conv1x1_ReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv1x1_ReLUN_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv1x1_ReLUM_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv1x1_ReLUMN_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv1x1_LeakyReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv1x1_HSwish_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv1x1_HSigmoid_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv1x1_Sigmoid_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv1x1_Tanh_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 
-extern void KerPar_MM_Conv1D_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 extern void KerPar_MM_Conv1D_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
-extern void KerPar_MM_Conv1D_ReLU_SQ8(Ker_MM_Conv_SQ8_T *Arg);
-extern void KerPar_MM_Conv1D_ReLUN_SQ8(Ker_MM_Conv_SQ8_T *Arg);
-extern void KerPar_MM_Conv1D_LeakyReLU_SQ8(Ker_MM_Conv_SQ8_T *Arg);
-extern void KerPar_MM_Conv1D_DxDy_SQ8(Ker_MM_Conv_SQ8_T *Arg);
-extern void KerPar_MM_Conv1D_DxDy_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
-extern void KerPar_MM_Conv1D_DxDy_ReLU_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_ReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_ReLUN_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_ReLUM_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_ReLUMN_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_LeakyReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_HSwish_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_HSigmoid_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_Sigmoid_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_Tanh_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 
-extern void KerPar_MM_Conv2D_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_ReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_ReLUN_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_ReLUM_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_ReLUMN_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_LeakyReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_HSwish_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_HSigmoid_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_Sigmoid_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_Tanh_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+
 extern void KerPar_MM_Conv2D_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 extern void KerPar_MM_Conv2D_ReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
-extern void KerPar_MM_Conv2D_DxDy_SQ8(Ker_MM_Conv_SQ8_T *Arg);
-extern void KerPar_MM_Conv2D_DxDy_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
-extern void KerPar_MM_Conv2D_DxDy_ReLU_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_ReLUN_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_ReLUM_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_ReLUMN_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_LeakyReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_HSwish_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_HSigmoid_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_Sigmoid_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_Tanh_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 
-extern void KerPar_MM_ConvDW2D_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_ReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_ReLUN_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_ReLUM_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_ReLUMN_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_LeakyReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_HSwish_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_HSigmoid_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_Sigmoid_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_Tanh_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 
 extern void Ker_MM_Conv2D_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 extern void Ker_MM_Conv2D_ReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv2D_ReLUN_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv2D_ReLUM_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv2D_ReLUMN_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv2D_LeakyReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv2D_HSwish_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv2D_HSigmoid_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv2D_Sigmoid_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
+extern void Ker_MM_Conv2D_Tanh_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 
 /*************************************************************************************************************************************************
 	Matrix by Vector Multiplication followed by an optional Activation (all of them supported)
@@ -1238,10 +1572,13 @@ extern void Ker_MM_Conv2D_ReLU_HWC_SQ8(Ker_MM_Conv_SQ8_T *Arg);
 extern void KerParMatVectMul_SQ8(KerMat3_SQ8_T *Arg);
 extern void KerParMatVectMul_ReLU_SQ8(KerMat3_SQ8_T *Arg);
 extern void KerParMatVectMul_ReLUN_SQ8(KerMat3_SQ8_T *Arg);
-extern void KerParMatVectMul_HSigmoid_SQ8(KerMat3_SQ8_T *Arg);
-extern void KerParMatVectMul_HSwish_SQ8(KerMat3_SQ8_T *Arg);
-extern void KerParMatVectMul_LeakyReLU_SQ8(KerMat3_SQ8_T *Arg);
-
+extern void KerParMatVectMul_ReLUM_SF_SQ8(KerMat3_SQ8_T *Arg);
+extern void KerParMatVectMul_ReLUMN_SF_SQ8(KerMat3_SQ8_T *Arg);
+extern void KerParMatVectMul_LeakyReLU_SF_SQ8(KerMat3_SQ8_T *Arg);
+extern void KerParMatVectMul_HSwish_SF_SQ8(KerMat3_SQ8_T *Arg);
+extern void KerParMatVectMul_HSigmoid_SF_SQ8(KerMat3_SQ8_T *Arg);
+extern void KerParMatVectMul_Sigmoid_SF_SQ8(KerMat3_SQ8_T *Arg);
+extern void KerParMatVectMul_Tanh_SF_SQ8(KerMat3_SQ8_T *Arg);
 
 /*************************************************************************************************************************************************
 	Linear Layer with 32b output.
@@ -1254,14 +1591,36 @@ extern void KerParLinearLayer_SQ8(KerLinear_SQ8_T *Arg);
 extern void KerParLinearLayerFullFeatB8_SQ8(KerLinear_SQ8_T *Arg);
 extern void KerParLinearLayerFullFeatB8_ReLU_SQ8(KerLinear_SQ8_T *Arg);
 extern void KerParLinearLayerFullFeatB8_ReLUN_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB8_ReLUM_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB8_ReLUMN_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB8_LeakyReLU_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB8_HSwish_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB8_HSigmoid_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB8_Sigmoid_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB8_Tanh_SQ8(KerLinear_SQ8_T *Arg);
 
 extern void KerParLinearLayerFullFeatB16_SQ8(KerLinear_SQ8_T *Arg);
 extern void KerParLinearLayerFullFeatB16_ReLU_SQ8(KerLinear_SQ8_T *Arg);
 extern void KerParLinearLayerFullFeatB16_ReLUN_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB16_ReLUM_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB16_ReLUMN_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB16_LeakyReLU_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB16_HSwish_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB16_HSigmoid_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB16_Sigmoid_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB16_Tanh_SQ8(KerLinear_SQ8_T *Arg);
 
 extern void KerParLinearLayerFullFeatB32_SQ8(KerLinear_SQ8_T *Arg);
 extern void KerParLinearLayerFullFeatB32_ReLU_SQ8(KerLinear_SQ8_T *Arg);
 extern void KerParLinearLayerFullFeatB32_ReLUN_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB32_ReLUM_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB32_ReLUMN_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB32_LeakyReLU_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB32_HSwish_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB32_HSigmoid_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB32_Sigmoid_SQ8(KerLinear_SQ8_T *Arg);
+extern void KerParLinearLayerFullFeatB32_Tanh_SQ8(KerLinear_SQ8_T *Arg);
+
 
 /*************************************************************************************************************************************************
 	SotMax, Q15 Output

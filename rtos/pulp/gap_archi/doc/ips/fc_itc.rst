@@ -8,168 +8,146 @@ Register map
 Overview
 """"""""
 
+
+Refer to :ref:`GAP9 address map<REF_MEMORY_MAP_DETAIL>` for the base address to be used.
+
 .. table:: 
+    :align: center
+    :widths: 40 12 12 90
 
-    +----------------------------------------+------+-----+-------------------------------------+
-    |                  Name                  |Offset|Width|             Description             |
-    +========================================+======+=====+=====================================+
-    |:ref:`MASK<fc_itc_MASK>`                |     0|   32|FC_ITC Mask status register.         |
-    +----------------------------------------+------+-----+-------------------------------------+
-    |:ref:`MASK_SET<fc_itc_MASK_SET>`        |     4|   32|FC_ITC Mask set register.            |
-    +----------------------------------------+------+-----+-------------------------------------+
-    |:ref:`MASK_CLEAR<fc_itc_MASK_CLEAR>`    |     8|   32|FC_ITC Mask clear register.          |
-    +----------------------------------------+------+-----+-------------------------------------+
-    |:ref:`STATUS<fc_itc_STATUS>`            |    12|   32|FC_ITC interrupt status register.    |
-    +----------------------------------------+------+-----+-------------------------------------+
-    |:ref:`STATUS_SET<fc_itc_STATUS_SET>`    |    16|   32|FC_ITC interrupt enable register.    |
-    +----------------------------------------+------+-----+-------------------------------------+
-    |:ref:`STATUS_CLEAR<fc_itc_STATUS_CLEAR>`|    20|   32|FC_ITC interrupt clear register.     |
-    +----------------------------------------+------+-----+-------------------------------------+
-    |:ref:`ACK<fc_itc_ACK>`                  |    24|   32|FC_ITC interrupt ack status register.|
-    +----------------------------------------+------+-----+-------------------------------------+
-    |:ref:`ACK_SET<fc_itc_ACK_SET>`          |    28|   32|FC_ITC interrupt ack set register.   |
-    +----------------------------------------+------+-----+-------------------------------------+
-    |:ref:`ACK_CLEAR<fc_itc_ACK_CLEAR>`      |    32|   32|FC_ITC interrupt ack clear register. |
-    +----------------------------------------+------+-----+-------------------------------------+
-    |:ref:`FIFO<fc_itc_FIFO>`                |    36|   32|FC_ITC event number fifo register.   |
-    +----------------------------------------+------+-----+-------------------------------------+
+    +-----------------------------------------+------+-----+-------------------------------+
+    |                  Name                   |Offset|Width|          Description          |
+    +=========================================+======+=====+===============================+
+    |:ref:`MASK<fc_itc__MASK>`                |     0|   32|Mask status register.          |
+    +-----------------------------------------+------+-----+-------------------------------+
+    |:ref:`MASK_SET<fc_itc__MASK_SET>`        |     4|   32|Mask set register.             |
+    +-----------------------------------------+------+-----+-------------------------------+
+    |:ref:`MASK_CLEAR<fc_itc__MASK_CLEAR>`    |     8|   32|Mask clear register.           |
+    +-----------------------------------------+------+-----+-------------------------------+
+    |:ref:`STATUS<fc_itc__STATUS>`            |    12|   32|Interrupt status register.     |
+    +-----------------------------------------+------+-----+-------------------------------+
+    |:ref:`STATUS_SET<fc_itc__STATUS_SET>`    |    16|   32|Interrupt enable register.     |
+    +-----------------------------------------+------+-----+-------------------------------+
+    |:ref:`STATUS_CLEAR<fc_itc__STATUS_CLEAR>`|    20|   32|Interrupt clear register.      |
+    +-----------------------------------------+------+-----+-------------------------------+
+    |:ref:`FIFO<fc_itc__FIFO>`                |    36|   32|Read access to SoC events FIFO.|
+    +-----------------------------------------+------+-----+-------------------------------+
 
-.. _fc_itc_MASK:
+.. _fc_itc__MASK:
 
 MASK
 """"
 
-FC_ITC Mask status register.
+Mask status register.
 
 .. table:: 
+    :align: center
+    :widths: 13 12 45 24 85
 
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
+    +-----+---+-------+-----+----------------------------------------------------+
+    |Bit #|R/W| Name  |Reset|                    Description                     |
+    +=====+===+=======+=====+====================================================+
+    |31:0 |R/W|IT_MASK|0x0  |Interrupt mask: set bit i to 1 to enable interrupt i|
+    +-----+---+-------+-----+----------------------------------------------------+
 
-.. _fc_itc_MASK_SET:
+.. _fc_itc__MASK_SET:
 
 MASK_SET
 """"""""
 
-FC_ITC Mask set register.
+Mask set register.
 
 .. table:: 
+    :align: center
+    :widths: 13 12 45 24 85
 
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
+    +-----+---+-----------+-----+----------------------------------------------+
+    |Bit #|R/W|   Name    |Reset|                 Description                  |
+    +=====+===+===========+=====+==============================================+
+    |31:0 |W  |IT_MASK_SET|0x0  |Write 1 to bit i to set bit i of MASK register|
+    +-----+---+-----------+-----+----------------------------------------------+
 
-.. _fc_itc_MASK_CLEAR:
+.. _fc_itc__MASK_CLEAR:
 
 MASK_CLEAR
 """"""""""
 
-FC_ITC Mask clear register.
+Mask clear register.
 
 .. table:: 
+    :align: center
+    :widths: 13 12 45 24 85
 
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
+    +-----+---+-------------+-----+------------------------------------------------+
+    |Bit #|R/W|    Name     |Reset|                  Description                   |
+    +=====+===+=============+=====+================================================+
+    |31:0 |W  |IT_MASK_CLEAR|0x0  |Write 1 to bit i to clear bit i of MASK register|
+    +-----+---+-------------+-----+------------------------------------------------+
 
-.. _fc_itc_STATUS:
+.. _fc_itc__STATUS:
 
 STATUS
 """"""
 
-FC_ITC interrupt status register.
+Interrupt status register.
 
 .. table:: 
+    :align: center
+    :widths: 13 12 45 24 85
 
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
+    +-----+---+---------+-----+-------------------------------------------------------+
+    |Bit #|R/W|  Name   |Reset|                      Description                      |
+    +=====+===+=========+=====+=======================================================+
+    |31:0 |R/W|IT_STATUS|0x0  |Interrupt status: bit i is 1 when interrupt i is active|
+    +-----+---+---------+-----+-------------------------------------------------------+
 
-.. _fc_itc_STATUS_SET:
+.. _fc_itc__STATUS_SET:
 
 STATUS_SET
 """"""""""
 
-FC_ITC interrupt enable register.
+Interrupt enable register.
 
 .. table:: 
+    :align: center
+    :widths: 13 12 45 24 85
 
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
+    +-----+---+-------------+-----+------------------------------------------------+
+    |Bit #|R/W|    Name     |Reset|                  Description                   |
+    +=====+===+=============+=====+================================================+
+    |31:0 |W  |IT_STATUS_SET|0x0  |Write 1 to bit i to set bit i of STATUS register|
+    +-----+---+-------------+-----+------------------------------------------------+
 
-.. _fc_itc_STATUS_CLEAR:
+.. _fc_itc__STATUS_CLEAR:
 
 STATUS_CLEAR
 """"""""""""
 
-FC_ITC interrupt clear register.
+Interrupt clear register.
 
 .. table:: 
+    :align: center
+    :widths: 13 12 45 24 85
 
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
+    +-----+---+---------------+-----+--------------------------------------------------+
+    |Bit #|R/W|     Name      |Reset|                   Description                    |
+    +=====+===+===============+=====+==================================================+
+    |31:0 |W  |IT_STATUS_CLEAR|0x0  |Write 1 to bit i to clear bit i of STATUS register|
+    +-----+---+---------------+-----+--------------------------------------------------+
 
-.. _fc_itc_ACK:
-
-ACK
-"""
-
-FC_ITC interrupt ack status register.
-
-.. table:: 
-
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
-
-.. _fc_itc_ACK_SET:
-
-ACK_SET
-"""""""
-
-FC_ITC interrupt ack set register.
-
-.. table:: 
-
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
-
-.. _fc_itc_ACK_CLEAR:
-
-ACK_CLEAR
-"""""""""
-
-FC_ITC interrupt ack clear register.
-
-.. table:: 
-
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
-
-.. _fc_itc_FIFO:
+.. _fc_itc__FIFO:
 
 FIFO
 """"
 
-FC_ITC event number fifo register.
+Read access to SoC events FIFO.
 
 .. table:: 
+    :align: center
+    :widths: 13 12 45 24 85
 
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
+    +-----+---+---------+-----+-----------------------------------------------------------------------------+
+    |Bit #|R/W|  Name   |Reset|                                 Description                                 |
+    +=====+===+=========+=====+=============================================================================+
+    |31:0 |R  |EVENT_NUM|0x0  |Reading this field pops an event from SoC event FIFO and returns the event ID|
+    +-----+---+---------+-----+-----------------------------------------------------------------------------+

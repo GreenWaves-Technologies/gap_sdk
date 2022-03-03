@@ -33,7 +33,7 @@ from ips.icache_ctrl.icache_ctrl_v2 import Icache_ctrl
 from ips.fll.fll_v2 import Fll
 from gap.gap9.cluster import get_cluster_name
 from ips.clock.clock_domain import Clock_domain
-from ips.udma.udma_v4 import Udma
+from gap.gap9.udma import Udma
 from ips.xip.xip_v1 import Xip
 from ips.interco.bus_watchpoint import Bus_watchpoint
 from ips.debug.pulp_tap import Pulp_tap
@@ -121,7 +121,7 @@ class Soc(st.Component):
             bus_watchpoint = Bus_watchpoint(self, 'bus_watchpoint', fc_tohost)
 
         # L2
-        l2_priv0 = memory.Memory(self, 'l2_priv0', size=self.get_property('l2/priv0/mapping/size'))
+        l2_priv0 = memory.Memory(self, 'l2_priv0', size=self.get_property('l2/priv0/mapping/size'), power_trigger=True)
         l2_priv1 = memory.Memory(self, 'l2_priv1', size=self.get_property('l2/priv1/mapping/size'))
 
         l2_shared_size = self.get_property('l2/shared/mapping/size', int)

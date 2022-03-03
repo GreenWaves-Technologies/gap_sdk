@@ -36,7 +36,7 @@ class Unsqueeze(ConstantMixin, BackendHandler):
         out_rank = len(x_shape) + len(kwargs['axes'])
         axes = cls._resolve_negative_ranks(kwargs['axes'], out_rank)
 
-        old_shape = x_shape.copy()
+        old_shape = list(x_shape)
         new_shape = [1 if new_idx in axes else old_shape.pop(0)
                      for new_idx in range(out_rank)]
 

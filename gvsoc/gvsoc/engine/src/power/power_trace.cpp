@@ -28,7 +28,7 @@ int vp::power::power_trace::init(component *top, std::string name, vp::power::po
 {
     this->top = top;
     top->traces.new_trace_event_real(name, &this->trace);
-    this->dynamic_energy_for_cycle = 0;
+    this->quantum_power_for_cycle = 0;
     this->report_dynamic_energy = 0;
     this->report_leakage_energy = 0;
     this->curent_cycle_timestamp = 0;
@@ -37,7 +37,7 @@ int vp::power::power_trace::init(component *top, std::string name, vp::power::po
     if (parent == NULL)
     {
         vp::component *component = top->get_parent();
-        if (component)
+        if (component && component->get_path() != "")
         {
             parent = component->power.get_power_trace();
         }
@@ -73,10 +73,13 @@ void vp::power::power_trace::trace_handler(void *__this, vp::clock_event *event)
 
 void vp::power::power_trace::report_start()
 {
+    this->account_dynamic_power();
+    this->account_leakage_power();
+
     // Since the report start may be triggered in the middle of several events
     // for power consumptions, include what has already be accounted
     // in the same cycle.
-    this->report_dynamic_energy = this->get_dynamic_energy_for_cycle();
+    this->report_dynamic_energy = this->get_quantum_energy_for_cycle();
     this->report_leakage_energy = 0;
     this->report_start_timestamp = this->top->get_time();
 }
@@ -93,12 +96,9 @@ void vp::power::power_trace::get_report_energy(double *dynamic, double *leakage)
 
 void vp::power::power_trace::get_report_power(double *dynamic, double *leakage)
 {
-    double childs_dynamic = 0, childs_leakage = 0;
-
     // To get the power on the report window, we just get the total energy and divide by the window duration
-    this->top->power.get_report_energy_from_childs(&childs_dynamic, &childs_leakage);
-    *dynamic = (childs_dynamic + this->get_report_dynamic_energy()) / (this->top->get_time() - this->report_start_timestamp);
-    *leakage = (childs_leakage + this->get_report_leakage_energy()) / (this->top->get_time() - this->report_start_timestamp);
+    *dynamic = (this->get_report_dynamic_energy()) / (this->top->get_time() - this->report_start_timestamp);
+    *leakage = (this->get_report_leakage_energy()) / (this->top->get_time() - this->report_start_timestamp);
 }
 
 
@@ -127,42 +127,24 @@ void vp::power::power_trace::dump_vcd_trace()
     if (this->top->get_path() == "")
         return;
 
-    double power = 0.0;
-
     // To dump the VCD trace, we need to compute the instant power, since this is what is reported.
     // This is easy for background and leakage power. For enery quantum, we get the amount of energy for the current
     // cycle and compute the instant power using the clock engine period.
 
-    // Some component do not have clocks. They cannot use energy quantum but they can still use background
-    // power and leakage
-    if (this->top->get_clock())
-    {
-        int64_t period = this->top->get_period();
-        if (period != 0)
-        {
-            power += this->get_dynamic_energy_for_cycle() / period;
-        }
-    }
+    double quantum_power = this->get_quantum_power_for_cycle();
     double power_background = this->current_dynamic_power + this->current_leakage_power;
 
     // Also account the power from childs since VCD traces are hierarchical
-    double childs_power = this->top->power.get_power_from_childs();
-    this->current_power = power + power_background + childs_power;
+    this->current_power = quantum_power + power_background;
 
     // Dump the instant power to trace
     this->trace.event_real(current_power);
 
     // If there was a contribution from energy quantum, schedule an event in the next cycle so that we dump again 
     // the trace since teh quantum implicitely disappears and overal power is modified
-    if (!this->trace_event->is_enqueued() && power > 0)
+    if (!this->trace_event->is_enqueued() && quantum_power > 0)
     {
         this->top->event_enqueue(this->trace_event, 1);
-    }
-
-    // Notify the parent that this trace was dumped so that the upper traces can be dumped as well
-    if (this->parent)
-    {
-        this->parent->dump_vcd_trace();
     }
 }
 
@@ -213,15 +195,26 @@ void vp::power::power_trace::account_leakage_power()
 
 void vp::power::power_trace::inc_dynamic_energy(double quantum)
 {
+    if (this->top->get_period() == 0)
+    {
+        return;
+    }
+
     // Since we need to account the energy for the current amount of the cycle, check if it needs to be flushed
-    this->flush_dynamic_energy_for_cycle();
+    this->flush_quantum_power_for_cycle();
 
     // Then account it to both the total amount and to the cycle amount
-    this->dynamic_energy_for_cycle += quantum;
+    double power = quantum / this->top->get_period();
+    this->quantum_power_for_cycle += power;
     this->report_dynamic_energy += quantum;
 
-    // Redump VCD trace since teh instant power is impacted
+    // Redump VCD trace since the instant power is impacted
     this->dump_vcd_trace();
+
+    if (this->parent)
+    {
+        this->parent->inc_dynamic_power(power);
+    }
 }
 
 
@@ -235,14 +228,24 @@ void vp::power::power_trace::inc_dynamic_power(double power_incr)
     this->account_dynamic_power();
     this->current_dynamic_power += power_incr;
 
-    // Redump VCD trace since teh instant power is impacted
+    // Redump VCD trace since the instant power is impacted
     this->dump_vcd_trace();
+
+    if (this->parent)
+    {
+        this->parent->inc_dynamic_power(power_incr);
+    }
 }
 
 
 
 void vp::power::power_trace::inc_leakage_power(double power_incr)
 {
+    // TODO this is wasting time and should be removed once fake component such as time domain and trace domain
+    // are not in the component hierarchy anymore
+    if (this->top->get_path() == "")
+        return;
+
     // Leakage and dynamic are handled differently since they are reported separately,
     // In both cases, first compute the power on current period, start a new one,
     // and change the power so that it is constant over the period, to properly
@@ -250,6 +253,11 @@ void vp::power::power_trace::inc_leakage_power(double power_incr)
     this->account_leakage_power();
     this->current_leakage_power += power_incr;
 
-    // Redump VCD trace since teh instant power is impacted
+    // Redump VCD trace since the instant power is impacted
     this->dump_vcd_trace();
+
+    if (this->parent)
+    {
+        this->parent->inc_leakage_power(power_incr);
+    }
 }

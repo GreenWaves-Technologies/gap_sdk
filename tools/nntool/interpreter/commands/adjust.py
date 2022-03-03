@@ -47,5 +47,5 @@ Must be run before generating code."""
         else:
             steps = None
         self.G.adjust_order(
-            postprocess=not args.no_postprocess, steps=steps, single_step=args.individual_step)
+            no_postprocess=args.no_postprocess, steps=steps, single_step=args.individual_step)
         self.G.add_dimensions()

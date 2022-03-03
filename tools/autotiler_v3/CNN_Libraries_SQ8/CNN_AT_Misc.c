@@ -25,6 +25,7 @@
 #include "CNN_AT_Misc.h"
 
 
+
 #ifdef __pulp__
 #define Abs(a)          __builtin_pulp_abs((a))
 #define Min(a, b)       __builtin_pulp_minsi((a), (b))

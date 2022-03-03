@@ -34,13 +34,7 @@ def walk_up(G, edge, concat_node):
               edge.to_node.name, edge.to_idx)
     edge.params.is_alias = True
     node = edge.from_node
-    if isinstance(node, ReshapeParameters):
-        # since it is a reshape it can only have one input
-        return walk_up(G, G.in_edges(node.name)[0], concat_node)
-    if isinstance(node, TransposeParameters):
-        if not node.does_nothing():
-            return False
-        # since it is a reshape it can only have one input
+    if node.no_model_code:
         return walk_up(G, G.in_edges(node.name)[0], concat_node)
     if isinstance(node, SplitParameters):
         LOG.warning("split node %s is directly connected to concat node %s",
@@ -61,12 +55,7 @@ def walk_down(G, edge, split_node):
     edge.params.is_alias = True
     node = edge.to_node
     errors = False
-    if isinstance(node, ReshapeParameters):
-        for edge in G.out_edges(node.name):
-            errors = errors or walk_down(G, edge, split_node)
-    elif isinstance(node, TransposeParameters):
-        if not node.does_nothing():
-            return errors
+    if node.no_model_code:
         for edge in G.out_edges(node.name):
             errors = errors or walk_down(G, edge, split_node)
     elif isinstance(node, ConcatParameters):

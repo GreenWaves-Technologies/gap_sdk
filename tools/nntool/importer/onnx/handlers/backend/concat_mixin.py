@@ -32,7 +32,7 @@ class ConcatMixin(ConstantMixin):
         all_nodes = kwargs['all_nodes']
         G = kwargs['G']
         valid_name = kwargs['valid_name']
-        inputs = [all_nodes[inp] for inp in node.input]
+        inputs = [all_nodes[inp] for inp in node.input if all_nodes[inp][2].shape]
         input_shapes = [inp[2].shape for inp in inputs]
         axis_sum = sum(shape[axis] for shape in input_shapes)
         axis = axis if axis >= 0 else len(input_shapes[0]) + axis

@@ -1,18 +1,4 @@
 {
-    "clock_gated": {
-        "dynamic": {
-            "type": "linear",
-            "unit": "W",
-        
-            "values": {
-                "25": {
-                    "1.2": {
-                        "any": "0.0000016"
-                    }
-                }
-            }
-        }
-    },
     "insn_groups": [
         {
             "dynamic": {
@@ -22,7 +8,7 @@
                 "values": {
                     "25": {
                         "1.2": {
-                            "any": "6.36"
+                            "any": "4.98"
                         }
                     }
                 }
@@ -36,14 +22,26 @@
                 "values": {
                     "25": {
                         "1.2": {
-                            "any": "6.36"
+                            "any": "4.98"
                         }
                     }
                 }
             }
         }
     ],
-    "leakage": {
+    "background": {
+        "dynamic": {
+            "type": "linear",
+            "unit": "W",
+        
+            "values": {
+                "25": {
+                    "1.2": {
+                        "any": "0.000"
+                    }
+                }
+            }
+        },
         "leakage": {
             "type": "linear",
             "unit": "W",
@@ -51,7 +49,7 @@
             "values": {
                 "25": {
                     "1.2": {
-                        "any": "0.0001714375"
+                        "any": "0.0000355"
                     }
                 }
             }

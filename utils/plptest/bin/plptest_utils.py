@@ -208,7 +208,7 @@ class Testplan(object):
 
 
 class TestCommon(object):
-    def __init__(self, runner, name, path, parent):
+    def __init__(self, runner, name, path, parent, user, is_testset=False):
         self.name = name
         self.parent = parent
         self.runner = runner
@@ -224,6 +224,8 @@ class TestCommon(object):
         self.addedConfigs = []
         self.restrict = None
         self.skip = None
+        self.user = user
+        self.is_testset = is_testset
 
     def get_skip(self):
         if self.skip is not None:
@@ -235,6 +237,12 @@ class TestCommon(object):
         return None
 
     def checkConfig(self, config):
+
+        if not self.is_testset and len(self.runner.tags) != 0 and self.user is not None:
+            self.isActive = len(set(self.runner.tags).intersection(self.user.tags)) != 0
+            if not self.isActive:
+                return
+
         try:
             self.activeForConfig[config.__str__()] = \
                 self.restrict is None or \
@@ -345,8 +353,8 @@ class TestCommon(object):
 
 class Testset(TestCommon):
 
-    def __init__(self, runner, name, path, parent=None):
-        super(Testset, self).__init__(runner, name, path, parent)
+    def __init__(self, runner, name, path, parent=None, user=None):
+        super(Testset, self).__init__(runner, name, path, parent, user, is_testset=True)
         if parent is not None:
             parent.regChild(self)
         self.childs = []
@@ -413,11 +421,10 @@ class Testset(TestCommon):
 
 class Test(TestCommon):
 
-    def __init__(self, runner, name, path, parent=None):
-        super(Test, self).__init__(runner, name, path, parent)
+    def __init__(self, runner, name, path, parent=None, user=None):
+        super(Test, self).__init__(runner, name, path, parent, user)
         self.childs = []
         self.commands = []
-        self.tags = []
         self.dir = None
         self.timeout = -1
         self.checkers = []
@@ -524,9 +531,6 @@ class Test(TestCommon):
 
     def addParam(self, param):
         self.params.append(param)
-
-    def addTag(self, tag):
-        self.tags.append(tag)
 
     def addChecker(self, checker):
         self.checkers.append(checker)
@@ -796,7 +800,7 @@ class TestRun(protocol.ProcessProtocol):
 
             self.handle_cmd_end()
             
-    def run(self, reactor, callback=None, commands=None, dry_run=False, *kargs, **kwargs):
+    def run(self, reactor, callback=None, commands=None, exclude_commands=None, dry_run=False, *kargs, **kwargs):
 
         self.dry_run = dry_run
         self.callback = callback
@@ -813,13 +817,12 @@ class TestRun(protocol.ProcessProtocol):
 
         else:
 
-            if commands is None:
-                self.commands = self.test.commands.copy()
-            else:
-                self.commands = []
-                for test_command in self.test.commands:
-                    if test_command.name in commands:
-                        self.commands.append(test_command)
+            self.commands = []
+
+            for test_command in self.test.commands:
+
+                if (commands is None or test_command.name in commands) and (exclude_commands is None or not test_command.name in exclude_commands):
+                    self.commands.append(test_command)
 
             self.appendOutput('Running: ' + self.test.getFullName() + ' / ' +
                             self.config.get_config_name() + '\n')

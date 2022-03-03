@@ -15,6 +15,9 @@
 from gap.gap9.gapmod import Gapmod
 from devices.testbench.testbench import Testbench
 from devices.uart.uart_checker import Uart_checker
+from devices.gpio.fxl6408 import Fxl6408
+from devices.sound.dac.ak4332 import Ak4332
+from devices.i2c.i2c_bus import I2c_bus
 
 
 class Gap9_evk(Gapmod):
@@ -26,15 +29,18 @@ class Gap9_evk(Gapmod):
     addon_testbench_enabled : bool, optional
         If True, this enables the testbench addon, which is a specific GVSOC addon for
         generating stimuli on the pads (default: False).
+    addon_audio : bool, optional
+        If True, this enables the audio addon (default: False).
     
     """
 
-    def __init__(self, parent, name, addon_testbench_enabled: bool=False, addon_uart_checker: bool=True):
+    def __init__(self, parent, name, addon_testbench_enabled: bool=False, addon_uart_checker: bool=True, addon_audio: bool=False):
         super(Gap9_evk, self).__init__(parent, name)
 
         # Register all parameters as properties so that they can be overwritten from the command-line
         self.add_property('addon_testbench_enabled', addon_testbench_enabled)
         self.add_property('addon_uart_checker', addon_uart_checker)
+        self.add_property('addon_audio', addon_audio)
 
         gap = self.get_component('chip')
 
@@ -55,6 +61,18 @@ class Gap9_evk(Gapmod):
             self.bind(testbench, 'i2s1', gap, 'i2s1')
             self.bind(testbench, 'i2s2', gap, 'i2s2')
 
+        # Addon Testbench
+        elif self.get_property('addon_audio'):
+
+            i2c1_bus = I2c_bus(self, 'i2c1_bus')
+            io_expander = Fxl6408(self, 'io_expander')
+            dac = Ak4332(self, 'dac')
+
+            self.bind(gap, 'i2c1', i2c1_bus, 'input')
+            self.bind(io_expander, 'i2c', i2c1_bus, 'input')
+            self.bind(dac, 'i2c', i2c1_bus, 'input')
+
+
         else:
             # Addon uart checker
             if self.get_property('addon_uart_checker'):
@@ -67,4 +85,10 @@ class Gap9_evk(Gapmod):
                 self.bind(gap, 'i2c3', self, 'i2c3')
 
         
+class Gap9_evk_audio(Gap9_evk):
+    """
+    GAP9 EVK board with audio addon
+    """
 
+    def __init__(self, parent, name):
+        super(Gap9_evk_audio, self).__init__(parent, name, addon_audio=True)

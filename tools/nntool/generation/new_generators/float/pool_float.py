@@ -13,28 +13,23 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from functools import reduce
-from utils.largest_factor import balanced_divisors
-from quantization.multiplicative.mulbias import compute_in_out_scale
-from generation.new_generators.helpers.in_out_bindings_mixin import InOutBindingsMixin
-from graph.types.global_pooling import GlobalAveragePoolParameters, GlobalSumPoolParameters
-from graph.dim import PadDim
-from generation.new_generators.helpers.act_infos import gen_act_infos
-from generation.at_types.at_params import NO_POOL, gen_activation_op, gen_globalpool_at_params, gen_pool_at_params
 import logging
-from utils.node_id import NodeId
+from functools import reduce
 
-import numpy as np
-from generation.at_types.constant_info import ConstantInfo
+from generation.at_types.at_params import (gen_activation_op,
+                                           gen_globalpool_at_params,
+                                           gen_pool_at_params)
 from generation.at_types.gen_ctrl import GenCtrl
-from generation.at_types.tc_arg_info import GlobalArgInfo
-from generation.generators.globals.global_names import INFOS
 from generation.generators.kernels.autotiler_kernel import NewAutoTilerKernel
-from generation.helpers.gen_constant import gen_constant
-from generation.new_generators.generator_base import (GeneratorBase,
-                                                      paramstype, ktype)
-from graph.types import GlobalPoolingParameters, PoolingParameters, ActivationFusion
-from quantization.qtype import QType
+from generation.new_generators.generator_base import (GeneratorBase, ktype,
+                                                      paramstype)
+from generation.new_generators.helpers.in_out_bindings_mixin import \
+    InOutBindingsMixin
+from graph.dim import PadDim
+from graph.types import (ActivationFusion, GlobalPoolingParameters,
+                         PoolingParameters)
+from utils.largest_factor import balanced_divisors
+from utils.node_id import NodeId
 
 LOG = logging.getLogger("nntool." + __name__)
 

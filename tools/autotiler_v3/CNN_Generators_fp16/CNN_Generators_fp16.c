@@ -1279,7 +1279,7 @@ Kernel_T *CNN_ConvolutionPoolAct_fp16_Internal(
                 if (Ok!=0) return Ok;
                 if (Log) printf("Mapping this convolution to im2col scheme failed, reverting to standard implementation\n");
         }
-	if (Fcx==1 && Fcy==1 && Scx==1 && Scy==1 && Dcx==1 && Dcy==1 && Height==1 && Width==1) {
+	if (Fcx==1 && Fcy==1 && Height==1 && Width==1) {
 		printf("This is a pointwise on 1x1 input --> Mapping to CNN_Linear_NE16\n");
 		return CNN_LinearAct_fp16_Internal(Name, Ctrl, InFeat, OutFeat, KOP_LINEAR, ActOper);
 	}

@@ -1,3 +1,10 @@
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+
 #include <stdio.h>
 #include "CNN_BasicKernels_fp16.h"
 
@@ -1387,3 +1394,5 @@ void KerPar_MM_Conv2D_DxDy_ReLU_fp16(
 	}
 	gap_waitbarrier(0);
 }
+
+#pragma GCC diagnostic pop

@@ -1,5 +1,6 @@
-pyelftools==0.24
+pyelftools>=0.24
 prettytable==0.7.2
+pexpect>=4.0.0,<5
 configparser
 argcomplete
 requests

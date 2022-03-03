@@ -73,3 +73,16 @@ add_subdirectory(gvsoc_gap)
 if(UDMA_HAS_SFU)
     add_subdirectory(gvsoc_gap_sfu)
 endif()
+
+if("${CONFIG_GVSOC_SKIP_UDMA_BUILD}" EQUAL "1")
+    message(STATUS "Installing precompiled files")
+    vp_files(FILES "gvsoc_libs/debug/pulp/udma/udma_v4_gap9_v2_impl.so"
+        PREFIX "debug/pulp/udma/")
+
+    vp_files(FILES "gvsoc_libs/sv/pulp/udma/udma_v4_gap9_v2_impl.so"
+        PREFIX "sv/pulp/udma/")
+
+    vp_files(FILES "gvsoc_libs/pulp/udma/udma_v4_gap9_v2_impl.so"
+        PREFIX "pulp/udma/")
+
+endif()

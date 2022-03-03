@@ -182,13 +182,22 @@ static inline pi_callback_t *pi_callback_init(pi_callback_t *callback,
 static inline void pi_task_timeout_set(pi_task_t *task, uint32_t timeout_us);
 
 /**
- * \brief Query result end of transfer.
+ * \brief Query task status.
  *
- * This function can be used to check the end result of a transfer.
+ * This function can be used to check if a task completed successfully.
  *
- * \return ERRNO         Value corresponding to end of transfer.
+ * \return ERRNO         Value corresponding to task status.
  */
-static inline int32_t pi_task_transfer_end_result_get(pi_task_t *task);
+static inline int32_t pi_task_status_get(pi_task_t *task);
+
+/**
+ * \brief Set task status.
+ *
+ * This function can be used to tell if a task completed successfully.
+ *
+ * \param status        Value corresponding to task status.
+ */
+static inline void pi_task_status_set(pi_task_t *task, int32_t status);
 
 /**
  * @}

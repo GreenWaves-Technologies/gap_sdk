@@ -84,7 +84,7 @@ class Pack(ConstantMixin, BackendHandler):
             G.add_edge(NNEdge(from_node=inputs[0][0], to_node=params, from_idx=inputs[0][1]))
         else:
             axis -= sum(1 if dim is None else 0 for dim in pconcat_out_shape[:axis:])
-            params = ConcatParameters(node.name, axis=axis, axis_hint=None)
+            params = ConcatParameters(node.name, axis=axis)
 
             # insert reshapes on each input to add concat axis
             for idx, inp in enumerate(inputs):

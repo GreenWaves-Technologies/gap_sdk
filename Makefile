@@ -178,10 +178,18 @@ openocd.checkout:
 	fi
 
 openocd.build: openocd.checkout
-	cd utils/openocd && ./bootstrap && ./configure --enable-jtag_dpi --prefix=$(INSTALL_DIR)/openocd && make && make install
+	cd utils/openocd && ./bootstrap && ./configure --enable-jtag_dpi --prefix=$(INSTALL_DIR)/openocd && $(MAKE) && $(MAKE) install
 
 openocd.clean:
 	rm -rf $(INSTALL_DIR)/openocd tools/openocd
+
+PROFILER_V2_DIR = $(GAP_SDK_HOME)/tools/profiler_v2
+PROFILER_V2_BUILD_DIR = $(GAP_SDK_HOME)/build/profiler_v2
+
+profiler_v2:
+	cmake -S $(PROFILER_V2_DIR) -B $(PROFILER_V2_BUILD_DIR)
+	cmake --build $(PROFILER_V2_BUILD_DIR)
+	cmake --install $(PROFILER_V2_BUILD_DIR) --prefix $(INSTALL_DIR)
 
 profiler:
 	$(MAKE) -C tools/profiler all

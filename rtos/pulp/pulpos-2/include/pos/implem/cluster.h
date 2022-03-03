@@ -21,6 +21,21 @@
 #ifndef __POS_IMPLEM_CLUSTER_H__
 #define __POS_IMPLEM_CLUSTER_H__
 
+extern PI_CL_L1_TINY int pos_cluster_nb_active_pe;
+
+static inline int pi_cluster_get_task_nb_cores()
+{
+    return pos_cluster_nb_active_pe;
+}
+
+static inline int pi_cluster_send_workgroup(pi_device_t *device, pi_cluster_task_t *cluster_task)
+{
+    pi_task_t task;
+    pi_task_block(&task);
+    int error = pi_cluster_send_workgroup_async(device, cluster_task, &task);
+    pi_task_wait_on(&task);
+    return error;
+}
 
 void pos_cluster_push_fc_event(pi_task_t *event);
 
@@ -53,6 +68,7 @@ static inline struct pi_cluster_task *pi_cluster_task(struct pi_cluster_task *ta
     task->stack_size = 0;
     task->slave_stack_size = 0;
     task->nb_cores = pi_cl_cluster_nb_cores();
+    task->event_based = 0;
     return task;
 }
 

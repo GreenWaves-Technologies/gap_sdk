@@ -19,7 +19,7 @@ import numpy as np
 from graph.types import InputParameters
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
-from quantization.quantizer_options import ALLOW_ASYMMETRIC_OPTION
+from quantization.quantizer_options import ALLOW_ASYMMETRIC_OPTION, QTYPE_IND_OPTION
 from quantization.unified_quantization_handler import (options,
                                                        out_qs_constraint,
                                                        params_type)
@@ -28,7 +28,8 @@ from ..mult_quantization_handler import MultQuantizionHandler
 
 
 @options(
-    ALLOW_ASYMMETRIC_OPTION
+    ALLOW_ASYMMETRIC_OPTION,
+    QTYPE_IND_OPTION
 )
 @params_type(InputParameters)
 @out_qs_constraint({'dtype': set([np.int8, np.uint8, np.int16, np.uint16])})
@@ -40,8 +41,11 @@ class InputMult(MultQuantizionHandler):
             out_dtype = in_qs[0].dtype
         force_out_q = force_out_qs and force_out_qs[0]
         opts = kwargs['opts']
+        o_q_ind = opts.get('qtype_ind')
         if force_out_q:
             o_q = deepcopy(force_out_q)
+        elif o_q_ind:
+            o_q = deepcopy(o_q_ind)
         else:
             cls.check_valid_ranges(params, stats, idx=0, dirs='out')
             o_q = QType.from_min_max_sq(stats['range_out'][0]['min'],

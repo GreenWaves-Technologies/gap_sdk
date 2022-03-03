@@ -215,6 +215,10 @@ void pi_aps25xxxn_conf_init(struct pi_aps25xxxn_conf *conf)
   conf->baudrate = 0;
   conf->xip_en = 0;
   conf->reserve_addr_0 = 1;
+  #if defined(__GAP9__)
+  conf->ram.aes_conf.enabled = 0;
+  conf->ram.aes_conf.qk_en = 0;
+  #endif
   bsp_aps25xxxn_conf_init(conf);
 }
 

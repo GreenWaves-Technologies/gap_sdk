@@ -56,21 +56,6 @@
 pi_task_t *__pi_task_block(pi_task_t *task);
 
 /**
- * \brief Prepare an event task with callback.
- *
- * This function initializes an instance of event task.
- * This event task executes the callback given in argument.
- *
- * \param callback_task  Pointer to event task.
- * \param func           Callback function.
- * \param arg            Callback function argument.
- *
- * \return task This function returns the event task initialized.
- */
-pi_task_t *__pi_task_callback(pi_task_t *callback_task,
-                              void (*func)(void *), void *arg);
-
-/**
  * \brief Wait on an event task.
  *
  * This function allows to wait on an event task until the event occurs.
@@ -110,6 +95,21 @@ void __pi_task_destroy(pi_task_t *task);
  */
 void pi_task_delayed_fifo_enqueue(struct pi_task *task, uint32_t delay_us);
 
+
+static inline void __pi_task_push_no_irq(pi_task_t *task)
+{
+    pmsis_event_push(pmsis_event_get_default_scheduler(), task);
+}
+
+static inline void __pi_task_push_exec_irq_safe(pi_task_t *task)
+{
+    pi_callback_func_t func = (pi_callback_func_t) task->arg[0];
+    void *arg = (void *) task->arg[1];
+    func(arg);
+}
+
+void __pi_task_push_locked(pi_task_t * task);
+
 /*******************************************************************************
  * API implementation
  ******************************************************************************/
@@ -122,15 +122,24 @@ static inline pi_task_t *pi_task_block(pi_task_t *task)
 static inline pi_task_t *pi_task_callback(pi_task_t *task,
                                           void (*callback)(void*), void *arg)
 {
-    return __pi_task_callback(task, callback, arg);
+    task->id = PI_TASK_CALLBACK_ID;
+    task->arg[0] = (uintptr_t) callback;
+    task->arg[1] = (uintptr_t) arg;
+    task->done = 0;
+    task->sync_obj = NULL;
+    //task->destroy = 0;
+    task->core_id = -1;
+    task->timeout = 0;
+    task->next = NULL;
+    return task;
 }
 
 static inline pi_task_t *pi_task_irq_callback(pi_task_t *task,
-                                          void (*callback)(void*), void *arg)
+                                              void (*callback)(void*), void *arg)
 {
     task->id = PI_TASK_IRQ_ID;
-    task->arg[0] = (uintptr_t)callback;
-    task->arg[1] = (uintptr_t)arg;
+    task->arg[0] = (uintptr_t) callback;
+    task->arg[1] = (uintptr_t) arg;
     return task;
 }
 
@@ -139,19 +148,16 @@ static inline void pi_task_wait_on(pi_task_t *task)
     __pi_task_wait_on(task);
 }
 
+static inline void pi_task_push_irq_safe(pi_task_t *task)
+{
+    __pi_task_push_locked(task);
+}
+
 static inline void pi_task_push(pi_task_t *task)
 {
-    switch (task->id)
-    {
-        case PI_TASK_NONE_ID :
-            pi_task_release(task);
-            break;
-        case PI_TASK_CALLBACK_ID :
-            __pi_task_push(task);
-            break;
-        default :
-            return;
-    }
+    uint32_t irq = pi_irq_disable();
+    __pi_task_push_locked(task);
+    pi_irq_restore(irq);
 }
 
 static inline void pi_task_destroy(pi_task_t *task)
@@ -167,6 +173,16 @@ static inline void pi_task_timeout_set(pi_task_t *task, uint32_t timeout_us)
 static inline int32_t pi_task_transfer_end_result_get(pi_task_t *task)
 {
     return task->arg[3];
+}
+
+static inline int32_t pi_task_status_get(pi_task_t *task)
+{
+    return task->arg[3];
+}
+
+static inline void pi_task_status_set(pi_task_t *task, int32_t status)
+{
+    task->arg[3] = status;
 }
 
 static inline void pi_task_timeout_callback_set(pi_task_t *task, pi_callback_func_t func,

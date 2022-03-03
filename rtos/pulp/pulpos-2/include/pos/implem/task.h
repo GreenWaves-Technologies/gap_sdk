@@ -40,6 +40,17 @@ static inline void pi_task_destroy(pi_task_t *task)
 }
 
 
+static inline int32_t pi_task_status_get(pi_task_t *task)
+{
+    return task->arg[3];
+}
+
+static inline void pi_task_status_set(pi_task_t *task, int32_t status)
+{
+    task->arg[3] = status;
+}
+
+
 static inline void pi_task_wait_on(struct pi_task *task)
 {
     int irq = hal_irq_disable();
@@ -124,6 +135,10 @@ static inline void __attribute__((always_inline)) pos_task_push_locked(pi_task_t
     }
 }
 
+static inline void __attribute__((always_inline)) pi_task_push_irq_safe(pi_task_t *task)
+{
+    pos_task_push_locked(task);
+}
 
 static inline void __attribute__((always_inline)) pi_task_push(pi_task_t *task)
 {

@@ -15,6 +15,8 @@
 
 from typing import Mapping, Sequence
 
+from graph.types.input_output import InputBaseParameters, InputParameters, OutputParameters
+
 def calculate_liveness(G, steps: Sequence[Mapping]) -> Mapping[str, Mapping]:
     liveness = {}
     for i, step in enumerate(steps):
@@ -23,7 +25,7 @@ def calculate_liveness(G, steps: Sequence[Mapping]) -> Mapping[str, Mapping]:
         step['start'] = []
         step['end'] = []
         # input nodes create tensors
-        if G.is_input(node):
+        if isinstance(node, InputBaseParameters):
             edges = G.out_edges(node.name)
             if edges:
                 assert all(edge.from_idx == 0 for edge in edges), "inputs should create a single tensor"
@@ -40,7 +42,7 @@ def calculate_liveness(G, steps: Sequence[Mapping]) -> Mapping[str, Mapping]:
                 assert live is not None, "Inputs to node must have already been created"
                 if live['end'] < i:
                     live['end'] = i
-                if G.is_output(node):
+                if isinstance(node, OutputParameters):
                     live['is_output'] = True
             # check what we create
             for edge in G.out_edges(node.name):

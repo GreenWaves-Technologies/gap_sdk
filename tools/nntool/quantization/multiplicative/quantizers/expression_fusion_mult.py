@@ -26,14 +26,14 @@ from quantization.qtype_constraint import MatchAll
 from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        out_qs_constraint,
                                                        params_type)
-
+from bfloat16 import bfloat16
 from ..mult_quantization_handler import MultQuantizionHandler
 
 LOG = logging.getLogger('nntool.' + __name__)
 
 @params_type(ExpressionFusionParameters)
-@in_qs_constraint(MatchAll({'dtype': {np.int8, np.uint8, np.int16, np.uint16}}))
-@out_qs_constraint(MatchAll({'dtype': {np.int8, np.uint8, np.int16, np.uint16}}))
+@in_qs_constraint(MatchAll({'dtype': {np.int8, np.uint8, np.int16, np.uint16, np.float16, bfloat16}}))
+@out_qs_constraint(MatchAll({'dtype': {np.int8, np.uint8, np.int16, np.uint16, np.float16, bfloat16}}))
 class ExpressionFusionMult(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):

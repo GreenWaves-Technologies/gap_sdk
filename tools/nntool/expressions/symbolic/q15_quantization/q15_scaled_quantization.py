@@ -13,12 +13,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple, cast
+import math
+from typing import Tuple
 
 import numpy as np
-import math
+from bfloat16 import bfloat16
+from expressions.symbolic.float_quantization.float_qrec import FloatQRec
 
-from ..basic import Cast
+from ..basic import Cast, ConvertQuantization
 from ..quantization_base import (QRecBase, QuantizationHandlerBase,
                                  handles_scheme)
 from ..symbol import Symbol, SymbolStats
@@ -63,6 +65,55 @@ class Q15ScaledQuantization(QuantizationHandlerBase):
     def _dequantize_c_expr(cls, c_expr: str, qrec: Q15ScaleQRec, **kwargs) -> np.ndarray:
         return qrec.dequantize_c_expr(c_expr)
 
+    # @classmethod
+    # def _quantize_output(cls,
+    #                      sym: Symbol,
+    #                      qsym: Symbol,
+    #                      osym: Symbol,
+    #                      sym_ctrl: SymbolStats,
+    #                      qrec: QRecBase,
+    #                      **kwargs) -> Tuple[Symbol, QRecBase]:
+    #     from_qrec = qrec
+    #     qtypes = kwargs.get('qtypes', {})
+    #     # first see if this has already been quantized by nntool
+    #     # note that the qtype will be stored against the name of the output symbol
+    #     res = cls._get_scale_dtype_from_qtypes(
+    #         osym, qtypes)
+    #     if res is None:
+    #         max_val = math.fabs(sym_ctrl.get_max(sym))
+    #         min_val = -max_val
+    #         out_dtype = np.int8
+    #         out_q = 7
+    #         zero_point = 0
+    #     else:
+    #         max_val, min_val, out_dtype, out_q, zero_point = res
+
+    #     qrec_scale = Q15ScaleQRec(np.int32, max_val, out_q, min_val=min_val, max_val=max_val, zero_point=zero_point)
+    #     qrec_out = Q15ScaleQRec(out_dtype, max_val, out_q, min_val=min_val, max_val=max_val, zero_point=zero_point)
+    #     # scale clip and cast to output type
+    #     return (
+    #         Cast(
+    #             Clip(
+    #                 ScaleQuantized(qsym,
+    #                                from_qrec=from_qrec,
+    #                                to_qrec=qrec_scale),
+    #                 clip_dtype=out_dtype,
+    #                 dtype=qrec_scale.dtype),
+    #             dtype=qrec.dtype), qrec_out)
+
+    # @classmethod
+    # def _get_scale_dtype_from_qtypes(cls, sym, qtypes):
+    #     if not qtypes or sym.name not in qtypes:
+    #         return None
+    #     qtype = qtypes[sym.name]
+    #     if qtype.dtype in [np.int8, np.uint8, np.int16, np.uint16]:
+    #         if len(qtype.scale) > 1:
+    #             return None
+    #         max_val, min_val, bitlen = Q15ScaleQRec.dtype_zp_to_min_max(qtype.dtype, qtype.scale[0], qtype.zero_point)
+    #         return max_val, min_val, qtype.dtype, bitlen, qtype.zero_point
+    #     else:
+    #         return None
+
     @classmethod
     def _quantize_output(cls,
                          sym: Symbol,
@@ -75,49 +126,56 @@ class Q15ScaledQuantization(QuantizationHandlerBase):
         qtypes = kwargs.get('qtypes', {})
         # first see if this has already been quantized by nntool
         # note that the qtype will be stored against the name of the output symbol
-        max_val, out_dtype, out_q, zero_point = cls._get_scale_dtype_from_qtypes(
-            osym, qtypes)
-        if max_val is None:
+
+        if qtypes and osym.name in qtypes:
+            qtype = qtypes[osym.name]
+            if qtype.dtype in [np.int8, np.uint8, np.int16, np.uint16]:
+                max_val, min_val, out_q = Q15ScaleQRec.dtype_zp_to_min_max(
+                    qtype.dtype, qtype.scale[0], qtype.zero_point)
+                out_dtype = qtype.dtype
+                zero_point = qtype.zero_point
+            elif qtype.dtype in [np.float16, bfloat16, np.float32]:
+                min_val = qtype.min_val
+                max_val = qtype.max_val
+                out_dtype = qtype.dtype
+            else:
+                raise ValueError(f"don't know how to output {qtype.dtype}")
+        else:
+            out_dtype = kwargs.get('out_dtype', np.int8)
+            assert out_dtype in [np.int8, np.int16]
             max_val = math.fabs(sym_ctrl.get_max(sym))
-            out_dtype = np.int8
-            out_q = 7
+            min_val = -max_val
+            out_dtype = out_dtype
+            out_q = 7 if out_dtype == np.int8 else 15
             zero_point = 0
 
-#pylint: disable=invalid-unary-operand-type
-        min_val = -max_val
-        qrec_scale = Q15ScaleQRec(np.int32, max_val, out_q, min_val=min_val, max_val=max_val, zero_point=zero_point)
-        qrec_out = Q15ScaleQRec(out_dtype, max_val, out_q, min_val=min_val, max_val=max_val, zero_point=zero_point)
-        # scale clip and cast to output type
+        if out_dtype in [np.float16, bfloat16, np.float32]:
+            qrec_out = FloatQRec(
+                dtype=out_dtype, max_val=max_val, min_val=min_val)
+            return (
+                ConvertQuantization(
+                    qsym,
+                    from_qrec=from_qrec,
+                    to_qrec=qrec_out,
+                    comment=f'convert quantization - {from_qrec} -> {qrec_out}'
+                ), qrec_out)
+
+        qrec_scale = Q15ScaleQRec(
+            np.int32, max_val, out_q, min_val=min_val, max_val=max_val, zero_point=zero_point)
+        qrec_out = Q15ScaleQRec(
+            out_dtype, max_val, out_q, min_val=min_val, max_val=max_val, zero_point=zero_point)
         return (
             Cast(
                 Clip(
-                    ScaleQuantized(qsym,
-                                   from_qrec=from_qrec,
-                                   to_qrec=qrec_scale),
+                    ScaleQuantized(
+                        qsym,
+                        from_qrec=from_qrec,
+                        to_qrec=qrec_scale
+                    ),
                     clip_dtype=out_dtype,
-                    dtype=qrec_scale.dtype),
-                dtype=qrec.dtype), qrec_out)
-
-    @classmethod
-    def _get_scale_dtype_from_qtypes(cls, sym, qtypes):
-        if not qtypes or sym.name not in qtypes:
-            return None, None, None, None
-        qtype = qtypes[sym.name]
-        if qtype.dtype == np.int8:
-            if len(qtype.scale) > 1:
-                return None, None, None, None
-            return qtype.scale[0] * math.pow(2, 7), np.int8, 7, qtype.zero_point
-        if qtype.dtype == np.uint8:
-            if len(qtype.scale) > 1:
-                return None, None, None, None
-            return qtype.scale[0] * math.pow(2, 8), np.uint8, 8, qtype.zero_point
-        elif qtype.dtype == np.int16:
-            if len(qtype.scale) > 1:
-                return None, None, None
-            return qtype.scale[0] * math.pow(2, 15), np.int16, 15, qtype.zero_point
-        if qtype.dtype == np.uint16:
-            if len(qtype.scale) > 1:
-                return None, None, None, None
-            return qtype.scale[0] * math.pow(2, 16), np.uint16, 16, qtype.zero_point
-        else:
-            return None, None, None, None
+                    dtype=qrec_scale.dtype
+                ),
+                dtype=qrec_out.dtype,
+                comment=f'scale clip and cast - {from_qrec} -> {qrec_out}'
+            ),
+            qrec_out)

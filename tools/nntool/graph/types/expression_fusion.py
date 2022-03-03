@@ -13,10 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from copy import deepcopy
 import logging
 from collections import Counter
 
 from expressions.symbolic.function_collection import FunctionCollection
+from expressions.symbolic.iteration_space import Assignments
 from expressions.symbolic.symbol import Constant, Variable
 
 from utils.node_id import NodeId
@@ -121,12 +123,25 @@ class ExpressionFusionParameters(FusionBase, Broadcastable, ComparableParameters
         qtype = qrec.out_qs[0]
         symbol.control.add_min_max(symbol, qtype.min_val, qtype.max_val)
 
+    def details_collector(self, stats, stat, details):
+        if 'expression' in stat:
+            stat = stat['expression']
+            for sym_name, rec in details.items():
+                if sym_name == "results":
+                    continue
+                stat_rec = stat.setdefault(
+                    sym_name, {'min': float('inf'), 'max': float('-inf')})
+                stat_rec['min'] = min(stat_rec['min'], rec['min'])
+                stat_rec['max'] = max(stat_rec['max'], rec['max'])
+        else:
+            stat['expression'] = deepcopy(details)
+
     def is_same_operation_as(self, G, other):
         if not isinstance(other, ExpressionFusionParameters):
             return False
-        if len(self.func_col.functions) != 1 or len(other.func_col.functions) != 1:
+        if len(self.func_col) != 1 or len(other.func_col) != 1:
             return False
-        if next(iter(self.func_col.functions.values())).equivalent(next(iter(other.func_col.functions.values()))):
+        if self.func_col[0][1].equivalent(other.func_col[0][1]):
             return True
         return False
 
@@ -142,7 +157,7 @@ class ExpressionFusionParameters(FusionBase, Broadcastable, ComparableParameters
         LOG.info("expression decomposed into %s intermediate and %s output expressions",
                  len(intermediates), len(outputs))
 
-        expressions = []
+        expressions = Assignments()
         inter_vars = {node: Variable(
             node.name, shape=node.dims.shape) for node in inputs}
         # TODO - Intermediates are not sorted here so there may be interdependences
@@ -158,36 +173,37 @@ class ExpressionFusionParameters(FusionBase, Broadcastable, ComparableParameters
                                            variable=variable,
                                            qrecs=qrecs)
             inter_vars[node] = variable
-            expressions.append(expr)
+            expressions.add(*expr)
 
         for node in outputs:
             expr = self.compose_expression(
                 self.subgraph, node, inter_vars, qrecs=qrecs)
-            expressions.append(expr)
+            expressions.add(*expr)
 
         # sort the inputs by idx
         inputs = sorted([node for node in inputs], key=lambda x: x.idx)
         outputs = sorted([node for node in outputs], key=lambda x: x.idx)
-        func_col = FunctionCollection(expressions)
 
-        return [node.name for node in inputs], [node.name for node in outputs], func_col
+        return [node.name for node in inputs], [node.name for node in outputs], expressions
 
     def get_output_size(self, in_dims):
         # the input shapes may have changed so the expression variables shapes could have
         # changed and the iterators will need to be recalculated
-        dim_change = False
+        # dim_change = False
         in_vars = [self.func_col.variables[name] for name in self.input_symbols]
         for idx, dim in enumerate(in_dims):
             shape = tuple(dim.shape)
             if tuple(in_vars[idx].shape) != shape:
                 in_vars[idx].shape = shape
-                dim_change = True
+        #         dim_change = True
+        # if dim_change:
+        #     self.func_col.set_var_shapes()
         out_dims = super().get_output_size(in_dims)
-        if dim_change: # if the input shapes haven't changed then the output shapes have not changed
-            out_vars = [self.func_col.variables[name] for name in self.output_symbols]
-            for idx, dim in enumerate(out_dims):
-                out_vars[idx].shape = tuple(dim.shape)
-            self.func_col.init_indexes() # recalculate the iterators
+        # if dim_change: # if the input shapes haven't changed then the output shapes have not changed
+        #     out_vars = [self.func_col.variables[name] for name in self.output_symbols]
+        #     for idx, dim in enumerate(out_dims):
+        #         out_vars[idx].shape = tuple(dim.shape)
+        #     self.func_col.init_indexes() # recalculate the iterators
         return out_dims
 
     def __str__(self):

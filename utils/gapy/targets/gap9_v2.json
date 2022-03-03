@@ -45,7 +45,7 @@
         ],
         "boot": {
             "jtag_mode": null,
-            "mode": "flash",
+            "mode": "jtag",
             "device": "target/board/devices/flash"
         },
         "efuses": {

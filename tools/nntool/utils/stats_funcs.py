@@ -101,6 +101,8 @@ def max_error(orig, quant):
 def qsnr(orig, quant, axis=None):
     """Calculate the QSNR between two tensors
     """
+    orig = orig.astype(np.float64)
+    quant = quant.astype(np.float64)
     qerr = orig - quant
     if axis is not None:
         axis = tuple(i for i in range(len(qerr.shape)) if i != axis)

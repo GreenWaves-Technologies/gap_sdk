@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.base import NNEdge
+from graph.types.others import ReshapeParameters
 import json
 import logging
 
@@ -26,9 +28,11 @@ from graph.types.dsp_preprocessing import (MFCCPreprocessingParameters,
 
 LOG = logging.getLogger("nntool")
 
+
 class DSPPreprocessingCommand(NNToolShellBase):
     # GEN COMMAND
     parser_compile = Cmd2ArgumentParser()
+
     def inputs_choices(self):
         if self.G is None:
             return []
@@ -37,8 +41,8 @@ class DSPPreprocessingCommand(NNToolShellBase):
     def dsp_types(self):
         return [clas.__name__ for clas in DSPParameters.__subclasses__()]
 
-
-    parser_dsp = Cmd2ArgumentParser("inserts dsp preprocessing node into graphs")
+    parser_dsp = Cmd2ArgumentParser(
+        "inserts dsp preprocessing node into graphs")
     parser_dsp.add_argument('input_node',
                             choices_method=inputs_choices,
                             help='input node name to format')
@@ -49,6 +53,10 @@ class DSPPreprocessingCommand(NNToolShellBase):
                             help='path to the config file for mfcc')
     parser_dsp.add_argument('--n_fft', type=int,
                             help="n_fft bins")
+    parser_dsp.add_argument('--n_frames', type=int,
+                            help="number of frames")
+    parser_dsp.add_argument('--n_fbanks', type=int,
+                            help="number of filter banks")
     parser_dsp.add_argument('--frame_size', default=None, type=int,
                             help='frame size in samples')
     parser_dsp.add_argument('--frame_step', default=None, type=int,
@@ -68,6 +76,8 @@ class DSPPreprocessingCommand(NNToolShellBase):
         magsquared = args.magsquared
         win_fn = args.window_fn
         preemp_factor = args.preemp_factor
+        n_frames = args.n_frames
+        n_fbanks = args.n_fbanks
         config_dict = None
         if args.config_json:
             with open(args.config_json) as json_file:
@@ -78,38 +88,42 @@ class DSPPreprocessingCommand(NNToolShellBase):
             magsquared = config_dict.get("magsquared", magsquared)
             win_fn = config_dict.get("window_fn", win_fn)
             preemp_factor = config_dict.get("preemp_factor", preemp_factor)
+            n_frames = config_dict.get("n_frames", n_frames)
+            n_fbanks = config_dict.get("n_fbanks", n_fbanks)
 
         assert frame_step, "frame_step is required"
-        spect_shape = self.G[args.input_node].out_dims[0].shape
-        if len(spect_shape) > 2:
-            if 1 in spect_shape:
-                temp = spect_shape[::-1]
-                temp.remove(1)
-                spect_shape = temp[::-1]
-            LOG.info(f"spectrogram shape expected as {spect_shape}")
-        n_frames = spect_shape[-2]
-        n_fbanks = spect_shape[-1]
+        assert n_fbanks and n_frames, "n_frames and n_fbanks are required"
+        org_input_dim = self.G[args.input_node].out_dims[0]
+        if org_input_dim.size() != (n_frames * n_fbanks):
+            raise ValueError(
+                f"Next layer has dimension {org_input_dim} (size: {org_input_dim.size()}) while you are trying to insert a DSP params with output size of {n_fbanks*n_frames} ({n_frames}x{n_fbanks})")
         LOG.info(f"N FRAMES: {n_frames}")
         new_input_size = frame_step * (n_frames - 1) + frame_size
         if args.dsp_node_type == "MFCCPreprocessingParameters":
-            dsp_params = MFCCPreprocessingParameters("MfccPreprocessing", conf_dict=config_dict)
+            dsp_params = MFCCPreprocessingParameters(
+                "MfccPreprocessing", conf_dict=config_dict)
             win_lut, fft_twiddles, swaptable, rfft_twiddles = dsp_params.gen_fft_twiddles()
             melfilt_coeff_sparse_node, melfilt_sparsity_node = dsp_params.gen_melfilter()
-            dct_matrix_node = dsp_params.gen_dct_matrix()(self.G) if dsp_params.n_dct else None
-            dsp_params_ref = dsp_params(None, win_lut(self.G) if win_lut else win_lut, fft_twiddles(self.G), swaptable(self.G), rfft_twiddles(self.G), melfilt_sparsity_node(self.G), melfilt_coeff_sparse_node(self.G), dct_matrix_node)
+            dct_matrix_node = dsp_params.gen_dct_matrix()(
+                self.G) if dsp_params.n_dct else None
+            dsp_params(None, win_lut(self.G) if win_lut else win_lut, fft_twiddles(self.G), swaptable(self.G), rfft_twiddles(
+                self.G), melfilt_sparsity_node(self.G), melfilt_coeff_sparse_node(self.G), dct_matrix_node)
         elif args.dsp_node_type == "RFFT2DPreprocessingParameters":
-            dsp_params = RFFT2DPreprocessingParameters("RfftPreprocessing", conf_dict=config_dict)
+            dsp_params = RFFT2DPreprocessingParameters(
+                "RfftPreprocessing", conf_dict=config_dict)
             win_lut, fft_twiddles, swaptable, rfft_twiddles = dsp_params.gen_fft_twiddles()
-            dsp_params_ref = dsp_params(None, win_lut(self.G) if win_lut else win_lut, fft_twiddles(self.G), swaptable(self.G), rfft_twiddles(self.G))
+            dsp_params(None, win_lut(self.G) if win_lut else win_lut, fft_twiddles(
+                self.G), swaptable(self.G), rfft_twiddles(self.G))
 
-        new_input_node = InputParameters(args.input_node, dims=Dim.unnamed([new_input_size]))
+        new_input_node = InputParameters(
+            args.input_node, dims=Dim.unnamed([new_input_size]))
         input_node_edge = self.G.out_edges(args.input_node)[0]
         input_node_edge.from_node.in_dims[0] = Dim.unnamed([new_input_size])
         self.G.insert_node_at_edge(dsp_params, input_node_edge)
         self.G.replace_node(self.G[args.input_node], new_input_node)
+        dsp_out_dim = dsp_params.get_output_size([Dim.unnamed([new_input_size])])[0]
+        if dsp_out_dim != org_input_dim:
+            reshape = ReshapeParameters("reshape_dsp", old_shape=dsp_out_dim.shape, shape=org_input_dim.shape)
+            self.G.insert_node_after(
+                    dsp_params, reshape, from_idx=0, edge_class=NNEdge)
         self.G.add_dimensions()
-
-
-
-
-

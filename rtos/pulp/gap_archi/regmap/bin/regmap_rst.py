@@ -56,10 +56,11 @@ class Cmdfield(object):
 class Cmd(object):
 
     def dump_to_cmdlist_rst(self, cmdmap, table):
-        table.append([':ref:`%s<%s_%s>`' % (self.name, cmdmap.name, self.name), self.width, self.code, self.desc])
+        table.append([':ref:`%s<%s__%s>`' % (self.name, cmdmap.name, self.name), self.width, self.code, self.desc])
 
     def dump_to_rst(self, rst):
         writer = pytablewriter.RstGridTableWriter()
+        writer.table_name = '\n%s:align: center\n%s:widths: 15 45 90' % (writer.indent_string, writer.indent_string)
         writer.header_list = ['Bit #', 'Name', 'Description']
 
         table = []
@@ -76,6 +77,7 @@ class Cmdmap(object):
 
     def dump_to_cmdlist_rst(self, rst, writer):
         writer = pytablewriter.RstGridTableWriter()
+        writer.table_name = '\n%s:align: center\n%s:widths: 45 15 15 80' % (writer.indent_string, writer.indent_string)
         writer.header_list = ['Command name', 'Width', 'Command code', 'Description']
 
         table = []
@@ -88,7 +90,7 @@ class Cmdmap(object):
         writer.write_table()
 
         for name, cmd in self.commands.items():
-            rst.dump_title(cmd.name, 6, link='%s_%s' % (self.name, cmd.name))
+            rst.dump_title(cmd.name, 6, link='%s__%s' % (self.name, cmd.name))
             cmd.dump_to_rst(rst)
 
 
@@ -101,7 +103,7 @@ class Regfield(object):
         else:
             bit = '%d:%d' % (self.bit + self.width - 1, self.bit)
 
-        return [bit, self.access, self.name, self.desc]
+        return [bit, self.access, self.name, self.reset_txt, self.desc]
 
     def dump_to_rst(self, rst):
         rst.append(self.get_row())
@@ -117,7 +119,8 @@ class Register(object):
             rst.file.write('\n')
 
         writer = pytablewriter.RstGridTableWriter()
-        writer.header_list = ['Bit #', 'R/W', 'Name', 'Description']
+        writer.table_name = '\n%s:align: center\n%s:widths: 13 12 45 24 85' % (writer.indent_string, writer.indent_string)
+        writer.header_list = ['Bit #', 'R/W', 'Name', 'Reset', 'Description']
 
         table = []
         for name, field in self.fields.items():
@@ -136,7 +139,7 @@ class Register(object):
             rst.file.write('|\n')
 
     def dump_to_reglist_rst(self, regmap, table):
-        table.append([':ref:`%s<%s_%s>`' % (self.name, regmap.name, self.name), self.offset, self.width, self.desc])
+        table.append([':ref:`%s<%s__%s>`' % (self.name, regmap.name, self.name), self.offset, self.width, self.desc])
 
 
 class Regmap(object):
@@ -154,7 +157,10 @@ class Regmap(object):
 
         rst.dump_title('Overview', 6)
 
+        rst.file.write('\nRefer to :ref:`GAP9 address map<REF_MEMORY_MAP_DETAIL>` for the base address to be used.\n\n')
+
         writer = pytablewriter.RstGridTableWriter()
+        writer.table_name = '\n%s:align: center\n%s:widths: 40 12 12 90' % (writer.indent_string, writer.indent_string)
         writer.header_list = ['Name', 'Offset', 'Width', 'Description']
 
         table = []
@@ -176,7 +182,7 @@ class Regmap(object):
 
 
         for name, register in self.registers.items():
-            rst.dump_title(register.name, 6, link='%s_%s' % (self.name, register.name))
+            rst.dump_title(register.name, 6, link='%s__%s' % (self.name, register.name))
             register.dump_to_rst(rst)
 
         if len(self.cmdmaps) != 0:

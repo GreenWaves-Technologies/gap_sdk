@@ -27,7 +27,7 @@ void get_max(PreEmphasis_T *Arg)
         maxin[CoreId]=0;
         if (CoreId==0) maxin[0] = Abs(Arg->Prev);
 
-        for (int j=First;j<Last;j++) {
+        for (unsigned int j=First;j<Last;j++) {
                 if(Abs((int)Frame[j])>maxin[CoreId]) maxin[CoreId]=Abs((int)Frame[j]);
         }
         gap_waitbarrier(0);

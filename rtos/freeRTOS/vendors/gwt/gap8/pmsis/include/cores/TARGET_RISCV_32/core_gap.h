@@ -523,6 +523,10 @@ typedef struct
   __IOM  uint32_t MASK_IRQ_AND;            /**< EU_DEMUX mask irq and register, offset: 0x10 */
   __IOM  uint32_t MASK_IRQ_OR;             /**< EU_DEMUX mask irq or register, offset: 0x14 */
   __IOM  uint32_t STATUS;                  /**< EU_DEMUX Status register, offset: 0x18 */
+  __IOM  uint32_t BUFFER;                  /**< EU_DEMUX buffer register, offset: 0x1C */
+  __IOM  uint32_t BUFFER_MASKED;           /**< EU_DEMUX buffer masked register, offset: 0x20 */
+  __IOM  uint32_t BUFFER_IRQ_MASKED;       /**< EU_DEMUX buffer irq masked register, offset: 0x24 */
+  __IOM  uint32_t BUFFER_CLEAR;            /**< EU_DEMUX buffer clear register, offset: 0x28 */
 }  NVIC_Type;
 /*@} end of group CMSIS_NVIC */
 
@@ -1302,6 +1306,7 @@ __STATIC_INLINE void __NVIC_SetPendingIRQ(IRQn_Type IRQn)
  */
 __STATIC_INLINE void __NVIC_ClearPendingIRQ(IRQn_Type IRQn)
 {
+   NVIC->BUFFER_CLEAR = 1 << IRQn;
 }
 
 

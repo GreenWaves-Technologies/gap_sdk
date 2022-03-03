@@ -1,4 +1,5 @@
 #include "pmsis.h"
+#include "bsp/bsp.h"
 #include "bsp/flash.h"
 #include "bsp/flash/hyperflash.h"
 #include "bsp/flash/spiflash.h"
@@ -6,12 +7,10 @@
 #define HYPER 0
 #define QSPI 1
 
-#if (FLASH_TYPE == HYPER)
-#define PRINT_FLASH_TYPE    "Hyperflash"
+#ifdef USE_MRAM
+#define FLASH_SECTOR_SIZE (1<<13) // 8 KiB
+#else
 #define FLASH_SECTOR_SIZE (1<<18) // 256 KiB
-#elif (FLASH_TYPE == QSPI)
-#define PRINT_FLASH_TYPE    "QSPIflash"
-#define FLASH_SECTOR_SIZE (1<<16) // 64 KiB
 #endif
 
 #define BUFF_SIZE (FLASH_SECTOR_SIZE)
@@ -50,20 +49,22 @@ static int test_entry(void)
     *(volatile uint32_t *)&debug_struct.buff_pointer = (uint32_t) buff;
 
     *(volatile uint32_t *)&debug_struct.gap_ready = 1;
-    printf("[Flahser]: %s flasher is ready\n", PRINT_FLASH_TYPE);
+#ifdef USE_MRAM
+    printf("[Flahser]: MRAM flasher is ready\n");
+#else
+    printf("[Flahser]: Default flasher is ready\n");
+#endif
     while((*(volatile uint32_t *)&debug_struct.flash_run) == 0)
     {
         pi_time_wait_us(1);
     }
 
-#if (FLASH_TYPE == HYPER)
-    struct pi_hyperflash_conf flash_conf;
-    pi_hyperflash_conf_init(&flash_conf);
-#elif (FLASH_TYPE == QSPI)
-    struct pi_spiflash_conf flash_conf;
-    pi_spiflash_conf_init(&flash_conf);
+#ifdef USE_MRAM
+    struct pi_mram_conf flash_conf;
+    pi_mram_conf_init(&flash_conf);
 #else
-    printf("No this type !\n");
+    struct pi_default_flash_conf flash_conf;
+    pi_default_flash_conf_init(&flash_conf);
 #endif
 
     pi_open_from_conf(&flash, &flash_conf);

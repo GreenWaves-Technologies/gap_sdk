@@ -410,10 +410,10 @@ static inline int pi_log_default_vprintf(const char *format, va_list list)
 #define HYPER_DBG(fmt, ...) PI_LOG_DBG(HYPER_TAG, fmt, ##__VA_ARGS__)
 #define HYPER_TRC(fmt, ...) PI_LOG_TRC(HYPER_TAG, fmt, ##__VA_ARGS__)
 
-#define MRAM_TAG "mram"
+//#define MRAM_TAG "mram"
 #define MRAM_ERR(fmt, ...) PI_LOG_ERR(MRAM_TAG, fmt, ##__VA_ARGS__)
 #define MRAM_WNG(fmt, ...) PI_LOG_WNG(MRAM_TAG, fmt, ##__VA_ARGS__)
-#define MRAM_INF(fmt, ...) PI_LOG_INF(MRAM_TAG, fmt, ##__VA_ARGS__)
+#define MRAM_INF(fmt, ...)
 #define MRAM_DBG(fmt, ...) PI_LOG_DBG(MRAM_TAG, fmt, ##__VA_ARGS__)
 #define MRAM_TRC(fmt, ...) PI_LOG_TRC(MRAM_TAG, fmt, ##__VA_ARGS__)
 

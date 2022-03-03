@@ -103,7 +103,7 @@ class Runner(object):
 
                 # The flash can contain the boot binary and several partitions for FS
                 if flash_config.get('content/boot-loader') is not None:
-
+                    flash_image = True
                     gen_image = True
 
                 if flash_config.get('content/partitions') is not None:
@@ -183,6 +183,17 @@ class Runner(object):
 
     def get_boot_mode(self, target='runner'):
         return self.config.get_str('%s/boot/mode' % target)
+
+    def get_flashs(self, target='runner', flash_device_prefix=None):
+        result = []
+        for flash_path in self.config.get_py(target + '/flash_devices'):
+            if flash_device_prefix is not None:
+                flash_path = flash_device_prefix + flash_path
+
+            result.append(self.config.get(flash_path))
+
+        return result
+
 
     def get_boot_flash(self, target='runner', flash_device_prefix=None):
         flash_path = self.config.get_str("%s/boot/device" % target)

@@ -48,6 +48,11 @@ class Runner(runner.chips.gap9_v2.Runner, runner.rtl.rtl_runner.Runner):
 
         self.set_cmd_arg('+TB_DEBUG_VERBOSITY=%d' % self.config.get_int('**/rtl/verbosity'))
 
+        if os.environ.get('BOARD_NAME') == 'gap9_evk':
+            self.set_cmd_arg('+ENABLE_HYPER0_CS1_MX25U51245G_VIP=1')
+            self.set_cmd_arg('+ENABLE_HYPER0_CS0_PSRAM_VIP=1')
+            self.set_cmd_arg('+VIP_MODE=CUSTOM')
+
         boot_mode = self.config.get_str('**/runner/boot/mode')
         if boot_mode == 'jtag' or self.config.get_bool('**/runner/boot/jtag_force'):
             self.set_cmd_arg('+VSIM_BOOTMODE_CFG=1')
@@ -83,6 +88,9 @@ class Runner(runner.chips.gap9_v2.Runner, runner.rtl.rtl_runner.Runner):
 
         self.set_arg('-permit_unmatched_virtual_intf')
         self.set_arg('+preload_file=efuse_preload.data')
+
+        if self.platform_tool == 'vsim':
+            self.set_arg('-suppress 12130')
 
         uart_baudrate = self.config.get_int('**/rtl/testbench/uart/baudrate')
         if uart_baudrate is not None:

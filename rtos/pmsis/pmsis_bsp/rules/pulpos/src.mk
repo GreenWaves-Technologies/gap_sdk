@@ -18,8 +18,6 @@ endif
 BOARD_PROFILE_UPPER = $(shell echo $(PULPOS_BOARD_PROFILE) | tr 'a-z' 'A-Z')
 PULP_CFLAGS += -DCONFIG_PROFILE_$(BOARD_PROFILE_UPPER)
 
-
-
 # BSP is needed if i2s is used to properly configure pads
 ifeq '$(CONFIG_I2S)' '1'
 CONFIG_BSP = 1
@@ -112,3 +110,6 @@ endif
 ifeq '$(CONFIG_BLE_NINA_B112)' '1'
 PULP_SRCS += $(BSP_BLE_NINA_B112_SRC)
 endif
+
+PULP_SRCS += $(PMSIS_BSP_SRC)
+PULP_CFLAGS += $(PMSIS_BSP_CFLAGS)

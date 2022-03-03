@@ -329,6 +329,23 @@ class Efuse_map(object):
         return result
 
 
+    def gen_c_struct(self, name, file):
+        file.write('typedef struct\n')
+        file.write('{\n')
+        file.write('    unsigned int id;\n')
+        file.write('    unsigned int val;\n')
+        file.write('}pi_fuser_reg_t;\n')
+        file.write('\n')
+        file.write('pi_fuser_reg_t %s[] = {\n' % name)
+        for id in range (0, self.nb_regs):
+            value = self.efuses_list[id].get()
+            if value != 0:
+                file.write('    { .id=%d, .val=0x%x },\n' % (id, value))
+
+        file.write('};\n')
+
+
+
     def gen(self, traces, filename):
         traces.info('  Generating to file: ' + filename)
 

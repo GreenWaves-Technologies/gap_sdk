@@ -14,6 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from copy import deepcopy
+
 import numpy as np
 from bfloat16 import bfloat16
 from graph.types import OutputParameters
@@ -22,7 +24,9 @@ from quantization.float.float_quantization_handler import \
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
 from quantization.qtype_constraint import MatchAll
+from quantization.quantizer_options import QTYPE_IND_OPTION
 from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       options,
                                                        out_qs_constraint,
                                                        params_type)
 
@@ -30,12 +34,20 @@ from quantization.unified_quantization_handler import (in_qs_constraint,
 @params_type(OutputParameters)
 @in_qs_constraint(MatchAll({'dtype': set([np.float32, np.float16, bfloat16])}))
 @out_qs_constraint(MatchAll({'dtype': set([np.float32, np.float16, bfloat16])}))
+@options(QTYPE_IND_OPTION)
 class FloatOutput(FloatQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         force_out_qs, dtype = cls.get_float_opts(**kwargs)
         if force_out_qs and any(qtype.dtype != dtype for qtype in force_out_qs if qtype is not None):
             return None
-        return QRec.float(in_qs=[QType(dtype=dtype)],
-                          out_qs=[QType(dtype=dtype)],
-                          float_dtype=dtype)
+        opts = kwargs['opts']
+        o_q_ind = opts.get('qtype_ind')
+        if o_q_ind:
+            o_q = deepcopy(o_q_ind)
+        else:
+            min_val, max_val = cls.get_min_max(stats, direction='in')
+            o_q = QType(dtype=dtype, min_val=min_val, max_val=max_val)
+        return QRec.float(in_qs=[o_q],
+                          out_qs=[o_q],
+                          float_dtype=o_q.dtype)

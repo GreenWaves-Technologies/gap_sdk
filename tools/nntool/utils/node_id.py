@@ -26,6 +26,12 @@ class NodeId(JsonSerializable):
             self._id = [node.name, "" if fnode is None else fnode_name]
 
     @property
+    def key(self):
+        if self._id[1]:
+            return self._id
+        return self._id[0]
+
+    @property
     def id(self):
         return self._id
 

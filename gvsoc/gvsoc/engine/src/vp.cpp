@@ -67,6 +67,7 @@ char vp_error[VP_ERROR_SIZE];
 static Gv_proxy *proxy = NULL;
 
 
+
 uint64_t vp::reg::get_field(int offset, int width)
 {
     uint64_t value = 0;
@@ -328,6 +329,7 @@ void vp::component_clock::clk_reg(component *_this, component *clock)
         x->clk_reg(x, clock);
     }
 }
+
 
 void vp::component::reset_all(bool active, bool from_itf)
 {
@@ -1686,12 +1688,15 @@ vp::component *vp::__gv_create(std::string config_path, struct gv_conf *gv_conf)
 
     vp::component *instance = constructor(js_config);
 
-    new vp::power::engine(instance);
+    vp::top *top = new vp::top();
+
+    top->top_instance = instance;
+    top->power_engine = new vp::power::engine(instance);
 
     instance->set_vp_config(gv_config);
     instance->set_gv_conf(gv_conf);
 
-    return instance;
+    return (vp::component *)top;
 }
 
 
@@ -1708,7 +1713,8 @@ extern "C" void gv_destroy(void *arg)
 
 extern "C" void gv_start(void *arg)
 {
-    vp::component *instance = (vp::component *)arg;
+    vp::top *top = (vp::top *)arg;
+    vp::component *instance = (vp::component *)top->top_instance;
 
     instance->pre_pre_build();
     instance->pre_build();
@@ -1736,7 +1742,8 @@ extern "C" void gv_start(void *arg)
 
 extern "C" void gv_step(void *arg, int64_t timestamp)
 {
-    vp::component *instance = (vp::component *)arg;
+    vp::top *top = (vp::top *)arg;
+    vp::component *instance = (vp::component *)top->top_instance;
 
     instance->step(timestamp);
 }
@@ -1744,7 +1751,8 @@ extern "C" void gv_step(void *arg, int64_t timestamp)
 
 extern "C" int64_t gv_time(void *arg)
 {
-    vp::component *instance = (vp::component *)arg;
+    vp::top *top = (vp::top *)arg;
+    vp::component *instance = (vp::component *)top->top_instance;
 
     return instance->get_time_engine()->get_next_event_time();
 }
@@ -1989,9 +1997,10 @@ vp::time_event *vp::time_scheduler::enqueue(time_event *event, int64_t time)
 
 
 
-extern "C" int gv_run(void *_instance)
+extern "C" int gv_run(void *arg)
 {
-    vp::component *instance = (vp::component *)_instance;
+    vp::top *top = (vp::top *)arg;
+    vp::component *instance = (vp::component *)top->top_instance;
 
     if (!proxy)
     {
@@ -2014,9 +2023,10 @@ extern "C" void gv_init(struct gv_conf *gv_conf)
 }
 
 
-extern "C" void gv_stop(void *_instance, int retval)
+extern "C" void gv_stop(void *arg, int retval)
 {
-    vp::component *instance = (vp::component *)_instance;
+    vp::top *top = (vp::top *)arg;
+    vp::component *instance = (vp::component *)top->top_instance;
 
     if (proxy)
     {
@@ -2024,6 +2034,8 @@ extern "C" void gv_stop(void *_instance, int retval)
     }
 
     instance->stop();
+
+    delete top->power_engine;
 }
 
 
@@ -2059,6 +2071,7 @@ void vp::fatal(const char *fmt, ...)
 
 extern "C" void *gv_chip_pad_bind(void *handle, char *name, int ext_handle)
 {
-    vp::component *instance = (vp::component *)handle;
+    vp::top *top = (vp::top *)handle;
+    vp::component *instance = (vp::component *)top->top_instance;
     return instance->external_bind(name, "", (void *)(long)ext_handle);
 }

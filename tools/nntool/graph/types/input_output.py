@@ -34,6 +34,8 @@ class InputOutputParameters(Parameters):
         self._index = None
         self._short_name = short_name
         self.imported_dtype = imported_dtype
+        if isinstance(dims, (tuple, list)):
+            dims = Dim.unnamed(dims)
         self.dims = dims
         self.at_options.valid_options['ALLOCATE'] = int
         self.at_options.valid_options['FIXED_ORDER'] = int
@@ -129,7 +131,7 @@ class InputParameters(InputBaseParameters, InsensitiveToQuantization):
     def __call__(self, graph):
         if graph.__class__.__name__ != 'NNGraph':
             raise ValueError('expecting NNGraph as parameter')
-        return NNNodeRef(self, 0, graph)
+        return NNNodeRef(graph, self, 0)
 
     def verify(self, G):
         problems = []

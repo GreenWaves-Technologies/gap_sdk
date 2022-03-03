@@ -31,7 +31,6 @@ from quantization.unified_quantization_handler import (in_qs_constraint,
 from utils.stats_funcs import calc_bits
 
 from ..mult_quantization_handler import MultQuantizionHandler
-from .rescale_constant_mixin import RescaleConstantMixin
 
 LOG = logging.getLogger('nntool.' + __name__)
 
@@ -54,7 +53,7 @@ def get_max(stat):
 @in_qs_constraint({'dtype': np.int16})
 @out_qs_constraint({'dtype': np.int16})
 @option_constraint(force_external_size=16, use_ne16={None, False})
-class LSTMMultMult16x8(RescaleConstantMixin, MultQuantizionHandler):
+class LSTMMultMult16x8(MultQuantizionHandler):
 
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
@@ -132,16 +131,18 @@ class LSTMMultMult16x8(RescaleConstantMixin, MultQuantizionHandler):
                 in_q.max_val,
                 dtype=np.int8,
                 narrow_range=opts.get('narrow_weights'),
+                bits = opts['weight_bits'],
                 dont_generate_value=True)
-            in_qs[names[scale_pair[0]]].bits = opts['weight_bits']
+            # in_qs[names[scale_pair[0]]].bits = opts['weight_bits']
             in_q = in_qs[names[scale_pair[1]]]
             in_qs[names[scale_pair[1]]] = QType.from_min_max_sq(
                 in_q.min_val,
                 in_q.max_val,
                 dtype=np.int8,
                 narrow_range=opts.get('narrow_weights'),
+                bits = opts['weight_bits'],
                 concatenated_nodes=[edges[names[scale_pair[0]]].from_node.name])
-            in_qs[names[scale_pair[1]]].bits = opts['weight_bits']
+            # in_qs[names[scale_pair[1]]].bits = opts['weight_bits']
 
         # get weight scales
         w_scales = [(in_qs[names[namei]].scale, in_qs[names[namer]].scale)

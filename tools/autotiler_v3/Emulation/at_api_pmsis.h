@@ -18,6 +18,7 @@
 #define __AT__AT_API_PMSIS_H__
 
 #include "pmsis.h"
+#include <bsp/bsp.h>
 #include "bsp/ram/hyperram.h"
 #include "bsp/ram/spiram.h"
 #include "bsp/flash/hyperflash.h"
@@ -82,6 +83,10 @@ static inline uint32_t gap_cl_readhwtimer()
 #define AT_QSPIRAM_ALLOC(dev,size) ({ uint32_t ptr; int err = pi_ram_alloc((dev), &ptr, (size)); if (!err && ptr == 0) err = pi_ram_alloc((dev), &ptr, (size)); if (err) ptr = 0; ptr; })
 
 #define AT_QSPIRAM_FREE(dev,ptr,size) pi_ram_free((dev), (ptr), (size))
+
+#define AT_OSPIRAM_ALLOC(dev,size) ({ uint32_t ptr; int err = pi_ram_alloc((dev), &ptr, (size)); if (!err && ptr == 0) err = pi_ram_alloc((dev), &ptr, (size)); if (err) ptr = 0; ptr; })
+
+#define AT_OSPIRAM_FREE(dev,ptr,size) pi_ram_free((dev), (ptr), (size))
 
 #define AT_L2_ALLOC(dev,size) pmsis_l2_malloc(size)
 
@@ -329,6 +334,53 @@ typedef char *                  AT_QSPIRAM_INT_ADDR_TYPE;
 
 
 /*
+ * OctaSpiram
+ */
+
+#ifdef __GAP9__
+#define AT_OSPIRAM_TYPE 0
+
+typedef struct pi_aps25xxxn_conf   AT_OSPIRAM_CONF_T;
+typedef struct pi_device        AT_OSPIRAM_T;
+typedef uint32_t                AT_OSPIRAM_EXT_ADDR_TYPE;
+typedef void *                  AT_OSPIRAM_LOC_ADDR_TYPE;
+typedef pi_task_t               AT_OSPIRAM_FC_EVENT;
+typedef pi_cl_ram_req_t         AT_OSPIRAM_CL_EVENT;
+typedef uint32_t                AT_OSPIRAM_POINTER;
+typedef char *                  AT_OSPIRAM_INT_ADDR_TYPE;
+
+#define AT_OSPIRAM_EXT2LOC 0
+#define AT_OSPIRAM_LOC2EXT 1
+
+#define AT_OSPIRAM_CONF_INIT(dev,type,name) \
+  pi_aps25xxxn_conf_init(dev)
+
+#define AT_OSPIRAM_OPEN(dev,conf,err) \
+  do { pi_open_from_conf((dev), (conf)); *(err) = pi_ram_open(dev); } while(0)
+
+#define AT_OSPIRAM_CLOSE(dev) \
+  pi_ram_close(dev)
+
+#define AT_OSPIRAM_FC_COPY(dev,ext,loc,size,dir,event) \
+  pi_ram_copy_async(dev, (AT_OSPIRAM_EXT_ADDR_TYPE)(ext), (AT_OSPIRAM_LOC_ADDR_TYPE)(loc), (size), !(dir), pi_task_block(event))
+
+#define AT_OSPIRAM_FC_COPY2D(dev,ext,loc,size,stride,len,dir,event) \
+  pi_ram_copy_2d_async(dev, (AT_OSPIRAM_EXT_ADDR_TYPE)(ext), (AT_OSPIRAM_LOC_ADDR_TYPE)(loc), (size), (stride), (len), !(dir), pi_task_block(event))
+
+#define AT_OSPIRAM_FC_WAIT(dev,event) \
+  pi_task_wait_on(event)
+
+#define AT_OSPIRAM_CL_COPY(dev,ext,loc,size,dir,event) \
+  pi_cl_ram_copy(dev, (AT_OSPIRAM_EXT_ADDR_TYPE)(ext), (AT_OSPIRAM_LOC_ADDR_TYPE)(loc), (size), !(dir), (event))
+
+#define AT_OSPIRAM_CL_COPY2D(dev,ext,loc,size,stride,len,dir,event) \
+  pi_cl_ram_copy_2d(dev, (AT_OSPIRAM_EXT_ADDR_TYPE)(ext), (AT_OSPIRAM_LOC_ADDR_TYPE)(loc), (size), (stride), (len), !(dir), (event))
+
+#define AT_OSPIRAM_CL_WAIT(dev,event) \
+  pi_cl_ram_copy_wait(event)
+#endif
+
+/*
  * Spiflash
  */
 
@@ -361,6 +413,47 @@ typedef pi_cl_ram_req_t             AT_QSPIFLASH_EVENT;
 // TODO not yet supported
 #define AT_QSPIFLASH_WAIT(dev,event)
 
+
+/*
+ * OctaSpiflash
+ */
+
+#ifdef __GAP9__
+#define AT_OSPIFLASH_TYPE 1
+
+#if defined(CONFIG_ATXP032)
+typedef struct pi_atxp032_conf      AT_OSPIFLASH_CONF_T;
+#else
+#if defined(CONFIG_MX25U51245G)
+typedef struct pi_mx25u51245g_conf      AT_OSPIFLASH_CONF_T;
+#endif
+#endif
+typedef struct pi_device            AT_OSPIFLASH_T;
+typedef uint32_t                    AT_OSPIFLASH_EXT_ADDR_TYPE;
+typedef void *                      AT_OSPIFLASH_LOC_ADDR_TYPE;
+typedef pi_cl_ram_req_t             AT_OSPIFLASH_EVENT;
+
+#define AT_OSPIFLASH_EXT2LOC 0
+#define AT_OSPIFLASH_LOC2EXT 1
+
+#define AT_OSPIFLASH_CONF_INIT(dev,type,name) \
+  pi_spiflash_conf_init(dev)
+
+#define AT_OSPIFLASH_OPEN(dev,conf,err) \
+  do { pi_open_from_conf((dev), (conf)); *(err) = pi_flash_open(dev); } while(0)
+
+#define AT_OSPIFLASH_CLOSE(dev) \
+  pi_flash_close(dev)
+
+// TODO not yet supported
+#define AT_OSPIFLASH_COPY(dev,ext,loc,size,dir,event)
+
+// TODO not yet supported
+#define AT_OSPIFLASH_COPY2D(dev,ext,loc,size,stride,len,dir,event)
+
+// TODO not yet supported
+#define AT_OSPIFLASH_WAIT(dev,event)
+#endif
 
 
 /*
@@ -462,6 +555,116 @@ static inline void __at_qspiflash_fs_close(AT_QSPIFLASH_FS_T *file)
 
 #define AT_QSPIFLASH_FS_CL_WAIT(file,event) \
   pi_cl_fs_wait(event)
+
+
+/*
+ * OctoSPIflash FS
+ */
+
+#ifdef __GAP9__
+#define AT_OSPIFLASH_FS_TYPE 1
+
+typedef struct pi_fs_conf AT_OSPIFLASH_FS_CONF_T;
+
+typedef struct
+{
+  struct pi_device fs;
+  struct pi_device ospiflash;
+  pi_fs_file_t *file;
+} AT_OSPIFLASH_FS_T;
+
+typedef unsigned int AT_OSPIFLASH_FS_EXT_ADDR_TYPE;
+typedef void *AT_OSPIFLASH_FS_INT_ADDR_TYPE;
+typedef pi_task_t AT_OSPIFLASH_FS_FC_EVENT;
+typedef pi_cl_fs_req_t AT_OSPIFLASH_FS_CL_EVENT;
+
+static inline void __at_ospiflash_fs_open(AT_OSPIFLASH_FS_T *file, int is_write, struct pi_fs_conf *conf, const char *filename, int *err)
+{
+  #if defined(CONFIG_ATXP032)
+    struct pi_atxp032_conf flash_conf;
+    pi_atxp032_conf_init(&flash_conf);
+  #else
+  #if defined(CONFIG_MX25U51245G)
+    struct pi_mx25u51245g_conf flash_conf;
+    pi_mx25u51245g_conf_init(&flash_conf);
+  #endif
+  #endif
+  pi_open_from_conf(&file->ospiflash, &flash_conf);
+  if (pi_flash_open(&file->ospiflash))
+  {
+    *err = -1;
+    return;
+  }
+  conf->flash = &file->ospiflash;
+  if (is_write)
+    conf->type = PI_FS_HOST;
+  else
+    conf->type = PI_FS_READ_ONLY;
+
+  pi_open_from_conf(&file->fs, conf);
+  if (pi_fs_mount(&file->fs))
+  {
+    pi_flash_close(&file->ospiflash);
+    *err = -1;
+    return;
+  }
+  file->file = pi_fs_open(&file->fs, filename, is_write ? PI_FS_FLAGS_WRITE : 0);
+  if (file->file == NULL)
+  {
+    pi_fs_unmount(&file->fs);
+    pi_flash_close(&file->ospiflash);
+    *err = -1;
+    return;
+  }
+  *err = 0;
+
+  if (is_write)
+    file->file->size = 4*1024*1024;
+}
+
+static inline void __at_ospiflash_fs_close(AT_OSPIFLASH_FS_T *file)
+{
+  pi_fs_close(file->file);
+  pi_fs_unmount(&file->fs);
+  pi_flash_close(&file->ospiflash);
+}
+
+#define AT_OSPIFLASH_FS_EXT2LOC 0
+#define AT_OSPIFLASH_FS_LOC2EXT 1
+
+#define AT_OSPIFLASH_FS_CONF_INIT(dev,type,name) \
+  pi_fs_conf_init(dev)
+
+#define AT_OSPIFLASH_FS_OPEN(file,conf,filename,err) \
+  __at_ospiflash_fs_open(file, 0, conf, filename, err)
+
+#define AT_OSPIFLASH_FS_OPEN_WRITE(file,conf,filename,err) \
+  __at_ospiflash_fs_open(file, 1, conf, filename, err)
+
+#define AT_OSPIFLASH_FS_OPEN_SET_SIZE(file, size) \
+  file->file->size = size
+
+#define AT_OSPIFLASH_FS_CLOSE(file) \
+  __at_ospiflash_fs_close(file)
+
+#define AT_OSPIFLASH_FS_FC_COPY(fs,ext,loc,size,dir,event) \
+  pi_fs_copy_async((fs)->file, ext, loc, size, !(dir), pi_task_block(event))
+
+#define AT_OSPIFLASH_FS_FC_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
+  pi_fs_copy_2d_async(file->file, ext, loc, size, stride, len, !(dir), pi_task_block(event))
+
+#define AT_OSPIFLASH_FS_FC_WAIT(file,event) \
+  pi_task_wait_on(event)
+
+#define AT_OSPIFLASH_FS_CL_COPY(fs,ext,loc,size,dir,event) \
+  pi_cl_fs_copy((fs)->file, ext, loc, size, !(dir), event)
+
+#define AT_OSPIFLASH_FS_CL_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
+  pi_cl_fs_copy_2d(file->file, ext, loc, size, stride, len, !(dir), event)
+
+#define AT_OSPIFLASH_FS_CL_WAIT(file,event) \
+  pi_cl_fs_wait(event)
+#endif
 
 #ifdef __GAP9__
 

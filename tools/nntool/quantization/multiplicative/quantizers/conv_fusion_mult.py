@@ -38,7 +38,7 @@ def check_filter_options(is_ne16, input_size, output_size):
             return is_ne16
         if not opts.get('use_ne16'):
             return not is_ne16
-        return is_ne16 and can_ne16(True, params)
+        return is_ne16 and can_ne16(params, **kwargs)
     return check_options
 
 

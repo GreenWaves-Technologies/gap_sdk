@@ -1,4 +1,4 @@
-# Copyright (C) 2020  GreenWaves Technologies, SAS
+# Copyright (C) 2020, 2022  GreenWaves Technologies, SAS
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -28,11 +28,18 @@ from utils.node_id import NodeId
 
 LOG = logging.getLogger("nntool." + __name__)
 
+
+class CantContinueError(Exception):
+    pass
+
+
 def info(msg):
     LOG.info(msg)
 
+
 def debug(msg):
     LOG.debug(msg)
+
 
 class Action(ABC):
     def __init__(self, node) -> None:
@@ -162,12 +169,14 @@ class InsertReshapeAction(InsertNodeAction):
     def __str__(self) -> str:
         return f"insert reshape at {self.node.name}:{self.direction}_{self.idx} in {self.in_shape} out {self.out_shape}"
 
+
 def make_dim(shape):
     if shape is None:
         return shape
     if isinstance(shape, Dim):
         return shape.clone()
     return Dim.unnamed(shape)
+
 
 class SetReshapeAction(Action):
     def __init__(self, node, in_shape=None, out_shape=None) -> None:
@@ -196,21 +205,22 @@ class SwitchBatchLinearAction(Action):
 
 
 class TransposeSlidedSlice(Action):
-    def __init__(self, node, transpose_in, dir=None, transpose_out=None) -> None:
+    def __init__(self, node, transpose, dir=None, out_shape=None) -> None:
         super(TransposeSlidedSlice, self).__init__(node)
-        self.transpose_in = tuple(transpose_in)
-        if transpose_out is None:
-            self.transpose_out = self.transpose_in
-        else:
-            self.transpose_out = tuple(transpose_out)
+        self.transpose = tuple(transpose)
+        self.shape_out = out_shape
 
     def _execute(self, node, G):
         info(f"{self}")
-        node.act_slice = [node.act_slice[idx] for idx in self.transpose_in]
-        node.out_shape = [node.out_shape[idx] for idx in self.transpose_out]
+        node.act_slice = apply_transpose(node.act_slice, self.transpose)
+        if self.shape_out is not None:
+            node.out_shape = self.shape_out
+        else:
+            node.out_shape = apply_transpose(node.out_shape, self.transpose)
 
     def __str__(self) -> str:
-        return "%s transpose slided slice parameters with %s/%s" % (self.node.name, self.transpose_in, self.transpose_out)
+        out_shape = "unchanged" if self.shape_out is None else f"changed to {self.shape_out}"
+        return f"{self.node.name} transpose slided slice parameters with {self.transpose} out shape {out_shape}"
 
 
 class TransposePad(Action):
@@ -227,17 +237,24 @@ class TransposePad(Action):
         return "%s transpose pad parameters with %s" % (self.node.name, self.transpose)
 
 
-class TransposeReverse(Action):
+class TransposeAxisBase(Action):
     def __init__(self, node, transpose, dir=None) -> None:
-        super(TransposeReverse, self).__init__(node)
+        super(TransposeAxisBase, self).__init__(node)
         self.transpose = tuple(transpose)
 
     def _execute(self, node, G):
         info(f"{self}")
         node.axis = self.transpose[node.axis]
 
+
+class TransposeReverse(TransposeAxisBase):
     def __str__(self) -> str:
         return "%s transpose reverse parameters with %s" % (self.node.name, self.transpose)
+
+
+class TransposeGlobalPool(TransposeAxisBase):
+    def __str__(self) -> str:
+        return "%s transpose global pool parameters with %s" % (self.node.name, self.transpose)
 
 
 class TransposeInputBase(Action):
@@ -360,25 +377,35 @@ class SetTransposeAction(Action):
 
 
 class ReorderLinearAction(Action):
-    def __init__(self, node, direction, transpose, shape, qrec=None) -> None:
+    def __init__(self, node, direction, transpose, shape, set_reshape_shape=None, qrec=None) -> None:
         super(ReorderLinearAction, self).__init__(node)
         self.direction = direction
         self.shape = shape
         self.transpose = tuple(transpose)
         self.qrec = qrec
+        self.set_reshape_shape = set_reshape_shape
 
     @classmethod
-    def from_history(cls, node, history, qrec, dir):
+    def from_history(cls, node, history, qrec, direction):
         # Find the first entry in the transpose history that actually has a transpose
-        first_valid_entry = next(iter([rec
-                                       for rec in reversed(history)
-                                       if rec.transpose]))
+        entry_idx, first_valid_entry = next(iter([(idx, rec) for idx, rec in enumerate(reversed(history))
+                                                  if rec.transpose]))
         # arriving from the top the transpose is in the down direction and from the
         # bottom in the up direction so in both cases we need to reverse it
         transpose = tuple(reverse_transpose(first_valid_entry.transpose))
         # shape closest to the node
         shape = tuple(first_valid_entry.to_shape)
-        return cls(node, dir, transpose, shape, qrec=qrec)
+        set_reshape_shape = None
+        # if direction == "out":
+        #     first_reshape = next(iter([elem.node for elem
+        #                                in list(reversed(history))[:entry_idx] if isinstance(elem.node, ReshapeParameters)]), None)
+        #     if first_reshape:
+        #         if shape != tuple(first_reshape.shape.shape):
+        #             raise CantContinueError(f'reshape {first_reshape.name} after linear {node.name} has '
+        #                                     f'incorrect out shape {first_reshape.shape.shape} to apply transpose {transpose}')
+        #         set_reshape_shape = (first_reshape, apply_transpose(first_reshape.shape.shape, transpose))
+
+        return cls(node, direction, transpose, shape, set_reshape_shape=set_reshape_shape, qrec=qrec)
 
     @classmethod
     def out_from_history(cls, node, history, qrec):
@@ -390,7 +417,8 @@ class ReorderLinearAction(Action):
 
     def _execute(self, node, G):
         info(f"{self}")
-        filter_node = node.contained_filters()[0] if isinstance(node, LinearFusionParameters) else node
+        filter_node = node.contained_filters()[0] if isinstance(
+            node, LinearFusionParameters) else node
         in_edges = G.indexed_in_edges(node.name)
         weights_node = in_edges[1].from_node
         if self.direction == "in":
@@ -425,7 +453,11 @@ class ReorderLinearAction(Action):
                         list(self.transpose)
                     ),
                     biases_node.value.shape)
-            nid = NodeId(node, filter_node) if isinstance(node, LinearFusionParameters) else NodeId(node)
+            nid = NodeId(node, filter_node) if isinstance(
+                node, LinearFusionParameters) else NodeId(node)
+            if self.set_reshape_shape:
+                self.set_reshape_shape[0].shape = Dim.unnamed(
+                    self.set_reshape_shape[1])
             # since the output channel order has changed we need to make channel scaled qrec match this
             if G.quantization and nid in G.quantization:
                 qrec = G.quantization[nid]
@@ -445,8 +477,6 @@ class ReorderLinearAction(Action):
                         fqrec.in_qs[1] = qrec.in_qs[1]
                         if len(qrec.in_qs) > 2:
                             fqrec.in_qs[2] = qrec.in_qs[2]
-
-
 
     def __str__(self) -> str:
         return "reorder linear layer %s %s with shape %s transposed %s" % (self.node.name, self.direction,

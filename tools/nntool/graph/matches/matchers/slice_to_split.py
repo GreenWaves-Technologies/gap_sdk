@@ -118,7 +118,7 @@ def slices_to_sizes(slices_and_shapes, shape_rest):
 
 @ match_name("slice_to_split")
 @ description("collects slices from a single node and converts to a single split")
-@ run_before('unused_concats')
+@ run_before('remove_noops', 'insert_copies')
 @ groups('*')
 class SliceToSplitMatch(Matcher):
     @ staticmethod
@@ -140,9 +140,11 @@ class SliceToSplitMatch(Matcher):
         axis_dim = in_dims[axis]
         outs = []
         splits = []
+        two_unused = axis_slice[0] > 0 and axis_slice[1] < axis_dim
         if axis_slice[0] > 0:
+            two_unused = True
             splits.append(axis_slice[0])
-            oparams = OutputParameters(G.unique_name('unused'))
+            oparams = OutputParameters(G.unique_name(f'{slice_node.name}_unused{0 if two_unused else ""}'))
             oparams.at_options.allocate = 1
             outs.append(
                 ((oparams, 0),))
@@ -151,7 +153,7 @@ class SliceToSplitMatch(Matcher):
                      for edge in G.out_edges(slice_node.name)])
         if axis_slice[1] < axis_dim:
             splits.append(axis_dim - axis_slice[1])
-            oparams = OutputParameters(G.unique_name('unused'))
+            oparams = OutputParameters(G.unique_name(f'{slice_node.name}_unused{1 if two_unused else ""}'))
             oparams.at_options.allocate = 1
             outs.append(
                 ((oparams, 0),))

@@ -15,7 +15,7 @@
 
 import math
 from copy import deepcopy
-from functools import reduce
+from functools import cmp_to_key, reduce
 
 import numpy as np
 from bfloat16 import bfloat16
@@ -129,10 +129,10 @@ def divide_ignore(a, b):
         return np.nan_to_num(res)
 
 
-IGNORE_KEYS = {'ne16'}
+IGNORE_KEYS = {'ne16', 'to_dict'}
 
 
-class AttrNamespace:
+class AttrNamespace():
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
@@ -149,10 +149,11 @@ class AttrNamespace:
             del self.__dict__[name]
 
     def __iter__(self):
-        yield from [a for a in dir(self) if not a.startswith('__')]
+        yield from [a for a in dir(self) if not a.startswith('__') and a != 'to_dict']
 
     def __repr__(self):
-        items = (f"{k}={v!r}" for k, v in self.__dict__.items())
+        items = (f"{k}={v!r}" for k,
+                 v in self.__dict__.items() if k != 'to_dict')
         return "({})".format(", ".join(items))
 
     def __eq__(self, other):
@@ -174,6 +175,9 @@ class AttrNamespace:
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+
+    def to_dict(self):
+        return {k: getattr(self, k) for k in self}
 
 
 FORCED_FLAGS = [
@@ -202,12 +206,15 @@ class QType(JsonSerializable, EventEmitter):
         'is_constant'
     ]
 
-    def __init__(self, *args, q=None, bits=None, signed=True, zero_point=0, scale=None,
+    def __init__(self, *args, q=None, bits=None, signed=None, zero_point=0, scale=None,
                  min_val=None, max_val=None, quantized_dimension=None, dtype=None, offset=None,
-                 narrow_range=None, forced=False, asymmetric=False, dont_copy_attr=None, **kwargs):
+                 narrow_range=None, forced=False, asymmetric=None, dont_copy_attr=None, **kwargs):
         super(QType, self).__init__(*args)
         self._q = q
         self._scale = self.init_array(scale)
+        if self._scale is not None and len(self._scale) != 1 and quantized_dimension is None:
+            raise ValueError(
+                "quantized dimension must be set if scale is an array")
         self._min_val = self.init_array(min_val)
         self._max_val = self.init_array(max_val)
         self._zero_point = np.atleast_1d(zero_point)
@@ -217,19 +224,56 @@ class QType(JsonSerializable, EventEmitter):
         self._offset = offset
         self._attr = AttrNamespace(**kwargs)
         self._is_constant = None
+        self._dtype = None
         self._dont_copy_attr = dont_copy_attr
-        self._asymmetric = asymmetric
-        if bits is None:
-            self.dtype = dtype
-        elif dtype is None:
-            self._bits = bits
-            self._signed = signed
-            self._update_dtype()
+        if dtype is None:
+            if signed is None:
+                signed = True
+            if bits is None:
+                raise ValueError('bits and signed or dtype must be set')
+            else:
+                self._bits = bits
+                self._signed = signed
+                self._update_dtype()
         else:
-            self.dtype = dtype
-            self.bits = bits
+            if isinstance(dtype, np.dtype):
+                dtype = dtype.type
+            if dtype not in DTYPES:
+                raise ValueError(f'invalid dtype {dtype}')
+            self._dtype = dtype
+            inf_bits, inf_signed = DTYPES[dtype]
+            if bits is not None:
+                if inf_bits < bits:
+                    raise ValueError(f'dtype {dtype} cannot fit {bits} bits')
+                self._bits = bits
+            else:
+                self._bits = inf_bits
+            if signed is not None:
+                if signed != inf_signed:
+                    raise ValueError(
+                        f'dtype {dtype} is {"signed" if inf_signed else "unsigned"} but {signed} required')
+                self._signed = signed
+            else:
+                self._signed = inf_signed
         # asymmeric is tested at creation so that it stays constant
         # i.e. you cannot make a symmetric QType asymmetric by changing properties
+        if asymmetric is None:
+            self._asymmetric = self.test_if_asymmetric()
+        else:
+            self._asymmetric = asymmetric
+
+    def reduce_precision(self, bits):
+        if self.is_pow2:
+            return QType(dtype=self.dtype, q=self.q-bits,
+                         min_val=self.min_val, max_val=self.max_val,
+                         zero_point=self.zero_point,
+                         narrow_range=self.narrow_range,
+                         **self._attr.to_dict())
+        return self.from_min_max(
+            self.min_val, self.max_val, dtype=self.dtype, reduce_scale=math.pow(
+                2, bits),
+            scaled=self.is_sq, asymmetric=self.asymmetric, narrow_range=self.narrow_range,
+            quantized_dimension=self.quantized_dimension, **self._attr.to_dict())
 
     def make_symmetric_signed(self):
         if self.is_sq and (self.asymmetric or not self.signed):
@@ -253,6 +297,26 @@ class QType(JsonSerializable, EventEmitter):
         setattr(self, '_dont_copy_attr', None)
         setattr(self, '_dtype', STR_DTYPE[state['dtype']])
         setattr(self, '_EventEmitter__raw_listeners', {})
+
+    def _encapsulate(self):
+        res = {}
+        for k in self.EXPORT:
+            v = getattr(self, f'_{k}')
+            if v is None:
+                continue
+            if k == "attr":
+                res[k] = v.__getstate__()
+            else:
+                res[k] = v
+        return res
+
+    @classmethod
+    def _dencapsulate(cls, val):
+        if 'attr' in val:
+            attr = val['attr']
+            val['attr'] = AttrNamespace()
+            val['attr'].__setstate__(attr)
+        return QType(**val)
 
     @property
     def zero_point_asymmetric_zero(self):
@@ -291,26 +355,6 @@ class QType(JsonSerializable, EventEmitter):
     def Pow2(cls, bits, q, signed, forced=False):
         return cls(bits=bits, q=q, signed=signed, forced=forced)
 
-    def link_scales(self, *others):
-        def set_scale(*args):
-            del args
-            if all(other.is_pow2 for other in others):
-                self.q = sum(other.q for other in others)
-            else:
-                self.scale = np.atleast_1d(
-                    reduce(np.multiply, [other.scale for other in others], 1.0))
-        for other in others:
-            other.on('scale_changed', set_scale)
-        set_scale()
-        return self
-
-    def _encapsulate(self):
-        return {k: getattr(self, f'_{k}') for k in self.EXPORT
-                if getattr(self, f'_{k}') is not None}
-
-    @classmethod
-    def _dencapsulate(cls, val):
-        return QType(**val)
 
     def _update_dtype(self):
         if self._signed is None or self._bits is None:
@@ -348,6 +392,27 @@ class QType(JsonSerializable, EventEmitter):
     @property
     def forced_scale(self):
         return self._forced.get('scale')
+
+    @staticmethod
+    def precision_key():
+        """ Returns a key function that compares precision
+        """
+        def cmp(a, b):
+            a = float(a)
+            b = float(b)
+            return (a > b) - (a < b) 
+        def cmp_func(q1: QType, q2: QType):
+            if q1.is_floating:
+                if q2.is_floating:
+                    return cmp(q1.bits, q2.bits)
+                else:
+                    return 1 # q1 > q2
+            elif q2.is_floating:
+                return -1
+            # lower scale is more precise
+            return cmp(np.max(q2.scale), np.max(q1.scale))
+        return cmp_to_key(cmp_func)
+
 
     def set_forced(self, val=True, flags=None):
         if flags is None:
@@ -420,8 +485,14 @@ class QType(JsonSerializable, EventEmitter):
             val = next((dtype for dtype in DTYPES if val == dtype), None)
             if val is None:
                 raise ValueError('dtype not found')
+        if self._dtype == val:
+            return
         self._dtype = val
         self._bits, self._signed = DTYPES[val]
+        if self.is_sq and self._min_val is not None and self._max_val is not None:
+            self.recalculate_scale(
+                self._min_val, self._max_val, narrow_range=self.narrow_range)
+
         self.emit('dtype_changed', self._dtype)
 
     @property
@@ -446,18 +517,18 @@ class QType(JsonSerializable, EventEmitter):
     def qbits(self):
         return self._bits - (1 if self.narrow_range else 0)
 
-    @bits.setter
-    def bits(self, val):
-        if self._bits == val:
-            return
-        self._bits = val
-        if self._dtype is None:
-            self._update_dtype()
+    # @bits.setter
+    # def bits(self, val):
+    #     if self._bits == val:
+    #         return
+    #     self._bits = val
+    #     if self._dtype is None:
+    #         self._update_dtype()
 
-        self.emit('bits_changed', self._dtype)
-        if self.is_sq and self.min_val is not None and self.max_val is not None:
-            self.recalculate_scale(
-                self.min_val, self.max_val, self.narrow_range)
+    #     self.emit('bits_changed', self._dtype)
+    #     if self.is_sq and self._min_val is not None and self._max_val is not None:
+    #         self.recalculate_scale(
+    #             self._min_val, self._max_val, narrow_range=self.narrow_range)
 
     @property
     def dtype_bits(self):
@@ -491,7 +562,8 @@ class QType(JsonSerializable, EventEmitter):
 
     @property
     def has_valid_range(self):
-        return (self._min_val is not None and self._max_val is not None) or self._scale is not None
+        return ((self._min_val is not None and self._max_val is not None) or
+                self._scale is not None or self._q is not None)
 
     @property
     def min_val(self):
@@ -509,7 +581,7 @@ class QType(JsonSerializable, EventEmitter):
     def max_abs_val(self):
         if self._max_val is None or self._min_val is None:
             return self.max
-        return max(abs(self._max_val), abs(self._min_val))
+        return np.max(np.maximum(np.abs(self._max_val), np.abs(self._min_val)))
 
     @property
     def min(self):
@@ -581,12 +653,14 @@ class QType(JsonSerializable, EventEmitter):
         if zero_point is not None:
             qpos_range = qmax - zero_point
             qneg_range = zero_point - qmin
-            rpos_range = np.max(rmax, 0)
-            rneg_range = np.min(rmin, 0)
+            rpos_range = rmax  # np.max(rmax, 0)
+            rneg_range = rmin  # np.min(rmin, 0)
             scale = np.maximum(
                 divide_ignore(rpos_range, qpos_range),
                 divide_ignore(rneg_range, qneg_range))
-            return np.atleast_1d(scale), np.atleast_1d(zero_point)
+            scale = np.atleast_1d(scale)
+            scale[scale == 0] = 1
+            return scale, np.atleast_1d(zero_point)
         elif asymmetric:
             if narrow_range:
                 raise ValueError(
@@ -633,7 +707,9 @@ class QType(JsonSerializable, EventEmitter):
                 nudged_zero_point = qmax
             else:
                 nudged_zero_point = np.round(zero_point).astype(dtype)
-            return np.atleast_1d(scale), np.atleast_1d(nudged_zero_point)
+            scale = np.atleast_1d(scale)
+            scale[scale == 0] = 1
+            return scale, np.atleast_1d(nudged_zero_point)
         else:
             scale = QType.calculate_symmetric_scales(
                 qrange, rmin, rmax, narrow_range=narrow_range)
@@ -646,20 +722,28 @@ class QType(JsonSerializable, EventEmitter):
             else:
                 zero_point = np.atleast_1d(
                     np.ceil(qrange/2) + qmin).astype(dtype)
-            return np.atleast_1d(scale), zero_point
+            scale = np.atleast_1d(scale)
+            scale[scale == 0] = 1
+            return scale, zero_point
 
-    def recalculate_scale(self, min_val, max_val, narrow_range=None, zero_point=None):
+    def recalculate_scale(self, min_val, max_val, narrow_range=None):
         if narrow_range is None:
             narrow_range = self.narrow_range
         qmin, qmax = self.calculate_quantized_range(
             self.bits, narrow_range=narrow_range, signed=self.signed)
+        if self.quantized_dimension is None:
+            rmin_val = np.atleast_1d(np.min(min_val))
+            rmax_val = np.atleast_1d(np.max(max_val))
+        else:
+            rmin_val = min_val
+            rmax_val = max_val
         scale, zero_point = self.calculate_scale(
-            min_val, max_val, qmin, qmax, self.dtype,
-            asymmetric=self.asymmetric, narrow_range=narrow_range,
-            zero_point=zero_point)
-        self._zero_point = zero_point
+            rmin_val, rmax_val, qmin, qmax, self.dtype,
+            asymmetric=self.asymmetric, narrow_range=narrow_range)
         if np.any(scale != self.scale):
             self.scale = scale
+        if np.any(zero_point != self._zero_point):
+            self._zero_point = zero_point
 
     def scale_to_pow2(self):
         # closest above pow2 not channel scaled
@@ -690,7 +774,8 @@ class QType(JsonSerializable, EventEmitter):
     @classmethod
     def from_min_max(cls, min_val, max_val, dtype=None, bits=None, scaled=False,
                      asymmetric=False, narrow_range=False, quantized_dimension=None,
-                     scale_zero_as_one=False, forced=False, zero_point=None, **kwargs):
+                     scale_zero_as_one=False, forced=False, zero_point=None,
+                     reduce_scale=None, **kwargs):
         min_val = cls.init_array(min_val)
         max_val = cls.init_array(max_val)
         # check for scalar
@@ -718,12 +803,21 @@ class QType(JsonSerializable, EventEmitter):
         if scaled:
             qmin, qmax = cls.calculate_quantized_range(
                 bits, narrow_range=narrow_range, signed=signed)
+            if quantized_dimension is None:
+                # if quantized dimension is not set then scale will be tensorwide
+                rmin_val = np.atleast_1d(np.min(min_val))
+                rmax_val = np.atleast_1d(np.max(max_val))
+            else:
+                rmin_val = min_val
+                rmax_val = max_val
             scale, zero_point = cls.calculate_scale(
-                min_val, max_val, qmin, qmax, dtype, asymmetric=asymmetric,
+                rmin_val, rmax_val, qmin, qmax, dtype, asymmetric=asymmetric,
                 scale_zero_as_one=scale_zero_as_one, narrow_range=narrow_range,
                 zero_point=zero_point)
             if len(scale) == 1:
                 quantized_dimension = None
+            if reduce_scale:
+                scale *= reduce_scale
             return cls(bits=bits, signed=signed, dtype=dtype, scale=scale,
                        zero_point=zero_point, quantized_dimension=quantized_dimension,
                        min_val=min_val, max_val=max_val, narrow_range=narrow_range,

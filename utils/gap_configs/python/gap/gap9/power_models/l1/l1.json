@@ -1,5 +1,5 @@
 {
-    "idle": {
+    "background": {
         "dynamic": {
             "type": "linear",
             "unit": "W",
@@ -7,13 +7,11 @@
             "values": {
                 "25": {
                     "1.2": {
-                        "any": "0.00000501264031"
+                        "any": "0.000"
                     }
                 }
             }
-        }
-    },
-    "leakage": {
+        },
         "leakage": {
             "type": "linear",
             "unit": "W",
@@ -21,7 +19,7 @@
             "values": {
                 "25": {
                     "1.2": {
-                        "any": "0.00001707210625"
+                        "any": "0.0000052"
                     }
                 }
             }

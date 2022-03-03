@@ -111,7 +111,8 @@ class CompileCommand(NNToolShellBase):
             at_gen_srcs.append(os.path.join(TILER_DSP_GENERATOR_PATH, "DSP_Generators.c"))
 
         objs = cc.compile(
-            srcs + at_gen_srcs,
+            sources=at_gen_srcs + srcs,
+            output_dir=args.model_dir,
             debug=1,
             extra_preargs=["-g"]
         )
