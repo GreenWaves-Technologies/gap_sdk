@@ -380,7 +380,7 @@ class DrawGraphReporter():
                               'labelloc': 't',
                               'labeljust': 'l'},
                           node_attr={'style': 'solid(dashed)'}) as sub:
-            for var, func in func_col.functions.items():
+            for var, func in func_col:
                 node_id, shape = self.report_symbol(
                     sub, func, intermediates, anonymise=anonymise)
                 var_name = self.get_next('Var') if anonymise else var.name

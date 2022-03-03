@@ -48,10 +48,20 @@ RM=rm -f
 
 NNTOOL?=nntool
 
-TOTAL_STACK_SIZE=$(shell expr $(CLUSTER_STACK_SIZE) \+ $(CLUSTER_SLAVE_STACK_SIZE) \* 7)
+ifeq '$(TARGET_CHIP_FAMILY)' 'GAP9'
+CLUSTER_SLAVE_PE=8
+else ifeq '$(TARGET_CHIP_FAMILY)' 'GAP8'
+CLUSTER_SLAVE_PE=7
+else
+  $(error TARGE_CHIP_FAMILY not found in env or not correct)
+endif
+
+TOTAL_STACK_SIZE=$(shell expr $(CLUSTER_STACK_SIZE) \+ $(CLUSTER_SLAVE_STACK_SIZE) \* $(CLUSTER_SLAVE_PE))
 MODEL_L1_MEMORY=$(shell expr $(TARGET_L1_SIZE) \- $(TOTAL_STACK_SIZE))
 MODEL_L2_MEMORY=$(TARGET_L2_SIZE)
 MODEL_L3_MEMORY=$(TARGET_L3_SIZE)
+
+
 
 # hram - HyperBus RAM
 # qspiram - Quad SPI RA

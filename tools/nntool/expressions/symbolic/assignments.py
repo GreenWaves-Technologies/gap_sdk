@@ -1,4 +1,4 @@
-# Copyright (C) 2021  GreenWaves Technologies, SAS
+# Copyright (C) 2022  GreenWaves Technologies, SAS
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -13,265 +13,251 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from collections.abc import Sequence as ABCSequence
+from copy import deepcopy
 
-from functools import reduce
-from typing import Mapping
-
-import numpy as np
+from expressions.symbolic.quantization_base import QuantizationHandlerBase
 from generation.code_block import CodeBlock
+from utils.disjoint_reduction import disjoint_reduction
 
-from .iteration_space import IterationSpace
-from .symbol import Constant, Symbol, Variable, copy_props
-from .variable_container import VariableContainerAndAssigner
+from .symbol import Symbol, Variable
 
 
-@copy_props('var')
-class Assignment(VariableContainerAndAssigner, Symbol):
-    def __init__(self, arg, name="", var=None, **kwargs):
-        if var is None:
-            self._var = Variable(name, shape=arg.shape, symbol_binding=arg)
-        else:
-            name = var.name
-            self._var = var
-        super(Assignment, self).__init__(arg, name=name, **kwargs)
+class Assignments(ABCSequence):
+    def __init__(self, assignments=None, returns=None, qrecs=None) -> None:
+        super().__init__()
+        self._assignments = []
+        self._returns = set(returns if returns is not None else [])
+        self._outputs = None
+        self._inputs = None
+        self._inters = None
+        self._vars = []
+        self._qrecs = qrecs
+        if assignments:
+            for assignment in assignments:
+                self.add(*assignment)
+        self._update()
+
+    @property
+    def max_shape(self):
+        return tuple(max(elems) for elems in zip(*Symbol.extend_shapes(*[ass[1].shape for ass in self._assignments])))
+
+    @property
+    def unbound_shapes(self):
+        return tuple(self._vars[name].shape for name in self.unbound_variables)
+
+    @property
+    def input_names(self):
+        return self._inputs
+
+    @property
+    def output_names(self):
+        return self._outputs
 
     @property
     def unbound_variables(self):
-        return self.contents[0].unbound_variables
+        return self._inputs
 
     @property
-    def var(self):
-        return self._var
-
-    def find(self, name):
-        for elem in [self._var, self.contents[0]]:
-            res = elem.find(name)
-            if res:
-                return res
-        return None
+    def intermediate_names(self):
+        return self._inters
 
     @property
-    def var_shapes(self):
-        shapes = {self.name: self.contents[0].shape}
-        shapes.update(zip(self.contents[0].unbound_variables, self.contents[0].unbound_shapes))
-        return shapes
-
-    def _resolve(self, **kwargs):
-        """Given a set of substitions for variable in kwargs resolve all variables"""
-        return self._contents[0].resolve(**kwargs)
-
-    def _resolve_assignment(self, substitute_all=False, **kwargs) -> Mapping[str, Symbol]:
-        return {self.name: self._contents[0].resolve(**kwargs)}
-
-    def _calculate(self, calculate_ranges=False, **kwargs):
-        res = self._contents[0].resolve(**kwargs)
-        if not isinstance(res, Constant):
-            raise ValueError(
-                f"unable to calculate {self.name}")
-        if calculate_ranges:
-            self.control.add_stat(self, res.value)
-        return res.value
-
-    def _calculate_assignment(self, **kwargs) -> Mapping[str, np.ndarray]:
-        return {self.name: self._calculate(**kwargs)}
-
-    def c_block(self, code_block: CodeBlock = None, iteration_space: IterationSpace = None):
-        if code_block is None:
-            code_block = CodeBlock()
-        if iteration_space:
-            if self.var.name in iteration_space.temporary_variables:
-                code_block.write(
-                    f"{self.var.c_expr(declare=True, dtype=self.contents[0].dtype)}"
-                    f" = {self.contents[0].c_expr(iteration_space=iteration_space)};")
-            else:
-                code_block.write(
-                    f"{self.var.c_expr(dtype=self.contents[0].dtype)}{iteration_space.c_index(self.var.name)}"
-                    f" = {self.contents[0].c_expr(iteration_space=iteration_space)};")
-        else:
-            code_block.write(f'{self.var.name} = {self.contents[0].c_expr()};')
-        return code_block
+    def variables(self):
+        return self._vars
 
     @property
-    def returned_variables(self):
-        return [self.name]
-
-    @property
-    def shape(self):
-        return self._contents[0].shape
-
-    def _py_expr(self, *args, **kwargs):
-        return self._contents[0].py_expr(*args, **kwargs)
-
-    def _c_expr(self, *args, **kwargs):
-        return self._contents[0].c_expr(*args, **kwargs)
-
-    def __repr__(self) -> str:
-        return f"{{{self.var.name} <- {self.contents[0].__repr__()}}}"
-
-
-@copy_props('preconditions', 'returned_variables')
-class Let(VariableContainerAndAssigner, Symbol):
-    def __init__(self, *args, preconditions=None, returned_variables=None, name="", **kwargs):
-        args = [Assignment(arg[1], name=arg[0]) if isinstance(
-            arg, tuple) else arg for arg in args]
-        super(Let, self).__init__(*args, name=name, **kwargs)
-        if preconditions is None:
-            preconditions = []
-        else:
-            preconditions = [Assignment(arg[1], name=arg[0]) if isinstance(
-                arg, tuple) else arg for arg in preconditions]
-        self._preconditions = preconditions
-        self._returned_variables = returned_variables
-
-# pylint: disable=invalid-name
-    def In(self, *expressions):
-        return Let(*expressions, preconditions=[self])
-
-    def Return(self, *variable_names):
-        produced = self.produced_variables
-        if not all(variable in produced for variable in variable_names):
-            raise ValueError('not all variables are produced')
-        return Let(*self.contents, preconditions=self.preconditions, name=self.name, returned_variables=variable_names)
-
-    @property
-    def unbound_variables(self):
-        resolution = self.resolve_assignment()
-        _vars = reduce(lambda s, x: s | set(
-            x.unbound_variables.values()), resolution.values(), set())
-        return {var.name: var for var in _vars if var.name not in set(resolution.keys())}
-
-    @property
-    def produced_variables(self):
-        resolution = self.resolve_assignment()
-        return set(resolution.keys())
-
-    @property
-    def preconditions(self):
-        return self._preconditions
-
-    @property
-    def returned_variables(self):
-        return self._returned_variables
-
-    @staticmethod
-    def substitute_variables(assignments):
-        res = {}
-        substitutions = {}
-        for var_name, val in assignments.items():
-            if isinstance(val, (Constant, np.ndarray, int, float)):
-                substitutions[var_name] = val
-            else:
-                substitutions[var_name] = Variable(var_name, shape=val.shape)
-                res[var_name] = val
-        return res, substitutions
-
-    def find(self, name):
-        for elem in list(self._preconditions) + list(self.contents):
-            res = elem.find(name)
-            if res:
-                return res
-        return None
-
-    def _resolve_assignment(self, substitute_all=False, **kwargs) -> Mapping[str, Symbol]:
-        """Given a set of substitions for variable in kwargs resolve all variables - return a dictionary of variables"""
-        preconditions = self._resolve_contents(
-            contents=self._preconditions, substitute_all=substitute_all, **kwargs)
-        return self._resolve_contents(contents=self.contents, substitute_all=substitute_all, **preconditions)
-
-    def _calculate_assignment(self, **kwargs) -> Mapping[str, np.ndarray]:
-        preconditions = self._calculate_contents(
-            contents=self._preconditions, **kwargs)
-        res = self._calculate_contents(contents=self.contents, **preconditions)
-        if self.returned_variables:
-            res = {vname: val for vname, val in res.items(
-            ) if vname in self.returned_variables}
-        return res
-
-    @staticmethod
-    def _resolve_contents(contents=None, substitute_all=False, **kwargs):
-        if substitute_all:
-            substitutions = kwargs
-            res = kwargs
-        else:
-            res, substitutions = Let.substitute_variables(kwargs)
-        for elem in contents:
-            elem_res = elem.resolve_assignment(
-                substitute_all=substitute_all, **substitutions)
-            if substitute_all:
-                substitutions.update(elem_res)
-                res.update(elem_res)
-            else:
-                elem_res, elem_substitutions = Let.substitute_variables(
-                    elem_res)
-                res.update(elem_res)
-                substitutions.update(elem_substitutions)
-        return res
-
-    @staticmethod
-    def _calculate_contents(contents=None, **kwargs):
-        for elem in contents:
-            kwargs.update(elem.calculate_assignment(**kwargs))
-        return kwargs
-
-    def _resolve(self, **kwargs):
-        """Given a set of substitions for variable in kwargs resolve all variables - return a single symbol"""
-        preconditions = self._resolve_contents(
-            contents=self._preconditions, substitute_all=True, **kwargs)
-        resolution = self._resolve_contents(
-            contents=self.contents, substitute_all=True, **preconditions)
-        return Assignment(resolution[self.contents[-1].name], name=self.contents[-1].name)
-
-    def _calculate(self, calculate_ranges=False, **kwargs):
-        res = self._resolve(**kwargs)
-        if not isinstance(res.contents[0], Constant):
-            raise ValueError(
-                f"unable to calculate {self.name}")
-        if calculate_ranges:
-            self.control.add_stat(self, res.value)
-        return res.contents[0].value
+    def axes(self):
+        var_shapes = Symbol.extend_shapes(*self.unbound_shapes, max_length=len(self.max_shape))
+        axes = disjoint_reduction(set(frozenset(idx for idx, dim in enumerate(
+            shape) if dim != 1) for shape in var_shapes))
+        return tuple(sorted([tuple(x) for x in axes]))
 
     @property
     def var_shapes(self):
-        shapes = {}
-        for var_name, elem in self.resolve_assignment().items():
-            shapes[var_name] = elem.shape
-            shapes.update(dict(zip(elem.unbound_variables, elem.unbound_shapes)))
-        return shapes
+        return {var.name: var.shape for var in self._vars.values()}
 
     @property
-    def shape(self):
-        return self._contents[-1].shape
+    def ops(self):
+        # TODO: Implement
+        return 1
 
-    def _py_expr(self, *args, **kwargs):
-        return self._contents[0].py_expr(*args, **kwargs)
+    @property
+    def qrecs(self):
+        return self._qrecs
 
-    def c_block(self, code_block: CodeBlock = None, iteration_space: IterationSpace = None, with_loops=False):
+    @property
+    def c_header_set(self):
+        return set().union(*[assignment[1].c_header_set
+                             for assignment in self._assignments])
+
+    def variable(self, name):
+        return self._vars[name]
+
+    def _add_int(self, var, func):
+        for uname, uvar in func.unbound_variables.items():
+            if uname in self._vars:
+                uvar.shape = self._vars[uname].shape
+                uvar.qrec = self._vars[uname].qrec
+        if isinstance(var, str):
+            if var in self._vars:
+                var = self._vars[var]
+            else:
+                var = Variable(var, shape=func.shape, dtype=func.dtype)
+        self._assignments.append((var, func))
+
+    def add(self, var, func):
+        self._add_int(var, func)
+        self._update()
+
+    def _update(self):
+        self._vars = {}
+        free_var_names = set()
+        for var, func in self._assignments:
+            self._vars[var.name] = var
+            for name, uvar in func.unbound_variables.items():
+                self._vars[name] = uvar
+                free_var_names.add(name)
+
+        # these are all the produced variables
+        prod_var_names = set(
+            [assignment[0].name for assignment in self._assignments])
+        # sort all the variable names to keep a determined order
+        # the outputs are things produced that are not consumed
+        self._outputs = sorted(
+            list((prod_var_names - free_var_names) | self._returns))
+        # the inputs are variables that are not produced
+        self._inputs = sorted(list(free_var_names - prod_var_names))
+        # the intermediates are the produced variables that are not in the outputs
+        self._inters = sorted(list(prod_var_names - set(self._outputs)))
+
+    def c_block(self, code_block: CodeBlock = None, iteration_space: 'IterationSpace' = None,
+                with_loops=False, with_comment=True, with_fixed=False, tags=None):
         if code_block is None:
             code_block = CodeBlock()
+        # create loops from iteration space
         if with_loops:
             assert iteration_space, "must have space"
-            for idx, _ in enumerate(iteration_space.axis_shape):
-                if idx in iteration_space.fixed_spaces:
+            if with_comment:
+                # write some comments describing the iteration space
+                code_block.comment(
+                    f"Max shape: {iteration_space.shape} var shapes:")
+                writer = code_block.start_long_comment()
+                for shape_comment in [f'{name}: {shape}'
+                                      for name, shape in iteration_space.var_shapes.items()]:
+                    writer.write(shape_comment)
+                writer.end()
+                code_block.comment(
+                    f'Iteration reduced to spaces {iteration_space.spaces}')
+                code_block.comment(
+                    f'Fixed spaces {iteration_space.fixed_spaces}')
+                code_block.comment(
+                    f'Parameteric spaces {iteration_space.parametric_spaces}')
+                code_block.comment(
+                    f'Paralelized space {iteration_space.paralellized_space}')
+                code_block.comment(
+                    f'Interior spaces {iteration_space.interior_spaces}')
+            # write the loops
+            for space in iteration_space.spaces:
+                if not with_fixed and space in iteration_space.fixed_spaces:
                     continue
-                code_block.write(f"{iteration_space.c_for(idx)} {{")
+                code_block.write(f"{iteration_space.c_for(space, with_fixed=with_fixed)} {{")
                 code_block.indent()
-        for precondition in self.preconditions:
-            precondition.c_block(code_block=code_block,
-                                 iteration_space=iteration_space)
-        for item in self.contents:
-            item.c_block(code_block=code_block,
-                         iteration_space=iteration_space)
+        # write each assignment
+        for var, func in self._assignments:
+            this_tags = {} if tags is None else tags.copy()
+
+            # write comment with quantization if present
+            if with_comment:
+                uvars = [f'{uvar.name}: {uvar.qrec}'
+                        for uvar in func.unbound_variables.values()
+                        if uvar.qrec]
+                if uvars:
+                    writer = code_block.start_long_comment()
+                    writer.write('inputs')
+                    for uvar in uvars:
+                        writer.write(uvar)
+                    writer.end()
+                code_block.comment(f'{var.name} = {repr(func)}')
+            # if iteration space is present pick up if this is a temporary or an output
+            # assignment from that
+            if iteration_space:
+                if var.name in iteration_space.temporary_names:
+                    this_tags[func] = (var, True)
+                else:
+                    this_tags[func] = (var, False)
+            else:
+                this_tags[func] = (var, var.name in self.intermediate_names)
+
+            # The iteration space will be passed down the symbol structure
+            func.tag = True
+            func.c_block(code_block=code_block,
+                         tags=this_tags,
+                         iteration_space=iteration_space,
+                         with_comment=with_comment)
+            func.tag = False
+
         if with_loops:
-            for idx, _ in enumerate(iteration_space.axis_shape):
-                if idx in iteration_space.fixed_spaces:
+            for space in iteration_space.spaces:
+                if not with_fixed and space in iteration_space.fixed_spaces:
                     continue
                 code_block.deindent()
                 code_block.write("}")
         return code_block
 
-    def _c_expr(self, *args, **kwargs):
-        return self._contents[0].c_expr(*args, **kwargs)
+    def quantize(self, quantizer: QuantizationHandlerBase, symbol_control, quantize_inputs=False, qtypes=None):
+        funcs = []
+        out_qrecs = {}
+        in_qrecs = {}
+        for var, func in self._assignments:
+            qfunc, qrec = quantizer.quantize(
+                func,
+                symbol_control,
+                quantize_inputs=quantize_inputs,
+                prequantized_variables=out_qrecs,
+                qtypes=qtypes)
+            qfunc = qfunc.resolve()
+            in_qrecs.update(qfunc.variable_quantization)
+            if var.name in self._outputs:
+                qfunc, qrec = quantizer.quantize_output(
+                    func,
+                    qfunc,
+                    var,
+                    symbol_control,
+                    qrec,
+                    quantize_inputs=quantize_inputs,
+                    prequantized_variables=out_qrecs,
+                    qtypes=qtypes)
+                qfunc = qfunc.resolve()
+            var = deepcopy(var)
+            var.qrec = qrec
+            funcs.append((var, qfunc(substitute=True)))
+            out_qrecs[var.name] = qrec
+        in_qrecs.update(out_qrecs)
+        return Assignments(funcs, returns=self._returns, qrecs=in_qrecs)
 
-    def __repr__(self) -> str:
-        return (f"Let({','.join([elem.__repr__() for elem in self.preconditions])})"
-                f".In({','.join([elem.__repr__() for elem in self.contents])})")
+    def __getitem__(self, idx):
+        return self._assignments[idx]
+
+    def __len__(self) -> int:
+        return len(self._assignments)
+
+    def __iter__(self):
+        return iter(self._assignments)
+
+    def __call__(self, quantize_inputs=False, dequantize_outputs=False, **subs):
+        subs = dict(subs)
+        if quantize_inputs:
+            subs = {name: self.qrecs[name].quantize_and_clip(val) if name in self.qrecs else val
+                    for name, val in subs.items()}
+        for var, func in self._assignments:
+            subs[var.name] = func(
+                dequantize_outputs=dequantize_outputs, **subs)
+        res = dict(filter(lambda elem: elem[0] in self._outputs, subs.items()))
+        if dequantize_outputs:
+            if self.qrecs is None:
+                raise ValueError('assignments are not quantized')
+            res = {name: self.qrecs[name].dequantize(
+                val) for name, val in res.items()}
+        return res
+

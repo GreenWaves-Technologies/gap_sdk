@@ -18,8 +18,7 @@ import logging
 import numpy as np
 from graph.types import Conv2DParameters
 from execution.kernels.kernel_base import KernelBase, params_type, qrec_type
-from quantization.multiplicative.mulbias import (apply_multiplicative_bias,
-                                                 apply_zero_offset_bias)
+from quantization.multiplicative.mulbias import apply_multiplicative_bias
 from quantization.new_qrec import QRec
 
 FORCE_INT64 = False
@@ -43,11 +42,10 @@ class Conv2DSymmetric(KernelBase):
 
         in_dims, out_dims = params.in_dims[0], params.out_dims[0]
         prepared_in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")
-        # if zero offset is already applied in biases by constant quantizer this does nothing
-        prepared_in_tensors = apply_zero_offset_bias(qrec, params, prepared_in_tensors, ktype="symmetric")
         in_tensor = prepared_in_tensors[0]
         # expand the weights to apply the zero offset
         weights = prepared_in_tensors[1].astype(np.int32) - qrec.in_qs[1].zero_point.astype(np.int32)
+        # if zero offset is already applied in biases by constant quantizer this does nothing
         biases = prepared_in_tensors[2]
 
         acc_q = qrec.cache.get('acc_q') or qrec.in_qs[2]
@@ -99,7 +97,6 @@ class Conv2DSymmetric(KernelBase):
         out_h = ((in_h - dillated_filter_h + pad_h)) // params.stride.h + 1
 
         if params.has_bias:
-            # biases = qrec.prepare_biases(params, params.biases, params.weights, ktype="symmetric")
             if acc_q != qrec.in_qs[2]:
                 biases = acc_q.expand_from(biases, qrec.in_qs[2])
             result = np.broadcast_to(biases.reshape(

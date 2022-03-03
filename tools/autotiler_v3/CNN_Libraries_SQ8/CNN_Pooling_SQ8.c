@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
+#include <stdio.h>
+#include "Gap.h"
+#include "CNN_BasicKernels_SQ8.h"
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpointer-sign"
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #pragma GCC diagnostic ignored "-Wswitch"
-
-#include <stdio.h>
-#include "Gap.h"
-#include "CNN_BasicKernels_SQ8.h"
 
 static int CoreCountDynamic = 1;
 static int ActiveCore = gap_ncore();
@@ -3209,11 +3209,28 @@ void KerPoolNxMStrideSxSy_ReLUMN_SQ8(KerPool_SQ8_T *Arg)
 }
 
 
+/* HWC Version */
 
+#define KER_POOL_ACT(Activation, p_type, n_bits, is_unsigned) \
+do { \
+	int Size = Wo*Ho*Feat; \
+	int CoreId = gap_coreid(), ChunkCell = ChunkSize(Size), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Size); \
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos; \
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN]; \
+	int A0 = arr_at_as(Infos, AT_INF_A0, p_type); int B0 = arr_at_as(Infos, AT_INF_B0, p_type); int C0 = arr_at_as(Infos, AT_INF_C0, p_type); \
+\
+	for (int i=First; i<Last; i++) { \
+		int Acc0 = Out[i]; \
+		ACT_SWITCH(Acc0, Activation, ActScale, ActScaleN, A0, B0, C0, 16-n_bits, is_unsigned); \
+		Out[i] = OUT_CLIP(Acc0, is_unsigned, n_bits); \
+	} \
+	gap_waitbarrier(0); \
+} while(0)
 
-
-
-void KerParMaxPoolNxMStrideSxSy_HWC_SQ8(Ker_MM_Pool_SQ8_T *Arg)
+static inline void __attribute__((always_inline)) KerParMaxPoolNxMStrideSxSy_HWC_SQ8_act(
+	Ker_MM_Pool_SQ8_T *Arg,
+	CNN_ActivationOper_T Activation
+)
 
 {
         signed char *__restrict__ In = Arg->In;
@@ -3262,11 +3279,55 @@ void KerParMaxPoolNxMStrideSxSy_HWC_SQ8(Ker_MM_Pool_SQ8_T *Arg)
                 PosL += Sy;
         }
         gap_waitbarrier(0);
-	// KerParPoolActivation(Out, Wo, Ho, First, Last, Infos, Arg->Activation);
-        // gap_waitbarrier(0);
+        if (Activation != ACT_NONE) {
+        	KER_POOL_ACT(Activation, unsigned char, 8, 0);
+        }
 }
 
-void KerParMaxPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg)
+void KerParMaxPoolNxMStrideSxSy_HWC_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_NONE);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLU_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_RELU);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLUN_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_RELUN);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLUM_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_RELUM);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLUMN_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_RELUMN);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_HSigmoid_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_HSIGMOID);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_HSwish_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_HSWISH);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_LeakyReLU_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_LEAKYRELU);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_Sigmoid_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_SIGMOID);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_Tanh_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_TANH);
+}
+
+static inline void __attribute__((always_inline)) KerParMaxPoolNxMStrideSxSy_HWC_USQ8_act(
+	Ker_MM_Pool_USQ8_T *Arg,
+	CNN_ActivationOper_T Activation
+)
 
 {
         unsigned char *__restrict__ In = Arg->In;
@@ -3282,7 +3343,7 @@ void KerParMaxPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg)
 
 	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(Feat), First = CoreId*ChunkCell, Last = Min(Feat, First+ChunkCell);
 	int PosL = Arg->FirstTile?(-PadT):0;
-	int Iter = Last-First;
+	int Iter = Max(0, Last-First);
         for (int l=0; l<Ho; l++) {
                 int PosC = -PadL;
                 int Tb = Max(PosL, 0), Db = Min(PosL+Fy, H);
@@ -3294,32 +3355,76 @@ void KerParMaxPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg)
 				for (int j=Tb; j<Db; j++) {
 					for (int i=Lb; i<Rb; i++) M = gap_maxu4(M, ((v4u *)(In+j*W*Feat + i*Feat+First))[f]);
 				}
-				((int *)(Out+l*Wo*Feat + c*Feat+First))[f] = (int) M;
+				((unsigned int *)(Out+l*Wo*Feat + c*Feat+First))[f] = (unsigned int) M;
 			}
-			// if (Iter&0x2) {
-			// 	v4u M = M_Init;
-			// 	for (int j=Tb; j<Db; j++) {
-			// 		for (int i=Lb; i<Rb; i++) M = gap_maxu4(M, (v4u) (int) ((unsigned short int *)(In+j*W*Feat + i*Feat+First))[0]);
-			// 	}
-			// 	((short int *)(Out+l*Wo*Feat + c*Feat+First))[0] = (int) M;
-			// }
-			for (int f=(Iter/4)*4; f<Iter; f++) {
-				unsigned char M = 0;
+			if (Iter&0x2) {
+				v4u M = M_Init;
 				for (int j=Tb; j<Db; j++) {
-					for (int i=Lb; i<Rb; i++) M = Max(M, ((unsigned char *)(In+j*W*Feat + i*Feat+First))[f]);
+					for (int i=Lb; i<Rb; i++) M = gap_maxu4(M, (v4u) (int) ((short int *)(In+j*W*Feat + i*Feat+First))[0]);
 				}
-				((unsigned char *)(Out+l*Wo*Feat + c*Feat+First))[f] = M;
+				((short int *)(Out+l*Wo*Feat + c*Feat+First))[Iter/2-1] = (int) M;
+			}
+			if (Iter&0x1) {
+				v4u M = M_Init;
+				for (int j=Tb; j<Db; j++) {
+					for (int i=Lb; i<Rb; i++) M = gap_maxu4(M, (v4u) (int) ((unsigned char *)(In+j*W*Feat + i*Feat+First))[0]);
+				}
+				((signed char *)(Out+l*Wo*Feat + c*Feat+First))[Iter-1] = (int) M;
 			}
 			PosC += Sx;
                 }
                 PosL += Sy;
         }
         gap_waitbarrier(0);
-	// KerParPoolActivation(Out, Wo, Ho, First, Last, Infos, Arg->Activation);
-        // gap_waitbarrier(0);
+        if (Activation != ACT_NONE) {
+        	KER_POOL_ACT(Activation, unsigned char, 8, 1);
+        }
 }
 
-void KerParAvgPoolNxMStrideSxSy_HWC_SQ8(Ker_MM_Pool_SQ8_T *Arg)
+void KerParMaxPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_NONE);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLU_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_RELU);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLUN_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_RELUN);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLUM_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_RELUM);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLUMN_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_RELUMN);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_HSigmoid_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_HSIGMOID);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_HSwish_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_HSWISH);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_LeakyReLU_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_LEAKYRELU);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_Sigmoid_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_SIGMOID);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_Tanh_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_TANH);
+}
+
+static inline void __attribute__((always_inline)) KerParAvgPoolNxMStrideSxSy_HWC_SQ8_act(
+	Ker_MM_Pool_SQ8_T *Arg,
+	CNN_ActivationOper_T Activation
+)
 
 {
         signed char *__restrict__ In = Arg->In;
@@ -3388,11 +3493,55 @@ void KerParAvgPoolNxMStrideSxSy_HWC_SQ8(Ker_MM_Pool_SQ8_T *Arg)
                 PosL += Sy;
         }
         gap_waitbarrier(0);
-	// KerParPoolActivation(Out, Wo, Ho, First, Last, Infos, Arg->Activation);
-        // gap_waitbarrier(0);
+        if (Activation != ACT_NONE) {
+        	KER_POOL_ACT(Activation, unsigned char, 8, 0);
+        }
 }
 
-void KerParAvgPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg)
+void KerParAvgPoolNxMStrideSxSy_HWC_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_NONE);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLU_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_RELU);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLUN_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_RELUN);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLUM_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_RELUM);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLUMN_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_RELUMN);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_HSigmoid_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_HSIGMOID);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_HSwish_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_HSWISH);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_LeakyReLU_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_LEAKYRELU);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_Sigmoid_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_SIGMOID);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_Tanh_SQ8(Ker_MM_Pool_SQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ8_act(Arg, ACT_TANH);
+}
+
+static inline void __attribute__((always_inline)) KerParAvgPoolNxMStrideSxSy_HWC_USQ8_act(
+	Ker_MM_Pool_USQ8_T *Arg,
+	CNN_ActivationOper_T Activation
+)
 
 {
         unsigned char *__restrict__ In = Arg->In;
@@ -3461,14 +3610,56 @@ void KerParAvgPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg)
                 PosL += Sy;
         }
         gap_waitbarrier(0);
-	// KerParPoolActivation(Out, Wo, Ho, First, Last, Infos, Arg->Activation);
-        // gap_waitbarrier(0);
+        if (Activation != ACT_NONE) {
+        	KER_POOL_ACT(Activation, unsigned char, 8, 1);
+        }
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_NONE);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLU_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_RELU);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLUN_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_RELUN);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLUM_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_RELUM);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLUMN_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_RELUMN);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_HSigmoid_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_HSIGMOID);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_HSwish_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_HSWISH);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_LeakyReLU_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_LEAKYRELU);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_Sigmoid_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_SIGMOID);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_Tanh_USQ8(Ker_MM_Pool_USQ8_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ8_act(Arg, ACT_TANH);
 }
 
 
-
-void KerParMaxPoolNxMStrideSxSy_HWC_SQ16(Ker_MM_Pool_SQ16_T *Arg)
-
+static inline void __attribute__((always_inline)) KerParMaxPoolNxMStrideSxSy_HWC_SQ16_act(
+	Ker_MM_Pool_SQ16_T *Arg,
+	CNN_ActivationOper_T Activation
+)
 {
         short int *__restrict__ In = Arg->In;
         int W = Arg->W, H = Arg->H;
@@ -3509,21 +3700,64 @@ void KerParMaxPoolNxMStrideSxSy_HWC_SQ16(Ker_MM_Pool_SQ16_T *Arg)
                 PosL += Sy;
         }
         gap_waitbarrier(0);
-	// KerParPoolActivation(Out, Wo, Ho, First, Last, Infos, Arg->Activation);
-        // gap_waitbarrier(0);
+        if (Activation != ACT_NONE) {
+        	KER_POOL_ACT(Activation, unsigned char, 8, 1);
+        }
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_NONE);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLU_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_RELU);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLUN_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_RELUN);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLUM_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_RELUM);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLUMN_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_RELUMN);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_HSigmoid_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_HSIGMOID);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_HSwish_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_HSWISH);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_LeakyReLU_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_LEAKYRELU);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_Sigmoid_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_SIGMOID);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_Tanh_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_TANH);
 }
 
 
-void KerParMaxPoolNxMStrideSxSy_HWC_USQ16(Ker_MM_Pool_SQ16_T *Arg)
-
+static inline void __attribute__((always_inline)) KerParMaxPoolNxMStrideSxSy_HWC_USQ16_act(
+	Ker_MM_Pool_USQ16_T *Arg,
+	CNN_ActivationOper_T Activation
+)
 {
-        short int *__restrict__ In = Arg->In;
+        unsigned short int *__restrict__ In = Arg->In;
         int W = Arg->W, H = Arg->H;
         int Fx = Arg->Fx, Sx = Arg->Sx;
         int Fy = Arg->Fy, Sy = Arg->Sy;
         int PadL = Arg->Pad[0], PadT = Arg->Pad[2];
         int Feat = Arg->Feat;
-        short int * __restrict__ Out = Arg->Out;
+        unsigned short int * __restrict__ Out = Arg->Out;
         int Wo = Arg->Wo, Ho = Arg->Ho;
 
 	v2u M_Init = (v2u) {-32767,-32767};
@@ -3556,13 +3790,56 @@ void KerParMaxPoolNxMStrideSxSy_HWC_USQ16(Ker_MM_Pool_SQ16_T *Arg)
                 PosL += Sy;
         }
         gap_waitbarrier(0);
-	// KerParPoolActivation(Out, Wo, Ho, First, Last, Infos, Arg->Activation);
-        // gap_waitbarrier(0);
+        if (Activation != ACT_NONE) {
+        	KER_POOL_ACT(Activation, unsigned char, 8, 1);
+        }
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_NONE);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLU_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_RELU);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLUN_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_RELUN);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLUM_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_RELUM);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_ReLUMN_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_RELUMN);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_HSigmoid_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_HSIGMOID);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_HSwish_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_HSWISH);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_LeakyReLU_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_LEAKYRELU);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_Sigmoid_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_SIGMOID);
+}
+
+void KerParMaxPoolNxMStrideSxSy_HWC_Tanh_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParMaxPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_TANH);
 }
 
 
-void KerParAvgPoolNxMStrideSxSy_HWC_SQ16(Ker_MM_Pool_SQ16_T *Arg)
-
+static inline void __attribute__((always_inline)) KerParAvgPoolNxMStrideSxSy_HWC_SQ16_act(
+	Ker_MM_Pool_SQ16_T *Arg,
+	CNN_ActivationOper_T Activation
+)
 {
         signed short *__restrict__ In = Arg->In;
         int W = Arg->W, H = Arg->H;
@@ -3611,12 +3888,56 @@ void KerParAvgPoolNxMStrideSxSy_HWC_SQ16(Ker_MM_Pool_SQ16_T *Arg)
                 PosL += Sy;
         }
         gap_waitbarrier(0);
-	// KerParPoolActivation(Out, Wo, Ho, First, Last, Infos, Arg->Activation);
-        // gap_waitbarrier(0);
+        if (Activation != ACT_NONE) {
+        	KER_POOL_ACT(Activation, unsigned char, 8, 1);
+        }
 }
 
-void KerParAvgPoolNxMStrideSxSy_HWC_USQ16(Ker_MM_Pool_SQ16_T *Arg)
+void KerParAvgPoolNxMStrideSxSy_HWC_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_NONE);
+}
 
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLU_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_RELU);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLUN_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_RELUN);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLUM_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_RELUM);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLUMN_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_RELUMN);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_HSigmoid_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_HSIGMOID);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_HSwish_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_HSWISH);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_LeakyReLU_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_LEAKYRELU);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_Sigmoid_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_SIGMOID);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_Tanh_SQ16(Ker_MM_Pool_SQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_SQ16_act(Arg, ACT_TANH);
+}
+
+
+static inline void __attribute__((always_inline)) KerParAvgPoolNxMStrideSxSy_HWC_USQ16_act(
+	Ker_MM_Pool_USQ16_T *Arg,
+	CNN_ActivationOper_T Activation
+)
 {
         unsigned short *__restrict__ In = Arg->In;
         int W = Arg->W, H = Arg->H;
@@ -3665,6 +3986,49 @@ void KerParAvgPoolNxMStrideSxSy_HWC_USQ16(Ker_MM_Pool_SQ16_T *Arg)
                 PosL += Sy;
         }
         gap_waitbarrier(0);
-	// KerParPoolActivation(Out, Wo, Ho, First, Last, Infos, Arg->Activation);
-        // gap_waitbarrier(0);
+        if (Activation != ACT_NONE) {
+        	KER_POOL_ACT(Activation, unsigned char, 8, 1);
+        }
 }
+
+void KerParAvgPoolNxMStrideSxSy_HWC_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_NONE);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLU_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_RELU);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLUN_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_RELUN);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLUM_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_RELUM);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_ReLUMN_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_RELUMN);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_HSigmoid_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_HSIGMOID);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_HSwish_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_HSWISH);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_LeakyReLU_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_LEAKYRELU);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_Sigmoid_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_SIGMOID);
+}
+
+void KerParAvgPoolNxMStrideSxSy_HWC_Tanh_USQ16(Ker_MM_Pool_USQ16_T *Arg) {
+	KerParAvgPoolNxMStrideSxSy_HWC_USQ16_act(Arg, ACT_TANH);
+}
+
+#pragma GCC diagnostic pop

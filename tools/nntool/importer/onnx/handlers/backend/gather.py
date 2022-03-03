@@ -38,11 +38,16 @@ class Gather(ConstantMixin, BackendHandler):
         x = inputs[0]
         x_shape = x[2].shape
         y = inputs[1]
+        y_shape = y[2].shape
         indices = cls.get_constant(y)
         axis = node.attrs.get('axis', 0)
 
-        pshape = ProvisionalDim(
-            x_shape[:axis:] + list(indices.shape) + x_shape[axis + 1:])
+        if not y_shape:
+            pshape = ProvisionalDim(
+                x_shape[:axis:] + x_shape[axis + 1:])
+        else:
+            pshape = ProvisionalDim(
+                x_shape[:axis:] + list(indices.shape) + x_shape[axis + 1:])
         if cls.is_constant(x):
             x_val = cls.get_constant(x)
             logger.info(
@@ -57,7 +62,10 @@ class Gather(ConstantMixin, BackendHandler):
                 out_shape = pshape.known_shape.copy()
                 params = StridedSliceParameters(
                     valid_name, act_slice=act_slice, out_shape=out_shape)
-                if params.post_slice_shape == tuple(x[2].known_shape):
+                if params.slice_shape == tuple(x[2].known_shape):
+                    if np.ndim(indices) == 0 and pshape.shape[idx] is not None:
+                        del out_shape[idx]
+                        pshape = ProvisionalDim(out_shape)
                     params = ReshapeParameters(valid_name, old_shape=tuple(
                         x[2].known_shape), shape=out_shape)
             else:

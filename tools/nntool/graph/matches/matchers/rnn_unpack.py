@@ -291,7 +291,7 @@ class MatchRnnUnpack(Matcher):
             if changes_shape:
                 reshape = ReshapeParameters(unpack_node.name + '_reshape',
                                             old_shape=Dim.unnamed(
-                                                unpack_node.post_slice_shape),
+                                                unpack_node.slice_shape),
                                             shape=Dim.unnamed(unpack_node.out_shape))
                 G.add_edge(NNEdge(from_node=in_edge.from_node,
                                   to_node=reshape, from_idx=in_edge.from_idx))

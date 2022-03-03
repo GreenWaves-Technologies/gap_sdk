@@ -106,7 +106,7 @@ int RNN_Sequence_fp16(int Nc, int K0, int K1, int *n1, int *n2, int *n3, int *n2
 	return ((N1!=0) + (N2!=0) + (N3!=0));
 }
 
-static int RNN_Stack_Seq_fp16(
+static int RNN_Stack_Seq_fp16_Internal(
 	char *Name,
 	CNN_GenControl_T *Ctrl,
 	char *RNNKerName,
@@ -220,6 +220,40 @@ static int RNN_Stack_Seq_fp16(
 	}
 
 	return (Kernel!=0);
+}
+
+static int RNN_Stack_Seq_fp16(
+	char *Name,
+	CNN_GenControl_T *Ctrl,
+	char *RNNKerName,
+
+	int AlwaysReset,
+	int NCells,
+	int DimState,
+	int DimIn,
+	int UseIn,
+	int ExposeSequence,
+	int Buffer,
+	int FirstSeq,
+	int LastSeq,
+	int Revert,
+	int Dynamic)
+{
+	int Ker = 0;
+
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+	Ker = RNN_Stack_Seq_fp16_Internal(Name, Ctrl, RNNKerName, AlwaysReset, NCells, DimState, DimIn, UseIn, ExposeSequence, Buffer, FirstSeq, LastSeq, Revert, Dynamic);
+	if (Ker) return 1;
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+
+	printf("\n\n=============================== Solution not found for %s: Trying PARALLELFEATURES=0 ===============================\n\n", Name);
+	/* If solution not found try with ParallelFeature = 0 */
+	CNN_GenControl_T InternalCtrl;
+	if (!Ctrl) CNN_InitGenCtrl(&InternalCtrl);
+    	else 	   InternalCtrl = *Ctrl;
+    	CNN_SetGenCtrl(&InternalCtrl, "PARALLELFEATURES", AT_OPT_VAL(0));
+    	Ker = RNN_Stack_Seq_fp16_Internal(Name, &InternalCtrl, RNNKerName, AlwaysReset, NCells, DimState, DimIn, UseIn, ExposeSequence, Buffer, FirstSeq, LastSeq, Revert, Dynamic);
+    	return Ker;
 }
 
 int RNN_Stack_fp16(
@@ -400,7 +434,7 @@ int RNN_Stack_fp16(
 }
 
 
-static int LSTM_Stack_Seq_fp16(
+static int LSTM_Stack_Seq_fp16_Internal(
 	char *Name,
 	CNN_GenControl_T *Ctrl,
 	char *LSTMKerName,
@@ -566,6 +600,39 @@ static int LSTM_Stack_Seq_fp16(
 	}
 
 	return (Kernel!=0);
+}
+
+static int LSTM_Stack_Seq_fp16(
+	char *Name,
+	CNN_GenControl_T *Ctrl,
+	char *LSTMKerName,
+
+	int AlwaysReset,
+	int NCells,
+	int DimState,
+	int DimIn,
+	int UseIn,
+	int ExposeSequence,
+	int FirstSeq,
+	int LastSeq,
+	int Revert,
+	int Dynamic)
+{
+	int Ker = 0;
+
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+	Ker = LSTM_Stack_Seq_fp16_Internal(Name, Ctrl, LSTMKerName, AlwaysReset, NCells, DimState, DimIn, UseIn, ExposeSequence, FirstSeq, LastSeq, Revert, Dynamic);
+	if (Ker) return 1;
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+
+	printf("\n\n=============================== Solution not found for %s: Trying PARALLELFEATURES=0 ===============================\n\n", Name);
+	/* If solution not found try with ParallelFeature = 0 */
+	CNN_GenControl_T InternalCtrl;
+	if (!Ctrl) CNN_InitGenCtrl(&InternalCtrl);
+    	else 	   InternalCtrl = *Ctrl;
+    	CNN_SetGenCtrl(&InternalCtrl, "PARALLELFEATURES", AT_OPT_VAL(0));
+    	Ker = LSTM_Stack_Seq_fp16_Internal(Name, &InternalCtrl, LSTMKerName, AlwaysReset, NCells, DimState, DimIn, UseIn, ExposeSequence, FirstSeq, LastSeq, Revert, Dynamic);
+    	return Ker;
 }
 
 int LSTM_Stack_fp16(
@@ -791,7 +858,7 @@ int LSTM_Stack_fp16(
 }
 
 
-static int GRU_Stack_Seq_fp16(
+static int GRU_Stack_Seq_fp16_Internal(
 	char *Name,
 	CNN_GenControl_T *Ctrl,
 	char *GRUKerName,
@@ -942,6 +1009,40 @@ static int GRU_Stack_Seq_fp16(
 
 	return (Kernel!=0);
 }
+
+static int GRU_Stack_Seq_fp16(
+	char *Name,
+	CNN_GenControl_T *Ctrl,
+	char *GRUKerName,
+
+	int AlwaysReset,
+	int NCells,
+	int DimState,
+	int DimIn,
+	int UseIn,
+	int ExposeSequence,
+	int FirstSeq,
+	int LastSeq,
+	int Revert,
+	int Dynamic)
+{
+	int Ker = 0;
+
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+	Ker = GRU_Stack_Seq_fp16_Internal(Name, Ctrl, GRUKerName, AlwaysReset, NCells, DimState, DimIn, UseIn, ExposeSequence, FirstSeq, LastSeq, Revert, Dynamic);
+	if (Ker) return 1;
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+
+	printf("\n\n=============================== Solution not found for %s: Trying PARALLELFEATURES=0 ===============================\n\n", Name);
+	/* If solution not found try with ParallelFeature = 0 */
+	CNN_GenControl_T InternalCtrl;
+	if (!Ctrl) CNN_InitGenCtrl(&InternalCtrl);
+    	else 	   InternalCtrl = *Ctrl;
+    	CNN_SetGenCtrl(&InternalCtrl, "PARALLELFEATURES", AT_OPT_VAL(0));
+    	Ker = GRU_Stack_Seq_fp16_Internal(Name, &InternalCtrl, GRUKerName, AlwaysReset, NCells, DimState, DimIn, UseIn, ExposeSequence, FirstSeq, LastSeq, Revert, Dynamic);
+    	return Ker;
+}
+
 
 int GRU_Stack_fp16(
 	char *Name,

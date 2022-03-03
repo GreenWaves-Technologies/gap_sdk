@@ -18,8 +18,7 @@ import logging
 import numpy as np
 from graph.types.linear import FcParameters
 from execution.kernels.kernel_base import KernelBase, params_type, qrec_type
-from quantization.multiplicative.mulbias import (apply_multiplicative_bias,
-                                                 apply_zero_offset_bias)
+from quantization.multiplicative.mulbias import apply_multiplicative_bias
 from quantization.new_qrec import QRec
 
 LOG = logging.getLogger("nntool." + __name__)
@@ -38,8 +37,6 @@ class LinearSymmetric(KernelBase):
         in_dims, out_dims = params.in_dims[0], params.out_dims[0]
         prepared_in_tensors = qrec.prepare_inputs(
             params, in_tensors, ktype="symmetric")
-        prepared_in_tensors = apply_zero_offset_bias(
-            qrec, params, prepared_in_tensors, ktype="symmetric")
         in_tensor = prepared_in_tensors[0]
         # expand the weights to apply the zero offset
         weights = prepared_in_tensors[1].astype(np.int32) - qrec.in_qs[1].zero_point.astype(np.int32)

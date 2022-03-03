@@ -77,6 +77,7 @@ sub exc_cmd_make {
     my $os = shift;
     my $platform = shift;
     my $flags = shift;
+    my $compile_only = shift;
     my $tags = shift;
     my $pre = shift;
     my $post = shift;
@@ -85,18 +86,24 @@ sub exc_cmd_make {
     my $exec_dir = shift;
     my $res = 0;
     my $make_path = $basedir."/".$exec_dir;
-    system ("make -C ".$make_path." PMSIS_OS=".$os." build_dir_ext=".$target_name." clean");
+    system ("make -C ".$make_path." ".$flags." PMSIS_OS=".$os." build_dir_ext=".$target_name." clean");
     if($pre == 1)
     {
         `make prepare`;
     }
 
+    my $targets = "all";
+    if (not $compile_only)
+    {
+        $targets = "${targets} run";
+    }
+
     chdir $exec_dir;
-    say "make  -C ".$make_path." ".$flags." PMSIS_OS=".$os." platform=".$platform." build_dir_ext=".$target_name." all run";
     my ($seconds_before, $seconds_after);
     timeout $timeout =>  sub {
         $seconds_before = time();
-        $res = system ("make  -C ".$make_path." ".$flags." PMSIS_OS=".$os." platform=".$platform." build_dir_ext=".$target_name." all run");
+        say "make  -C ".$make_path." ".$flags." PMSIS_OS=".$os." platform=".$platform." build_dir_ext=".$target_name." $targets";
+        $res = system ("make  -C ".$make_path." ".$flags." PMSIS_OS=".$os." platform=".$platform." build_dir_ext=".$target_name." $targets");
         $seconds_after = time();
         $res = $res >>=8;
         say $target_name." : Result is: ".$res;
@@ -122,6 +129,7 @@ sub exc_cmd_cmake {
     my $os = shift;
     my $platform = shift;
     my $flags = shift;
+    my $compile_only = shift;
     my $tags = shift;
     my $pre = shift;
     my $post = shift;
@@ -150,15 +158,19 @@ sub exc_cmd_cmake {
         say "CMAKE_GENERATOR=Ninja cmake -S $make_path -B $make_path/build".-$target_name."  -DCONFIG_GAP_SDK_HOME=$sdk_root_path -DCMAKE_MODULE_PATH=$sdk_root_path/utils/cmake -DCONFIG_CHIP=$chip -DCONFIG_CHIP_VERSION=$chip_version -DBOARD=$ENV{'BOARD_NAME'} $cmake_flags";
         $res = system ("CMAKE_GENERATOR=Ninja cmake -S $make_path -B $make_path/build".-$target_name."  -DCONFIG_GAP_SDK_HOME=$sdk_root_path -DCMAKE_MODULE_PATH=$sdk_root_path/utils/cmake -DCONFIG_CHIP=$chip -DCONFIG_CHIP_VERSION=$chip_version -DBOARD=$ENV{'BOARD_NAME'} $cmake_flags");
         say "cmake --build $make_path/build";
-        $res = system("cmake --build $make_path/build".-$target_name);
-        say "cmake --build $make_path/build --target run";
-        $res = system("cmake --build $make_path/build".-$target_name."  --target run");
-        $seconds_after = time();
-        $res = $res >>=8;
-        say $target_name." : Result is: ".$res;
-        if($post == 1)
+
+        if (not $compile_only)
         {
-            $res = system("cmake --build build --target postrun");
+            $res = system("cmake --build $make_path/build".-$target_name);
+            say "cmake --build $make_path/build --target run";
+            $res = system("cmake --build $make_path/build".-$target_name."  --target run");
+            $seconds_after = time();
+            $res = $res >>=8;
+            say $target_name." : Result is: ".$res;
+            if($post == 1)
+            {
+                $res = system("cmake --build build --target postrun");
+            }
         }
     };
     my $seconds = $seconds_after - $seconds_before;
@@ -256,6 +268,7 @@ sub process_yml {
             my @arg = ($config_os,
                 $config_platform,
                 $test_variant->{flags},
+                $test_variant->{compile_only},
                 '',
                 0,
                 0,

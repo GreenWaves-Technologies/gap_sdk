@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from graph.types import ConstantInputParameters
+from graph.types.activations import ActivationParameters
 from graph.types.base import FilterParameters
 from utils.node_id import NodeId
 from utils.tabular import Tabular, TabularColumn
@@ -92,6 +93,8 @@ class QuantizationReporter():
                                     row.append(self.emit_qs([qrec.cache[key]]))
                                 else:
                                     row.append("")
+                        elif "scale_mul_biases_q" in qrec.cache:
+                            row += ["", "", self.emit_qs([qrec.cache["scale_mul_biases_q"]]), "", ""]
                         else:
                             row += ["", "", "", "", ""]
                 else:

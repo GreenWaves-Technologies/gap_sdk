@@ -164,8 +164,7 @@ class ExpressionSymmetric(KernelBase):
                 in_tensors,
                 qrec: QRec,
                 **kwargs):
-        in_tensors = [in_tensor.astype(np.int32) for in_tensor in qrec.prepare_inputs(
-            params, in_tensors, ktype="symmetric")]
+        in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")
         details = kwargs.get('details')
         if details is not None:
             results = {}

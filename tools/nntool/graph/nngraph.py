@@ -16,13 +16,19 @@
 import logging
 import os
 import re
-from typing import Callable, Generator, Sequence, Tuple, Union
+from typing import Any, Callable, Generator, Mapping, Sequence, Tuple, Union
 
 import numpy as np
+from execution.graph_executer import GraphExecuter
+from execution.quantization_mode import QuantizationMode
+from interpreter.commands.qtune import SCHEME_NAME_MAPPINGS
 from quantization.quantization_set import QuantizationSet
+from quantization.quantizer.new_quantizer import NewQuantizer
 from reports.graph_reporter import GraphReporter
+from stats.activation_ranges_collector import ActivationRangesCollector
 from utils.graph import Graph, Node
 from utils.node_id import NodeId
+from utils.stats_funcs import cos_similarity, qsnr
 from utils.tabular import TextTableRenderer
 
 from graph.dim import Dim
@@ -33,6 +39,7 @@ from graph.manipulations.balance_filter import (balance_all_filters,
 from graph.manipulations.dimensions import add_dimensions
 from graph.manipulations.liveness import calculate_liveness
 from graph.matches.fusions import fusions
+from graph.matches.matches import get_fusions
 from graph.types import (ConstantInputParameters, InputBaseParameters,
                          InputParameters, MultiplicativeBiasParameters,
                          OutputParameters, ResizerParameters,
@@ -383,10 +390,10 @@ class NNGraph(Graph):
     def add_constant(self, dim: Union[Dim, Tuple[int]] = None,
                      name: str = None,
                      value: np.ndarray = None,
-                     adjust_transpose: Sequence[int]=None,
+                     adjust_transpose: Sequence[int] = None,
                      is_mutated=False,
                      is_intermediate=False,
-                     short_name: str=None) -> NNNodeRef:
+                     short_name: str = None) -> NNNodeRef:
         """Creates a constant node
 
         Args:
@@ -401,7 +408,8 @@ class NNGraph(Graph):
         Returns:
             NNNodeRef: A reference to the Node in the Graph
         """
-        node_name = name if name else self.unique_name(f"constant_{self.num_constants}")
+        node_name = name if name else self.unique_name(
+            f"constant_{self.num_constants}")
         node = ConstantInputParameters(node_name, dims=dim,
                                        value=value,
                                        adjust_transpose=adjust_transpose,
@@ -445,7 +453,14 @@ class NNGraph(Graph):
                         yield (step_idx, node, fusion_idx, fnode)
             yield (step_idx, node, None, None)
 
-    def adjust_order(self, reshape_weights=True, no_postprocess=False, debug_function: Callable=None, steps: int=None, single_step=False):
+    def adjust_order(
+        self,
+        reshape_weights=True,
+        no_postprocess=False,
+        debug_function: Callable = None,
+        steps: int = None,
+        single_step=False
+    ):
         """Adjusts tensor order to match selected kernels
 
         Args:
@@ -461,6 +476,15 @@ class NNGraph(Graph):
         LOG.info("adjusted order")
         self.graph_identity.is_adjusted = True
 
+    @staticmethod
+    def get_fusions():
+        """Returns a dictionary of all the fusion/graph optimization pass names and descriptions
+
+        Returns:
+            Dict[str, str]: Names and descriptions of graph optimisation passes
+        """
+        return get_fusions()
+
     def fusions(self, *match_names, no_postprocess: bool = False):
         """Run matchers on the graph
 
@@ -470,7 +494,10 @@ class NNGraph(Graph):
         """
         fusions(self, *match_names, no_postprocess=no_postprocess)
 
-    def add_dimensions(self, quiet=False):
+    def add_dimensions(
+        self,
+        quiet=False
+    ):
         """Add dimensions to the graph and calculate execution order and liveness
 
         Args:
@@ -485,7 +512,121 @@ class NNGraph(Graph):
             self,
             self.graph_state.steps)
 
-    def balance_filters(self, step_idx: int=None, precision_threshold=0.20):
+    def collect_statistics(
+        self,
+        input_tensors_iterator: Union[Sequence[Sequence[np.ndarray]], Sequence[np.ndarray]]
+    ) -> Mapping[Union[str, Tuple[str, str]], Mapping]:
+        """Collect tensor statistics for quantization
+
+        Args:
+            input_tensors_iterator (Union[Sequence[Sequence[np.ndarray]], Sequence[np.ndarray]]):
+                If the graph has a single input this can just be an iterator over numpy arrays. If the graph has
+                multiple inputs then it should be an iterator over sequences of numpy arrays.
+
+        Returns:
+            Mapping[Union[str, Tuple[str, str]], Mapping]: Mapping of statistics for each node's inputs and outputs
+        """
+        stats_collector = ActivationRangesCollector()
+        for input_tensors in input_tensors_iterator:
+            if isinstance(input_tensors, np.ndarray):
+                input_tensors = [input_tensors]
+            stats_collector.collect_stats(self, input_tensors)
+        return {k.key: v for k, v in stats_collector.stats.items()}
+
+    @staticmethod
+    def qsnrs(tensors1, tensors2, idx=0):
+        return tuple([qsnr(t1[idx], t2[idx]) if len(t1) > idx and len(t2) > idx else None for t1, t2 in zip(tensors1, tensors2)])
+
+    @staticmethod
+    def cos_sim(tensors1, tensors2, idx=0):
+        return tuple([cos_similarity(t1[idx], t2[idx]) if len(t1) > idx and len(t2) > idx else None for t1, t2 in zip(tensors1, tensors2)])
+
+    def quantize(
+        self,
+        statistics: Mapping[Union[str, Tuple[str, str]], Mapping] = None,
+        schemes: Sequence[str] = None,
+        graph_options: Mapping[str, Any] = None,
+        node_options: Mapping[Union[str, Tuple[str, str]],
+                              Mapping[str, Any]] = None,
+        read_existing_options = True
+    ) -> None:
+        """Quantize the graph
+
+        Args:
+            statistics (Mapping[Union[str, Tuple[str, str]], Mapping], optional): Statistics collected by the NNGraph.collect_statistics
+                method.
+            schemes (Sequence[], optional): Sequence of schemes "scaled", "pow2", or "float" to use in priority order. If None use scaled. Defaults to None.
+            graph_options (Mapping[str, Any], optional): Quantization options to set for the whole graph. Defaults to None.
+            node_options (Mapping[Union[str, Tuple[str, str]], Mapping[str, Any]], optional):
+                Quantization options to set for specific nodes. The map key should be the node name or if the node is inside a fusion
+                then a tuple of the fusion name and the node name. Defaults to None.
+            read_existing_options (bool, optional): Incorporate existing quantization options and schemes in the graph. Leaving this as
+                True and just supplying graph_option, node_options and/or schemes is the equivalent of the nntool qtune command
+        """
+        quantizer = NewQuantizer(self)
+        if schemes:
+            for scheme in schemes:
+                scheme = scheme.lower()
+                if scheme not in SCHEME_NAME_MAPPINGS:
+                    raise ValueError(f'invalid scheme name {scheme}')
+                quantizer.schemes.append(SCHEME_NAME_MAPPINGS[scheme])
+        elif 'SQ8' not in quantizer.schemes:
+            quantizer.schemes.append('SQ8')
+        options = {}
+        if graph_options:
+            options.update(graph_options)
+        if node_options:
+            options.update({NodeId(name) if isinstance(name, str) else NodeId(*name): v
+                            for name, v in node_options.items()})
+        quantizer.set_stats(statistics)
+        quantizer.update_options(options)
+        quantizer.quantize()
+
+    def execute(
+            self,
+            input_tensors: Union[np.ndarray, Sequence[np.ndarray]],
+            quantize=False,
+            dequantize=False,
+            output_fusion_tensors=False
+    ) -> Sequence[Sequence[np.ndarray]]:
+        """Runs inference on the graph
+
+        Args:
+            input_tensors (Union[np.ndarray, Sequence[np.ndarray]]):
+                Numpy arrays containing inputs (which should be normalized and in float)
+                If there is only one input it can be specified without a sequence.
+            quantize (bool, optional): Run the graph using quantization parameters. Defaults to False.
+            dequantize (bool, optional): Dequantize outputs. Implies quantize. Defaults to False.
+            output_fusion_tensors (bool, optional): Output outputs from nodes that have been fused. Defaults to False.
+
+        Raises:
+            ValueError: Incorrect parameters
+
+        Returns:
+            Sequence[Sequence[np.ndarray]]: List of lists of outputs of each node in the graph. If output_fusion_tensors
+            is True this will also include the output of nodes contained inside fusions (except fused expressions)
+        """
+        if dequantize:
+            quantize = True
+        if quantize:
+            if self.quantization is None or not self.quantization.verify_quantization(self):
+                raise ValueError('graph is not quantized')
+            if dequantize:
+                qmode = QuantizationMode.all_dequantize()
+            else:
+                qmode = QuantizationMode.all()
+        else:
+            qmode = QuantizationMode.none()
+        if isinstance(input_tensors, np.ndarray):
+            input_tensors = [input_tensors]
+        executer = GraphExecuter(self, self.quantization)
+        return executer.execute(input_tensors, qmode=qmode, append_fusion_output=output_fusion_tensors)
+
+    def balance_filters(
+        self,
+        step_idx: int = None,
+        precision_threshold=0.20
+    ):
         """Experimental filter balancing routines
 
         Args:

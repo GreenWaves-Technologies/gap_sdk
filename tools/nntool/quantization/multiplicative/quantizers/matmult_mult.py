@@ -22,6 +22,7 @@ from graph.types import (ConstantInputParameters, HSigmoidActivationParameters,
 from graph.types.activations import (HSwishActivationParameters,
                                      TanHActivationParameters)
 from graph.types.base import NNEdge
+from graph.types.tensor_arithmetic import MatMulTransposedParameters
 from quantization.multiplicative.quantizers.filter_mult import \
     check_filter_options
 from quantization.multiplicative.quantizers.rnn_mult_ne16 import (
@@ -150,7 +151,8 @@ class MatMultMultSW8(MatMultMultBase):
             kwargs['graph_update']['requires_adjust'] = True
             in_q2 = QType.from_array_sq(
                 arr=in2_node.dqvalue,
-                quantized_dimension=len(in2_node.dqvalue.shape) - 2,
+                quantized_dimension=(len(in2_node.dqvalue.shape) -
+                                     (2 if isinstance(params, MatMulTransposedParameters) else 1)),
                 dtype=np.int8,
                 narrow_range=True,
                 bits=8)
@@ -235,7 +237,7 @@ class MatMultMultNE16Base(MatMultMultBase):
         in_q1 = limit_input_precision(
             params, input_bits, in_q1, w1, False, opts['weight_bits'],
             opts.get('max_precision_limit',
-            MAX_PRECISION_LIMIT_OPTION['default']),
+                     MAX_PRECISION_LIMIT_OPTION['default']),
             out_ranges=stats.get('range_out'),
             w_qs=[in_q2])
 

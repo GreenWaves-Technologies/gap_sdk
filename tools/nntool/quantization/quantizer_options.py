@@ -89,6 +89,12 @@ FORCE_OUTPUT_SIZE_OPTION = {
     'default': 8
 }
 
+OUTPUT_SIZE_OPTION = {
+    'name': 'output_size',
+    'type': None,
+    'default': None
+}
+
 FORCE_EXTERNAL_SIZE_OPTION = {
     'name': 'force_external_size',
     'type': int,

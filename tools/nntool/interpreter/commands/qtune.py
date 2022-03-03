@@ -110,7 +110,7 @@ Tune quantization of graph."""
             options = reduce(reduction, args.step, options)
 
         quantizer = NewQuantizer(self.G)
-        quantizer.options.update(options)
+        quantizer.update_options(options)
         quantizer.quantize()
         self.pfeedback('quantization options set')
 

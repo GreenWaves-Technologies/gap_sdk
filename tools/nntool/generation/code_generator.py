@@ -17,14 +17,14 @@ import logging
 
 import numpy as np
 from bfloat16 import bfloat16
-from expressions.symbolic.kernel_codegen import BasicKernel
+from expressions.symbolic.iteration_space import IterationSpace
 from graph.manipulations.dimensions import add_dimensions
 from graph.types import (ConcatParameters, ConstantInputParameters,
-                         InputParameters, OutputParameters, ReshapeParameters,
-                         SplitParameters, TransposeParameters)
+                         InputParameters, OutputParameters, SplitParameters,
+                         TransposeParameters)
 from graph.types.base import NNEdge
 from graph.types.fusions import FusionBase
-from graph.types.others import CopyParameters, NoOPParameters, QuantizeParameters
+from graph.types.others import CopyParameters, QuantizeParameters
 from graph.types.rnn import RNNBaseParameters
 from utils.node_id import NodeId
 
@@ -534,7 +534,8 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
             FunctionBindingList(cname,
                                 checksum_func(self.hidden_graph, name),
                                 Imm(step_idx),
-                                Imm(calc_value_checksum(self.hidden_graph, name)),
+                                Imm(calc_value_checksum(
+                                    self.hidden_graph, name)),
                                 GArgEdge(eparams[0]),
                                 Imm(size),
                                 before=before)
@@ -609,8 +610,8 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
             basic_kernel = self.expressions_kernel_cache.get(node)
             if not basic_kernel:
                 qrec = self.G.quantization[NodeId(node)]
-                basic_kernel = BasicKernel(qrec.cache['qfunc_col'],
-                                           [inp.name for inp in node.constant_inputs])
+                basic_kernel = IterationSpace(qrec.cache['qfunc_col'],
+                                                 constants=[inp.name for inp in node.constant_inputs])
                 self.expressions_kernel_cache[node] = basic_kernel
             yield node, basic_kernel
 
@@ -628,12 +629,12 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
         code_block = CodeBlock(starting_indent=0)
         for node, basic_kernel in self.expressions_foreach_basic_kernel():
             _, arg_name = self.expressions_get_names(node)
-            basic_kernel.kernel_arg_type_codegen(arg_name, code=code_block)
+            basic_kernel.gen_kernel_arg_typedecl(arg_name, code=code_block)
         return str(code_block)
 
     def expressions_kernel_includes_generator(self):
         code_block = CodeBlock(starting_indent=0)
-        includes = set.union(*[basic_kernel.func_col.c_header_set for node,
+        includes = set.union(*[basic_kernel.assignments.c_header_set for node,
                                basic_kernel in self.expressions_foreach_basic_kernel()])
         for include in includes:
             code_block.write('#include {}', include)
@@ -733,26 +734,25 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
     def generate_output_check(self, tol=0.0, indent=0):
         code = CodeBlock(starting_indent=indent)
         code.write('int errors;')
-        for out_node in self.output_nodes:
+        for idx, out_node in enumerate(self.output_nodes):
             out_sz = out_node.out_dims[0].size()
             nodeq = self.G.quantization[NodeId(out_node, None)].out_qs[0]
             dtype = "%f" if nodeq.is_floating else "%d"
             code.write('errors = 0;')
-            if tol:
-                code.write(f"{dtype2ctype(nodeq)} max_diff = 0;")
+            code.write(f"{'float' if nodeq.is_floating else 'int'} max_diff_{idx} = 0;")
             code.write(f'for (int j=0; j<{out_sz}; j++) {{')
             code.indent()
+            code.write(
+                f"{'float' if nodeq.is_floating else 'int'} diff = {out_node.name.capitalize()}[j] - "
+                f"{out_node.name.capitalize()}_gt[j];")
+            code.write("diff = (diff>0)?diff:(-diff);")
+            code.write(f"if (diff > max_diff_{idx}) max_diff_{idx} = diff;")
             if tol:
-                code.write(
-                    f"{dtype2ctype(nodeq)} diff = {out_node.name.capitalize()}[j] - "
-                    f"{out_node.name.capitalize()}_gt[j];")
-                code.write("diff = (diff>0)?diff:(-diff);")
-                code.write("if (diff > max_diff) max_diff = diff;")
                 code.write(
                     f'if (diff > {nodeq.quantize(np.array(tol)).item()}) {{')
             else:
                 code.write(
-                    f'if ({out_node.name.capitalize()}[j] != {out_node.name.capitalize()}_gt[j]) {{')
+                    f'if (diff > 0) {{')
             code.indent()
             code.write('errors++;')
             code.write(f'printf("Error @ %d: {dtype} instead of {dtype}\\n", j, '
@@ -763,6 +763,5 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
             code.write('}')
             code.write(
                 f'printf("{out_node.name.capitalize()}: %d/{out_sz} errors\\n", errors);')
-            if tol:
-                code.write(f'printf("Max error: {dtype}\\n", max_diff);')
+            code.write(f'printf("Max error: {dtype}\\n", max_diff_{idx});')
         return str(code)

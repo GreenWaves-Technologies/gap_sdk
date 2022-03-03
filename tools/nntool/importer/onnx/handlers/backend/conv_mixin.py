@@ -17,6 +17,7 @@
 from copy import deepcopy
 
 import numpy as np
+from sklearn.utils import resample
 from graph.dim import Conv2DFilterDim, DilationDim, Dim, StrideDim
 from graph.types import (ConstantInputParameters, Conv2DParameters, NNEdge,
                          ReshapeParameters)
@@ -86,7 +87,9 @@ class ConvMixin(BroadcastMixin, PadMixin, ConstantMixin):
         # M x C/group x kH x kW
         weights_idx = 3 if quantized else 1
         weights_node = inputs[weights_idx][0]
-        weights_node.name = f'{valid_name}_weights'
+        new_name = f'{valid_name}_weights'
+        cls.move_stat(inputs[weights_idx], new_name, **kwargs)
+        weights_node.name = new_name
         weights = cls.get_constant(inputs[weights_idx])
         out_c = weights.shape[0]
         group = node.attrs.get("group", 1)
@@ -203,6 +206,11 @@ class ConvMixin(BroadcastMixin, PadMixin, ConstantMixin):
 
         # check if input needs a reshape
         if conv_in_shape != real_in_shape:
+            # if batch is present add it back
+            if batch is not None:
+                conv_in_shape = (batch,) + conv_in_shape
+            if np.prod(real_in_shape) != np.prod(conv_in_shape):
+                raise ValueError(f'shape inference issue {valid_name} filter indicates {conv_in_shape} but has an input of {real_in_shape}')
             r1_params = ReshapeParameters(f'{valid_name}_reshape_in',
                                           old_shape=Dim.unnamed(real_in_shape),
                                           shape=Dim.unnamed(conv_in_shape))

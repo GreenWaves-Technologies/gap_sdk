@@ -154,7 +154,7 @@ static inline int __os_native_api_sync_obj_deinit(void *sync_obj)
 
 static inline void __os_native_api_sync_obj_take(void *sync_obj)
 {
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    ulTaskNotifyTakeIndexed(1, pdTRUE, portMAX_DELAY);
 }
 
 static inline void __os_native_api_sync_obj_release(void *sync_obj)
@@ -162,7 +162,7 @@ static inline void __os_native_api_sync_obj_release(void *sync_obj)
     uint32_t irq = __disable_irq();
     BaseType_t higher_priority_task_woken = pdFALSE;
     TaskHandle_t task_handler = (TaskHandle_t) sync_obj;
-    vTaskNotifyGiveFromISR(task_handler, &higher_priority_task_woken);
+    vTaskNotifyGiveIndexedFromISR(task_handler, 1, &higher_priority_task_woken);
     portYIELD_FROM_ISR(higher_priority_task_woken);
     __restore_irq(irq);
 }

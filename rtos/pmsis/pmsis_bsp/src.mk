@@ -1,5 +1,5 @@
 BSP_READFS_SRC = fs/read_fs/read_fs.c
-BSP_HOSTFS_SRC = fs/host_fs/semihost.c fs/host_fs/host_fs.c
+BSP_HOSTFS_SRC = fs/host_fs/host_fs.c
 BSP_LFS_SRC = fs/lfs/lfs.c fs/lfs/lfs_util.c fs/lfs/pi_lfs.c
 BSP_FS_SRC = fs/fs.c
 BSP_FLASH_SRC = flash/flash.c partition/partition.c partition/flash_partition.c \

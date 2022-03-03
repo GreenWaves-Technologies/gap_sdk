@@ -6,6 +6,26 @@
 /* PMSIS includes */
 #include "pmsis.h"
 
+/* Defines */
+#if defined(__GAP8__)
+
+#define GPIO_PAD1 (PI_PAD_12_A3_RF_PACTRL0)
+#define GPIO_PIN1 (PI_GPIO_A0_PAD_12_A3)
+
+#define GPIO_PAD2 (PI_PAD_15_B1_RF_PACTRL3)
+#define GPIO_PIN2 (PI_GPIO_A3_PAD_15_B1)
+
+#elif defined(__GAP9__)
+#define GPIO_PAD1 (PI_PAD_068)
+#define GPIO_PIN1 (PI_GPIO_A68)
+
+#define GPIO_PAD2 (PI_PAD_086)
+#define GPIO_PIN2 (PI_GPIO_A86)
+
+#else
+#error "Unknown chip"
+#endif
+
 #define DELAY_MS 500
 
 /* Variables used. */
@@ -19,12 +39,12 @@ void test_gpio(void)
     uint32_t value = 0;
     //Setting pad to alternate 1
     //GPIO A1
-    pi_pad_set_function(PI_PAD_12_A3_RF_PACTRL0, PI_PAD_12_A3_GPIO_A0_FUNC1);
+    pi_pad_set_function(GPIO_PAD1, PI_PAD_FUNC1);
     //GPIO LED (A3)
-    pi_pad_set_function(PI_PAD_15_B1_RF_PACTRL3, PI_PAD_FUNC1);
-    
-    pi_gpio_e gpio_out_a1 = PI_GPIO_A0_PAD_12_A3;
-    pi_gpio_e gpio_out_led = PI_GPIO_A3_PAD_15_B1;
+    pi_pad_set_function(GPIO_PAD2, PI_PAD_FUNC1);
+
+    pi_gpio_e gpio_out_a1 = GPIO_PIN1;
+    pi_gpio_e gpio_out_led = GPIO_PIN2;
 
     /* Configure gpio output. */
     pi_gpio_flags_e cfg_flags = PI_GPIO_OUTPUT;

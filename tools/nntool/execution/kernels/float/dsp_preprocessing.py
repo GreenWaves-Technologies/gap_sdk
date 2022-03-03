@@ -18,8 +18,6 @@ import logging
 import numpy as np
 from graph.types import MFCCPreprocessingParameters, RFFT2DPreprocessingParameters
 from execution.kernels.kernel_base import KernelBase, params_type, qrec_type
-from quantization.multiplicative.mulbias import (apply_multiplicative_bias,
-                                                 apply_zero_offset_bias)
 from quantization.new_qrec import QRec
 from utils.at_norm import at_norm
 

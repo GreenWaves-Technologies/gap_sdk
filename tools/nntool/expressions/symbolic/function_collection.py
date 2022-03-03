@@ -31,7 +31,7 @@ class FunctionCollection():
     def __init__(self, functions: Sequence[Tuple[Variable, Symbol]], qrecs=None) -> None:
         self._qrecs = qrecs
         # save map from produced variable to function
-        self._functions = {k: v for k, v in  functions}
+        self._functions = {k: v for k, v in functions}
         # now create a map with producted variable name to free variables in function
         self._freevars = {var.name: set([name for name in func.unbound_variables.keys()])
                           for var, func in self._functions.items()}
@@ -51,16 +51,18 @@ class FunctionCollection():
             for name, symbol in func.unbound_variables.items():
                 if name in self._vars:
                     if self._vars[name] != symbol:
-                        raise ValueError('%s points to more than one variable' % name)
+                        raise ValueError(
+                            '%s points to more than one variable' % name)
                 else:
                     self._vars[name] = symbol
             if res_symbol.name in self._vars:
                 if self._vars[res_symbol.name] != res_symbol:
-                    raise ValueError('%s points to more than one variable' % res_symbol.name)
+                    raise ValueError(
+                        '%s points to more than one variable' % res_symbol.name)
             else:
                 self._vars[res_symbol.name] = res_symbol
         self.init_indexes()
-    
+
     def init_indexes(self):
         # iterators contains list of iterators
         self._iterators = None
@@ -168,7 +170,8 @@ class FunctionCollection():
                                 key=lambda x: next(i for i in x))
         idx_names = ["_".join(["d%s" % idx for idx in sorted(list(idxes))])
                      for idxes in unique_indexes]
-        idx_dims = [reduce(lambda x, y: x*max_shape[y], idxes, 1) for idxes in unique_indexes]
+        idx_dims = [reduce(lambda x, y: x*max_shape[y], idxes, 1)
+                    for idxes in unique_indexes]
         self._iterators = [Variable(idx_name, shape=tuple([idx_dim]), dtype=np.int32)
                            for idx_name, idx_dim in zip(idx_names, idx_dims)]
         if not self._iterators:
@@ -202,7 +205,8 @@ class FunctionCollection():
             if depth == 0:
                 iters.extend([('First', 0), ('Last', var.shape[0])])
             else:
-                iters.append((self.iterators[depth].name.upper(), var.shape[0]))
+                iters.append(
+                    (self.iterators[depth].name.upper(), var.shape[0]))
         return iters
 
     def create_kernel(self, parallel_iterator, fixed_iterators, code_block=None):
@@ -255,13 +259,23 @@ class FunctionCollection():
         assert produced_idx >= len(execution_order)
         return code_block
 
-    def produce_functions(self, produced_idx, execution_order, index_dependencies, depth, code_block):
+    def produce_functions(self, produced_idx, execution_order, index_dependencies, depth, code_block, tags=None):
         while (produced_idx < len(execution_order) and
                index_dependencies[execution_order[produced_idx].name] == depth):
+            this_tags = {} if tags is None else tags.copy()
             var = execution_order[produced_idx]
             declare = var.name in self.intermediate_names
-            code_block.write("{} = {};", var.c_expr(declare=declare, dtype=var.dtype),
-                             self._functions[var].c_expr())
+            # write comment with quantization if present
+            uvars = [f'{uvar.name}: {uvar.qrec}'
+                     for uvar in self._functions[var].unbound_variables.values()
+                     if uvar.qrec]
+            if uvars:
+                uvars = "  ".join(uvars)
+                code_block.write(f'// inputs {uvars}')
+            this_tags[self._functions[var]] = (var, declare)
+            self._functions[var].tag = True
+            self._functions[var].c_block(code_block=code_block, tags=this_tags)
+            self._functions[var].tag = False
             produced_idx += 1
         return produced_idx
 

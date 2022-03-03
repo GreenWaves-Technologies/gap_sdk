@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from functools import reduce
+
 from graph.dim import Dim
 from graph.types import (ConstantInputParameters, GlobalPoolingParameters,
                          NNEdge, NoOPParameters)
@@ -20,6 +22,15 @@ from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
 from importer.onnx.common import logger
 
+def axis_reduction(shape, axes):
+    def reduction(state, idx_dim):
+        idx, dim = idx_dim
+        if dim is None:
+            return state[0], state[1]
+        if idx in axes:
+            return state[0] + 1, state[1] + [state[0]]
+        return state[0] + 1, state[1]
+    return tuple(reduce(reduction, enumerate(shape), (0,[]))[1])
 
 class ReducerMixin(ConstantMixin):
     @classmethod
@@ -43,8 +54,7 @@ class ReducerMixin(ConstantMixin):
                    x_rank for axis in axes), "axis out of bounds"
         keep_dims = node.attrs.get('keepdims', 1)
 
-        stripped_axes = [axis for axis in axes if x_shape[axis] is not None]
-
+        stripped_axes = axis_reduction(x_shape, axes)
         if not stripped_axes:
             params = NoOPParameters(valid_name)
             pout_shape = x_shape.copy()
@@ -57,22 +67,16 @@ class ReducerMixin(ConstantMixin):
             else:
                 pout_shape = [dim for idx, dim in enumerate(
                     x_shape) if idx not in axes]
-                # if all(dim is None for dim in pout_shape):
-                #     pout_shape.append(1)
 
-            # subtract 1 from axis for all None's preceeding it and remove
-            # axes that are not defined
-            axes = [ax - sum([1 if dim is None else 0 for dim in x_shape[:ax:]])
-                    for ax in stripped_axes]
             if cls.is_constant(x) and constant_operation:
-                val = constant_operation(cls.get_constant(x), axis=tuple(axes), keepdims=keep_dims)
+                val = constant_operation(cls.get_constant(x), axis=stripped_axes, keepdims=keep_dims)
                 if val.size < 10:
                     logger.info("reducing %s to a constant %s", valid_name, val)
                 else:
                     logger.info("reducing %s to a constant", valid_name)
                 params = ConstantInputParameters(valid_name, value=val, dims=Dim.unnamed(val.shape))
             else:
-                params = GlobalPoolingParameters(valid_name, pool_type=reduce_type, axis=tuple(axes),
+                params = GlobalPoolingParameters(valid_name, pool_type=reduce_type, axis=stripped_axes,
                                                  keep_dims=keep_dims)
 
                 G.add_edge(

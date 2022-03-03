@@ -83,6 +83,8 @@ class DumpCommand(NNToolShellBase):
                              action='store_true', help='dequantize result')
     parser_dump.add_argument('--quantize_and_dequantize',
                              action='store_true', help='quantize and dequantize float results')
+    parser_dump.add_argument('--append_fusion_output',
+                             action='store_true', help='quantize and dequantize float results')
     parser_dump_group = parser_dump.add_mutually_exclusive_group(
         required=False)
     parser_dump_group.add_argument('-q', '--quantize', action='store_true',
@@ -155,7 +157,7 @@ specific step of the graph."""
             qrecs = None if qmode.is_none else self.G.quantization
             executer = GraphExecuter(self.G, qrecs=qrecs)
             outputs = executer.execute(data, step_idx_limit=step,
-                                       qmode=qmode)
+                                       qmode=qmode, append_fusion_output=args.append_fusion_output)
 
             if args.pickle or self._in_py or args.save:
                 pickles.append(outputs)

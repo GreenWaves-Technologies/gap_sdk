@@ -15,12 +15,15 @@
 
 import argparse
 from functools import reduce
+from itertools import chain, groupby
 
 from cmd2 import Cmd2ArgumentParser, with_argparser
 from interpreter.nntool_shell_base import NNToolShellBase
 
 from graph.types import ReshapeParameters, InputParameters, OutputParameters, ConstantInputParameters
 from graph.types.base import NNEdge
+from quantization.new_qrec import QRec
+from utils.node_id import NodeId
 
 
 class RemoveCommand(NNToolShellBase):
@@ -49,27 +52,32 @@ class RemoveCommand(NNToolShellBase):
     def do_remove(self, args: argparse.Namespace):
         """Removes all the edges and nodes between two node. Will only work if nodes do not affect shape of tensor."""
         self._check_graph()
-        if any(node not in self.G for node in args.nodes):
-            self.perror("node not found in graph")
-            return
+        for node in args.nodes:
+            if node not in self.G:
+                self.perror(f"node {node} not found in graph")
+                return
         node_from = self.G[args.nodes[0]]
         if len(args.nodes) == 1:
             if args.up:
                 nodes_above = set(self.G.nodes_above(node_from))
                 if args.leave:
                     remove_nodes = nodes_above
-                    inputs_on = []
-                    dims = node_from.in_dims
+                    # remove constant inputs on the node left as targets for removal
                     for in_edge in self.G.indexed_in_edges(node_from):
                         if isinstance(in_edge.from_node, ConstantInputParameters):
                             nodes_above.remove(in_edge.from_node)
-                        else:
-                            inputs_on.append([in_edge])
                 else:
-                    dims = node_from.out_dims
                     remove_nodes = nodes_above | {node_from}
-                    inputs_on = self.G.indexed_out_edges(node_from)
-
+                # check for deleted nodes that have edges to left nodes. These need to be the new inputs.
+                # group them by source so common edges have one input
+                inputs_on = [
+                    list(edges) for _, edges in
+                    groupby(
+                        [edge for node in remove_nodes for edge in self.G.out_edges(node)
+                         if edge.to_node not in remove_nodes],
+                        key=lambda x: (x.from_node, x.from_idx))]
+                dims = [edges[0].to_node.in_dims[edges[0].to_idx]
+                        for edges in inputs_on]
                 input_names = sorted(
                     [node.name for node in remove_nodes if isinstance(node, InputParameters)])
                 self.G.remove_all(remove_nodes)
@@ -82,6 +90,13 @@ class RemoveCommand(NNToolShellBase):
                         self.G.add_edge(NNEdge(from_node=in_node,
                                                to_idx=edge.to_idx,
                                                to_node=edge.to_node))
+                    if self.G.quantization and edge_group:
+                        edge = edge_group[0]
+                        fnid = NodeId(edge.to_node)
+                        if fnid in self.G.quantization:
+                            qrec = self.G.quantization[fnid]
+                            self.G.quantization[NodeId(in_node)] = QRec.copy_ktype(
+                                qrec, out_qs=[qrec.in_qs[edge.to_idx]])
             else:
                 nodes_below = set(self.G.nodes_below(node_from))
                 if self.G.is_vertex_cut(nodes_below):
@@ -107,6 +122,12 @@ class RemoveCommand(NNToolShellBase):
                     self.pfeedback(f'adding output {out_node.name}')
                     self.G.add_edge(NNEdge(from_node=edge.from_node,
                                            from_idx=edge.from_idx, to_node=out_node))
+                    if self.G.quantization:
+                        fnid = NodeId(edge.from_node)
+                        if fnid in self.G.quantization:
+                            qrec = self.G.quantization[fnid]
+                            self.G.quantization[NodeId(out_node)] = QRec.copy_ktype(
+                                qrec, in_qs=[qrec.out_qs[edge.from_idx]])
         else:
             node_to = self.G[args.nodes[1]]
             nodes_between = self.G.nodes_between(node_from, node_to)
@@ -121,7 +142,8 @@ class RemoveCommand(NNToolShellBase):
 
             edges_from = set(self.G.out_edges(node_from))
             edges_to = set(self.G.in_edges(node_to.name))
-            between_edges = reduce(lambda s, x: s|set(self.G.edges(x)), nodes_between, set())
+            between_edges = reduce(lambda s, x: s | set(
+                self.G.edges(x)), nodes_between, set())
             edges_from = edges_from.intersection(between_edges)
             edges_to = edges_to.intersection(between_edges)
             if len(edges_from) != len(edges_to):

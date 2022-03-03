@@ -18,7 +18,8 @@ from copy import deepcopy
 import numpy as np
 from graph.types import OutputParameters
 from quantization.new_qrec import QRec
-from quantization.unified_quantization_handler import (out_qs_constraint,
+from quantization.quantizer_options import QTYPE_IND_OPTION
+from quantization.unified_quantization_handler import (out_qs_constraint, options,
                                                        params_type, needs_stats)
 
 from ..mult_quantization_handler import MultQuantizionHandler
@@ -27,7 +28,14 @@ from ..mult_quantization_handler import MultQuantizionHandler
 @params_type(OutputParameters)
 @out_qs_constraint({'dtype': set([np.int8, np.uint8, np.int16])})
 @needs_stats(False)
+@options(QTYPE_IND_OPTION)
 class OutputMult(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
-        return QRec.scaled(in_qs=deepcopy(in_qs), out_qs=deepcopy(in_qs))
+        opts = kwargs['opts']
+        in_q_ind = opts.get('qtype_ind')
+        if in_q_ind:
+            in_q = deepcopy(in_q_ind)
+        else:
+            in_q = deepcopy(in_qs[0])
+        return QRec.scaled(in_qs=[in_q], out_qs=[in_q])

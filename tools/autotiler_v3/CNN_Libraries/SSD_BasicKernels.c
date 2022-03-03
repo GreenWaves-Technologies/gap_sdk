@@ -1,7 +1,3 @@
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wextra"
-#pragma GCC diagnostic ignored "-Wpointer-sign"
-#pragma GCC diagnostic ignored "-Wsign-compare"
 /*
  * Copyright (C) 2020 GreenWaves Technologies
  * All rights reserved.
@@ -10,6 +6,9 @@
  * of the BSD license.  See the LICENSE file for details.
  *
  */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+
 #include <stdio.h>
 #include "Gap.h"
 #include "CNN_BasicKernels.h"

@@ -51,7 +51,9 @@ class Conv2DFloat32(KernelBase):
             details['max_acc'] = float("-Infinity")
             details['min_pre_mul_bias'] = float("Infinity")
             details['max_pre_mul_bias'] = float("-Infinity")
-
+        in_rank = len(in_tensor.shape)
+        if in_rank != 3:
+            raise NotImplementedError(f'{params.name} input has input rank of {in_rank} shape {in_tensor.shape} which is not supported by nntool kernels')
         in_tensor = in_tensor.transpose(
             in_dims.transpose_to_order(['h', 'w', 'c']))
         if params.padding.h + params.padding.w > 0:

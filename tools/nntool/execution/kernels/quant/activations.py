@@ -196,9 +196,9 @@ class HTanHSymmetric(KernelBase):
         return qrec.get_outputs(params, [in_tensor], ktype="symmetric")
 
 
-@params_type(SigmoidActivationParameters)
+@params_type(SigmoidActivationParameters, TanHActivationParameters)
 @qrec_type('scaled')
-class SigmoidScaledSymmetricMult(KernelBase):
+class SigmoidTanHScaledSymmetricMult(KernelBase):
     @classmethod
     def execute(cls, params,
                 in_tensors,
@@ -206,17 +206,19 @@ class SigmoidScaledSymmetricMult(KernelBase):
                 **kwargs):
         in_tensor = qrec.prepare_inputs(
             params, in_tensors, ktype="symmetric")[0]
-        if in_tensor.dtype == np.int8:
+        if in_tensor.dtype == np.int8: # Q4
             in_tensor = in_tensor.astype(np.int32) << 8
-        elif in_tensor.dtype == np.uint8:
-            in_tensor = in_tensor.astype(np.int32) - qrec.in_qs[0].zero_point
+        elif in_tensor.dtype == np.uint8: # Q4 sym
+            in_tensor = in_tensor.astype(np.int32) - (1 << 8)
             in_tensor <<= 8
-        elif in_tensor.dtype == np.uint16:
-            in_tensor = in_tensor.astype(np.int32) - qrec.in_qs[0].zero_point
-        else:
+        elif in_tensor.dtype == np.uint16: # Q12 sym
+            in_tensor = in_tensor.astype(np.int32) - (1 << 16)
+        else: # Q12
             in_tensor = in_tensor.astype(np.int32)
-
-        out_q15 = sigmoid_lut(in_tensor)
+        if isinstance(params, TanHActivationParameters):
+            out_q15 = tanh_lut(in_tensor)
+        else:
+            out_q15 = sigmoid_lut(in_tensor)
         scale_mul_biases_q = qrec.cache['scale_mul_biases_q']
         outp = scale_mul_biases_q.apply_scales(out_q15) + qrec.cache['zero_point']
         output = qrec.out_qs[0].clip(outp)
@@ -251,35 +253,35 @@ class SigmoidSymmetricMult(KernelBase):
                                 ktype="symmetric")
 
 
-@params_type(TanHActivationParameters)
-@qrec_type('scaled')
-class TanHScaledMult(KernelBase):
-    @classmethod
-    def execute(cls, params,
-                in_tensors,
-                qrec: QRec,
-                **kwargs):
-        in_tensor = qrec.prepare_inputs(
-            params, in_tensors, ktype="symmetric")[0]
-        if in_tensor.dtype == np.int8:
-            in_tensor = in_tensor.astype(np.int32) << 8
-        elif in_tensor.dtype == np.uint8:
-            in_tensor = in_tensor.astype(np.int32) - qrec.cache['zero_point']
-            in_tensor <<= 8
-        elif in_tensor.dtype == np.uint16:
-            in_tensor = in_tensor.astype(np.int32) - qrec.cache['zero_point']
-        else:
-            in_tensor = in_tensor.astype(np.int32)
+# @params_type(TanHActivationParameters)
+# @qrec_type('scaled')
+# class TanHScaledMult(KernelBase):
+#     @classmethod
+#     def execute(cls, params,
+#                 in_tensors,
+#                 qrec: QRec,
+#                 **kwargs):
+#         in_tensor = qrec.prepare_inputs(
+#             params, in_tensors, ktype="symmetric")[0]
+#         if in_tensor.dtype == np.int8: # Q4
+#             in_tensor = in_tensor.astype(np.int32) << 8
+#         elif in_tensor.dtype == np.uint8: # Q4 sym
+#             in_tensor = in_tensor.astype(np.int32) - (1 << 8)
+#             in_tensor <<= 8
+#         elif in_tensor.dtype == np.uint16: # Q12 sym
+#             in_tensor = in_tensor.astype(np.int32) - (1 << 16)
+#         else: # Q12
+#             in_tensor = in_tensor.astype(np.int32)
 
-        out_q15 = tanh_lut(in_tensor)
-        # compute_in_out_scale(qrec, extra_scale=QType.Pow2(
-        #     bits=32, q=7, signed=True).scale/qrec.in_qs[0].scale)
-        scale_mul_biases_q = qrec.cache['scale_mul_biases_q']
-        outp = scale_mul_biases_q.apply_scales(out_q15) + qrec.out_qs[0].zero_point
-        output = qrec.out_qs[0].clip(outp)
-        return qrec.get_outputs(params,
-                                [output],
-                                ktype="symmetric")
+#         out_q15 = tanh_lut(in_tensor)
+#         # compute_in_out_scale(qrec, extra_scale=QType.Pow2(
+#         #     bits=32, q=7, signed=True).scale/qrec.in_qs[0].scale)
+#         scale_mul_biases_q = qrec.cache['scale_mul_biases_q']
+#         outp = scale_mul_biases_q.apply_scales(out_q15) + qrec.cache['zero_point']
+#         output = qrec.out_qs[0].clip(outp)
+#         return qrec.get_outputs(params,
+#                                 [output],
+#                                 ktype="symmetric")
 
 
 @params_type(TanHActivationParameters)

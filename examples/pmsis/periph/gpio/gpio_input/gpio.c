@@ -6,6 +6,15 @@
 /* PMSIS includes */
 #include "pmsis.h"
 
+/* Defines */
+#if defined(__GAP8__)
+#define GPIO_PIN (PI_GPIO_A0_PAD_12_A3)
+#elif defined(__GAP9__)
+#define GPIO_PIN (PI_GPIO_A68)
+#else
+#error "Unknown chip"
+#endif
+
 /* Variables used. */
 struct pi_device gpio;
 
@@ -34,7 +43,7 @@ void test_gpio(void)
     }
     pi_task_t cb_gpio;
 
-    pi_gpio_e gpio_in = PI_GPIO_A0_PAD_12_A3;
+    pi_gpio_e gpio_in = GPIO_PIN;
     pi_gpio_notif_e irq_type = PI_GPIO_NOTIF_RISE;
     pi_gpio_flags_e cfg_flags = PI_GPIO_INPUT|PI_GPIO_PULL_DISABLE|PI_GPIO_DRIVE_STRENGTH_LOW;
 

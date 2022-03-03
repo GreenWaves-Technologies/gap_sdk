@@ -13,20 +13,20 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import math
 from typing import cast as typing_cast
-from utils.at_norm import at_norm
 
 import numpy as np
+from skimage.transform import resize
+
+from execution.kernels.kernel_base import KernelBase, params_type, qrec_type
 from graph.types import (ConcatParameters, ConstantInputParameters,
                          CopyParameters, InputParameters, OutputParameters,
                          ReshapeParameters, ReverseParameters, SplitParameters,
                          StridedSliceParameters, TransposeParameters)
-from graph.types.others import (ExpandParameters, GatherParameters, NoOPParameters,
-                                QuantizeParameters)
-from execution.kernels.kernel_base import KernelBase, params_type, qrec_type
+from graph.types.others import (ExpandParameters, GatherParameters,
+                                NoOPParameters, QuantizeParameters)
 from quantization.new_qrec import AllFloatQRec, QRec
-from skimage.transform import resize
+from utils.at_norm import at_norm
 
 
 @params_type(InputParameters)

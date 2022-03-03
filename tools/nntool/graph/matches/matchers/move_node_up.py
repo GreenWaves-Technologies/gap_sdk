@@ -161,7 +161,7 @@ class MoveActivationsMatcherScale8(MoveNodeUpMatcher):
 @run_before('fuse_gap_convs', 'fuse_gap_linear', 'fuse_gap_pool', 'fuse_op_activation_scale8')
 class MoveMaxPoolMatcherScale8(MoveNodeUpMatcher):
 
-    ValidNodesToPass = (ReluActivationParameters,)
+    ValidNodesToPass = (ReluActivationParameters, ConcatParameters)
     ValidFusions = (Conv2DParameters, FcParameters)
     ValidNodes = (lambda node: isinstance(
         node, PoolingParameters) and node.pool_type == "max",)

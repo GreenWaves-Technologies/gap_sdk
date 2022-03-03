@@ -871,7 +871,7 @@
 #endif
 
 #ifndef configTASK_NOTIFICATION_ARRAY_ENTRIES
-    #define configTASK_NOTIFICATION_ARRAY_ENTRIES    1
+    #define configTASK_NOTIFICATION_ARRAY_ENTRIES    2
 #endif
 
 #if configTASK_NOTIFICATION_ARRAY_ENTRIES < 1

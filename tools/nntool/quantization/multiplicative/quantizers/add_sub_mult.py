@@ -83,7 +83,7 @@ class AddSubMultBase(MultQuantizionHandler):
         scale_in_mul_biases_q.scale = qrec.in_qs[scaled_idx].scale / \
             qrec.in_qs[not_scaled_idx].scale
 
-        if qrec.in_qs[0].asymmetric:
+        if qrec.in_qs[0].zero_point or qrec.in_qs[1].zero_point or qrec.out_qs[0].zero_point:
             # (C - Zc)*Sc = (A - Za)*Sa + (B - Zb)*Sb =
             # C = Sa/Sc*(A + B*Sb/Sa - Za - Zb*Sb/Sa) + Zc =
             #   = Sa/Sc*(A + B*Sb/Sa) + (Zc - Sa/Sc*(Za + Zb*Sb/Sa))

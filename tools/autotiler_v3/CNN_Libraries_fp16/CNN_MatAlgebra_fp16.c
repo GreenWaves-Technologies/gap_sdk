@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+
 #include <stdio.h>
 #include <math.h>
 #include "CNN_BasicKernels_fp16.h"
@@ -7038,3 +7044,5 @@ void KerParMatMulSmallFeatLeakyrelu_fp16(KerMatMul_fp16_T *Arg)
 	}
 	gap_waitbarrier(0);
 }
+
+#pragma GCC diagnostic pop

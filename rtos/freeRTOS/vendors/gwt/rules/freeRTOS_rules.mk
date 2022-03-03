@@ -413,7 +413,7 @@ flash: $(BIN)
 flash_noforce: $(BIN)
 	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --flash --binary=$(BIN) $(runner_args)
 
-flash_fs: $(BIN)
+flash_fs: $(BIN) image
 	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --flash --binary=$(BIN) $(runner_args) $(WSL_ENV)
 
 image: $(BIN)

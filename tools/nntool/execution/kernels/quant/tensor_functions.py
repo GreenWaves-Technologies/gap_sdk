@@ -44,7 +44,9 @@ class InputSymmetric(KernelBase):
         else:
             in_tensor = resize(in_tensor, params.dims.shape)
         # output_tensors = qrec.get_outputs(params, [in_tensor], ktype="symmetric")
-        return [qrec.out_qs[0].quantize(in_tensor)]
+        if in_tensor.dtype != qrec.out_qs[0].dtype:
+            in_tensor = qrec.out_qs[0].quantize(in_tensor)
+        return [in_tensor]
 
 
 @params_type(OutputParameters)

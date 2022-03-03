@@ -338,7 +338,9 @@ static int mram_open(struct pi_device *device)
         // In XIP mode, we need to lock XIP refills to avoid having a read while the flash is doing the program operation.
         udma_mram_trans_mode_set(base, UDMA_MRAM_TRANS_MODE_AUTO_ENA(1) | UDMA_MRAM_TRANS_MODE_XIP_EN(1) | UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED(1));
 #else
-        udma_mram_trans_mode_set(base, UDMA_MRAM_TRANS_MODE_AUTO_ENA(1));
+        udma_mram_trans_mode_set(base, UDMA_MRAM_TRANS_MODE_AUTO_ENA(1)
+                | UDMA_MRAM_TRANS_MODE_XIP_EN(conf->xip_en)
+                | UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED(conf->xip_en));
 #endif
 
 #ifndef CONFIG_XIP_MRAM
@@ -896,4 +898,5 @@ void pi_mram_conf_init(struct pi_mram_conf *conf)
     conf->flash.api = &mram_api;
     conf->itf = 0;
     conf->baudrate = 15000000;
+    conf->xip_en = 0;
 }

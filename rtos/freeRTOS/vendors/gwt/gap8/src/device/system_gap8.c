@@ -33,7 +33,7 @@
 /* PMSIS includes. */
 #include "pmsis.h"
 
-#include "../driver/semihost.h"
+#include "semihost.h"
 
 /* FC & L2 heaps. */
 extern char __heapfcram_start;

@@ -28,14 +28,6 @@ from utils.option_list import OptionList
 LOG = logging.getLogger("nntool." + __name__)
 
 
-class ParameterError(Exception):
-    pass
-
-
-class CantPromoteQError(ParameterError):
-    pass
-
-
 class NodeOptions(OptionList):
     def __init__(self, *args, **kwargs):
         super(NodeOptions, self).__init__(*args, **kwargs)
@@ -252,13 +244,6 @@ class Parameters(Node):
     @value.setter
     def value(self, val):
         self._value = val
-
-    @property
-    def can_promoteq(self):
-        return False
-
-    def promoteq(self):
-        raise CantPromoteQError()
 
     @property
     def in_dims(self):

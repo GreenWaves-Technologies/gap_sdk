@@ -31,7 +31,7 @@ from quantization.new_qrec import QRec
 from quantization.qtype import QType
 from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        out_qs_constraint,option_constraint,
-                                                       params_type, options)
+                                                       params_type, options, priority)
 
 from ..mult_quantization_handler import MultQuantizionHandler
 from quantization.quantizer_options import *
@@ -104,6 +104,11 @@ class ActivationMultSWBase(MultQuantizionHandler):
                     8,
                     dtype=in_dtype,
                     forced=True)
+            elif in_dtype in [np.uint8, np.uint16]:
+                in_q = QType(
+                    dtype=in_dtype,
+                    scale=pow(2, -12),
+                    zero_point=1<<(8 if in_dtype == np.uint8 else 16))
             else:
                 in_q = QType(
                     dtype=in_dtype,
@@ -133,7 +138,7 @@ class ActivationMultSWBase(MultQuantizionHandler):
                 o_q = QType.from_min_max_sq(0,
                                             max_val,
                                             dtype=out_dtype,
-                                            asymmetric=(in_q.zero_point != 0))
+                                            asymmetric=(in_q.zero_point != 0) or out_dtype in [np.uint8, np.uint16])
                 in_q = deepcopy(o_q)
             elif isinstance(params, TanHActivationParameters):
                 o_q = QType.from_min_max_sq(
@@ -225,6 +230,7 @@ class ActivationMultSW_I_I8(ActivationMultSWBase):
 @in_qs_constraint({'dtype': {np.int8, np.int16, np.int32}})
 @out_qs_constraint({'dtype': np.uint8})
 @option_constraint(force_output_size={8, None})
+@priority(2)
 class ActivationMultSW_HSwish_I_U8(ActivationMultSWBase):
     @classmethod
     def _get_in_qs_from_stats(cls, params, stats, in_qs, **kwargs):

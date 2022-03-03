@@ -23,7 +23,7 @@ from utils.fast_float import (np_fastexp, np_fastlog, np_fastlog2, np_fastpow,
                               np_fastpow2, np_fastrsqrt, np_fastsigmoid,
                               np_fasttanh)
 
-from ..basic import (Abs, Add, ATan, Cast, Cos, Div, Exp, HSigmoid, HTanh, Log,
+from ..basic import (Abs, Add, ATan, Cast, ConvertQuantization, Cos, Div, Exp, HSigmoid, HTanh, Log,
                      Max, Min, Mul, Pow, RSqrt, Sigmoid, Sin, Sqrt, Sub, TanH)
 from ..function import Function
 from ..quantization_base import qhandler
@@ -33,7 +33,6 @@ from .float_qrec import FloatQRec
 from .float_quantization import FloatQuantization
 
 # from utils.sigmoid_tanh_lut import sigmoid_lut_float, tanh_lut_float
-
 
 
 @qhandler("Float", Constant, Rational)
@@ -58,7 +57,7 @@ class BasicVariableQuant(FloatQuantization):
                   sym_ctrl: SymbolStats,
                   qrec: FloatQRec = None,
                   **kwargs) -> Tuple[Symbol, FloatQRec]:
-
+        # TODO: Needs merging with Q15 version
         prequantized_variables = kwargs.get('prequantized_variables', {})
         qtypes = kwargs.get('qtypes', {})
 
@@ -75,25 +74,27 @@ class BasicVariableQuant(FloatQuantization):
             qrec = cls.qrec_from_qtype(qtypes[sym.name], max_val)
             if qrec:
                 sym.qrec = qrec
-                return (sym, qrec)
+                if isinstance(qrec, FloatQRec):
+                    return (sym, qrec)
+                out_dtype = kwargs.get('out_dtype', np.float32)
+                out_qrec = FloatQRec(dtype=out_dtype, max_val=max_val, min_val=-max_val)
+                return (
+                    ConvertQuantization(sym, from_qrec=qrec, to_qrec=out_qrec, tag=sym.name),
+                    out_qrec)
 
         out_dtype = kwargs.get('out_dtype', np.float32)
         return sym, FloatQRec(dtype=out_dtype, max_val=max_val, min_val=-max_val)
 
     @classmethod
     def qrec_from_qtype(cls, qtype, max_val):
-        if qtype.dtype == np.int8 or qtype.dtype == np.int16:
-            if qtype.dtype == np.int8:
-                if len(qtype.scale) > 1:
-                    qtype.scale = np.max(qtype.scale)
-                q = 7
-                dtype = np.int8
-            elif qtype.dtype == np.int16:
-                if len(qtype.scale) > 1:
-                    qtype.scale = np.max(qtype.scale)
-                q = 15
-                dtype = np.int16
-            return Q15ScaleQRec(dtype, max_val, q, max_val=max_val, min_val=-max_val)
+        if qtype.dtype in [np.int8, np.uint8, np.int16, np.uint16]:
+            if len(qtype.scale) > 1:
+                return None
+            max_val, min_val, bitlen = Q15ScaleQRec.dtype_zp_to_min_max(
+                qtype.dtype, qtype.scale[0], qtype.zero_point[0])
+            return Q15ScaleQRec(qtype.dtype, max_val, bitlen,
+                                max_val=max_val, min_val=min_val,
+                                zero_point=qtype.zero_point[0])
         elif qtype.dtype in [np.float32, np.float16, bfloat16]:
             return FloatQRec(dtype=qtype.dtype, max_val=max_val, min_val=-max_val)
         else:
@@ -156,6 +157,7 @@ class AbsF(Function):
 
 # TODO - Need numpy equivalents of sin and cos
 # TODO - All of these should return correct function based on output type (i.e. bfloat16/ieee16 version)
+
 
 @nargs(1)
 @environment({

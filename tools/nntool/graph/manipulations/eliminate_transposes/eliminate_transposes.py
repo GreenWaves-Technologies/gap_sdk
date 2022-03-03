@@ -513,7 +513,7 @@ def continue_down(G, node, exclude_nodes, visited_nodes, cur_visited_nodes, cur_
         if check_continue(visited_nodes, cur_visited_nodes, exclude_nodes, edge.to_node, 'down', edge.to_idx):
             continue
         new_actions, visited_down_nodes = search_down(
-            G, edge.to_node, exclude_nodes, visited_nodes | cur_visited_nodes, edge, transpose_history)
+            G, edge.to_node, exclude_nodes, visited_nodes | cur_visited_nodes, edge, transpose_history.copy())
         cur_visited_nodes |= visited_down_nodes
         cur_actions += new_actions
     return cur_actions, cur_visited_nodes

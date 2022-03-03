@@ -152,6 +152,7 @@ typedef struct {
         unsigned short int Feat;              	/**< Input Features */
         unsigned short int Wo;			/**< Output tile width */
         unsigned short int Ho;			/**< Output tile height */
+        signed char * __restrict__ Infos;       /**< Scaling and constants data */
 } Ker_MM_Pool_SQ8_T;
 
 typedef struct {
@@ -168,6 +169,7 @@ typedef struct {
         unsigned short int Feat;              	/**< Input Features */
         unsigned short int Wo;			/**< Output tile width */
         unsigned short int Ho;			/**< Output tile height */
+        signed char * __restrict__ Infos;       /**< Scaling and constants data */
 } Ker_MM_Pool_USQ8_T;
 
 typedef struct {
@@ -184,6 +186,7 @@ typedef struct {
         unsigned short int Feat;              	/**< Input Features */
         unsigned short int Wo;			/**< Output tile width */
         unsigned short int Ho;			/**< Output tile height */
+        signed char * __restrict__ Infos;       /**< Scaling and constants data */
 } Ker_MM_Pool_SQ16_T;
 
 typedef struct {
@@ -200,6 +203,7 @@ typedef struct {
         unsigned short int Feat;              	/**< Input Features */
         unsigned short int Wo;			/**< Output tile width */
         unsigned short int Ho;			/**< Output tile height */
+        signed char * __restrict__ Infos;       /**< Scaling and constants data */
 } Ker_MM_Pool_USQ16_T;
 
 /******************************************************************************************************************
@@ -818,11 +822,12 @@ int TanhTable(int x, unsigned short int * table);
 #define Sigmoid(__x) SigmoidTable((__x), SIGMOID_LUT_uint16)
 #define SigmoidU(__x) SigmoidTableUnsigned((__x), SIGMOID_LUT_uint16)
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch"
 #define decl(__t, __v) __t __v
 #define arr_at_as(__arr, __offset, __t) *((__t *) &__arr[__offset])
 #define OUT_CLIP(__acc, __is_unsigned, __n_bits) (__is_unsigned)?gap_clipu(__acc, __n_bits):gap_clip(__acc, (__n_bits-1))
-#define ACT_SWITCH(__acc, __act_type, __act_scale, __act_scalen, __a0, __b0, __c0, __n_bits, __is_unsigned) \
+#define ACT_SWITCH(__acc, __act_type, __act_scale, __act_scalen, __a0, __b0, __c0, __in_n_bits, __is_unsigned) \
 do { \
 	switch (__act_type) { \
 		case ACT_NONE: \
@@ -854,14 +859,13 @@ do { \
 			break; \
 		case ACT_SIGMOID: \
 			{ \
-				int Acc0N = __acc << (16 - __n_bits); \
-				if (!__is_unsigned) __acc = AT_SCALE(Sigmoid(Acc0N),  __act_scale, __act_scalen); \
-				else 		    __acc = AT_SCALE(SigmoidU(Acc0N), __act_scale, __act_scalen); \
+				int Acc0N = __acc << ((__in_n_bits==8)?8:0); \
+				__acc = AT_SCALE(Sigmoid(Acc0N),  __act_scale, __act_scalen); \
 			} \
 			break; \
 		case ACT_TANH: \
 			{ \
-				int Acc0N = __acc << (16 - __n_bits); \
+				int Acc0N = __acc << ((__in_n_bits==8)?8:0); \
 				if (!__is_unsigned) __acc = AT_SCALE(Tanh(Acc0N), __act_scale, __act_scalen); \
 				else 		    __acc = AT_SCALE(Tanh(Acc0N), __act_scale, __act_scalen) + __a0; \
 			} \
@@ -1029,6 +1033,51 @@ extern void KerReduct_CC_NoScale_Sigmoid_USQ16(KerConvLinReduct_SQ8_T *Arg);
 extern void KerReduct_CC_NoScale_Tanh_USQ16(KerConvLinReduct_SQ8_T *Arg);
 
 
+extern void KerReductIO_CC_NoScale_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLU_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUM_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUMN_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg);
+
+extern void KerReductIO_CC_NoScale_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLU_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUN_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUM_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUMN_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSigmoid_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSwish_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_LeakyReLU_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Sigmoid_USQ8(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Tanh_USQ8(KerConvLinReduct_SQ8_T *Arg);
+
+extern void KerReductIO_CC_NoScale_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLU_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUN_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUM_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUMN_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSigmoid_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSwish_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_LeakyReLU_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Sigmoid_SQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Tanh_SQ16(KerConvLinReduct_SQ8_T *Arg);
+
+extern void KerReductIO_CC_NoScale_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLU_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUN_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUM_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_ReLUMN_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSigmoid_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_HSwish_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_LeakyReLU_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Sigmoid_USQ16(KerConvLinReduct_SQ8_T *Arg);
+extern void KerReductIO_CC_NoScale_Tanh_USQ16(KerConvLinReduct_SQ8_T *Arg);
+
+
 /******************************************************************************************************************
           Stand alone activation. Parallel Feature, Feature Parallel
 	  Input is a scaled 8b tensor
@@ -1113,12 +1162,93 @@ extern void KerParGlobalSumPoolFullFeat_ReLUM_SQ8(KerGlobalPool_SQ8_T *Arg);
 extern void KerParGlobalSumPoolFullFeat_ReLUMN_SQ8(KerGlobalPool_SQ8_T *Arg);
 
 /* Pooling Basic Kernels for HWC Layers layout */
-extern void KerParMaxPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg);
-extern void KerParAvgPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg);
-extern void KerParPool_MaxPoolNxMStrideSxSy__HWC_USQ8(KerPool_HWC_USQ8_T *Arg);
-
 extern void KerParMaxPoolNxMStrideSxSy_HWC_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLU_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUN_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUM_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUMN_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSigmoid_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSwish_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_LeakyReLU_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Sigmoid_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Tanh_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+
+extern void KerParMaxPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLU_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUN_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUM_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUMN_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSigmoid_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSwish_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_LeakyReLU_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Sigmoid_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Tanh_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+
 extern void KerParAvgPoolNxMStrideSxSy_HWC_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLU_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUN_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUM_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUMN_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSigmoid_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSwish_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_LeakyReLU_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Sigmoid_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Tanh_SQ8(Ker_MM_Pool_SQ8_T *Arg);
+
+extern void KerParAvgPoolNxMStrideSxSy_HWC_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLU_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUN_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUM_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUMN_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSigmoid_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSwish_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_LeakyReLU_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Sigmoid_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Tanh_USQ8(Ker_MM_Pool_USQ8_T *Arg);
+
+extern void KerParMaxPoolNxMStrideSxSy_HWC_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLU_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUN_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUM_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUMN_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSigmoid_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSwish_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_LeakyReLU_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Sigmoid_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Tanh_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+
+extern void KerParMaxPoolNxMStrideSxSy_HWC_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLU_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUN_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUM_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_ReLUMN_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSigmoid_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_HSwish_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_LeakyReLU_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Sigmoid_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParMaxPoolNxMStrideSxSy_HWC_Tanh_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+
+extern void KerParAvgPoolNxMStrideSxSy_HWC_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLU_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUN_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUM_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUMN_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSigmoid_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSwish_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_LeakyReLU_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Sigmoid_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Tanh_SQ16(Ker_MM_Pool_SQ16_T *Arg);
+
+extern void KerParAvgPoolNxMStrideSxSy_HWC_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLU_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUN_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUM_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_ReLUMN_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSigmoid_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_HSwish_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_LeakyReLU_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Sigmoid_USQ16(Ker_MM_Pool_USQ16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_Tanh_USQ16(Ker_MM_Pool_USQ16_T *Arg);
 
 /*************************************************************************************************************************************************
 	Pooling group.

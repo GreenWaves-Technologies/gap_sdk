@@ -15,14 +15,19 @@
 
 from interpreter.nntool_shell_base import NNToolShellBase
 from importer.tflite2.common.handler_helper import get_backend_coverage, get_backend_partial_support_detail
-
+import texttable
 class HelpTFLiteCommand(NNToolShellBase):
     def help_tflite(self):
         ops_dict = get_backend_coverage()[0]
         bc_dict = get_backend_partial_support_detail()
         self.pfeedback("Supported operators and versions")
+
+        table = texttable.Texttable()
+        table.set_cols_align(['l', 'l', 'l'])
+        table.set_max_width(120)
+        table.set_cols_width([30, 15, 60])
         for op in ops_dict:
-            self.pfeedback("%s (%s)"%(op, ",".join(str(ver) for ver in ops_dict[op])))
-            if op in bc_dict:
-                self.pfeedback(bc_dict[op])
+            table.add_row([op, ",".join(str(ver) for ver in ops_dict[op]), bc_dict.get(op, "")])
+        self.pfeedback("Supported operators and versions")
+        self.pfeedback(table.draw()+'\n')
         

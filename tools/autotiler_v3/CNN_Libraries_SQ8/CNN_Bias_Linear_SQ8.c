@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
+#include "Gap.h"
+#include "CNN_BasicKernels_SQ8.h"
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpointer-sign"
 #pragma GCC diagnostic ignored "-Wsign-compare"
-#include "Gap.h"
-#include "CNN_BasicKernels_SQ8.h"
 
 #define VOL volatile
 
@@ -333,7 +334,7 @@ static inline void __attribute__((always_inline)) KerParLinearLayerFullFeatB8_SQ
 
 	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(OutDim), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, OutDim);
 	v4s * __restrict__ VectIn = (v4s *) In;
-	unsigned char * Infos = Arg->Infos;
+	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
 
@@ -347,7 +348,7 @@ static inline void __attribute__((always_inline)) KerParLinearLayerFullFeatB8_SQ
 		}
 		if (InDim&0x4) Acc = gap_sumdotp4(VectIn[InDim/4-1], W[InDim/4-1], Acc);
 		for (int j=4*(InDim/4); j<InDim; j++) Acc += In[j]*Weights[i*InDim+j];
-		Acc = AT_SCALE(Acc, Scale[i], ScaleN[i]); ACT_SWITCH(Acc, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+		Acc = AT_SCALE(Acc, Scale[i], ScaleN[i]); ACT_SWITCH(Acc, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 		Out[i] = gap_clip(Acc, 7);
 	}
 	gap_waitbarrier(0);
@@ -412,7 +413,7 @@ static inline void __attribute__((always_inline)) KerParLinearLayerFullFeatB16_S
 
 	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(OutDim), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, OutDim);
 	v4s * __restrict__ VectIn = (v4s *) In;
-	unsigned char * Infos = Arg->Infos;
+	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
 
@@ -426,7 +427,7 @@ static inline void __attribute__((always_inline)) KerParLinearLayerFullFeatB16_S
 		}
 		if (InDim&0x4) Acc = gap_sumdotp4(VectIn[InDim/4-1], W[InDim/4-1], Acc);
 		for (int j=4*(InDim/4); j<InDim; j++) Acc += In[j]*Weights[i*InDim+j];
-		Acc = AT_SCALE(Acc, Scale[i], ScaleN[i]); ACT_SWITCH(Acc, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+		Acc = AT_SCALE(Acc, Scale[i], ScaleN[i]); ACT_SWITCH(Acc, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 		Out[i] = gap_clip(Acc, 7);
 	}
 	gap_waitbarrier(0);
@@ -487,7 +488,7 @@ static inline void __attribute__((always_inline)) KerParLinearLayerFullFeatB32_S
 	unsigned char *Scale = Arg->Scale;
 	unsigned char *ScaleN = Arg->ScaleN;
 	signed char * __restrict__ Out = (signed char * __restrict__) Arg->Out;
-	unsigned char * Infos = Arg->Infos;
+	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
 
@@ -504,12 +505,63 @@ static inline void __attribute__((always_inline)) KerParLinearLayerFullFeatB32_S
 		}
 		if (InDim&0x4) Acc = gap_sumdotp4(VectIn[InDim/4-1], W[InDim/4-1], Acc);
 		for (int j=4*(InDim/4); j<InDim; j++) Acc += In[j]*Weights[i*InDim+j];
-		Acc = AT_SCALE(Acc, Scale[i], ScaleN[i]); ACT_SWITCH(Acc, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+		Acc = AT_SCALE(Acc, Scale[i], ScaleN[i]); ACT_SWITCH(Acc, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 		Out[i] = gap_clip(Acc, 7);
 	}
 	gap_waitbarrier(0);
 }
 
+/*	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(OutDim), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, OutDim);
+	int Iter = Last-First;
+	v4s * __restrict__ VectIn = (v4s *) In;
+
+	for (int i=0; i<(Iter/2); i++) {
+		int line1 = First + 2*i;
+		int line2 = First + 2*i+1;
+		v4s * __restrict__ W1 = (v4s *) (&Weights[(line1)*InDim]);
+		v4s * __restrict__ W2 = (v4s *) (&Weights[(line2)*InDim]);
+		int Acc1 = AT_LSHIFT(Bias[line1], NormBias);
+		int Acc2 = AT_LSHIFT(Bias[line2], NormBias);
+
+		for (int j=0; j<(InDim/(4*2)); j++) {
+			v4s V0=VectIn[2*j], V1=VectIn[2*j+1];
+			v4s C10=W1[2*j], C11=W1[2*j+1];
+			v4s C20=W2[2*j], C21=W2[2*j+1];
+			Acc1 = gap_sumdotp4(V0, C10, Acc1); Acc1 = gap_sumdotp4(V1, C11, Acc1);
+			Acc2 = gap_sumdotp4(V0, C20, Acc2); Acc2 = gap_sumdotp4(V1, C21, Acc2);
+		}
+		if (InDim&0x4) {
+			Acc1 = gap_sumdotp4(VectIn[InDim/4-1], W1[InDim/4-1], Acc1);
+			Acc2 = gap_sumdotp4(VectIn[InDim/4-1], W2[InDim/4-1], Acc2);
+		}
+		for (int j=4*(InDim/4); j<InDim; j++) {
+			Acc1 += In[j]*Weights[(line1)*InDim+j];
+			Acc2 += In[j]*Weights[(line2)*InDim+j];
+		}
+		Acc1 = AT_SCALE(Acc1, Scale[line1], ScaleN[line1]); ACT_SWITCH(Acc1, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+		Acc2 = AT_SCALE(Acc2, Scale[line2], ScaleN[line2]); ACT_SWITCH(Acc2, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+		Out[line1] = gap_clip(Acc1, 7);
+		Out[line2] = gap_clip(Acc2, 7);
+	}
+	if (Iter&0x1) {
+		v4s * __restrict__ W1 = (v4s *) (&Weights[(Last-1)*InDim]);
+		int Acc1 = AT_LSHIFT(Bias[Last-1], NormBias);
+		for (int j=0; j<(InDim/(4*2)); j++) {
+			v4s V0=VectIn[2*j], V1=VectIn[2*j+1];
+			v4s C10=W1[2*j], C11=W1[2*j+1];
+			Acc1 = gap_sumdotp4(V0, C10, Acc1); Acc1 = gap_sumdotp4(V1, C11, Acc1);
+		}
+		if (InDim&0x4) {
+			Acc1 = gap_sumdotp4(VectIn[InDim/4-1], W1[InDim/4-1], Acc1);
+		}
+		for (int j=4*(InDim/4); j<InDim; j++) {
+			Acc1 += In[j]*Weights[(Last-1)*InDim+j];
+		}
+		Acc1 = AT_SCALE(Acc1, Scale[Last-1], ScaleN[Last-1]); ACT_SWITCH(Acc1, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+		Out[Last-1] = gap_clip(Acc1, 7);
+	}
+	gap_waitbarrier(0);
+}*/
 
 void KerParLinearLayerFullFeatB32_SQ8(KerLinear_SQ8_T *Arg) {
 	KerParLinearLayerFullFeatB32_SQ8_act(Arg, ACT_NONE);

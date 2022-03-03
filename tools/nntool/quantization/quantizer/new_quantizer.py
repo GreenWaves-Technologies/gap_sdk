@@ -96,6 +96,14 @@ class NewQuantizer():
     def set_options(self, **kwargs):
         self._options.update(kwargs)
 
+    def update_options(self, new_options):
+        for k, v in new_options.items():
+            old_v = self._options.get(k, None)
+            if isinstance(old_v, dict) and isinstance(v, dict):
+                old_v.update(v)
+            else:
+                self._options[k] = v
+
     @property
     def schemes(self):
         return self._schemes
@@ -369,6 +377,7 @@ class NewQuantizer():
             node_options = self._options.get(nid, {})
             opts.update({k: v for k, v in node_options.items()
                          if k in opts})
+            opts['set_on_node'] = list(node_options.keys())
         else:
             opts = {k: v for k, v in self._options.items()
                     if not isinstance(k, NodeId)}

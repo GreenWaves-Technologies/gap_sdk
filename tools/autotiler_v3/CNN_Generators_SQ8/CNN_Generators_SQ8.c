@@ -104,7 +104,7 @@ void LoadCNN_SQ8_Library()
 	);
 
 	LibKernelTemplate("Ker_MM_Pool_SQ8_T",
-		CArgs(13,
+		CArgs(14,
 			TCArg("signed char * __restrict__", "In"),
 			TCArg("unsigned short int", "W"),
 			TCArg("unsigned short int", "H"),
@@ -117,11 +117,12 @@ void LoadCNN_SQ8_Library()
 			TCArg("signed char * __restrict__", "Out"),
 			TCArg("unsigned short int", "Feat"),
 			TCArg("unsigned short int", "Wo"),
-			TCArg("unsigned short int", "Ho")
+			TCArg("unsigned short int", "Ho"),
+			TCArg("signed char * __restrict__", "Infos")
 		)
 	);
 	LibKernelTemplate("Ker_MM_Pool_USQ8_T",
-		CArgs(13,
+		CArgs(14,
 			TCArg("unsigned char * __restrict__", "In"),
 			TCArg("unsigned short int", "W"),
 			TCArg("unsigned short int", "H"),
@@ -134,7 +135,8 @@ void LoadCNN_SQ8_Library()
 			TCArg("unsigned char * __restrict__", "Out"),
 			TCArg("unsigned short int", "Feat"),
 			TCArg("unsigned short int", "Wo"),
-			TCArg("unsigned short int", "Ho")
+			TCArg("unsigned short int", "Ho"),
+			TCArg("signed char * __restrict__", "Infos")
 		)
 	);
 	LibKernelTemplate("KerConvLinReduct_SQ8_T",
@@ -558,12 +560,49 @@ void LoadCNN_SQ8_Library()
         LibKernel("KerParPoolNxMStrideSxSy_ReLUMN_SQ8", CALL_PARALLEL, 0, "KerPool_SQ8_T",	CNN_Match(CNN_OperList(2, KOP_MAXPOOL, KOP_AVGPOOL), CNN_OperList(1, KOP_RELUMN), 1,
 													  CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
 
-        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_SQ8", CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T",
-												CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_NONE), 1,
-													  CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
-        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_SQ8", CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T",
-												CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_NONE), 1,
-													  CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_NONE), 	    1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_ReLU_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_RELU),	    1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_ReLUN_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_RELUN),	    1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_ReLUM_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_RELUM),	    1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_ReLUMN_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_RELUMN),    1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_LeakyReLU_SQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_LEAKYRELU), 1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_HSwish_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_HSWISH),    1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_HSigmoid_SQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_HSIGMOID),  1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_Sigmoid_SQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_SIGMOID),   1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_Tanh_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_TANH),	    1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_NONE), 	    1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_ReLU_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_RELU),	    1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_ReLUN_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_RELUN),	    1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_ReLUM_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_RELUM),	    1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_ReLUMN_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_RELUMN),    1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_LeakyReLU_SQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_LEAKYRELU), 1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_HSwish_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_HSWISH),    1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_HSigmoid_SQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_HSIGMOID),  1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_Sigmoid_SQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_SIGMOID),   1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_Tanh_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_SQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_TANH),	    1, CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
+
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_USQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_NONE),      1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_ReLU_USQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_RELU),	     1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_ReLUN_USQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_RELUN),     1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_ReLUM_USQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_RELUM),     1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_ReLUMN_USQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_RELUMN),    1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_LeakyReLU_USQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_LEAKYRELU), 1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_HSwish_USQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_HSWISH),    1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_HSigmoid_USQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_HSIGMOID),  1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_Sigmoid_USQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_SIGMOID),   1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_Tanh_USQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_MAXPOOL), CNN_OperList(1, KOP_TANH),	     1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_USQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_NONE),      1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_ReLU_USQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_RELU),	     1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_ReLUN_USQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_RELUN),     1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_ReLUM_USQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_RELUM),     1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_ReLUMN_USQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_RELUMN),    1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_LeakyReLU_USQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_LEAKYRELU), 1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_HSwish_USQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_HSWISH),    1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_HSigmoid_USQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_HSIGMOID),  1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_Sigmoid_USQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_SIGMOID),   1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
+        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_Tanh_USQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T", CNN_Match(CNN_OperList(1, KOP_AVGPOOL), CNN_OperList(1, KOP_TANH),	     1, CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
 
 	/* Global Pooling (Max or Avg) with tensor centric scaling and optional ReLU or ReLUN activation */
         LibKernel("KerParGlobalMaxPoolFullFeat_SQ8", CALL_PARALLEL, 0, "KerGlobalPool_SQ8_T", 	CNN_Match(CNN_OperList(1, KOP_GLOBAL_MAXPOOL), CNN_OperList(1, KOP_NONE), 1,
@@ -1076,47 +1115,38 @@ void LoadCNN_SQ8_Library()
         LibKernel("KerConvDWNxMDxDyStrideSxSyB32_SQ8", CALL_PARALLEL, 0, "KerConv_SQ8_T",CNN_Match(CNN_OperList(1, KOP_CONV_DW), 0, 0, CNN_Type(1,1,4,0,4), -1,-1,-1,-1,-1,-1));
 
 	/* Convolution, Linear output reduction with per channel scaling and optional activation. Out != In and In Place (IO)  */
-	LibKernel("KerReduct_CC_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_NONE), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReduct_CC_ReLU_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_RELU), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReduct_CC_ReLUN_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_RELUN), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReduct_CC_ReLUM_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_RELUM), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReduct_CC_ReLUMN_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_RELUMN), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReduct_CC_HSigmoid_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_HSIGMOID), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReduct_CC_HSwish_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_HSWISH), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReduct_CC_LeakyReLU_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_LEAKYRELU), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReduct_CC_Sigmoid_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_SIGMOID), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReduct_CC_Tanh_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_TANH), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReduct_CC_SQ8", 			CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_NONE),      0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReduct_CC_ReLU_SQ8", 		CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_RELU),      0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReduct_CC_ReLUN_SQ8", 		CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_RELUN),     0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReduct_CC_ReLUM_SQ8", 		CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_RELUM),     0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReduct_CC_ReLUMN_SQ8", 		CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_RELUMN),    0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReduct_CC_HSigmoid_SQ8", 		CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_HSIGMOID),  0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReduct_CC_HSwish_SQ8", 		CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_HSWISH),    0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReduct_CC_LeakyReLU_SQ8", 	CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_LEAKYRELU), 0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReduct_CC_Sigmoid_SQ8", 		CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_SIGMOID),   0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReduct_CC_Tanh_SQ8", 		CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT), CNN_OperList(1, KOP_TANH),      0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
 
-	LibKernel("KerReductIO_CC_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_NONE), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReductIO_CC_ReLU_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_RELU), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReductIO_CC_ReLUN_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_RELUN), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReductIO_CC_ReLUM_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_RELUM), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReductIO_CC_ReLUMN_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_RELUMN), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReductIO_CC_HSigmoid_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_HSIGMOID), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReductIO_CC_HSwish_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_HSWISH), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReductIO_CC_LeakyReLU_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_LEAKYRELU), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReductIO_CC_Sigmoid_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_SIGMOID), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
-	LibKernel("KerReductIO_CC_Tanh_SQ8", CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T",CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_TANH), 0,
-												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_SQ8", 		CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_NONE),      0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_ReLU_SQ8", 		CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_RELU),      0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_ReLUN_SQ8", 		CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_RELUN),     0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_ReLUM_SQ8", 		CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_RELUM),     0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_ReLUMN_SQ8", 		CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_RELUMN),    0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_HSigmoid_SQ8", 	CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_HSIGMOID),  0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_HSwish_SQ8", 		CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_HSWISH),    0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_LeakyReLU_SQ8", 	CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_LEAKYRELU), 0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_Sigmoid_SQ8", 	CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_SIGMOID),   0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_Tanh_SQ8", 		CALL_PARALLEL, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_TANH),      0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+
+	LibKernel("KerReductIO_CC_HWC_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_NONE),      0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_HWC_ReLU_SQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_RELU),      0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_HWC_ReLUN_SQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_RELUN),     0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_HWC_ReLUM_SQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_RELUM),     0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_HWC_ReLUMN_SQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_RELUMN),    0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_HWC_HSigmoid_SQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_HSIGMOID),  0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_HWC_HSwish_SQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_HSWISH),    0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_HWC_LeakyReLU_SQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_LEAKYRELU), 0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_HWC_Sigmoid_SQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_SIGMOID),   0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerReductIO_CC_HWC_Tanh_SQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_TANH),      0, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
 
 	/* Activation and reduct for CHW input and HWC output Layer Layout */
 	LibKernel("KerParReduct_CC_CHW2HWC_SQ8",	        CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_CHW2HWC), CNN_OperList(1, KOP_NONE),      1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
@@ -1221,6 +1251,54 @@ void LoadCNN_SQ8_Library()
         LibKernel("KerReduct_CC_NoScale_Sigmoid_USQ16",		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_NOSCALE), CNN_OperList(1, KOP_SIGMOID),   1, CNN_Type(4,0,0,0,-2), 0,0,0,0,0,0));
         LibKernel("KerReduct_CC_NoScale_Tanh_USQ16",		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_NOSCALE), CNN_OperList(1, KOP_TANH),      1, CNN_Type(4,0,0,0,-2), 0,0,0,0,0,0));
 
+
+        /* Activation and Reduct without PerChannel Scaling */
+        LibKernel("KerReductIO_CC_NoScale_SQ8",	   		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_NONE),      1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLU_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELU),      1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLUN_SQ8",	 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELUN),     1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLUM_SQ8",	 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELUM),     1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLUMN_SQ8",	 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELUMN),    1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_HSigmoid_SQ8",	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_HSIGMOID),  1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_HSwish_SQ8",	 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_HSWISH),    1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_LeakyReLU_SQ8",	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_LEAKYRELU), 1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_Sigmoid_SQ8",	 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_SIGMOID),   1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_Tanh_SQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_TANH),      1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+
+        LibKernel("KerReductIO_CC_NoScale_SQ16",	   	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_NONE),      1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLU_SQ16",	 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELU),      1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLUN_SQ16",	 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELUN),     1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLUM_SQ16",	 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELUM),     1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLUMN_SQ16",	 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELUMN),    1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_HSigmoid_SQ16",	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_HSIGMOID),  1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_HSwish_SQ16",	 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_HSWISH),    1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_LeakyReLU_SQ16",	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_LEAKYRELU), 1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_Sigmoid_SQ16",	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_SIGMOID),   1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_Tanh_SQ16",	 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_TANH),      1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+
+        /* Unsigned */
+        LibKernel("KerReductIO_CC_NoScale_USQ8",  	   	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_NONE),      1, CNN_Type(4,0,0,0,-1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLU_USQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELU),      1, CNN_Type(4,0,0,0,-1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLUN_USQ8",		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELUN),     1, CNN_Type(4,0,0,0,-1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLUM_USQ8",		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELUM),     1, CNN_Type(4,0,0,0,-1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLUMN_USQ8",		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELUMN),    1, CNN_Type(4,0,0,0,-1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_HSigmoid_USQ8",	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_HSIGMOID),  1, CNN_Type(4,0,0,0,-1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_HSwish_USQ8",	 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_HSWISH),    1, CNN_Type(4,0,0,0,-1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_LeakyReLU_USQ8", 	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_LEAKYRELU), 1, CNN_Type(4,0,0,0,-1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_Sigmoid_USQ8",	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_SIGMOID),   1, CNN_Type(4,0,0,0,-1), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_Tanh_USQ8", 		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_TANH),      1, CNN_Type(4,0,0,0,-1), 0,0,0,0,0,0));
+
+        LibKernel("KerReductIO_CC_NoScale_USQ16",  		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_NONE),      1, CNN_Type(4,0,0,0,-2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLU_USQ16", 		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELU),      1, CNN_Type(4,0,0,0,-2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLUN_USQ16",		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELUN),     1, CNN_Type(4,0,0,0,-2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLUM_USQ16",		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELUM),     1, CNN_Type(4,0,0,0,-2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_ReLUMN_USQ16",	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_RELUMN),    1, CNN_Type(4,0,0,0,-2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_HSigmoid_USQ16",	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_HSIGMOID),  1, CNN_Type(4,0,0,0,-2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_HSwish_USQ16",	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_HSWISH),    1, CNN_Type(4,0,0,0,-2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_LeakyReLU_USQ16",	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_LEAKYRELU), 1, CNN_Type(4,0,0,0,-2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_Sigmoid_USQ16",	CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_SIGMOID),   1, CNN_Type(4,0,0,0,-2), 0,0,0,0,0,0));
+        LibKernel("KerReductIO_CC_NoScale_Tanh_USQ16",		CALL_PARALLEL|CALL_HWC_KER, 0, "KerConvLinReduct_SQ8_T", CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_NOSCALE), CNN_OperList(1, KOP_TANH),      1, CNN_Type(4,0,0,0,-2), 0,0,0,0,0,0));
+
+
 	/* Activations with tensor centric scaling */
 	LibKernel("Ker_ActNone_SQ8", CALL_PARALLEL, 0, "KerActivation_SQ8_T",		CNN_Match(CNN_OperList(1, KOP_ACT_NONE), 0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
         LibKernel("Ker_ReLU_SQ8", CALL_PARALLEL, 0, "KerActivation_SQ8_T",		CNN_Match(CNN_OperList(1, KOP_RELU),     0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
@@ -1255,13 +1333,6 @@ void LoadCNN_SQ8_Library()
         LibKernel("KerPoolNxMStrideSxSy_ReLUN_SQ8", CALL_PARALLEL, 0, "KerPool_SQ8_T",	CNN_Match(CNN_OperList(2, KOP_MAXPOOL, KOP_AVGPOOL), CNN_OperList(1, KOP_RELUN), 0,
         										 	  CNN_Type(1,0,0,0,1), -1,-1,1,1,-1,-1));
 
-        /* Unsigned int8 input/output functions for NE16 */
-        LibKernel("KerParMaxPoolNxMStrideSxSy_HWC_USQ8", CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T",
-        										CNN_Match(CNN_OperList(1, KOP_MAXPOOL), 0, 1,
-        										 	  CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
-        LibKernel("KerParAvgPoolNxMStrideSxSy_HWC_USQ8", CALL_PARALLEL|CALL_HWC_KER, 0, "Ker_MM_Pool_USQ8_T",
-        										CNN_Match(CNN_OperList(1, KOP_AVGPOOL), 0, 1,
-        										 	  CNN_Type(-1,0,0,0,-1), -1,-1,1,1,-1,-1));
         LoadCNN_Copy_Library();
 }
 
@@ -1549,7 +1620,7 @@ static Kernel_T *CNN_MM_ConvolutionPoolAct_SQ8_Internal(
 					Imm((ActOper==KOP_NONE)),						/* Scaling when no activation */
 					K_Arg("Infos", KER_ARG_TILE)						/* Infos */
 				):
-				Bindings(13,
+				Bindings(14,
 					K_Arg("ConvOut", KER_ARG_TILE),						/* Input tile */
 					K_Arg("ConvOut", KER_ARG_TILE_W),					/* Input tile width */
 					K_Arg("ConvOut", KER_ARG_TILE_H),					/* Input tile height */
@@ -1562,7 +1633,8 @@ static Kernel_T *CNN_MM_ConvolutionPoolAct_SQ8_Internal(
 					K_Arg("Out", KER_ARG_TILE),						/* Pooling output tile */
 					K_ArgPar("ConvOut", KER_ARG_PARTILE_SIZE, Os),				/* In Features */
 					K_Arg("Out", KER_ARG_TILE_W),						/* Output tile width */
-					K_Arg("Out", KER_ARG_TILE_H)						/* Output tile height */
+					K_Arg("Out", KER_ARG_TILE_H),						/* Output tile height */
+					K_Arg("Infos", KER_ARG_TILE)						/* Infos */
 				)
 			),
 			(ActKerName==0)?AT_NO_CALL:
@@ -1859,7 +1931,7 @@ static Kernel_T *CNN_HWC_DWConvolutionPoolAct_SQ8_Internal(
 			),
 			(PoolKerName==0)?AT_NO_CALL:
 			Call(PoolKerName, LOC_D0,
-				Bindings(13,
+				Bindings(14,
 					K_Arg("ConvOut", KER_ARG_TILE),						/* Input tile */
 					K_Arg("ConvOut", KER_ARG_TILE_W),					/* Input tile width */
 					K_Arg("ConvOut", KER_ARG_TILE_H),					/* Input tile height */
@@ -1872,7 +1944,8 @@ static Kernel_T *CNN_HWC_DWConvolutionPoolAct_SQ8_Internal(
 					K_Arg("Out", KER_ARG_TILE),						/* Pooling output tile */
 					K_ArgPar("ConvOut", KER_ARG_PARTILE_SIZE, D0),				/* In Features */
 					K_Arg("Out", KER_ARG_TILE_W),						/* Output tile width */
-					K_Arg("Out", KER_ARG_TILE_H)						/* Output tile height */
+					K_Arg("Out", KER_ARG_TILE_H),						/* Output tile height */
+					K_Arg("Infos", KER_ARG_TILE)						/* Infos */
 				)
 			),
 			(ActKerName==0)?AT_NO_CALL:
@@ -2651,7 +2724,7 @@ Kernel_T * CNN_PoolAct_SQ8_Internal(
 					Imm((ActOper==KOP_NONE)),					/* Scaling when no activation */
 					K_Arg("Infos", KER_ARG_TILE)					/* Infos */
 				):
-                                Bindings(13,
+                                Bindings(14,
                                         K_Arg("In", KER_ARG_TILE),                             		/* Input tile */
                                         K_Arg("In", KER_ARG_TILE_W),                          		/* Input tile width */
                                         K_Arg("In", KER_ARG_TILE_H),                         		/* Input tile height */
@@ -2664,7 +2737,8 @@ Kernel_T * CNN_PoolAct_SQ8_Internal(
                                         K_Arg("Out", KER_ARG_TILE),                            		/* Pooling output tile */
                                         ParFeat?K_ArgPar("In", KER_ARG_PARTILE_SIZE, D0):Imm(1),	/* In Features */
                                         K_Arg("Out", KER_ARG_TILE_W),                          		/* Output tile width */
-                                        K_Arg("Out", KER_ARG_TILE_H)                           		/* Output tile height */
+                                        K_Arg("Out", KER_ARG_TILE_H),                          		/* Output tile height */
+					K_Arg("Infos", KER_ARG_TILE)					/* Infos */
                                 )
 
 			),
@@ -3378,13 +3452,13 @@ static Kernel_T * CNN_SoftMax2D_SQ8_Internal(
 		),
 		(HWC==0)?
                 KerArgs(3,
-                        KerArg("In",    KerArgSpace(2,D0,T0), OBJ_BUFFER_IN,                1,          Dim, 1, 0, 0, 8, "In"),
-                        KerArg("Out",   KerArgSpace(2,D0,T0), OBJ_BUFFER_OUT,               1,          Dim, OutBytes, 0, 0, 0, "Out"),
+                        KerArg("In",    KerArgSpace(2,D0,T0), OBJ_IN_DB,                1,          Dim, 1, 0, 0, 8, "In"),
+                        KerArg("Out",   KerArgSpace(2,D0,T0), OBJ_OUT_DB,               1,          Dim, OutBytes, 0, 0, 0, "Out"),
 			KerArg("Infos", KerArgSpace(1,T0),    O_IN|O_BUFF|O_NTILED|O_CONST, AT_INF_DIM, 1,   1, 0, 0, 0, "Infos")
 		):
                 KerArgs(3,
-                        KerArg("In",    KerArgSpace(2,T0,D0), OBJ_BUFFER_IN,                1,          Dim, 1, 0, 0, 8, "In"),
-                        KerArg("Out",   KerArgSpace(2,T0,D0), OBJ_BUFFER_OUT,               1,          Dim, OutBytes, 0, 0, 0, "Out"),
+                        KerArg("In",    KerArgSpace(2,T0,D0), OBJ_IN_DB,                1,          Dim, 1, 0, 0, 8, "In"),
+                        KerArg("Out",   KerArgSpace(2,T0,D0), OBJ_OUT_DB,               1,          Dim, OutBytes, 0, 0, 0, "Out"),
 			KerArg("Infos", KerArgSpace(1,T0),    O_IN|O_BUFF|O_NTILED|O_CONST, AT_INF_DIM, 1,   1, 0, 0, 0, "Infos")
 		)
 	);
@@ -4007,44 +4081,24 @@ Kernel_T *CNN_MatMulAct_SQ8_Internal(
 		),
 		ColFirst?
 		KerArgs(8,
-	    		!Transposed?
-	    		KerArg("KerBuff",KerArgSpace(1,   T1), O_BUFF|O_NTILED, Nbuff*ColM1,  1,      1,             0, 0,                                                0, 0):AT_NO_KER_ARG,
-	   		(NBatches>1)?
-	   		KerArg("In1",    KerArgSpace(2,D0,T0), O_IN|O_DB|O_CONST,     ColM1,  LineM1, 1,             0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"):
-	   	        KerArg("In1",    KerArgSpace(1,   T0), O_IN|O_DB|O_CONST,     ColM1,  LineM1, 1,             0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
-	   	        (NBatches>1)?
-			KerArg("In2",    KerArgSpace(2,D0,T1), O_IN|O_DB,             ColM2,  LineM2, 1,             0, ObjCons|OBJ_CONSTRAINTS_PAD_REM,	     ConsT0, "In2"):
-			KerArg("In2",    KerArgSpace(1,   T1), O_IN|O_DB,             ColM2,  LineM2, 1,             0, ObjCons|OBJ_CONSTRAINTS_PAD_REM,	     ConsT0, "In2"),
-	        	!NoBias?
-	        	KerArg("Bias",   KerArgSpace(1,   TA), O_BUFF|O_IN|O_CONST,       1,  SAxis,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
-	   	        (NBatches>1)?
-			KerArg("Out",    KerArgSpace(2,D0,T1), O_OUT|O_DB,             ColO,  LineO,  1,             0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, 0, "Out"):
-			KerArg("Out",    KerArgSpace(1,   T1), O_OUT|O_DB,             ColO,  LineO,  1,             0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, 0, "Out"),
-	   		!ScaleScalar?
-	   		KerArg("Scale",  KerArgSpace(1,   TA), O_BUFF|O_IN|O_CONST,        1, SAxis,  1,             0, 0,                                                0, "Scale"):AT_NO_KER_ARG,
-	   		!ScaleScalar?
-	   		KerArg("ScaleN", KerArgSpace(1,   TA), O_BUFF|O_IN|O_CONST,        1, SAxis,  1,             0, 0,                                                0, "ScaleN"):AT_NO_KER_ARG,
-			KerArg("Infos",  KerArgSpace(1,   T1), O_IN|O_BUFF|O_NTILED,       1,     1,  AT_INF_DIM*1,  0, 0,                                                0, "Infos")
+	    !Transposed?KerArg("KerBuff",KerArgSpace(1, T1), O_BUFF|O_NTILED, Nbuff*ColM1,  1,      1,             0, 0,                                                0, 0):AT_NO_KER_ARG,
+			KerArg("In1",    KerArgSpace(1, T0), O_IN|O_DB|O_CONST,     ColM1,  LineM1, 1,             0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
+			KerArg("In2",    KerArgSpace(1, T1), O_IN|O_DB,             ColM2,  LineM2, 1,             0, ObjCons|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
+	        !NoBias?KerArg("Bias",   KerArgSpace(1, TA), O_BUFF|O_IN|O_CONST,       1,  SAxis,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
+			KerArg("Out",    KerArgSpace(1, T1), O_OUT|O_DB,             ColO,  LineO,  1,             0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, 0, "Out"),
+	   !ScaleScalar?KerArg("Scale",  KerArgSpace(1, TA), O_BUFF|O_IN|O_CONST,        1, SAxis,  1,             0, 0,                                                0, "Scale"):AT_NO_KER_ARG,
+	   !ScaleScalar?KerArg("ScaleN", KerArgSpace(1, TA), O_BUFF|O_IN|O_CONST,        1, SAxis,  1,             0, 0,                                                0, "ScaleN"):AT_NO_KER_ARG,
+			KerArg("Infos",  KerArgSpace(1, T1), O_IN|O_BUFF|O_NTILED,       1,     1,  AT_INF_DIM*1,  0, 0,                                                0, "Infos")
 		):
 		KerArgs(8,
-	    		!Transposed?
-	    		KerArg("KerBuff",KerArgSpace(1,   T0), O_BUFF|O_NTILED, Nbuff*ColM1,  1,      1,             0, 0,                                                0, 0):AT_NO_KER_ARG,
-	   		(NBatches>1)?
-			KerArg("In1",    KerArgSpace(2,D0,T1), O_IN|O_DB|O_CONST,     ColM1,  LineM1, 1,             0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"):
-			KerArg("In1",    KerArgSpace(1,   T1), O_IN|O_DB|O_CONST,     ColM1,  LineM1, 1,             0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
-	   		(NBatches>1)?
-			KerArg("In2",    KerArgSpace(2,D0,T0), O_IN|O_DB,             ColM2,  LineM2, 1,             0, ObjCons|OBJ_CONSTRAINTS_PAD_REM, 		   ConsT0, "In2"):
-			KerArg("In2",    KerArgSpace(1,   T0), O_IN|O_DB,             ColM2,  LineM2, 1,             0, ObjCons|OBJ_CONSTRAINTS_PAD_REM, 		   ConsT0, "In2"),
-	        	!NoBias?
-	        	KerArg("Bias",   KerArgSpace(1,   TB), O_BUFF|O_IN|O_CONST,       1,  SAxis,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
-	   		(NBatches>1)?
-			KerArg("Out",    KerArgSpace(2,D0,T1), O_OUT|O_DB,             ColO,  LineO,  1,             0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Out"):
-			KerArg("Out",    KerArgSpace(1,   T1), O_OUT|O_DB,             ColO,  LineO,  1,             0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Out"),
-	   		!ScaleScalar?
-	   		KerArg("Scale",  KerArgSpace(1,   TB), O_BUFF|O_IN|O_CONST,        1, SAxis,  1,             0, 0,                                                0, "Scale"):AT_NO_KER_ARG,
-	   		!ScaleScalar?
-	   		KerArg("ScaleN", KerArgSpace(1,   TB), O_BUFF|O_IN|O_CONST,        1, SAxis,  1,             0, 0,                                                0, "ScaleN"):AT_NO_KER_ARG,
-			KerArg("Infos",  KerArgSpace(1,   T0), O_IN|O_BUFF|O_NTILED,       1,     1,  AT_INF_DIM*1,  0, 0,                                                0, "Infos")
+	    !Transposed?KerArg("KerBuff",KerArgSpace(1, T0), O_BUFF|O_NTILED, Nbuff*ColM1,  1,      1,             0, 0,                                                0, 0):AT_NO_KER_ARG,
+			KerArg("In1",    KerArgSpace(1, T1), O_IN|O_DB|O_CONST,     ColM1,  LineM1, 1,             0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
+			KerArg("In2",    KerArgSpace(1, T0), O_IN|O_DB,             ColM2,  LineM2, 1,             0, ObjCons|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
+	        !NoBias?KerArg("Bias",   KerArgSpace(1, TB), O_BUFF|O_IN|O_CONST,       1,  SAxis,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
+			KerArg("Out",    KerArgSpace(1, T1), O_OUT|O_DB,             ColO,  LineO,  1,             0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Out"),
+	   !ScaleScalar?KerArg("Scale",  KerArgSpace(1, TB), O_BUFF|O_IN|O_CONST,        1, SAxis,  1,             0, 0,                                                0, "Scale"):AT_NO_KER_ARG,
+	   !ScaleScalar?KerArg("ScaleN", KerArgSpace(1, TB), O_BUFF|O_IN|O_CONST,        1, SAxis,  1,             0, 0,                                                0, "ScaleN"):AT_NO_KER_ARG,
+			KerArg("Infos",  KerArgSpace(1, T0), O_IN|O_BUFF|O_NTILED,       1,     1,  AT_INF_DIM*1,  0, 0,                                                0, "Infos")
 		)
 	);
 	if (Kernel) {

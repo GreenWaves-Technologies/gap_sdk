@@ -18,12 +18,16 @@ from copy import deepcopy
 
 import numpy as np
 
+from quantization.qtype import DTYPES
+
 from ..quantization_base import QRecBase
 
 
 class Q15ScaleQRec(QRecBase):
     def __init__(self, dtype: np.dtype, scale: float, q: int, min_val=None, max_val=None, zero_point=0) -> None:
         super(Q15ScaleQRec, self).__init__(dtype)
+        if isinstance(scale, np.ndarray):
+            scale = scale.item()
         self._scale = scale
         self._q = q
         self._min_val = min_val
@@ -31,7 +35,7 @@ class Q15ScaleQRec(QRecBase):
         self._zero_point = zero_point
 
     def __repr__(self) -> str:
-        return f"{self._dtype.__name__} {self.scale} Q{self._q}"
+        return f"{self._dtype.__name__} {self.scale:.3f} Q{self._q}"
 
     @classmethod
     def inherit(cls, rec, dtype: np.dtype = None, scale: float = None, q: int = None, max_val=None, min_val=None, zero_point=None):
@@ -157,3 +161,14 @@ class Q15ScaleQRec(QRecBase):
 
     def __eq__(self, o: object) -> bool:
         return self.q == o.q and self.scale == o.scale and self.dtype == o.dtype and self.zero_point == o.zero_point
+
+    @staticmethod
+    def dtype_zp_to_min_max(dtype, scale, zero_point):
+        bitlen, signed = DTYPES[dtype]
+        maxquns = math.pow(2, bitlen)
+        zpoff = math.pow(2, bitlen - 1) if signed else 0
+        maxq_range = maxquns - (zero_point + zpoff)
+        minq_range = maxquns - maxq_range
+        max_val = maxq_range * scale
+        min_val = minq_range * scale
+        return max_val, min_val, bitlen - (1 if signed or zero_point != 0 else 0)

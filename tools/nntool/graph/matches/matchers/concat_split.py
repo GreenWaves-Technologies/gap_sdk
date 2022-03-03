@@ -14,11 +14,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+from graph.matches.match_utils import search_up
 
 from graph.types import ConcatParameters, NNEdge, SplitParameters
+from graph.types.others import CopyParameters
 from utils.graph import GraphView
 
-from ..matcher import Matcher, description, groups, match_name
+from ..matcher import Matcher, description, groups, match_name, run_before
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -26,6 +28,7 @@ LOG = logging.getLogger("nntool." + __name__)
 @groups('*')
 @match_name("concat_split")
 @description("removes concat/split pair where all in edges on the concat match the out edges on the split")
+@run_before('insert_copies')
 class ConcatSplitMatch(Matcher):
 
     def _match(self, G: GraphView, set_identity: bool = True, **kwargs) -> bool:
@@ -35,11 +38,11 @@ class ConcatSplitMatch(Matcher):
             if len(in_edges) > 1:
                 continue
             in_edge = in_edges[0]
-            if not isinstance(in_edge.from_node, ConcatParameters):
+            edges = search_up(G, in_edge, ConcatParameters, can_pass=(CopyParameters,), multi_on_target=False)
+            if not edges:
                 continue
-            concat_node = in_edge.from_node
-            if len(G.out_edges(concat_node.name)) > 1:
-                continue
+            nodes = [split_node] + [edge.from_node for edge in edges]
+            concat_node = nodes[-1]
             if concat_node.axis != split_node.axis:
                 continue
             axis = concat_node.axis
@@ -54,8 +57,7 @@ class ConcatSplitMatch(Matcher):
                      concat_node.name, split_node.name)
             concat_in_edges = G.indexed_in_edges(concat_node.name)
             split_out_edges = G.indexed_out_edges(split_node.name)
-            G.remove(split_node)
-            G.remove(concat_node)
+            G.remove_all(nodes)
             for idx, in_edge in enumerate(concat_in_edges):
                 for out_edge in split_out_edges[idx]:
                     G.add_edge(NNEdge(from_node=in_edge.from_node, from_idx=in_edge.from_idx,

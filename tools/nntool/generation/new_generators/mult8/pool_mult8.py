@@ -202,6 +202,11 @@ CNN_PoolAct_SQ8("{cname}", {gen_ctrl},
                 LOG.debug("%s: generating pad control block", node_name)
                 self.gen_ctrl.PadType = at_pad_ctrl
 
+        if not out_q.signed:
+            gen_ctrl.output_datasize = -out_q.dtype_bits//8
+        if not in_q.signed:
+            gen_ctrl.input_datasize = -in_q.dtype_bits//8
+
         attrs = {
             'in_size': in_q.dtype_bits//8 if in_q.signed else -in_q.dtype_bits//8,
             'out_size': out_q.dtype_bits//8 if out_q.signed else -out_q.dtype_bits//8,

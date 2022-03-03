@@ -1,0 +1,16 @@
+name: uart_helloworld_timeout
+platforms:
+    - gvsoc
+os:
+    - freertos
+chips:
+    - gap9
+variants:
+    std:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ~
+        compile_only: true

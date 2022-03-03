@@ -37,6 +37,8 @@ class GatherToSplitMatch(Matcher):
             group = gathers_by_origin.setdefault((in_edge.from_node, in_edge.from_idx), [])
             group.append(gather)
         for in_edge, gathers in gathers_by_origin.items():
+            if len(gathers[0].indices.shape) > 1:
+                continue
             # This is too difficult to handle if there are multiple slices
             axis = gathers[0].axis
             if not all(gather.axis == axis and len(gather.indices.shape) <= 1

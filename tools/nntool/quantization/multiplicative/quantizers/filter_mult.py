@@ -311,22 +311,26 @@ class FilterMultNE16Base(FilterMultBase):
         G = kwargs['G']
         weights_node = cls.get_weights_node(G, fusion if fusion else params)
         min_val, max_val = None, None
+        wbits = (min(in_qs[1].bits, opts['weight_bits'])
+                 if 'weight_bits' not in opts['set_on_node'] else opts['weight_bits'])
         weights_q = QType.from_array_sq(arr=weights_node.dqvalue,
                                         quantized_dimension=cls.get_quantized_dimension(
                                             params, opts),
                                         dtype=np.uint8,
                                         narrow_range=opts['narrow_weights'],
-                                        bit_pack=opts['weight_bits'],
+                                        bit_pack=wbits,
                                         no_compression=True,
-                                        bits=opts['weight_bits'])
+                                        bits=wbits)
 
         in_q = in_qs[0]
-        in_q = limit_input_precision(
-            params, input_bits, in_q, params.filter.sz,
-            opts['narrow_weights'], opts['weight_bits'],
-            opts.get('max_precision_limit', MAX_PRECISION_LIMIT_OPTION['default']),
-            out_ranges=stats.get('range_out'),
-            w_qs=[weights_q])
+        if input_bits > 8:
+            in_q = limit_input_precision(
+                params, input_bits, in_q, params.filter.sz,
+                opts['narrow_weights'], wbits,
+                opts.get('max_precision_limit',
+                        MAX_PRECISION_LIMIT_OPTION['default']),
+                out_ranges=stats.get('range_out'),
+                w_qs=[weights_q])
 
         assert in_q.dtype == input_dtype
 

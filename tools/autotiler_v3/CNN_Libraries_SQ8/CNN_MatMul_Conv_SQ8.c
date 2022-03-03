@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
+#include <stdio.h>
+#include "CNN_BasicKernels_SQ8.h"
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #pragma GCC diagnostic ignored "-Wswitch"
-
-#include <stdio.h>
-#include "CNN_BasicKernels_SQ8.h"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
 
 static int CoreCountDynamic = 1;
 static int ActiveCore = gap_ncore();
@@ -80,7 +81,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_SQ8_act(
         signed char * __restrict__ ColBuff = Arg->ColBuff;
 
 	int Wo = Arg->Wo, Ho = Arg->Ho;
-	unsigned char * Infos = Arg->Infos;
+	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
 
@@ -159,7 +160,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_SQ8_act(
 	                                S0 = gap_sumdotp4(V1, C1, S0);
 	                        }
 	                        unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-	                        S0 = AT_SCALE(S0, Sc, ScN); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+	                        S0 = AT_SCALE(S0, Sc, ScN); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 	                        Out[Line*Wo*Ho + l*Wo + c] = gap_clip(S0, 7);
 	                }
 			gap_waitbarrier(0);
@@ -235,7 +236,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1x1_HWC_SQ8_act(
         unsigned char * __restrict__ ScaleN = Arg->ScaleN;
 
 	int Wo = Arg->Wo, Ho = Arg->Ho;
-	unsigned char * Infos = Arg->Infos;
+	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
 
@@ -281,23 +282,23 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1x1_HWC_SQ8_act(
 				}
 	                        unsigned int Sc, ScN;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S01 = AT_SCALE(S01, Sc, ScN); ACT_SWITCH(S01, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S01 = AT_SCALE(S01, Sc, ScN); ACT_SWITCH(S01, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S00, 7); pOut0++;
 				*pOut1 = gap_clip(S01, 7); pOut1++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S10 = AT_SCALE(S10, Sc, ScN); ACT_SWITCH(S10, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S11 = AT_SCALE(S11, Sc, ScN); ACT_SWITCH(S11, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S10 = AT_SCALE(S10, Sc, ScN); ACT_SWITCH(S10, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S11 = AT_SCALE(S11, Sc, ScN); ACT_SWITCH(S11, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S10, 7); pOut0++;
 				*pOut1 = gap_clip(S11, 7); pOut1++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S20 = AT_SCALE(S20, Sc, ScN); ACT_SWITCH(S20, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S21 = AT_SCALE(S21, Sc, ScN); ACT_SWITCH(S21, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S20 = AT_SCALE(S20, Sc, ScN); ACT_SWITCH(S20, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S21 = AT_SCALE(S21, Sc, ScN); ACT_SWITCH(S21, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S20, 7); pOut0++;
 				*pOut1 = gap_clip(S21, 7); pOut1++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S30 = AT_SCALE(S30, Sc, ScN); ACT_SWITCH(S30, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S31 = AT_SCALE(S31, Sc, ScN); ACT_SWITCH(S31, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S30 = AT_SCALE(S30, Sc, ScN); ACT_SWITCH(S30, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S31 = AT_SCALE(S31, Sc, ScN); ACT_SWITCH(S31, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S30, 7); pOut0++;
 				*pOut1 = gap_clip(S31, 7); pOut1++;
 	                }
@@ -316,8 +317,8 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1x1_HWC_SQ8_act(
 				}
 	                        unsigned int Sc, ScN;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S01 = AT_SCALE(S01, Sc, ScN); ACT_SWITCH(S01, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S01 = AT_SCALE(S01, Sc, ScN); ACT_SWITCH(S01, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S00, 7); pOut0++;
 				*pOut1 = gap_clip(S01, 7); pOut1++;
 			}
@@ -358,16 +359,16 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1x1_HWC_SQ8_act(
 				}
 	                        unsigned int Sc, ScN;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S00, 7); pOut0++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S10 = AT_SCALE(S10, Sc, ScN); ACT_SWITCH(S10, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S10 = AT_SCALE(S10, Sc, ScN); ACT_SWITCH(S10, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S10, 7); pOut0++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S20 = AT_SCALE(S20, Sc, ScN); ACT_SWITCH(S20, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S20 = AT_SCALE(S20, Sc, ScN); ACT_SWITCH(S20, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S20, 7); pOut0++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S30 = AT_SCALE(S30, Sc, ScN); ACT_SWITCH(S30, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S30 = AT_SCALE(S30, Sc, ScN); ACT_SWITCH(S30, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S30, 7); pOut0++;
 			}
 			for (int i=4*(IterOut/4); i<IterOut; i++) {
@@ -385,7 +386,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1x1_HWC_SQ8_act(
 				}
 	                        unsigned int Sc, ScN;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S00, 7); pOut0++;
 			}
 		}
@@ -462,7 +463,7 @@ static inline void __attribute__((always_inline)) Ker_MM_Conv1x1_HWC_SQ8_act(
         unsigned char * __restrict__ ScaleN = Arg->ScaleN;
 
 	int Wo = Arg->Wo, Ho = Arg->Ho;
-	unsigned char * Infos = Arg->Infos;
+	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
 
@@ -507,23 +508,23 @@ static inline void __attribute__((always_inline)) Ker_MM_Conv1x1_HWC_SQ8_act(
 				}
 	                        unsigned int Sc, ScN;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S01 = AT_SCALE(S01, Sc, ScN); ACT_SWITCH(S01, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S01 = AT_SCALE(S01, Sc, ScN); ACT_SWITCH(S01, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S00, 7); pOut0++;
 				*pOut1 = gap_clip(S01, 7); pOut1++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S10 = AT_SCALE(S10, Sc, ScN); ACT_SWITCH(S10, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S11 = AT_SCALE(S11, Sc, ScN); ACT_SWITCH(S11, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S10 = AT_SCALE(S10, Sc, ScN); ACT_SWITCH(S10, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S11 = AT_SCALE(S11, Sc, ScN); ACT_SWITCH(S11, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S10, 7); pOut0++;
 				*pOut1 = gap_clip(S11, 7); pOut1++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S20 = AT_SCALE(S20, Sc, ScN); ACT_SWITCH(S20, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S21 = AT_SCALE(S21, Sc, ScN); ACT_SWITCH(S21, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S20 = AT_SCALE(S20, Sc, ScN); ACT_SWITCH(S20, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S21 = AT_SCALE(S21, Sc, ScN); ACT_SWITCH(S21, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S20, 7); pOut0++;
 				*pOut1 = gap_clip(S21, 7); pOut1++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S30 = AT_SCALE(S30, Sc, ScN); ACT_SWITCH(S30, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S31 = AT_SCALE(S31, Sc, ScN); ACT_SWITCH(S31, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S30 = AT_SCALE(S30, Sc, ScN); ACT_SWITCH(S30, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S31 = AT_SCALE(S31, Sc, ScN); ACT_SWITCH(S31, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S30, 7); pOut0++;
 				*pOut1 = gap_clip(S31, 7); pOut1++;
 	                }
@@ -542,8 +543,8 @@ static inline void __attribute__((always_inline)) Ker_MM_Conv1x1_HWC_SQ8_act(
 				}
 	                        unsigned int Sc, ScN;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S01 = AT_SCALE(S01, Sc, ScN); ACT_SWITCH(S01, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S01 = AT_SCALE(S01, Sc, ScN); ACT_SWITCH(S01, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S00, 7); pOut0++;
 				*pOut1 = gap_clip(S01, 7); pOut1++;
 			}
@@ -584,16 +585,16 @@ static inline void __attribute__((always_inline)) Ker_MM_Conv1x1_HWC_SQ8_act(
 				}
 	                        unsigned int Sc, ScN;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S00, 7); pOut0++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S10 = AT_SCALE(S10, Sc, ScN); ACT_SWITCH(S10, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S10 = AT_SCALE(S10, Sc, ScN); ACT_SWITCH(S10, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S10, 7); pOut0++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S20 = AT_SCALE(S20, Sc, ScN); ACT_SWITCH(S20, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S20 = AT_SCALE(S20, Sc, ScN); ACT_SWITCH(S20, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S20, 7); pOut0++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S30 = AT_SCALE(S30, Sc, ScN); ACT_SWITCH(S30, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S30 = AT_SCALE(S30, Sc, ScN); ACT_SWITCH(S30, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S30, 7); pOut0++;
 			}
 			for (int i=4*(OutFeat/4); i<OutFeat; i++) {
@@ -611,7 +612,7 @@ static inline void __attribute__((always_inline)) Ker_MM_Conv1x1_HWC_SQ8_act(
 				}
 	                        unsigned int Sc, ScN;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S00, 7); pOut0++;
 			}
 		}
@@ -687,7 +688,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_HWC_SQ8_act(
         signed char * __restrict__ ColBuff = Arg->ColBuff;
 
 	int Wo = Arg->Wo, Ho = Arg->Ho;
-	unsigned char * Infos = Arg->Infos;
+	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
 
@@ -784,14 +785,14 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_HWC_SQ8_act(
 					S3 += V0*C3; S7 += V1*C3;
 					pIn++; pIn1++; pC0++; pC1++; pC2++; pC3++;
 				}
-				S0 = AT_SCALE(S0, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S1 = AT_SCALE(S1, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S2 = AT_SCALE(S2, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S3 = AT_SCALE(S3, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S4 = AT_SCALE(S4, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S5 = AT_SCALE(S5, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S5, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S6 = AT_SCALE(S6, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S6, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S7 = AT_SCALE(S7, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S7, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S0 = AT_SCALE(S0, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S1 = AT_SCALE(S1, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S2 = AT_SCALE(S2, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S3 = AT_SCALE(S3, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S4 = AT_SCALE(S4, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S5 = AT_SCALE(S5, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S5, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S6 = AT_SCALE(S6, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S6, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S7 = AT_SCALE(S7, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S7, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				v4s R1 = gap_pack4(gap_clip(S0, 7), gap_clip(S1, 7), gap_clip(S2, 7), gap_clip(S3, 7));
 				v4s R2 = gap_pack4(gap_clip(S4, 7), gap_clip(S5, 7), gap_clip(S6, 7), gap_clip(S7, 7));
 				*((v4s *) (pOut0+4*Line)) = R1;
@@ -811,8 +812,8 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_HWC_SQ8_act(
 					S0 += V0*C0; S4 += V1*C0;
 					pIn++; pIn1++; pC++;
 				}
-				S0 = AT_SCALE(S0, pSc[i], pScN[i]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S4 = AT_SCALE(S4, pSc[i], pScN[i]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S0 = AT_SCALE(S0, pSc[i], pScN[i]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S4 = AT_SCALE(S4, pSc[i], pScN[i]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*(pOut0+i) = gap_clip(S0, 7);
 				*(pOut1+i) = gap_clip(S4, 7);
 			}
@@ -868,10 +869,10 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_HWC_SQ8_act(
 					S3 += V0*C3;
 					pIn++; pC0++; pC1++; pC2++; pC3++;
 				}
-				S0 = AT_SCALE(S0, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S1 = AT_SCALE(S1, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S2 = AT_SCALE(S2, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S3 = AT_SCALE(S3, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S0 = AT_SCALE(S0, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S1 = AT_SCALE(S1, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S2 = AT_SCALE(S2, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S3 = AT_SCALE(S3, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				v4s R1 = gap_pack4(gap_clip(S0, 7), gap_clip(S1, 7), gap_clip(S2, 7), gap_clip(S3, 7));
 				*((v4s *) (pOut0+4*Line)) = R1;
 	                }
@@ -888,7 +889,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_HWC_SQ8_act(
 					S0 += V0*C0;
 					pIn++; pC++;
 				}
-				S0 = AT_SCALE(S0, pSc[i], pScN[i]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S0 = AT_SCALE(S0, pSc[i], pScN[i]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*(pOut0+i) = gap_clip(S0, 7);
 			}
 			gap_waitbarrier(0);
@@ -963,7 +964,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_DxDy_SQ8_act(
         signed char * __restrict__ ColBuff = Arg->ColBuff;
 
 	int Wo = Arg->Wo, Ho = Arg->Ho;
-	unsigned char * Infos = Arg->Infos;
+	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
 
@@ -1010,7 +1011,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_DxDy_SQ8_act(
 	                                S0 = gap_sumdotp4(V1, C1, S0);
 	                        }
 	                        unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-	                        S0 = AT_SCALE(S0, Sc, ScN); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+	                        S0 = AT_SCALE(S0, Sc, ScN); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 	                        Out[Line*Wo*Ho + l*Wo + c] = gap_clip(S0, 7);
 	                }
 			gap_waitbarrier(0);
@@ -1089,7 +1090,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_DxDy_HWC_SQ8_
 
 	int Wo = Arg->Wo, Ho = Arg->Ho;
 
-	unsigned char * Infos = Arg->Infos;
+	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
 
@@ -1210,14 +1211,14 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_DxDy_HWC_SQ8_
 				S3 += V0*C3; S7 += V1*C3;
 				pIn++; pIn1++; pC0++; pC1++; pC2++; pC3++;
 			}
-			S0 = AT_SCALE(S0, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-			S1 = AT_SCALE(S1, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-			S2 = AT_SCALE(S2, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-			S3 = AT_SCALE(S3, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-			S4 = AT_SCALE(S4, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-			S5 = AT_SCALE(S5, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S5, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-			S6 = AT_SCALE(S6, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S6, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-			S7 = AT_SCALE(S7, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S7, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+			S0 = AT_SCALE(S0, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+			S1 = AT_SCALE(S1, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+			S2 = AT_SCALE(S2, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+			S3 = AT_SCALE(S3, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+			S4 = AT_SCALE(S4, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+			S5 = AT_SCALE(S5, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S5, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+			S6 = AT_SCALE(S6, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S6, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+			S7 = AT_SCALE(S7, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S7, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 			v4s R1 = gap_pack4(gap_clip(S0, 7), gap_clip(S1, 7), gap_clip(S2, 7), gap_clip(S3, 7));
 			v4s R2 = gap_pack4(gap_clip(S4, 7), gap_clip(S5, 7), gap_clip(S6, 7), gap_clip(S7, 7));
 			*((v4s *) (pOut0+4*Line)) = R1;
@@ -1237,8 +1238,8 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_DxDy_HWC_SQ8_
 				S0 += V0*C0; S4 += V1*C0;
 				pIn++; pIn1++; pC++;
 			}
-			S0 = AT_SCALE(S0, pSc[i], pScN[i]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-			S4 = AT_SCALE(S4, pSc[i], pScN[i]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+			S0 = AT_SCALE(S0, pSc[i], pScN[i]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+			S4 = AT_SCALE(S4, pSc[i], pScN[i]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 			*(pOut0+i) = gap_clip(S0, 7);
 			*(pOut1+i) = gap_clip(S4, 7);
 		}
@@ -1305,10 +1306,10 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_DxDy_HWC_SQ8_
 				S3 += V0*C3;
 				pIn++; pC0++; pC1++; pC2++; pC3++;
 			}
-			S0 = AT_SCALE(S0, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-			S1 = AT_SCALE(S1, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-			S2 = AT_SCALE(S2, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-			S3 = AT_SCALE(S3, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+			S0 = AT_SCALE(S0, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+			S1 = AT_SCALE(S1, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+			S2 = AT_SCALE(S2, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+			S3 = AT_SCALE(S3, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 			v4s R1 = gap_pack4(gap_clip(S0, 7), gap_clip(S1, 7), gap_clip(S2, 7), gap_clip(S3, 7));
 			*((v4s *) (pOut0+4*Line)) = R1;
                 }
@@ -1325,7 +1326,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_DxDy_HWC_SQ8_
 				S0 += V0*C0;
 				pIn++; pC++;
 			}
-			S0 = AT_SCALE(S0, pSc[i], pScN[i]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+			S0 = AT_SCALE(S0, pSc[i], pScN[i]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 			*(pOut0+i) = gap_clip(S0, 7);
 		}
 		gap_waitbarrier(0);
@@ -1397,7 +1398,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv2D_SQ8_act(
         signed char * __restrict__ ColBuff = Arg->ColBuff;
 	int Wo = Arg->Wo, Ho = Arg->Ho;
 
-	unsigned char * Infos = Arg->Infos;
+	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
 
@@ -1504,7 +1505,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv2D_SQ8_act(
 	                        }
 	                        unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
 				// printf("Out[F:%d, H:%d, W:%d] = (%d * %d) >> %d = %d\n", Line, l, c, S0, Sc, ScN, gap_clip(AT_SCALE(S0, Sc, ScN), 7));
-				S0 = AT_SCALE(S0, Sc, ScN); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S0 = AT_SCALE(S0, Sc, ScN); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 	                        Out[Line*Wo*Ho + l*Wo + c] = gap_clip(S0, 7);
 	                }
 			gap_waitbarrier(0);
@@ -1580,7 +1581,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv2D_HWC_SQ8_act(
         unsigned char * __restrict__ ScaleN = Arg->ScaleN;
         signed char * __restrict__ ColBuff = Arg->ColBuff;
 	int Wo = Arg->Wo, Ho = Arg->Ho;
-	unsigned char * Infos = Arg->Infos;
+	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
 
@@ -1703,14 +1704,14 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv2D_HWC_SQ8_act(
 					S3 += V0*C3; S7 += V1*C3;
 					pIn++; pIn1++; pC0++; pC1++; pC2++; pC3++;
 				}
-				S0 = AT_SCALE(S0, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S1 = AT_SCALE(S1, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S2 = AT_SCALE(S2, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S3 = AT_SCALE(S3, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S4 = AT_SCALE(S4, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S5 = AT_SCALE(S5, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S5, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S6 = AT_SCALE(S6, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S6, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S7 = AT_SCALE(S7, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S7, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S0 = AT_SCALE(S0, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S1 = AT_SCALE(S1, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S2 = AT_SCALE(S2, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S3 = AT_SCALE(S3, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S4 = AT_SCALE(S4, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S5 = AT_SCALE(S5, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S5, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S6 = AT_SCALE(S6, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S6, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S7 = AT_SCALE(S7, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S7, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				v4s R1 = gap_pack4(gap_clip(S0, 7), gap_clip(S1, 7), gap_clip(S2, 7), gap_clip(S3, 7));
 				v4s R2 = gap_pack4(gap_clip(S4, 7), gap_clip(S5, 7), gap_clip(S6, 7), gap_clip(S7, 7));
 				*((v4s *) (pOut0+4*Line)) = R1;
@@ -1730,8 +1731,8 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv2D_HWC_SQ8_act(
 					S0 += V0*C0; S4 += V1*C0;
 					pIn++; pIn1++; pC++;
 				}
-				S0 = AT_SCALE(S0, pSc[i], pScN[i]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S4 = AT_SCALE(S4, pSc[i], pScN[i]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S0 = AT_SCALE(S0, pSc[i], pScN[i]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S4 = AT_SCALE(S4, pSc[i], pScN[i]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*(pOut0+i) = gap_clip(S0, 7);
 				*(pOut1+i) = gap_clip(S4, 7);
 			}
@@ -1804,10 +1805,10 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv2D_HWC_SQ8_act(
 					S3 += V0*C3;
 					pIn++; pC0++; pC1++; pC2++; pC3++;
 				}
-				S0 = AT_SCALE(S0, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S1 = AT_SCALE(S1, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S2 = AT_SCALE(S2, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S3 = AT_SCALE(S3, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S0 = AT_SCALE(S0, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S1 = AT_SCALE(S1, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S2 = AT_SCALE(S2, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S3 = AT_SCALE(S3, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				v4s R1 = gap_pack4(gap_clip(S0, 7), gap_clip(S1, 7), gap_clip(S2, 7), gap_clip(S3, 7));
 				*((v4s *) (pOut0+4*Line)) = R1;
 	                }
@@ -1824,7 +1825,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv2D_HWC_SQ8_act(
 					S0 += V0*C0;
 					pIn++; pC++;
 				}
-				S0 = AT_SCALE(S0, pSc[i], pScN[i]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S0 = AT_SCALE(S0, pSc[i], pScN[i]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*(pOut0+i) = gap_clip(S0, 7);
 			}
 			gap_waitbarrier(0);
@@ -1902,7 +1903,7 @@ static inline void __attribute__((always_inline)) Ker_MM_Conv2D_HWC_SQ8_act(
         signed char * __restrict__ ColBuff = Arg->ColBuff;
         signed char * __restrict__ ColBuff1;
 	int Wo = Arg->Wo, Ho = Arg->Ho;
-	unsigned char * Infos = Arg->Infos;
+	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
 
@@ -2021,23 +2022,23 @@ static inline void __attribute__((always_inline)) Ker_MM_Conv2D_HWC_SQ8_act(
 				}
 	                        unsigned int Sc, ScN;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S01 = AT_SCALE(S01, Sc, ScN); ACT_SWITCH(S01, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S01 = AT_SCALE(S01, Sc, ScN); ACT_SWITCH(S01, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S00, 7); pOut0++;
 				*pOut1 = gap_clip(S01, 7); pOut1++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S10 = AT_SCALE(S10, Sc, ScN); ACT_SWITCH(S10, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S11 = AT_SCALE(S11, Sc, ScN); ACT_SWITCH(S11, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S10 = AT_SCALE(S10, Sc, ScN); ACT_SWITCH(S10, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S11 = AT_SCALE(S11, Sc, ScN); ACT_SWITCH(S11, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S10, 7); pOut0++;
 				*pOut1 = gap_clip(S11, 7); pOut1++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S20 = AT_SCALE(S20, Sc, ScN); ACT_SWITCH(S20, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S21 = AT_SCALE(S21, Sc, ScN); ACT_SWITCH(S21, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S20 = AT_SCALE(S20, Sc, ScN); ACT_SWITCH(S20, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S21 = AT_SCALE(S21, Sc, ScN); ACT_SWITCH(S21, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S20, 7); pOut0++;
 				*pOut1 = gap_clip(S21, 7); pOut1++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S30 = AT_SCALE(S30, Sc, ScN); ACT_SWITCH(S30, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S31 = AT_SCALE(S31, Sc, ScN); ACT_SWITCH(S31, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S30 = AT_SCALE(S30, Sc, ScN); ACT_SWITCH(S30, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S31 = AT_SCALE(S31, Sc, ScN); ACT_SWITCH(S31, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S30, 7); pOut0++;
 				*pOut1 = gap_clip(S31, 7); pOut1++;
 	                }
@@ -2056,8 +2057,8 @@ static inline void __attribute__((always_inline)) Ker_MM_Conv2D_HWC_SQ8_act(
 				}
 	                        unsigned int Sc, ScN;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S01 = AT_SCALE(S01, Sc, ScN); ACT_SWITCH(S01, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S01 = AT_SCALE(S01, Sc, ScN); ACT_SWITCH(S01, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S00, 7); pOut0++;
 				*pOut1 = gap_clip(S01, 7); pOut1++;
 			}
@@ -2138,16 +2139,16 @@ static inline void __attribute__((always_inline)) Ker_MM_Conv2D_HWC_SQ8_act(
 				}
 	                        unsigned int Sc, ScN;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S00, 7); pOut0++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S10 = AT_SCALE(S10, Sc, ScN); ACT_SWITCH(S10, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S10 = AT_SCALE(S10, Sc, ScN); ACT_SWITCH(S10, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S10, 7); pOut0++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S20 = AT_SCALE(S20, Sc, ScN); ACT_SWITCH(S20, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S20 = AT_SCALE(S20, Sc, ScN); ACT_SWITCH(S20, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S20, 7); pOut0++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S30 = AT_SCALE(S30, Sc, ScN); ACT_SWITCH(S30, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S30 = AT_SCALE(S30, Sc, ScN); ACT_SWITCH(S30, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S30, 7); pOut0++;
 	                }
 			for (int i=4*(IterOut/4); i<IterOut; i++) {
@@ -2165,7 +2166,7 @@ static inline void __attribute__((always_inline)) Ker_MM_Conv2D_HWC_SQ8_act(
 				}
 	                        unsigned int Sc, ScN;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S00 = AT_SCALE(S00, Sc, ScN); ACT_SWITCH(S00, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S00, 7); pOut0++;
 			}
 		}
@@ -2238,7 +2239,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv2D_DxDy_SQ8_act(
         unsigned char * __restrict__ ScaleN = Arg->ScaleN;
         signed char * __restrict__ ColBuff = Arg->ColBuff;
 	int Wo = Arg->Wo, Ho = Arg->Ho;
-	unsigned char * Infos = Arg->Infos;
+	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
 
@@ -2292,7 +2293,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv2D_DxDy_SQ8_act(
 	                                S0 = gap_sumdotp4(V1, C1, S0);
 	                        }
 	                        unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-	                        S0 = AT_SCALE(S0, Sc, ScN); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+	                        S0 = AT_SCALE(S0, Sc, ScN); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 	                        Out[Line*Wo*Ho + l*Wo + c] = gap_clip(S0, 7);
 	                }
 			gap_waitbarrier(0);
@@ -2370,7 +2371,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv2D_DxDy_HWC_SQ8_
         unsigned char * __restrict__ ScaleN = Arg->ScaleN;
         signed char * __restrict__ ColBuff = Arg->ColBuff;
 	int Wo = Arg->Wo, Ho = Arg->Ho;
-	unsigned char * Infos = Arg->Infos;
+	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
 
@@ -2490,14 +2491,14 @@ This part is more efficient but NOT WORKING ???? TOCHECK
 					S3 += V0*C3; S7 += V1*C3;
 					pIn++; pIn1++; pC0++; pC1++; pC2++; pC3++;
 				}
-				S0 = AT_SCALE(S0, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S1 = AT_SCALE(S1, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S2 = AT_SCALE(S2, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S3 = AT_SCALE(S3, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S4 = AT_SCALE(S4, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S5 = AT_SCALE(S5, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S5, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S6 = AT_SCALE(S6, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S6, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S7 = AT_SCALE(S7, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S7, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S0 = AT_SCALE(S0, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S1 = AT_SCALE(S1, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S2 = AT_SCALE(S2, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S3 = AT_SCALE(S3, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S4 = AT_SCALE(S4, pSc[4*Line  ], pScN[4*Line  ]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S5 = AT_SCALE(S5, pSc[4*Line+1], pScN[4*Line+1]); ACT_SWITCH(S5, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S6 = AT_SCALE(S6, pSc[4*Line+2], pScN[4*Line+2]); ACT_SWITCH(S6, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S7 = AT_SCALE(S7, pSc[4*Line+3], pScN[4*Line+3]); ACT_SWITCH(S7, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				v4s R1 = gap_pack4(gap_clip(S0, 7), gap_clip(S1, 7), gap_clip(S2, 7), gap_clip(S3, 7));
 				v4s R2 = gap_pack4(gap_clip(S4, 7), gap_clip(S5, 7), gap_clip(S6, 7), gap_clip(S7, 7));
 				*((v4s *) (pOut0+4*Line)) = R1;
@@ -2517,8 +2518,8 @@ This part is more efficient but NOT WORKING ???? TOCHECK
 					S0 += V0*C0; S4 += V1*C0;
 					pIn++; pIn1++; pC++;
 				}
-				S0 = AT_SCALE(S0, pSc[i], pScN[i]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
-				S4 = AT_SCALE(S4, pSc[i], pScN[i]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S0 = AT_SCALE(S0, pSc[i], pScN[i]); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
+				S4 = AT_SCALE(S4, pSc[i], pScN[i]); ACT_SWITCH(S4, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*(pOut0+i) = gap_clip(S0, 7);
 				*(pOut1+i) = gap_clip(S4, 7);
 			}
@@ -2570,16 +2571,16 @@ This part is more efficient but NOT WORKING ???? TOCHECK
 				}
 				unsigned int Sc, ScN;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S0 = AT_SCALE(S0, Sc, ScN); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S0 = AT_SCALE(S0, Sc, ScN); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S0, 7); pOut0++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S1 = AT_SCALE(S1, Sc, ScN); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S1 = AT_SCALE(S1, Sc, ScN); ACT_SWITCH(S1, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S1, 7); pOut0++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S2 = AT_SCALE(S2, Sc, ScN); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S2 = AT_SCALE(S2, Sc, ScN); ACT_SWITCH(S2, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S2, 7); pOut0++;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S3 = AT_SCALE(S3, Sc, ScN); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S3 = AT_SCALE(S3, Sc, ScN); ACT_SWITCH(S3, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S3, 7); pOut0++;
 			}
 			for (int i=4*(IterOut/4); i<IterOut; i++) {
@@ -2597,7 +2598,7 @@ This part is more efficient but NOT WORKING ???? TOCHECK
 				}
 				unsigned int Sc, ScN;
 				Sc = *pSc; ScN = *pScN; pSc++; pScN++;
-				S0 = AT_SCALE(S0, Sc, ScN); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 8, 0);
+				S0 = AT_SCALE(S0, Sc, ScN); ACT_SWITCH(S0, Activation, ActScale, ActScaleN, A0, B0, C0, 0, 0);
 				*pOut0 = gap_clip(S0, 7); pOut0++;
 			}
 			gap_waitbarrier(0);

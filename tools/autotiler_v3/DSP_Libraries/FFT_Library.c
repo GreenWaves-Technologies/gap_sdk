@@ -29,8 +29,8 @@ void FFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format)
     LUTSize = Arg->Nfft*sizeof(short);
 
 
-    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->SwapLUT, (AT_L2_INT_ADDR_TYPE) Arg->L1_SwapLUT,  LUTSize,  0, &DmaR_Evt2);
-    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->Twiddles, (AT_L2_INT_ADDR_TYPE)Arg->L1_Twiddles, TwidSize, 0, &DmaR_Evt1);
+    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->SwapLUT,  (AT_L2_INT_ADDR_TYPE) Arg->L1_SwapLUT,  LUTSize,  0, &DmaR_Evt1);
+    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->Twiddles, (AT_L2_INT_ADDR_TYPE) Arg->L1_Twiddles, TwidSize, 0, &DmaR_Evt2);
 
     AT_L2_WAIT(0, &DmaR_Evt1);
     AT_L2_WAIT(0, &DmaR_Evt2);
@@ -42,8 +42,8 @@ void RFFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format)
     AT_L2_EVENT DmaR_Evt1, DmaR_Evt2, DmaR_Evt3;
     int TwidSize, RTwidSize, LUTSize;
 
-    if (Arg->Radix == 2) TwidSize = Arg->Nfft * sizeof(short);
-    else TwidSize = 3 * Arg->Nfft * (sizeof(short)/2);
+    if (Arg->Radix == 2) TwidSize = (Arg->Nfft>>1) * sizeof(short);
+    else TwidSize = 3 * (Arg->Nfft>>1) * (sizeof(short)/2);
 
     // when floating 32, size is double
     if (format==1) TwidSize *=2;
@@ -52,10 +52,9 @@ void RFFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format)
     if (format==1) RTwidSize = Arg->Nfft * sizeof(float);
     else           RTwidSize = Arg->Nfft * sizeof(short);
 
-
-    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->SwapLUT, (AT_L2_INT_ADDR_TYPE) Arg->L1_SwapLUT,  LUTSize,  0, &DmaR_Evt1);
-    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->Twiddles, (AT_L2_INT_ADDR_TYPE)Arg->L1_Twiddles, TwidSize, 0, &DmaR_Evt2);
-    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->RTwiddles, (AT_L2_INT_ADDR_TYPE)Arg->L1_RTwiddles, RTwidSize, 0, &DmaR_Evt3);
+    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->SwapLUT,   (AT_L2_INT_ADDR_TYPE) Arg->L1_SwapLUT,   LUTSize,   0, &DmaR_Evt1);
+    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->Twiddles,  (AT_L2_INT_ADDR_TYPE) Arg->L1_Twiddles,  TwidSize,  0, &DmaR_Evt2);
+    AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->RTwiddles, (AT_L2_INT_ADDR_TYPE) Arg->L1_RTwiddles, RTwidSize, 0, &DmaR_Evt3);
 
     AT_L2_WAIT(0, &DmaR_Evt1);
     AT_L2_WAIT(0, &DmaR_Evt2);
@@ -2014,9 +2013,10 @@ void IRFFT_DIF_Par_Fix16(RFFT_Arg_T *Arg){
         if (CoreId == 0){
                 xAR = pA[0][0];
                 xAI = pA[0][1];
+                xBR = pA[k+1][0];
 
-                RFFT_Out[0][0] = (xAR + xAI) >> 1;
-                RFFT_Out[0][1] = (xAR - xAI) >> 1;
+                RFFT_Out[0][0] = (xAR + xAI + xBR) >> 1;
+                RFFT_Out[0][1] = (xAR + xAI - xBR) >> 1;
         }
         Chunk = ChunkSize(k);
         First = CoreId*Chunk; Last = Min(First+Chunk, k);
@@ -2085,9 +2085,10 @@ void IRFFT_DIF_Par_f16(RFFT_Arg_T *Arg){
         if (CoreId == 0){
                 xAR = pA[0][0];
                 xAI = pA[0][1];
+                xBR = pA[k+1][0];
 
-                RFFT_Out[0][0] = 0.5f * ( xAR + xAI );
-                RFFT_Out[0][1] = 0.5f * ( xAR - xAI );
+                RFFT_Out[0][0] = 0.5f * ( xAR + xAI + xBR);
+                RFFT_Out[0][1] = 0.5f * ( xAR + xAI - xBR);
         }
         Chunk = ChunkSize(k);
         First = CoreId*Chunk; Last = Min(First+Chunk, k);
@@ -2159,9 +2160,10 @@ void IRFFT_DIF_Par_f32(RFFT_Arg_T *Arg){
         if (CoreId == 0){
                 xAR = pA[0];
                 xAI = pA[1];
+                xBR = pA[2*(k+1)];
 
-                RFFT_Out[0] = 0.5f * ( xAR + xAI );
-                RFFT_Out[1] = 0.5f * ( xAR - xAI );
+                RFFT_Out[0] = 0.5f * ( xAR + xAI + xBR );
+                RFFT_Out[1] = 0.5f * ( xAR + xAI - xBR );
         }
         Chunk = ChunkSize(k);
         First = CoreId*Chunk; Last = Min(First+Chunk, k);

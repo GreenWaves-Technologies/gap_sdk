@@ -68,12 +68,16 @@ class GlobalPoolingMult(MultQuantizionHandler):
                         params.name, o_q.min, o_q.max, "asymmetric" if o_q.asymmetric else "symmetric")
         elif isinstance(params, GlobalAveragePoolParameters) or isinstance(params, GlobalSumPoolParameters):
             cls.check_valid_ranges(params, stats, idx=0, dirs='in')
+            in_qs = cls.force_symmetric(in_qs)
+            if in_qs is None:
+                return None
+            in_q = in_qs[0]
  
             # scaling needs to be based on stats and zero point
             o_q = QType.from_min_max_sq(stats['range_out'][0]['min'],
                                         stats['range_out'][0]['max'],
                                         dtype=out_dtype,
-                                        asymmetric=(stats['range_out'][0]['min'] == 0 and in_q.zero_point == -128))
+                                        asymmetric=False)
         else:
             o_q = deepcopy(in_q)
 

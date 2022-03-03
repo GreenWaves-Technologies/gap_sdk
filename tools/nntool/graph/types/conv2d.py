@@ -27,7 +27,7 @@ LOG = logging.getLogger("nntool." + __name__)
 class BatchNormalizationParameters(NoSizeChangeParameters, SingleInputAndOutput, SensitiveToOrder):
 
     #pylint: disable-msg=too-many-arguments
-    def __init__(self, name, scale=None, bias=None, running_mean=None,
+    def __init__(self, name, scale=None, bias=None, running_mean=None, axis=0,
                  running_variance=None, spatial=None, momentum=None, epsilon=None, **kwargs):
         super(BatchNormalizationParameters, self).__init__(name, **kwargs)
         self.scale = scale
@@ -37,6 +37,7 @@ class BatchNormalizationParameters(NoSizeChangeParameters, SingleInputAndOutput,
         self.spatial = spatial
         self.momentum = momentum
         self.epsilon = epsilon
+        self.axis = axis
 
     @property
     def can_equalize(self):

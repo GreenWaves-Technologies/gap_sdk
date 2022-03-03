@@ -49,6 +49,7 @@ struct pi_mram_conf
   int itf;                /*!< Mram interface where the flash is
       connected. */
   int baudrate;                /*!< Baudrate in byte/s. */
+  int xip_en;
 };
 
 /** \brief Initialize an Mram configuration with default values.

@@ -18,6 +18,7 @@ import math
 import numpy as np
 from importer.common.constant_mixin import ConstantMixin
 from quantization.qtype import QType
+from utils.node_id import NodeId
 
 from ..backend_handler import BackendHandler
 from ..handler import domain, onnx_op
@@ -38,8 +39,7 @@ class NNCFFakeQuantize(ConstantMixin, BackendHandler):
         if auto_broadcast != 'numpy':
             raise ValueError(f'{valid_name} - only numpy is supported for auto_broadcast')
 
-        qstats = kwargs.get('quant_stats', {})
-        qopts = kwargs.get('quant_opts', {})
+        qopts = kwargs.get('qopts', {})
         x = inputs[0]
         # input_low = inputs[1]
         # input_high = inputs[2]
@@ -54,6 +54,7 @@ class NNCFFakeQuantize(ConstantMixin, BackendHandler):
             raise ValueError(f"{valid_name} - don't know how to handle more than {math.pow(2, 16)} levels")
 
         bits = int(math.log2(levels))
+        qopts.setdefault(NodeId(x[0]), {'output_size': [None] * (x[1] + 1)})['output_size'][x[1]] = bits
         low_shape = output_low.shape
         high_shape = output_high.shape
         bc_dims_low = sum(1 for dim in high_shape if dim > 1)

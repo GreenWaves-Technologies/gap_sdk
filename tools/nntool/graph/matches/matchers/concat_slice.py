@@ -163,7 +163,7 @@ class ConcatSliceMatch(Matcher):
         elif slice_node.changes_shape:
             reshape = ReshapeParameters(
                 G.unique_name(f'{slice_node.name}_reshape'),
-                old_shape=slice_node.post_slice_shape,
+                old_shape=slice_node.slice_shape,
                 shape=slice_node.out_shape)
         else:
             reshape = None

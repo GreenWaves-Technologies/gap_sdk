@@ -25,10 +25,9 @@ from graph.types.activations import (HTanHActivationParameters,
                                      TanHActivationParameters)
 from graph.types.base import NNNodeRef
 from graph.types.fusions import FusionInputParameters, FusionOutputParameters
-from utils.graph import GraphView, NodeRef
+from utils.graph import GraphView
 
-from ..matcher import (Matcher, description, groups, match_name,
-                       run_adjust_on_match, run_qtune_on_match)
+from ..matcher import (Matcher, description, groups, match_name, run_qtune_on_match)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -47,6 +46,8 @@ VALID_FUSIONS_SQ8 = (
     'conv_max_active',
     'conv_average_active',
     'conv_active_max',
+    'conv_max',
+    'conv_average',
 )
 
 VALID_ACTIVATIONS_POW2 = (
@@ -62,6 +63,8 @@ VALID_FUSIONS_POW2 = (
     'conv_max_active',
     'conv_average_active',
     'conv_active_max',
+    'conv_max',
+    'conv_average',
 )
 
 
@@ -120,8 +123,8 @@ class NewFusionMatch():
             try:
                 for cnode in params.contained_nodes():
                     self.add_node(cnode, in_fusion=True)
-            except MergeStopError:  # @IgnoreException
-                raise MergeAbortError()
+            except MergeStopError:
+                raise MergeAbortError() # @IgnoreException
         elif isinstance(params, Conv2DParameters):
             if self.conv or not self.can_add(params):
                 raise MergeStopError() # @IgnoreException
@@ -201,7 +204,9 @@ class NewFusionMatch():
 @groups('*')
 @match_name("fuse_gap_convs")
 @run_qtune_on_match
-@description('Fuse convolutions, pools and activations to match GAP AutoTiler operations')
+@description(
+    'Fuse convolutions, pools and activations to match GAP AutoTiler operations. Pooling and activation nodes'
+    ' are also fused into existing convolution fusions.')
 class MatchAllGapConv(Matcher):
     def _match(self, G: GraphView, set_identity: bool = True, **kwargs):
         has_modified_graph = False

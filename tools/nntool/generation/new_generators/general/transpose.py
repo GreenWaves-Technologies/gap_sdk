@@ -72,6 +72,10 @@ class TransposeKernelBase(NewAutoTilerKernel):
         if qrec.out_qs[0].is_floating:
             gen_ctrl.float_dump = 1
 
+        datasize = qrec.out_qs[0].dtype_bits//8
+        if not qrec.out_qs[0].signed:
+            datasize = -datasize
+
         attrs = {
             'in_dim': params.in_dims[0],
             'out_dim': params.out_dims[0],
@@ -81,7 +85,7 @@ class TransposeKernelBase(NewAutoTilerKernel):
             'height': in_shape[1],
             'width': in_shape[2],
             'perm_op': perm_op,
-            'datasize': (qrec.out_qs[0].dtype_bits//8)
+            'datasize': datasize
         }
 
         # other attributes

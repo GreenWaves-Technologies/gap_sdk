@@ -1275,7 +1275,7 @@ void KerConvDW3x3Stride2_NE16(KerConv_NE16_T *Arg)
 	SetNE16_ScaleNPointer (ScaleN);
 	SetNE16_Strides       (Tile_InFeat, Tile_InFeat * Tile_InW, 0, 	        			// In_D0, In_D1, In_D2 - unused
 		      	       Out_Stride0, OutBytes * Tile_OutFeat / 2, OutBytes * Tile_OutFeat * Tile_OutW / 2,	// Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-		      	       2*3*3, 2*3*3*Arg->Qw*Nb_KI, 0);                                				// Weights_D0, Weights_D1, Weights_D2
+		      	       2*3*3, 0, 0);                                				// Weights_D0, Weights_D1, Weights_D2
 	SetNE16_Dim           (Nb_KI, Nb_KO, Nb_WO, Nb_HO);
 	// Assume first subtile no need for right/bottom pad
 	SetNE16_ConfigPad     ((v4s) {PadL, IsLastSubtileW?PadR:0, PadT, IsLastSubtileH?PadB:0}, Arg->Pad_Val);
@@ -1343,7 +1343,7 @@ void KerConvDW3x3Stride2_NE16(KerConv_NE16_T *Arg)
 	SetNE16_ScaleNPointer (ScaleN);
 	SetNE16_Strides       (Tile_InFeat, Tile_InFeat * Tile_InW, 0, 				        // In_D0, In_D1, In_D2 - unused
 		      	       Out_Stride0, OutBytes * Tile_OutFeat / 2, OutBytes * Tile_OutFeat * Tile_OutW / 2,	// Out_D0, Out_D1, Out_D2 div 2 to take into account strideness
-		      	       2*3*3, 2*3*3*Arg->Qw*Nb_KI, 0);				                                // Weights_D0, Weights_D1, Weights_D2
+		      	       2*3*3, 0, 0);				                                // Weights_D0, Weights_D1, Weights_D2
 	SetNE16_Dim           (Nb_KI, Nb_KO, Nb_WO, Nb_HO);
 	// Moving to next spatial subtile means consider less padding (2 because of the stride)
 	PadL = Max(0, TilePadL-2*subtile_j_major);

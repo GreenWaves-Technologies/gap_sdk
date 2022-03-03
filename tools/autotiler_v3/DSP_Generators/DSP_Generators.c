@@ -234,6 +234,21 @@ void LoadMFCCLibrary()
 				)
 		);
 
+	LibKernelTemplate("MatMul_DSP_T",
+			  CArgs(10,
+			  	TCArg("void * __restrict__", "In1"),
+        			TCArg("void * __restrict__", "In2"),
+        			TCArg("void * __restrict__", "Out"),
+        			TCArg("void *", 	     "BufferColIn2"),
+        			TCArg("unsigned int",  	     "W_In1"),
+        			TCArg("unsigned int",  	     "H_In1"),
+        			TCArg("unsigned int",  	     "W_In2"),
+        			TCArg("unsigned int",  	     "W_Out"),
+        			TCArg("unsigned int",  	     "OutFirstCol"),
+        			TCArg("int",  		     "ColFirst")
+				)
+		);
+
 	/* FFT Basic Kernels */
 	LibKernel("Radix2FFT_DIF_Par_Fix16",	CALL_PARALLEL, 0, "FFT_Arg_T", NULL);
 	LibKernel("Radix2FFT_DIF_Par_Fix32",	CALL_PARALLEL, 0, "FFT_Arg_T", NULL);
@@ -332,6 +347,11 @@ void LoadMFCCLibrary()
         LibKernel("Conjugate_Fix32_Par",   CALL_PARALLEL, CArgs(2, TCArg("int   * __restrict__", "Data"), TCArg("int", "Ni")), "SwapSamples_Arg_T", NULL);
         LibKernel("Conjugate_Float16_Par", CALL_PARALLEL, CArgs(2, TCArg("F16V_DSP   * __restrict__", "Data"), TCArg("int", "Ni")), "SwapSamples_Arg_T", NULL);
         LibKernel("Conjugate_Float32_Par", CALL_PARALLEL, CArgs(2, TCArg("float * __restrict__", "Data"), TCArg("int", "Ni")), "SwapSamples_Arg_T", NULL);
+
+        LibKernel("KerParMatMulDSP_fp16",  CALL_PARALLEL, 0, "MatMul_DSP_T", NULL);
+        LibKernel("KerParMatMulDSPT_fp16", CALL_PARALLEL, 0, "MatMul_DSP_T", NULL);
+        LibKernel("KerParMatMulDSP_fp32",  CALL_PARALLEL, 0, "MatMul_DSP_T", NULL);
+        LibKernel("KerParMatMulDSPT_fp32", CALL_PARALLEL, 0, "MatMul_DSP_T", NULL);
 }
 
 void PieceWiseGenerator(char *Name, CNN_GenControl_T *Ctrl, char *FunName, int Dim, int DataType, int Inplace)
@@ -917,6 +937,104 @@ int MFCC_Generator(
 		}
 		AddKernelArgDim(Name, "SwapTable_fft",  2, Nfft/2, 2);
 		AddKernelArgDim(Name, "Mel_FilterBank",  3, NMelBanks, 3, 2);
+	}
+	return (Kernel!=0);
+}
+
+int IMel_Generator(
+	char *Name,
+	CNN_GenControl_T *Ctrl,
+	int NFrames,
+	int Nfft,
+	int NMelBanks,
+	int SizeMelCoeff,
+	int DataType
+	)
+{
+	if (__builtin_popcount(Nfft) != 1) GenTilingError("%s, Incorrect FFTDim: %d, it has to be a a power of 2", Name, Nfft);
+	if (DataType==FIX32 || DataType==FIX16) GenTilingError("Not supported FIX_32");
+
+	int MFCC_Coeff_Dyn = 15;
+	char *PreEmpKernel=0, *InverseMelKer=0, *UserKernType=0, *UserKernPointer=0, InItemSize=2, OutItemSize=2, LUTItemSize=2; 
+
+	switch (DataType){
+		case FIX16:
+			InverseMelKer = "MelFilterBank_Fix32";
+			UserKernType = "short int";
+			UserKernPointer = "short int * __restrict__";
+			InItemSize=2; OutItemSize=2, LUTItemSize=2;
+			break;
+		case FLOAT16:
+			InverseMelKer = "MelFilterBank_f16";
+			UserKernType = "F16_DSP";
+			UserKernPointer = "F16_DSP * __restrict__";
+			InItemSize=F16_SIZE; OutItemSize=F16_SIZE, LUTItemSize=F16_SIZE;
+			break;
+		case FLOAT32:
+			InverseMelKer = "MelFilterBank_f32";
+			UserKernType = "float";
+			UserKernPointer = "float * __restrict__";
+			InItemSize=4; OutItemSize=4, LUTItemSize=4;
+			break;
+		default:
+			GenTilingError("Data Type %d not known", DataType);
+			return 0;
+	}
+	unsigned int LayerOp = 0;
+	unsigned int LayerBandwidth = 0;
+	printf("Inverse Mel:\n");
+	printf("\tNb Oper: %d\n", LayerOp);
+	printf("\tBandwidth: %d\n", LayerBandwidth);
+
+	Kernel_T *Kernel = UserKernel(Name,
+                NFrames<0?
+                KernelIterSpace(2, IterFixedSpaceDynBound(D0, -NFrames, "NFrames"), IterTiledSpace(T0)):
+                KernelIterSpace(2, IterFixedSpace(D0, NFrames), IterTiledSpace(T0)),
+                TILE_HOR,
+                CArgs(5,
+                	TCArg(UserKernPointer, "In"),
+			TCArg(UserKernPointer, "Out"),
+			TCArg("fbank_type_t *","IMel_FilterBank"),
+			TCArg(UserKernPointer, "IMel_Coeffs"),
+			(NFrames<0)?
+			TCArg("short int",     "NFrames"):AT_NO_C_ARG
+                ),
+                Calls(1,
+                	Call(InverseMelKer, LOC_LOOP,
+                		Bindings(9,
+					K_Arg("In", KER_ARG_TILE),
+					K_Arg("Out" , KER_ARG_TILE),
+					K_Arg("IMel_Coeffs"    , KER_ARG_TILE),
+					K_Arg("IMel_FilterBank", KER_ARG_TILE),
+					Imm(NMelBanks),
+					Imm(MFCC_Coeff_Dyn),
+					AT_IGNORE_ARG_BINDING,
+					(DataType==FIX16)?K_Arg("shift_buff", KER_ARG_TILE):AT_IGNORE_ARG_BINDING,
+					AT_IGNORE_ARG_BINDING
+                			)
+                		)
+		),
+		KerArgs(4,
+			KerArg("In",		  KerArgSpace(1,D0), OBJ_IN_DB,		  1, NMelBanks, 	InItemSize, 			   0, 0, 0, "In"),
+			KerArg("Out",		  KerArgSpace(1,D0), OBJ_OUT_DB,	  1, Nfft*2, 		OutItemSize, 			   0, 0, 0, "Out"),
+			KerArg("IMel_FilterBank", KerArgSpace(1,T0), O_IN|O_BUFF|O_CONST, 1, NMelBanks,		6, /* size of filterbank type */   0, 0, 0, "IMel_FilterBank"),
+			KerArg("IMel_Coeffs",     KerArgSpace(1,T0), O_IN|O_BUFF|O_CONST, 1, SizeMelCoeff,	LUTItemSize,		   	   0, 0, 0, "IMel_Coeffs")
+		)
+	);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		if (DataType==FIX32 || DataType==FIX16) {
+			AddKernelArgDim(Name, "In",   3, Abs(NFrames), NMelBanks, InItemSize);
+			AddKernelArgDim(Name, "Out",  3, Abs(NFrames), 2*Nfft, OutItemSize);
+			AddKernelArgDim(Name, "IMel_Coeffs",  2, SizeMelCoeff, LUTItemSize);
+		} else {
+			AddKernelFloatArgDim(Name, "In",   3, Abs(NFrames), NMelBanks, InItemSize);
+			AddKernelFloatArgDim(Name, "Out",  3, Abs(NFrames), 2*Nfft, OutItemSize);
+			AddKernelFloatArgDim(Name, "IMel_Coeffs",  2, SizeMelCoeff, LUTItemSize);		
+		}
+		AddKernelArgDim(Name, "IMel_FilterBank",  3, NMelBanks, 3, 2);
 	}
 	return (Kernel!=0);
 }
@@ -1537,4 +1655,127 @@ void STFT_Generator(
 			KerArg("SwapTable_fft",   KerArgSpace(1,T0), O_IN|O_BUFF|O_CONST, 1, Nfft,              	  sizeof(short int),    0, 0, 0, "SwapTable_fft")
 		)
 	);
+}
+
+int DSP_MatMul_Generator(
+	char *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+	int ColM1,
+	int LineM1,
+	int ColM2,
+	int LineM2,
+
+	int TransposedIn2,
+	int DataType
+)
+
+{
+	int Log = 1;
+	Tile_Orientation_T TileOrientation = TILE_HOR;
+	int F = 0;
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
+        int LineO = LineM1, ColO = ColM2;
+	int Nbuff, ItemSize;
+
+	if (ColM1 != LineM2) GenTilingError("DSP_MatMul_Generator: %s, Incorrect input matrices dimensions for a matrix multiplication: [%d x %d]*[%d x %d]", Name, LineM1, ColM1, LineM2, ColM2);
+
+	char *MatMulKerName=0, *UserKernType=0, *UserKernPointer=0;
+	switch (DataType){
+		case FIX16:
+			GenTilingError("DSP_MatMul_Generator Not yet implemented in FIX16");
+			UserKernType = "short int"; UserKernPointer = "short int * __restrict__";
+			ItemSize=2;
+			break;
+		case FIX32:
+			GenTilingError("DSP_MatMul_Generator Not yet implemented in FIX16");
+			UserKernType = "int"; UserKernPointer = "int * __restrict__";
+			ItemSize=2;
+			break;
+		case FLOAT16:
+			MatMulKerName = TransposedIn2?"KerParMatMulDSPT_fp16":"KerParMatMulDSP_fp16";
+			UserKernType = "F16_DSP"; UserKernPointer = "F16_DSP * __restrict__";
+			ItemSize=F16_SIZE; F = O_FLOAT;
+			break;
+		case FLOAT32:
+			MatMulKerName = TransposedIn2?"KerParMatMulDSPT_fp32":"KerParMatMulDSP_fp32";
+			UserKernType = "float"; UserKernPointer = "float * __restrict__";
+			ItemSize=4; F = O_FLOAT;
+			break;
+		default:
+			GenTilingError("Data Type %d not known", DataType);
+	}
+
+
+	int ColFirst = ((LineM1*ColM1)<(LineM2*ColM2));
+	Nbuff = 4;
+	LayerOp += ColM1*ColM2*LineM1;
+	LayerBandwidth += LineM1*(ColM1*ColM2*(2+2));
+	LayerBandwidth += LineM1*ColM2*2;
+	LayerBandwidth += LineM1*2;
+	
+	if (Log) {
+		printf("CNN_MatMulAct_fp16: %s\n", Name);
+		printf("In1  => W: %4d, H: %4d\n", ColM1, LineM1);
+		printf("In2  => W: %4d, H: %4d\n", ColM2, LineM2);
+		printf("Out  => W: %4d, H: %4d => %s\n", ColO, LineO, ColFirst?"Column first":"Line First");
+		printf("Total Op: %lld\n", LayerOp);
+		if (MatMulKerName) printf("%20s: %s\n", "MatMulKerName", MatMulKerName);
+	}
+
+	int ObjCons = (!TransposedIn2)?OBJ_CONSTRAINTS_TILE_VER:0;
+	if (TransposedIn2) {
+		LineM2 = ColM2; ColM2 = ColM1;
+	}
+	Kernel_T *Kernel = UserKernel(Name,
+		KernelIterSpace(2, IterTiledSpace(T1), IterTiledSpace(T0)),
+                TILE_HOR,
+                CArgs(3,
+                      TCArg(UserKernPointer, "In1"),
+                      TCArg(UserKernPointer, "In2"),
+                      TCArg(UserKernPointer, "Out")
+                ),
+		Calls(1,
+			Call(MatMulKerName, LOC_LOOP,
+				Bindings(10,
+					K_Arg("In1",  KER_ARG_TILE),
+					K_Arg("In2",  KER_ARG_TILE),
+					K_Arg("Out",  KER_ARG_TILE),
+					(!TransposedIn2)?K_Arg("KerBuff", KER_ARG_TILE):AT_IGNORE_ARG_BINDING,
+					K_Arg("In1",  KER_ARG_TILE_W),
+					K_Arg("In1",  KER_ARG_TILE_H),
+					TransposedIn2?K_Arg("In2",  KER_ARG_TILE_H):K_Arg("In2",  KER_ARG_TILE_W),
+					K_Arg("Out", KER_ARG_TILE_W),
+					K_Arg(ColFirst?"In1":"In2",  KER_ARG_TILE_BASE),
+					Imm(ColFirst)
+				)
+			)
+		),
+		ColFirst?
+		KerArgs(4,
+	    		(!TransposedIn2)?
+	    		KerArg("KerBuff",KerArgSpace(1,T1), F|O_BUFF|O_NTILED, Nbuff*ColM1,      1, ItemSize, 0, 0,                                                0, 0):AT_NO_KER_ARG,
+			KerArg("In1",    KerArgSpace(1,T0), F|O_IN|O_DB|O_CONST,     ColM1, LineM1, ItemSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
+			KerArg("In2",    KerArgSpace(1,T1), F|O_IN|O_DB,             ColM2, LineM2, ItemSize, 0, ObjCons|OBJ_CONSTRAINTS_PAD_REM,		   2, "In2"),
+			KerArg("Out",    KerArgSpace(1,T1), F|O_OUT|O_DB,             ColO,  LineO, ItemSize, 0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, 0, "Out")
+		):
+		KerArgs(4,
+	 		(!TransposedIn2)?
+	 		KerArg("KerBuff",KerArgSpace(1,T0), F|O_BUFF|O_NTILED, Nbuff*ColM1,      1, ItemSize, 0, 0,                                                0, 0):AT_NO_KER_ARG,
+			KerArg("In1",    KerArgSpace(1,T1), F|O_IN|O_DB|O_CONST,     ColM1, LineM1, ItemSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
+			KerArg("In2",    KerArgSpace(1,T0), F|O_IN|O_DB,             ColM2, LineM2, ItemSize, 0, ObjCons|OBJ_CONSTRAINTS_PAD_REM, 	           2, "In2"),
+			KerArg("Out",    KerArgSpace(1,T1), F|O_OUT|O_DB,             ColO,  LineO, ItemSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Out")
+		)
+	);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		AddKernelFloatArgDim(Name, "In1", 3, LineM1, ColM1, ItemSize);
+		AddKernelFloatArgDim(Name, "In2", 3, LineM2, ColM2, ItemSize);
+		AddKernelFloatArgDim(Name, "Out", 3, LineO, ColO, ItemSize);
+	}
+	return (Kernel!=0);
 }

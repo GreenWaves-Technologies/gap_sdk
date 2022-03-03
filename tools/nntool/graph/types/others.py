@@ -142,7 +142,7 @@ class CopyParameters(Parameters, InsensitiveToQuantization):
 
 
 @cls_op_name('expand')
-class ExpandParameters(Parameters, InsensitiveToQuantization):
+class ExpandParameters(Parameters, SensitiveToOrder, InsensitiveToQuantization):
     def __init__(self, *args, shape=None, **kwargs):
         super(ExpandParameters, self).__init__(*args, **kwargs)
         self.shape = shape
@@ -178,6 +178,26 @@ class ExpandParameters(Parameters, InsensitiveToQuantization):
     def __str__(self):
         return f"{self.shape}"
 
+@cls_op_name('scatternd')
+class ScatterNdParameters(Parameters, SensitiveToOrder):
+    def __init__(self, *args, indices=None, updates=None, reduction=None, **kwargs):
+        super(ScatterNdParameters, self).__init__(*args, **kwargs)
+        self.indices = indices
+        self.updates = updates
+        self.reduction = reduction
+
+    def get_parameter_size(self):
+        return 0
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def get_output_size(self, in_dims):
+        return [Dim.unnamed(in_dims[0].shape)]
+
+    def __str__(self):
+        return ""
 
 @cls_op_name('quantize')
 class QuantizeParameters(Parameters, ComparableParameters):
@@ -429,8 +449,6 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParamet
 
         super(StridedSliceParameters, self).__init__(*args, **kwargs)
         self.act_slice = act_slice
-        self.slice_shape = tuple(
-            int(abs(math.ceil((sl[1] - sl[0])/sl[2]))) for sl in self.act_slice)
         self.out_shape = tuple(out_shape)
 
     @property
@@ -443,27 +461,17 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParamet
 
     @property
     def slice_shape(self):
-        return self._slice_shape
-
-    @slice_shape.setter
-    def slice_shape(self, val):
-        self._slice_shape = tuple(val)
+        return tuple(
+            int(abs(math.ceil((max(sl[1], -1) - max(sl[0], -1))/sl[2]))) for sl in self.act_slice)
 
     @property
     def slices_axes(self):
         in_shape = self.in_dims[0].shape
-        return tuple(idx for idx, shapes in enumerate(zip(self.post_slice_shape, in_shape)) if shapes[0] != shapes[1])
-
-    @property
-    def post_slice_shape(self):
-        old_settings = np.seterr(all='raise')
-        res = tuple(abs(((sl[1] if sl[1] >= -1 else -1) - sl[0])//sl[2]) for sl in self.act_slice)
-        np.seterr(**old_settings)
-        return res
+        return tuple(idx for idx, shapes in enumerate(zip(self.slice_shape, in_shape)) if shapes[0] != shapes[1])
 
     @property
     def changes_shape(self):
-        return self.post_slice_shape != self.out_shape
+        return self.slice_shape != self.out_shape
 
     @property
     def can_equalize(self):
@@ -509,7 +517,7 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParamet
     def no_model_code(self) -> bool:
         if not self.in_dims:
             return False
-        return self.post_slice_shape == tuple(self.in_dims[0].shape)
+        return self.slice_shape == tuple(self.in_dims[0].shape)
 
     def get_parameter_size(self):
         return 0

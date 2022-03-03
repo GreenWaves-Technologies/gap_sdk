@@ -70,7 +70,8 @@ class OnnxImporter(ImporterBase):
             opset_import = model.opset_import
         G = NNGraph(filename=filename,
                     name=opts.get('name'))
-        G, qrecs = self._import_onnx_model(G, model.graph, opset_import, opts)
+        G, qrecs, qopts = self._import_onnx_model(
+            G, model.graph, opset_import, opts)
         G.add_dimensions(quiet=True)
         if qrecs:
             propagate_qrecs(G, qrecs)
@@ -78,6 +79,7 @@ class OnnxImporter(ImporterBase):
             qset.update(qrecs)
             qset.scheme_priority = ['SQ8']
             qset.schemes_present = {'SQ8'}
+            qset.options = qopts
             G.quantization = qset
             try:
                 quantizer = NewQuantizer(G)
@@ -88,9 +90,10 @@ class OnnxImporter(ImporterBase):
 
         clean_dangling_nodes(G)
         MatchDuplicateConstants().match(G)
+        G.add_dimensions(quiet=True)
         return G
 
-    def _update_qrecs(self, G, qrecs, all_nodes, ranges_dict):
+    def _update_qrecs(self, G, qrecs, all_nodes, ranges_dict, qopts):
         for node, idx, _, qtype in all_nodes.values():
             if qtype is None and node.name not in ranges_dict.keys():
                 continue
@@ -107,8 +110,11 @@ class OnnxImporter(ImporterBase):
             if node.name in ranges_dict.keys():
                 out_min, out_max = ranges_dict[node.name]["range"]
                 dtype = ranges_dict[node.name].get("dtype", np.int8)
-                bits = ranges_dict[node.name].get("n_bits", 8)
+                bits = ranges_dict[node.name].get("bits", 8)
                 channel = ranges_dict[node.name].get("per_channel", None)
+                qopt = qopts.setdefault(
+                    nid, {'output_size': [None] * len(G.indexed_out_edges(node))})
+                qopt['output_size'][idx] = bits
                 qtype = QType.from_min_max_sq(
                     out_min, out_max, dtype=dtype, bits=bits, quantized_dimension=channel)
             qrec.out_qs[idx] = qtype
@@ -127,14 +133,16 @@ class OnnxImporter(ImporterBase):
                                        input_shapes=opts.get('input_shapes', {}))
         all_nodes.update(inputs)
         qrecs = {}
+        qopts = {}
         outputs = self._get_output_nodes(
             G, graph.output, substitutions=opts.get('substitutions', None))
         shapes = {elem.name: elem.type for elem in graph.value_info}
         self._import_nodes(
             G, graph, self._handlers, all_nodes, outputs,
-            opts=opts, qrecs=qrecs, shapes=shapes)
-        self._update_qrecs(G, qrecs, all_nodes, opts.get('ranges_dict', {}))
-        return G, qrecs
+            opts=opts, qrecs=qrecs, shapes=shapes, qopts=qopts)
+        self._update_qrecs(G, qrecs, all_nodes,
+                           opts.get('ranges_dict', {}), qopts)
+        return G, qrecs, qopts
 
     def import_subgraph(self, G, graph, opts, all_nodes=None):
         if all_nodes is None:
@@ -153,7 +161,7 @@ class OnnxImporter(ImporterBase):
         self._import_nodes(
             G, graph, self._handlers, all_nodes, outputs,
             opts=opts, qrecs=qrecs)
-        self._update_qrecs(G, qrecs, all_nodes, {})
+        self._update_qrecs(G, qrecs, all_nodes, {}, {})
         return G, qrecs
 
     @staticmethod
@@ -331,9 +339,14 @@ class OnnxImporter(ImporterBase):
                 continue
             handler = handlers[node.domain].get(
                 node.op_type, None) if node.domain in handlers else None
-            if not handler or (handler.CONSTANT_ONLY and
-                               not all(isinstance(all_nodes[inp_name][0], ConstantInputParameters)
-                                       for inp_name in node.input)):
+            if (handler and handler.CONSTANT_ONLY and
+                not all(isinstance(all_nodes[inp_name][0], ConstantInputParameters)
+                        for inp_name in node.input)):
+                logger.warning(
+                    f'{node.name} uses ONNX operator "{node.op_type}" domain '
+                    f'"{node.domain}" which is not currently supported in the Autotiler kernels. '
+                    'It may be eliminated by graph optimisations')
+            if not handler:
                 handler = handlers['__extensions'].get(node.op_type, None)
                 if not handler:
                     logger.warning(
@@ -360,7 +373,7 @@ class OnnxImporter(ImporterBase):
                 x = inputs[0]
                 x_shape = x[2].shape
                 name = hasattr(node, 'name') and getattr(node, 'name')
-                x=0
+                x = 0
             params = handler.handle(onode, all_nodes=all_nodes, vars_dict=vars_dict,
                                     G=G, valid_name=self._node_name(node),
                                     used_tensors=used_tensors, importer=self, **kwargs)

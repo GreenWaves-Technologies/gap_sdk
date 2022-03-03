@@ -30,8 +30,8 @@ from quantization.unified_quantization_handler import (in_qs_constraint,
 
 # Fusion handler attribute not set since expressions are handled only by this handler
 @params_type(ExpressionFusionParameters)
-@in_qs_constraint(MatchAll({'dtype': set([np.float32, np.float16, bfloat16])}))
-@out_qs_constraint(MatchAll({'dtype': set([np.float32, np.float16, bfloat16])}))
+@in_qs_constraint(MatchAll({'dtype': set([np.float32, np.float16, bfloat16, np.uint16, np.int16, np.uint8, np.int8])}))
+@out_qs_constraint(MatchAll({'dtype': set([np.float32, np.float16, bfloat16, np.uint16, np.int16, np.uint8, np.int8])}))
 class ExpressionFusionFloat(FloatQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):

@@ -18,7 +18,7 @@ from graph.types import SoftMaxParameters
 from graph.types.activations import HTanHActivationParameters
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
-from quantization.quantizer_options import SOFTMAX_OUT_8BITS_OPTION
+from quantization.quantizer_options import SOFTMAX_OUT_8BITS_OPTION, OUTPUT_SIZE_OPTION
 from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        out_qs_constraint,
                                                        params_type, options)
@@ -39,7 +39,7 @@ class SoftmaxMult(MultQuantizionHandler):
         force_out_q = force_out_qs and force_out_qs[0]
         opts = kwargs['opts']
         if force_out_q:
-            if force_out_q.forced_scale or force_out_q.forced_zero_point:
+            if force_out_q.forced_scale or (force_out_q.forced_zero_point and not np.all(in_qs[0].zero_point == 0)):
                 return None
             if in_qs[0].dtype == np.int8:
                 dtypes = [np.int8, np.int16]

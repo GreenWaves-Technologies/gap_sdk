@@ -342,7 +342,7 @@ static int __pi_i2c_prepare_write_read_buf(i2c_slave_data_t *slave_data,
         buffer[index++] = I2C_CMD_LEAD_START(1);
         buffer[index++] = I2C_CMD_LEAD_SEND_IMM(slave_data->slave_addrh|1);
     }
-    buffer[index++] = I2C_CMD_RPT(size1);
+    buffer[index++] = I2C_CMD_RPT(size1-1);
     // receive -1 byte because there is a "last"
     buffer[index++] = I2C_CMD_MISC_RECEIVE(1);
     buffer[index++] = I2C_CMD_MISC_RECEIVE_LAST(1);

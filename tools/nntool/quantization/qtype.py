@@ -658,7 +658,9 @@ class QType(JsonSerializable, EventEmitter):
             scale = np.maximum(
                 divide_ignore(rpos_range, qpos_range),
                 divide_ignore(rneg_range, qneg_range))
-            return np.atleast_1d(scale), np.atleast_1d(zero_point)
+            scale = np.atleast_1d(scale)
+            scale[scale == 0] = 1
+            return scale, np.atleast_1d(zero_point)
         elif asymmetric:
             if narrow_range:
                 raise ValueError(
@@ -705,7 +707,9 @@ class QType(JsonSerializable, EventEmitter):
                 nudged_zero_point = qmax
             else:
                 nudged_zero_point = np.round(zero_point).astype(dtype)
-            return np.atleast_1d(scale), np.atleast_1d(nudged_zero_point)
+            scale = np.atleast_1d(scale)
+            scale[scale == 0] = 1
+            return scale, np.atleast_1d(nudged_zero_point)
         else:
             scale = QType.calculate_symmetric_scales(
                 qrange, rmin, rmax, narrow_range=narrow_range)
@@ -718,7 +722,9 @@ class QType(JsonSerializable, EventEmitter):
             else:
                 zero_point = np.atleast_1d(
                     np.ceil(qrange/2) + qmin).astype(dtype)
-            return np.atleast_1d(scale), zero_point
+            scale = np.atleast_1d(scale)
+            scale[scale == 0] = 1
+            return scale, zero_point
 
     def recalculate_scale(self, min_val, max_val, narrow_range=None):
         if narrow_range is None:
