@@ -63,7 +63,7 @@ def parse_last_open(history):
     args = None
     for command in reversed(history):
         if command.startswith('open'):
-            args = OpenCommand.parser_open.parse_args(command.split(' ')[1:])
+            args = OpenCommand.parser_open.parse_args(command.strip().split(' ')[1:])
             break
     return args
 
