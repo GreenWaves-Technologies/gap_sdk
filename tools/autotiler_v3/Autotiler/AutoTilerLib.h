@@ -1807,6 +1807,32 @@ void GenTilingWarning(
 	const char *Message,
 	...
 	);
+
+/**
+@brief Generates an info message. Does not abort.
+
+Generates an info message. Could be deactivated
+
+@param Message A format string similar to the one used in C printf()
+@param ... Arguments used by the format sting in Message
+*/
+void GenTilingInfo(
+	const char *Message,
+	...
+	);
+
+/**
+@brief Generates a debug message. Does not abort.
+
+Generates an debug message. Could be deactivated
+
+@param Message A format string similar to the one used in C printf()
+@param ... Arguments used by the format sting in Message
+*/
+void GenTilingDebug(
+	const char *Message,
+	...
+	);
 /**
 @brief malloc with return status check.
 */

@@ -964,7 +964,8 @@ class Testbench_i2s(object):
         cmd = 'component %s i2s slot_setup %s' % (self.testbench, options)
         self.proxy._send_cmd(cmd)
 
-    def slot_rx_file_reader(self, slot: int = None, slots: list = [], filetype: str = "wav", filepath: str = None, channel: int = 0):
+    def slot_rx_file_reader(self, slot: int = None, slots: list = [], filetype: str = "wav",
+            filepath: str = None, channel: int = 0, width: int = 0):
         """Read a stream of samples from a file.
 
         This will open a file and stream it to the SAI so that gap receives the samples.
@@ -979,7 +980,9 @@ class Testbench_i2s(object):
         slots : list, optional
             List of slots when using multi-channel mode. slot must be None if this one is not empty.
         filetype : string, optional
-            Describes the type of the file, can be "wav" or "au".
+            Describes the type of the file, can be "wav", "raw", "bin" or "au".
+        width : int, optional
+            width of the samples, in case the file is in binary format
         filepath : string, optional
             Path to the file.
         channel : int, optional
@@ -999,10 +1002,12 @@ class Testbench_i2s(object):
         options += ' filetype=%s' % filetype
         options += ' filepath=%s' % filepath
         options += ' channel=%d' % channel
+        options += ' width=%d' % width
         cmd = 'component %s i2s slot_rx_file_reader %s' % (self.testbench, options)
         self.proxy._send_cmd(cmd)
 
-    def slot_tx_file_dumper(self, slot: int = None, slots: list = [], filetype: str = "wav", filepath: str = None, channel: int = 0):
+    def slot_tx_file_dumper(self, slot: int = None, slots: list = [], filetype: str = "wav", 
+            filepath: str = None, channel: int = 0, width: int = 0):
         """Write a stream of samples to a file.
 
         This will open a file and write to it all the samples received from gap.
@@ -1018,7 +1023,9 @@ class Testbench_i2s(object):
         slots : list, optional
             List of slots when using multi-channel mode. slot must be None if this one is not empty.
         filetype : string, optional
-            Describes the type of the file, can be "wav" or "au".
+            Describes the type of the file, can be "wav", "raw", "bin" or "au".
+        width : int, optional
+            width of the samples, in case the file is in binary format
         filepath : string, optional
             Path to the file.
         channel : int, optional
@@ -1038,6 +1045,7 @@ class Testbench_i2s(object):
         options += ' filetype=%s' % filetype
         options += ' filepath=%s' % filepath
         options += ' channel=%d' % channel
+        options += ' width=%d' % width
         cmd = 'component %s i2s slot_tx_file_dumper %s' % (self.testbench, options)
         self.proxy._send_cmd(cmd)
 

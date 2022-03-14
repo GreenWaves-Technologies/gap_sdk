@@ -246,7 +246,7 @@ static int RNN_Stack_Seq_fp16(
 	if (Ker) return 1;
 	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
 
-	printf("\n\n=============================== Solution not found for %s: Trying PARALLELFEATURES=0 ===============================\n\n", Name);
+	GenTilingDebug("\n\n=============================== Solution not found for %s: Trying PARALLELFEATURES=0 ===============================\n\n", Name);
 	/* If solution not found try with ParallelFeature = 0 */
 	CNN_GenControl_T InternalCtrl;
 	if (!Ctrl) CNN_InitGenCtrl(&InternalCtrl);
@@ -300,10 +300,10 @@ int RNN_Stack_fp16(
         }
 
 	if (Log) {
-		printf("RNN, %d Cells%s, DimState: %d, DimIn: %d, Input Cells: %d, Output Cells: %d, Order: %s\n",
+		GenTilingDebug("RNN, %d Cells%s, DimState: %d, DimIn: %d, Input Cells: %d, Output Cells: %d, Order: %s\n",
 			NCells, Dynamic?" Dynamic":"", DimState, DimIn, K0, K1, Revert?"Reverse":"Regular");
-		printf("Basic Kernel: %s\n", RNNKerName);
-		printf("In Seq: %d, %s Seq: %d, Out Seq: %d\n", N1, N2_IO?"In/Out":"void", N2, N3);
+		GenTilingDebug("Basic Kernel: %s\n", RNNKerName);
+		GenTilingDebug("In Seq: %d, %s Seq: %d, Out Seq: %d\n", N1, N2_IO?"In/Out":"void", N2, N3);
 	}
 	int Ok = 1;
 	if (Dynamic && !((NCells==K0 && NCells==K1) || (NCells==K0 && K1==1))) GenTilingError("RNN with dynamic cell count is valid only for NC=K0=K1 (all in and out) or NC=K0,K1=1 (all in, single out)");
@@ -315,7 +315,7 @@ int RNN_Stack_fp16(
 		Ok = Ok && RNN_Stack_Seq_fp16(G2_Name = AppendNames(Name, "G2"), Ctrl, RNNKerName, AlwaysReset, N2, DimState, DimIn, N2_IO, N2_IO, O_BUFF, 1, 1, Revert, Dynamic);
 		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
 		if (Ok==0) {
-			if (Log) printf("Failed to map with all coeffs promoted to buffer, reverting to tile based\n");
+			if (Log) GenTilingDebug("Failed to map with all coeffs promoted to buffer, reverting to tile based\n");
 			Ok = 1;
 			Ok = Ok && RNN_Stack_Seq_fp16(G2_Name = AppendNames(Name, "G2"), Ctrl, RNNKerName, AlwaysReset, N2, DimState, DimIn, N2_IO, N2_IO, 0, 1, 1, Revert, Dynamic);
 		}
@@ -625,7 +625,7 @@ static int LSTM_Stack_Seq_fp16(
 	if (Ker) return 1;
 	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
 
-	printf("\n\n=============================== Solution not found for %s: Trying PARALLELFEATURES=0 ===============================\n\n", Name);
+	GenTilingDebug("\n\n=============================== Solution not found for %s: Trying PARALLELFEATURES=0 ===============================\n\n", Name);
 	/* If solution not found try with ParallelFeature = 0 */
 	CNN_GenControl_T InternalCtrl;
 	if (!Ctrl) CNN_InitGenCtrl(&InternalCtrl);
@@ -674,9 +674,9 @@ int LSTM_Stack_fp16(
         }
 
 	if (Log) {
-		printf("LSTM, %d Cells%s, DimState: %d, DimIn: %d, Input Cells: %d, Output Cells: %d\n", NCells, Dynamic?" Dynamic":"", DimState, DimIn, K0, K1);
-		printf("Basic Kernel: %s\n", LSTMKerName);
-		printf("In Seq: %d, %s Seq: %d, Out Seq: %d\n", N1, N2_IO?"In/Out":"void", N2, N3);
+		GenTilingDebug("LSTM, %d Cells%s, DimState: %d, DimIn: %d, Input Cells: %d, Output Cells: %d\n", NCells, Dynamic?" Dynamic":"", DimState, DimIn, K0, K1);
+		GenTilingDebug("Basic Kernel: %s\n", LSTMKerName);
+		GenTilingDebug("In Seq: %d, %s Seq: %d, Out Seq: %d\n", N1, N2_IO?"In/Out":"void", N2, N3);
 	}
 	int Ok = 1;
 	if (Dynamic && !((NCells==K0 && NCells==K1) || (NCells==K0 && K1==1))) GenTilingError("LSTM with dynamic cell count is valid only for NC=K0=K1 (all in and out) or NC=K0,K1=1 (all in, single out)");
@@ -1033,7 +1033,7 @@ static int GRU_Stack_Seq_fp16(
 	if (Ker) return 1;
 	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
 
-	printf("\n\n=============================== Solution not found for %s: Trying PARALLELFEATURES=0 ===============================\n\n", Name);
+	GenTilingDebug("\n\n=============================== Solution not found for %s: Trying PARALLELFEATURES=0 ===============================\n\n", Name);
 	/* If solution not found try with ParallelFeature = 0 */
 	CNN_GenControl_T InternalCtrl;
 	if (!Ctrl) CNN_InitGenCtrl(&InternalCtrl);
@@ -1082,9 +1082,9 @@ int GRU_Stack_fp16(
                 if (Ctrl->DynamicIter) Dynamic = 1;
         }
 	if (Log) {
-		printf("GRU, %d Cells%s, DimState: %d, DimIn: %d, Input Cells: %d, Output Cells: %d\n", NCells, Dynamic?" Dynamic":"", DimState, DimIn, K0, K1);
-		printf("Basic Kernel: %s\n", GRUKerName);
-		printf("In Seq: %d, %s Seq: %d, Out Seq: %d\n", N1, N2_IO?"In/Out":"void", N2, N3);
+		GenTilingDebug("GRU, %d Cells%s, DimState: %d, DimIn: %d, Input Cells: %d, Output Cells: %d\n", NCells, Dynamic?" Dynamic":"", DimState, DimIn, K0, K1);
+		GenTilingDebug("Basic Kernel: %s\n", GRUKerName);
+		GenTilingDebug("In Seq: %d, %s Seq: %d, Out Seq: %d\n", N1, N2_IO?"In/Out":"void", N2, N3);
 	}
 	int Ok = 1;
 	if (Dynamic && !((NCells==K0 && NCells==K1) || (NCells==K0 && K1==1))) GenTilingError("GRU with dynamic cell count is valid only for NC=K0=K1 (all in and out) or NC=K0,K1=1 (all in, single out)");

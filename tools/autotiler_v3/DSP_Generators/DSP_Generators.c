@@ -155,7 +155,7 @@ void LoadMFCCLibrary()
 				TCArg("void *__restrict__", "FramePower"),
 				TCArg("void *__restrict__", "MelSpectr"),
 				TCArg("void *__restrict__", "Mel_Coeffs"),
-				TCArg("fbank_type_t *__restrict__", "Mel_FilterBank"),
+				TCArg("short int *__restrict__", "Mel_FilterBank"),
 				TCArg("short int", "Mel_NBanks"),
 				TCArg("short int", "Mel_Coeff_dyn"),
 				TCArg("signed char", "IsMagSquared"),
@@ -235,7 +235,7 @@ void LoadMFCCLibrary()
 		);
 
 	LibKernelTemplate("MatMul_DSP_T",
-			  CArgs(10,
+			  CArgs(11,
 			  	TCArg("void * __restrict__", "In1"),
         			TCArg("void * __restrict__", "In2"),
         			TCArg("void * __restrict__", "Out"),
@@ -245,7 +245,8 @@ void LoadMFCCLibrary()
         			TCArg("unsigned int",  	     "W_In2"),
         			TCArg("unsigned int",  	     "W_Out"),
         			TCArg("unsigned int",  	     "OutFirstCol"),
-        			TCArg("int",  		     "ColFirst")
+        			TCArg("int",  		     "ColFirst"),
+        			TCArg("int",  		     "Norm")
 				)
 		);
 
@@ -348,6 +349,8 @@ void LoadMFCCLibrary()
         LibKernel("Conjugate_Float16_Par", CALL_PARALLEL, CArgs(2, TCArg("F16V_DSP   * __restrict__", "Data"), TCArg("int", "Ni")), "SwapSamples_Arg_T", NULL);
         LibKernel("Conjugate_Float32_Par", CALL_PARALLEL, CArgs(2, TCArg("float * __restrict__", "Data"), TCArg("int", "Ni")), "SwapSamples_Arg_T", NULL);
 
+        LibKernel("KerParMatMulDSP_Fix16", CALL_PARALLEL, 0, "MatMul_DSP_T", NULL);
+        LibKernel("KerParMatMulDSPT_Fix16",CALL_PARALLEL, 0, "MatMul_DSP_T", NULL);
         LibKernel("KerParMatMulDSP_fp16",  CALL_PARALLEL, 0, "MatMul_DSP_T", NULL);
         LibKernel("KerParMatMulDSPT_fp16", CALL_PARALLEL, 0, "MatMul_DSP_T", NULL);
         LibKernel("KerParMatMulDSP_fp32",  CALL_PARALLEL, 0, "MatMul_DSP_T", NULL);
@@ -420,7 +423,7 @@ int MFCC_Generator_old(
 		if (Ctrl->PadType != -1) PadType = Ctrl->PadType;
 		if (Ctrl->MfccLogOffset != -1) MfccLogOffset = FIX2FP(Ctrl->MfccLogOffset, 30);
 	}
-	printf("LOG OFFSET %f\n", MfccLogOffset);
+	GenTilingDebug("LOG OFFSET %f\n", MfccLogOffset);
 	int MFCC_Coeff_Dyn = 15;
 	if (__builtin_popcount(Nfft) != 1) GenTilingError("%s, Incorrect FFTDim: %d, it has to be a a power of 2", Name, Nfft);
 	int UseRadix4 = (DataType!=FIX32) && (!ForceRadix2FFT && ((__builtin_ctz(Nfft)%2)==0) && (Nfft>64));
@@ -431,7 +434,7 @@ int MFCC_Generator_old(
 	int Log4Nfft = Log2Nfft>>1;
 	int QIn_FFT = UseRadix4?12:13;
 	int Q_Out_FFT = 15 - UseRadix4?(Log2Nfft-1):(Log2Nfft-2);
-	printf("MFCC_COEF_DYN = %d\nFFT_BITS = %d\nUSE_DB = %d\nDATA_TYPE = %d\n", MFCC_Coeff_Dyn, Log2Nfft, UseDB, DataType);
+	GenTilingDebug("MFCC_COEF_DYN = %d\nFFT_BITS = %d\nUSE_DB = %d\nDATA_TYPE = %d\n", MFCC_Coeff_Dyn, Log2Nfft, UseDB, DataType);
 
 	char *PreEmpKernel=0, *WinKernel=0, *FFTKernel=0, *SwapKernel=0, *MfccKernel=0, *SpectKernel=0, *LogKernel=0, *DCTKernel=0, *UserKernType=0, *UserKernPointer=0, InItemSize=2, OutItemSize=2, LUTItemSize=2;      
 
@@ -497,17 +500,17 @@ int MFCC_Generator_old(
 	}
 	unsigned int LayerOp = Abs(NFrames) * ((PreEmpKernel?(2*FrameSize):0) + (WinKernel?Nfft:0) + Nfft*Log2Nfft*4 + Nfft + Nfft*NMelBanks + (LogKernel?NMelBanks:0) + (DCTKernel?(NMelBanks*Ndct):0));
 	unsigned int LayerBandwidth = Abs(NFrames) * (FrameSize*InItemSize + OutItemSize*(DCTKernel?Ndct:NMelBanks)) + LUTItemSize*(FrameSize + (UseRadix4?(3*(Nfft)/4):(Nfft/2)) + Nfft + SizeMelCoeff + Ndct*Ndct) + 2*Nfft/2 + 6*NMelBanks;
-	printf("Mfcc:\n");
-	printf("PreEmpKernel:	%25s\n", PreEmpKernel?PreEmpKernel:"");
-	printf("WinKernel:	%25s\n", WinKernel?WinKernel:"");
-	printf("RFFT_Kernel:	%25s\n", FFTKernel?FFTKernel:"");
-	printf("SpectKernel:	%25s\n", SpectKernel?SpectKernel:"");
-	printf("MfccKernel:	%25s\n", MfccKernel?MfccKernel:"");
-	printf("LogKernel:	%25s\n", LogKernel?LogKernel:"");
-	printf("DCTKernel:	%25s\n", DCTKernel?DCTKernel:"");
-	printf("\tNb Oper: %d\n", LayerOp);
-	printf("\tBandwidth: %d\n", LayerBandwidth);
-	// printf("MFCC_COEF_DYN = %d\nFFT_BITS = %d\nUSE_DB = %d\nDATA_TYPE = %dLOG OFFSET %f\n", MFCC_Coeff_Dyn, Log2Nfft, UseDB, DataType, MfccLogOffset);
+	GenTilingDebug("Mfcc:\n");
+	GenTilingDebug("PreEmpKernel:	%25s\n", PreEmpKernel?PreEmpKernel:"");
+	GenTilingDebug("WinKernel:	%25s\n", WinKernel?WinKernel:"");
+	GenTilingDebug("RFFT_Kernel:	%25s\n", FFTKernel?FFTKernel:"");
+	GenTilingDebug("SpectKernel:	%25s\n", SpectKernel?SpectKernel:"");
+	GenTilingDebug("MfccKernel:	%25s\n", MfccKernel?MfccKernel:"");
+	GenTilingDebug("LogKernel:	%25s\n", LogKernel?LogKernel:"");
+	GenTilingDebug("DCTKernel:	%25s\n", DCTKernel?DCTKernel:"");
+	GenTilingDebug("\tNb Oper: %d\n", LayerOp);
+	GenTilingDebug("\tBandwidth: %d\n", LayerBandwidth);
+	// GenTilingDebug("MFCC_COEF_DYN = %d\nFFT_BITS = %d\nUSE_DB = %d\nDATA_TYPE = %dLOG OFFSET %f\n", MFCC_Coeff_Dyn, Log2Nfft, UseDB, DataType, MfccLogOffset);
 
 
 	int ncalls = 10;
@@ -524,7 +527,7 @@ int MFCC_Generator_old(
 			TCArg(UserKernPointer, "Twiddles_fft"),
 			TCArg("short int *", "SwapTable_fft"),
 			TCArg(UserKernPointer, "WinTable"),
-			TCArg("fbank_type_t *", "Mel_FilterBank"),
+			TCArg("short int *", "Mel_FilterBank"),
 			TCArg(UserKernPointer, "Mel_Coeffs"),
 			(OutMelspectrogram==0 && DataType != FLOAT16 && DataType != FLOAT32)?TCArg("int", "Norm"):AT_NO_C_ARG,
 			Ndct?TCArg(UserKernPointer, "DCT_Coeff"):AT_NO_C_ARG,
@@ -750,22 +753,22 @@ int MFCC_Generator(
 	int OutDataSize = DataType==FLOAT32||(OutMelspectrogram && DataType==FIX16)?4:2;
 	unsigned int LayerOp = Abs(NFrames) * ((PreEmpKernel?(2*FrameSize):0) + (WinKernel?Nfft:0) + Nfft*Log2Nfft*4 + Nfft + Nfft*NMelBanks + (LogKernel?NMelBanks:0) + (DCTKernel?(NMelBanks*Ndct):0));
 	unsigned int LayerBandwidth = Abs(NFrames) * (FrameSize*InItemSize + OutItemSize*(DCTKernel?Ndct:NMelBanks)) + LUTItemSize*(FrameSize + (UseRadix4?(3*(Nfft)/4):(Nfft/2)) + Nfft + SizeMelCoeff + Ndct*Ndct) + 2*Nfft/2 + 6*NMelBanks;
-	printf("Mfcc:\n");
-	printf("PreEmpKernel:	%25s\n", PreEmpKernel?PreEmpKernel:"");
-	printf("WinKernel:	%25s\n", WinKernel?WinKernel:"");
-	printf("RFFT_Kernel:	%25s\n", RFFT_Kernel?RFFT_Kernel:"");
-	printf("SpectKernel:	%25s\n", SpectKernel?SpectKernel:"");
-	printf("MfccKernel:	%25s\n", MfccKernel?MfccKernel:"");
-	printf("LogKernel:	%25s\n", LogKernel?LogKernel:"");
-	printf("DCTKernel:	%25s\n", DCTKernel?DCTKernel:"");
-	printf("\tN Frames: %d\n", NFrames);
-	printf("\tFrame Size: %d\n", FrameSize);
-	printf("\tFrame Stride: %d\n", FrameStride);
-	printf("\tIn Data Size: %d\n", InItemSize);
-	printf("\tTot Input Size: %d\n", FrameStride * (NFrames-1) + FrameSize);
-	printf("\tNb Oper: %d\n", LayerOp);
-	printf("\tBandwidth: %d\n", LayerBandwidth);
-	// printf("MFCC_COEF_DYN = %d\nFFT_BITS = %d\nUSE_DB = %d\nDATA_TYPE = %dLOG OFFSET %f\n", MFCC_Coeff_Dyn, Log2Nfft, UseDB, DataType, MfccLogOffset);
+	GenTilingDebug("Mfcc:\n");
+	GenTilingDebug("PreEmpKernel:	%25s\n", PreEmpKernel?PreEmpKernel:"");
+	GenTilingDebug("WinKernel:	%25s\n", WinKernel?WinKernel:"");
+	GenTilingDebug("RFFT_Kernel:	%25s\n", RFFT_Kernel?RFFT_Kernel:"");
+	GenTilingDebug("SpectKernel:	%25s\n", SpectKernel?SpectKernel:"");
+	GenTilingDebug("MfccKernel:	%25s\n", MfccKernel?MfccKernel:"");
+	GenTilingDebug("LogKernel:	%25s\n", LogKernel?LogKernel:"");
+	GenTilingDebug("DCTKernel:	%25s\n", DCTKernel?DCTKernel:"");
+	GenTilingDebug("\tN Frames: %d\n", NFrames);
+	GenTilingDebug("\tFrame Size: %d\n", FrameSize);
+	GenTilingDebug("\tFrame Stride: %d\n", FrameStride);
+	GenTilingDebug("\tIn Data Size: %d\n", InItemSize);
+	GenTilingDebug("\tTot Input Size: %d\n", FrameStride * (NFrames-1) + FrameSize);
+	GenTilingDebug("\tNb Oper: %d\n", LayerOp);
+	GenTilingDebug("\tBandwidth: %d\n", LayerBandwidth);
+	// GenTilingDebug("MFCC_COEF_DYN = %d\nFFT_BITS = %d\nUSE_DB = %d\nDATA_TYPE = %dLOG OFFSET %f\n", MFCC_Coeff_Dyn, Log2Nfft, UseDB, DataType, MfccLogOffset);
 
 	int InBuffSize = (PadType!=PAD_RIGHT)?Nfft:FrameSize;
 	UserSymbols(2, US_Float("LogOffset", MfccLogOffset), US_Float("PreempFactor", PreempFactor));
@@ -781,7 +784,7 @@ int MFCC_Generator(
 			TCArg(UserKernPointer, "Twiddles_rfft"),
 			TCArg("short int *", "SwapTable_fft"),
 			!NoWindow?TCArg(UserKernPointer, "WinTable"):AT_NO_C_ARG,
-			TCArg("fbank_type_t *", "Mel_FilterBank"),
+			TCArg("short int *", "Mel_FilterBank"),
 			TCArg(UserKernPointer, "Mel_Coeffs"),
 			(OutMelspectrogram==0&&DataType==FIX16)?TCArg("int", "Norm"):AT_NO_C_ARG,
 			(Ndct)?TCArg(UserKernPointer, "DCT_Coeff"):AT_NO_C_ARG,
@@ -831,7 +834,7 @@ int MFCC_Generator(
 			Call(MfccKernel, LOC_LOOP,
 			     Bindings(9,
 			       K_Arg("Buff2", KER_ARG_TILE),
-			       OutMelspectrogram?K_Arg("Out" , KER_ARG_TILE):K_Arg("In_rfft" , KER_ARG_TILE),
+			       (OutMelspectrogram && DataType!=FIX16)?K_Arg("Out" , KER_ARG_TILE):K_Arg("In_rfft" , KER_ARG_TILE),
 			       K_Arg("Mel_Coeffs"    , KER_ARG_TILE),
 			       K_Arg("Mel_FilterBank", KER_ARG_TILE),
 			       Imm(NMelBanks),
@@ -941,104 +944,6 @@ int MFCC_Generator(
 	return (Kernel!=0);
 }
 
-int IMel_Generator(
-	char *Name,
-	CNN_GenControl_T *Ctrl,
-	int NFrames,
-	int Nfft,
-	int NMelBanks,
-	int SizeMelCoeff,
-	int DataType
-	)
-{
-	if (__builtin_popcount(Nfft) != 1) GenTilingError("%s, Incorrect FFTDim: %d, it has to be a a power of 2", Name, Nfft);
-	if (DataType==FIX32 || DataType==FIX16) GenTilingError("Not supported FIX_32");
-
-	int MFCC_Coeff_Dyn = 15;
-	char *PreEmpKernel=0, *InverseMelKer=0, *UserKernType=0, *UserKernPointer=0, InItemSize=2, OutItemSize=2, LUTItemSize=2; 
-
-	switch (DataType){
-		case FIX16:
-			InverseMelKer = "MelFilterBank_Fix32";
-			UserKernType = "short int";
-			UserKernPointer = "short int * __restrict__";
-			InItemSize=2; OutItemSize=2, LUTItemSize=2;
-			break;
-		case FLOAT16:
-			InverseMelKer = "MelFilterBank_f16";
-			UserKernType = "F16_DSP";
-			UserKernPointer = "F16_DSP * __restrict__";
-			InItemSize=F16_SIZE; OutItemSize=F16_SIZE, LUTItemSize=F16_SIZE;
-			break;
-		case FLOAT32:
-			InverseMelKer = "MelFilterBank_f32";
-			UserKernType = "float";
-			UserKernPointer = "float * __restrict__";
-			InItemSize=4; OutItemSize=4, LUTItemSize=4;
-			break;
-		default:
-			GenTilingError("Data Type %d not known", DataType);
-			return 0;
-	}
-	unsigned int LayerOp = 0;
-	unsigned int LayerBandwidth = 0;
-	printf("Inverse Mel:\n");
-	printf("\tNb Oper: %d\n", LayerOp);
-	printf("\tBandwidth: %d\n", LayerBandwidth);
-
-	Kernel_T *Kernel = UserKernel(Name,
-                NFrames<0?
-                KernelIterSpace(2, IterFixedSpaceDynBound(D0, -NFrames, "NFrames"), IterTiledSpace(T0)):
-                KernelIterSpace(2, IterFixedSpace(D0, NFrames), IterTiledSpace(T0)),
-                TILE_HOR,
-                CArgs(5,
-                	TCArg(UserKernPointer, "In"),
-			TCArg(UserKernPointer, "Out"),
-			TCArg("fbank_type_t *","IMel_FilterBank"),
-			TCArg(UserKernPointer, "IMel_Coeffs"),
-			(NFrames<0)?
-			TCArg("short int",     "NFrames"):AT_NO_C_ARG
-                ),
-                Calls(1,
-                	Call(InverseMelKer, LOC_LOOP,
-                		Bindings(9,
-					K_Arg("In", KER_ARG_TILE),
-					K_Arg("Out" , KER_ARG_TILE),
-					K_Arg("IMel_Coeffs"    , KER_ARG_TILE),
-					K_Arg("IMel_FilterBank", KER_ARG_TILE),
-					Imm(NMelBanks),
-					Imm(MFCC_Coeff_Dyn),
-					AT_IGNORE_ARG_BINDING,
-					(DataType==FIX16)?K_Arg("shift_buff", KER_ARG_TILE):AT_IGNORE_ARG_BINDING,
-					AT_IGNORE_ARG_BINDING
-                			)
-                		)
-		),
-		KerArgs(4,
-			KerArg("In",		  KerArgSpace(1,D0), OBJ_IN_DB,		  1, NMelBanks, 	InItemSize, 			   0, 0, 0, "In"),
-			KerArg("Out",		  KerArgSpace(1,D0), OBJ_OUT_DB,	  1, Nfft*2, 		OutItemSize, 			   0, 0, 0, "Out"),
-			KerArg("IMel_FilterBank", KerArgSpace(1,T0), O_IN|O_BUFF|O_CONST, 1, NMelBanks,		6, /* size of filterbank type */   0, 0, 0, "IMel_FilterBank"),
-			KerArg("IMel_Coeffs",     KerArgSpace(1,T0), O_IN|O_BUFF|O_CONST, 1, SizeMelCoeff,	LUTItemSize,		   	   0, 0, 0, "IMel_Coeffs")
-		)
-	);
-	if (Kernel) {
-		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
-		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
-
-		if (DataType==FIX32 || DataType==FIX16) {
-			AddKernelArgDim(Name, "In",   3, Abs(NFrames), NMelBanks, InItemSize);
-			AddKernelArgDim(Name, "Out",  3, Abs(NFrames), 2*Nfft, OutItemSize);
-			AddKernelArgDim(Name, "IMel_Coeffs",  2, SizeMelCoeff, LUTItemSize);
-		} else {
-			AddKernelFloatArgDim(Name, "In",   3, Abs(NFrames), NMelBanks, InItemSize);
-			AddKernelFloatArgDim(Name, "Out",  3, Abs(NFrames), 2*Nfft, OutItemSize);
-			AddKernelFloatArgDim(Name, "IMel_Coeffs",  2, SizeMelCoeff, LUTItemSize);		
-		}
-		AddKernelArgDim(Name, "IMel_FilterBank",  3, NMelBanks, 3, 2);
-	}
-	return (Kernel!=0);
-}
-
 int RFFT_2D_Generator(
 	char *Name,
 	CNN_GenControl_T *Ctrl,
@@ -1113,14 +1018,14 @@ int RFFT_2D_Generator(
 	}
 	unsigned int LayerOp = Abs(NFrames) * ((PreEmpKernel?(2*FrameSize):0) + (WinKernel?Nfft:0) + Nfft*Log2Nfft*4 + Nfft);
 	unsigned int LayerBandwidth = Abs(NFrames) * (FrameSize*InItemSize + OutItemSize*Nfft) + LUTItemSize*(WinKernel?FrameSize:0 + (UseRadix4?(3*(Nfft)/4):(Nfft/2)) + Nfft) + 2*Nfft/2;
-	printf("RFFT2D:\n");
-	printf("PreEmpKernel:	%25s\n", PreEmpKernel?PreEmpKernel:"");
-	printf("WinKernel:	%25s\n", WinKernel?WinKernel:"");
-	printf("RFFT_Kernel:	%25s\n", RFFT_Kernel?RFFT_Kernel:"");
-	printf("SpectKernel:	%25s\n", SpectKernel?SpectKernel:"");
-	printf("\tNb Oper: %d\n", LayerOp);
-	printf("\tBandwidth: %d\n", LayerBandwidth);
-	// printf("MFCC_COEF_DYN = %d\nFFT_BITS = %d\nUSE_DB = %d\nDATA_TYPE = %dLOG OFFSET %f\n", MFCC_Coeff_Dyn, Log2Nfft, UseDB, DataType, MfccLogOffset);
+	GenTilingDebug("RFFT2D:\n");
+	GenTilingDebug("PreEmpKernel:	%25s\n", PreEmpKernel?PreEmpKernel:"");
+	GenTilingDebug("WinKernel:	%25s\n", WinKernel?WinKernel:"");
+	GenTilingDebug("RFFT_Kernel:	%25s\n", RFFT_Kernel?RFFT_Kernel:"");
+	GenTilingDebug("SpectKernel:	%25s\n", SpectKernel?SpectKernel:"");
+	GenTilingDebug("\tNb Oper: %d\n", LayerOp);
+	GenTilingDebug("\tBandwidth: %d\n", LayerBandwidth);
+	// GenTilingDebug("MFCC_COEF_DYN = %d\nFFT_BITS = %d\nUSE_DB = %d\nDATA_TYPE = %dLOG OFFSET %f\n", MFCC_Coeff_Dyn, Log2Nfft, UseDB, DataType, MfccLogOffset);
 
 	UserSymbols(1, US_Float("PreempFactor", PreempFactor));
 	int InBuffSize = (PadType!=PAD_RIGHT)?Nfft:FrameSize;
@@ -1685,12 +1590,12 @@ int DSP_MatMul_Generator(
 	char *MatMulKerName=0, *UserKernType=0, *UserKernPointer=0;
 	switch (DataType){
 		case FIX16:
-			GenTilingError("DSP_MatMul_Generator Not yet implemented in FIX16");
+			MatMulKerName = TransposedIn2?"KerParMatMulDSPT_Fix16":"KerParMatMulDSP_Fix16";
 			UserKernType = "short int"; UserKernPointer = "short int * __restrict__";
 			ItemSize=2;
 			break;
 		case FIX32:
-			GenTilingError("DSP_MatMul_Generator Not yet implemented in FIX16");
+			GenTilingError("DSP_MatMul_Generator Not yet implemented in FIX32");
 			UserKernType = "int"; UserKernPointer = "int * __restrict__";
 			ItemSize=2;
 			break;
@@ -1717,12 +1622,12 @@ int DSP_MatMul_Generator(
 	LayerBandwidth += LineM1*2;
 	
 	if (Log) {
-		printf("CNN_MatMulAct_fp16: %s\n", Name);
-		printf("In1  => W: %4d, H: %4d\n", ColM1, LineM1);
-		printf("In2  => W: %4d, H: %4d\n", ColM2, LineM2);
-		printf("Out  => W: %4d, H: %4d => %s\n", ColO, LineO, ColFirst?"Column first":"Line First");
-		printf("Total Op: %lld\n", LayerOp);
-		if (MatMulKerName) printf("%20s: %s\n", "MatMulKerName", MatMulKerName);
+		GenTilingDebug("CNN_MatMulAct_fp16: %s\n", Name);
+		GenTilingDebug("In1  => W: %4d, H: %4d\n", ColM1, LineM1);
+		GenTilingDebug("In2  => W: %4d, H: %4d\n", ColM2, LineM2);
+		GenTilingDebug("Out  => W: %4d, H: %4d => %s\n", ColO, LineO, ColFirst?"Column first":"Line First");
+		GenTilingDebug("Total Op: %lld\n", LayerOp);
+		if (MatMulKerName) GenTilingDebug("%20s: %s\n", "MatMulKerName", MatMulKerName);
 	}
 
 	int ObjCons = (!TransposedIn2)?OBJ_CONSTRAINTS_TILE_VER:0;
@@ -1732,14 +1637,15 @@ int DSP_MatMul_Generator(
 	Kernel_T *Kernel = UserKernel(Name,
 		KernelIterSpace(2, IterTiledSpace(T1), IterTiledSpace(T0)),
                 TILE_HOR,
-                CArgs(3,
+                CArgs(4,
                       TCArg(UserKernPointer, "In1"),
                       TCArg(UserKernPointer, "In2"),
-                      TCArg(UserKernPointer, "Out")
+                      TCArg(UserKernPointer, "Out"),
+                      (DataType==FIX16)?TCArg("short int", "Norm"):AT_NO_C_ARG
                 ),
 		Calls(1,
 			Call(MatMulKerName, LOC_LOOP,
-				Bindings(10,
+				Bindings(11,
 					K_Arg("In1",  KER_ARG_TILE),
 					K_Arg("In2",  KER_ARG_TILE),
 					K_Arg("Out",  KER_ARG_TILE),
@@ -1749,7 +1655,8 @@ int DSP_MatMul_Generator(
 					TransposedIn2?K_Arg("In2",  KER_ARG_TILE_H):K_Arg("In2",  KER_ARG_TILE_W),
 					K_Arg("Out", KER_ARG_TILE_W),
 					K_Arg(ColFirst?"In1":"In2",  KER_ARG_TILE_BASE),
-					Imm(ColFirst)
+					Imm(ColFirst),
+					DataType==FIX16?C_Arg("Norm"):AT_IGNORE_ARG_BINDING
 				)
 			)
 		),

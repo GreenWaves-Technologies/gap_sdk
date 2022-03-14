@@ -479,6 +479,8 @@ int udma::build()
         this->addrgen_2d.push_back(new Udma_addrgen_2d(this, i, i+this->nb_addrgen_linear));
     }
 
+    this->new_reg("busy", &this->busy, 1);
+
     this->rx_channels = new Udma_rx_channels(this, l2_write_fifo_size);
     this->tx_channels = new Udma_tx_channels(this, l2_read_fifo_size);
 
@@ -728,6 +730,18 @@ void udma::reset(bool active)
     }
 
     this->tx_channels->reset(active);
+    this->busy_count = 0;
+    this->busy.set(this->busy_count != 0);
+}
+
+void udma::busy_set(int count)
+{
+    this->busy_count += count;
+    if (this->busy_count < 0)
+    {
+        this->busy_count = 0;
+    }
+    this->busy.set(this->busy_count != 0);
 }
 
 extern "C" vp::component *vp_constructor(js::config *config)

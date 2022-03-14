@@ -9,7 +9,7 @@ void MFCCConfiguration(unsigned int L1Memory)
 	SetSymbolDynamics();
 
   SetUsedFilesNames(0, 1, "DSP_Lib.h");
-  SetGeneratedFilesNames("MFCCKernels.c", "MFCCKernels.h");
+  SetGeneratedFilesNames("MfccKernels.c", "MfccKernels.h");
 
   SetL1MemorySize(L1Memory);
 }
@@ -27,27 +27,27 @@ int main(int argc, char **argv)
     LoadMFCCLibrary();
 
     // Generate code for MFCC applied to 49 of size FRAME_SIZE with FRAME_STEP as stride
-    MFCC_Generator("Librosa_MFCC",                    &Librosa_Settings, 49, FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, DATA_TYPE, 2, 0);
+    MFCC_Generator("Librosa_MFCC",                    &Librosa_Settings, 49, FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, DATA_TYPE, 2, 0);
 
     // Generate code for MFCC applied to a single frame just for code generation testing
-    MFCC_Generator("Librosa_MFCC_single_Fix16",       &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 0, 2, 0);
-    MFCC_Generator("Librosa_MFCC_single_Fix16_FFT",   &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 0, 2, 1);
-    MFCC_Generator("Librosa_LogMel_single_Fix16",     &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 0, 2, 0);
-    MFCC_Generator("Librosa_LogMel_single_Fix16_FFT", &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 0, 2, 1);
+    MFCC_Generator("Librosa_MFCC_single_Fix16",       &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 0, 2, 0);
+    MFCC_Generator("Librosa_MFCC_single_Fix16_FFT",   &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 0, 2, 1);
+    MFCC_Generator("Librosa_LogMel_single_Fix16",     &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 0, 2, 0);
+    MFCC_Generator("Librosa_LogMel_single_Fix16_FFT", &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 0, 2, 1);
 
-    MFCC_Generator("Librosa_MFCC_single_Fix32",       &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 1, 2, 0);
-    MFCC_Generator("Librosa_MFCC_single_Fix32_FFT",   &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 1, 2, 1);
-    MFCC_Generator("Librosa_LogMel_single_Fix32",     &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 1, 2, 0);
-    MFCC_Generator("Librosa_LogMel_single_Fix32_FFT", &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 1, 2, 1);
+    MFCC_Generator("Librosa_MFCC_single_Fix32",       &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 1, 2, 0);
+    MFCC_Generator("Librosa_MFCC_single_Fix32_FFT",   &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 1, 2, 1);
+    MFCC_Generator("Librosa_LogMel_single_Fix32",     &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 1, 2, 0);
+    MFCC_Generator("Librosa_LogMel_single_Fix32_FFT", &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 1, 2, 1);
 
-    MFCC_Generator("Librosa_MFCC_single_f16",         &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 2, 2, 0);
-    MFCC_Generator("Librosa_MFCC_single_f16_FFT",     &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 2, 2, 1);
-    MFCC_Generator("Librosa_LogMel_single_f16",       &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 2, 2, 0);
-    MFCC_Generator("Librosa_LogMel_single_f16_FFT",   &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 2, 2, 1);
+    MFCC_Generator("Librosa_MFCC_single_f16",         &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 2, 2, 0);
+    MFCC_Generator("Librosa_MFCC_single_f16_FFT",     &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 2, 2, 1);
+    MFCC_Generator("Librosa_LogMel_single_f16",       &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 2, 2, 0);
+    MFCC_Generator("Librosa_LogMel_single_f16_FFT",   &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 2, 2, 1);
 
-    MFCC_Generator("Librosa_MFCC_single_f32",         &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 3, 2, 0);
-    MFCC_Generator("Librosa_MFCC_single_f32_FFT",     &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 3, 2, 1);
-    MFCC_Generator("Librosa_LogMel_single_f32",       &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 3, 2, 0);
-    MFCC_Generator("Librosa_LogMel_single_f32_FFT",   &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, MFCC_BANK_CNT, MFCC_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 3, 2, 1);
+    MFCC_Generator("Librosa_MFCC_single_f32",         &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 3, 2, 0);
+    MFCC_Generator("Librosa_MFCC_single_f32_FFT",     &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, N_DCT, 0, 0, 0, USE_POWER, 3, 2, 1);
+    MFCC_Generator("Librosa_LogMel_single_f32",       &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 3, 2, 0);
+    MFCC_Generator("Librosa_LogMel_single_f32_FFT",   &Librosa_Settings, 1,  FRAME_SIZE, FRAME_STEP, N_FFT, N_MELS, MEL_COEFF_CNT, 0,     0, 0, 0, USE_POWER, 3, 2, 1);
     GenerateTilingCode();
 }

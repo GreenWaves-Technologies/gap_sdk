@@ -27,7 +27,7 @@
 #define CONFIG_APS25XXXN
 #define CONFIG_VIRTUAL_EEPROM
 #define CONFIG_MX25U51245G
-#define CONFIG_NINA_B112
+#define CONFIG_BLE_NINA_B112
 
 #define CONFIG_HIMAX_CPI_ITF 0
 #define CONFIG_HIMAX_I2C_ITF 0
@@ -49,13 +49,6 @@
 
 #define CONFIG_VIRTUAL_EEPROM_I2C_ADDR   0x14
 #define CONFIG_VIRTUAL_EEPROM_I2C_ITF    0
-
-#define CONFIG_NINA_B112_UART_ID             ( 1 )
-/* BLE Nina. */
-#define GPIOA2_NINA_RST                ( PI_PAD_040)
-#define GPIOA21_NINA17                 ( PI_PAD_041)
-#define GPIO_NINA_PWRON                ( PI_PAD_042)
-#define GPIO_NINA17_DSR                ( PI_PAD_043)
 
 #define pi_default_flash_conf pi_mx25u51245g_conf
 #define pi_default_flash_conf_init pi_mx25u51245g_conf_init

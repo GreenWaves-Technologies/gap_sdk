@@ -600,15 +600,15 @@ void norm_clip_32_melspect(MFCC_Clip_32_T *Args) {
         signed char *shift_buff = Args->shift_buff;
         int N = Args->N;
 
-        int i, Norm;
+        unsigned int i, Norm;
         unsigned int Chunk, First, Last, CoreId=gap_coreid();
+        Chunk = ChunkSize(N);
+        First = CoreId*Chunk; Last = Min(First + Chunk, N);
 
-        if (CoreId==0){
-                for (i=0; i<N; i++) {
-                        int Qformat = (30 - shift_buff[i]);
-                        Norm = Qformat - 16; //POWER
-                        Out[i] = (Norm<32)?(In[i] >> Norm):0;
-                }
+        for (i=First; i<Last; i++) {
+                int Qformat = (30 - shift_buff[i]);
+                Norm = Qformat - 16; //POWER
+                Out[i] = (Norm<32)?(In[i] >> Norm):0;
         }
         gap_waitbarrier(0);
 #ifdef PRINTDEB
@@ -630,26 +630,26 @@ void norm_clip_32_melspect_scal(MFCC_Clip_32_T *Args)
         int N = Args->N;
         signed char IsMagSquared = Args->IsMagSquared;
 
-        int i, Norm;
+        int Norm;
         unsigned int Chunk, First, Last, CoreId=gap_coreid();
+        Chunk = ChunkSize(N);
+        First = CoreId*Chunk; Last = Min(First + Chunk, N);
 
-        if (CoreId==0){
-                if (IsMagSquared){
-                        for (i=0; i<N; i++) {
-                                Norm = Mel_Coeff_Dyn-2-shift_buff[i]+2*ExtraQ - 16; //POWER HIGH_PREC
-                                Out[i] = (Norm<32)?(In[i] >> Norm):0;
-                        }
-                } else {
-                        for (i=0; i<N; i++) {
-                                Norm = Mel_Coeff_Dyn-1-shift_buff[i]+ExtraQ - 16; //Abs HIGH_PREC
-                                Out[i] = (Norm<32)?(In[i] >> Norm):0;
-                        }                        
+        if (IsMagSquared){
+                for (unsigned int i=First; i<Last; i++) {
+                        Norm = Mel_Coeff_Dyn-2-shift_buff[i]+2*ExtraQ - 16; //POWER HIGH_PREC
+                        Out[i] = (Norm<32)?(In[i] >> Norm):0;
                 }
+        } else {
+                for (unsigned int i=First; i<Last; i++) {
+                        Norm = Mel_Coeff_Dyn-1-shift_buff[i]+ExtraQ - 16; //Abs HIGH_PREC
+                        Out[i] = (Norm<32)?(In[i] >> Norm):0;
+                }                        
         }
         gap_waitbarrier(0);
 #ifdef PRINTDEB
         if (CoreId==0) {
-                printf("\nout_norm_clip = np.array([\n\t"); for (i=0; i<N; i++) printf("%d, ", Out[i]); printf("])\n");
+                printf("\nout_norm_clip = np.array([\n\t"); for (unsigned int i=0; i<N; i++) printf("%d, ", Out[i]); printf("])\n");
         }
 #endif
 }

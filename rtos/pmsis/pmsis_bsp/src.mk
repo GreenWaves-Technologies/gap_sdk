@@ -1,3 +1,5 @@
+SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+
 BSP_READFS_SRC = fs/read_fs/read_fs.c
 BSP_HOSTFS_SRC = fs/host_fs/host_fs.c
 BSP_LFS_SRC = fs/lfs/lfs.c fs/lfs/lfs_util.c fs/lfs/pi_lfs.c
@@ -20,11 +22,12 @@ BSP_OSPI_RAM_SRC = ram/spiram/aps25xxxn.c
 BSP_CAMERA_SRC = camera/camera.c
 BSP_HIMAX_SRC = camera/himax/himax.c
 BSP_HM0360_SRC = camera/hm0360/hm0360.c
-BSP_BLE_NINA_B112_SRC= ble/ble.c ble/nina_b112/nina_b112.c ble/nina_b112/nina_b112_old.c
 BSP_AK4332_SRC = audio/dac/ak4332.c
 BSP_TLV320_SRC = audio/adc/tlv320.c
 BSP_FXL6408_SRC = gpio/fxl6408.c
 BSP_ADC_ADS1014_SRC = adc/ads1014.c
+
+include $(SELF_DIR)/ble/nina_b112/nina_b112.mk
 
 COMMON_SRC = \
   $(BSP_FLASH_SRC) \
@@ -61,8 +64,7 @@ GAP9_SRC = \
   $(BSP_HYPERFLASH_SRC) \
   $(BSP_HYPERRAM_SRC) \
   $(BSP_MRAM_SRC) \
-  $(BSP_OSPI_FLASH_SRC) \
-  $(BSP_BLE_NINA_B112_SRC)
+  $(BSP_OSPI_FLASH_SRC)
 
 WOLFE_SRC = \
   $(COMMON_SRC) \

@@ -163,6 +163,7 @@ private:
   int transfer_size;
   vp::reg_32 state;
   vp::reg_8 active;
+  vp::reg_1 busy;
   hyper_channel_state_e channel_state;
   int delay;
   int ca_count;

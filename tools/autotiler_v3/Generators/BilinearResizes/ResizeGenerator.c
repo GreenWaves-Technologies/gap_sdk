@@ -134,7 +134,7 @@ int GenerateResizeMultiChannel(char *Name, unsigned int Win, unsigned int Hin, u
 		default:
 			ResizeKerName = (InOut_Type==SIGNED_INOUT)?"KerResizeBilinearSigned":"KerResizeBilinear";
 	}
-	printf("%s\n", ResizeKerName);
+	GenTilingDebug("%s\n", ResizeKerName);
 	int LayerOp = Channels * Wout * Hout * (3 + 6 + 3);
 	int LayerBandwidth = Channels * Win * Hin + Channels * Hout * Wout;
 	Kernel_T *Kernel = UserKernel(Name,
@@ -180,7 +180,7 @@ int GenerateResizeMultiChannelQ16(char *Name, unsigned int Win, unsigned int Hin
 		default:
 			ResizeKerName = (InOut_Type==SIGNED_INOUT)?"KerResizeBilinearSigned_Q16":0;
 	}
-	printf("%s\n", ResizeKerName);
+	GenTilingDebug("%s\n", ResizeKerName);
 	int LayerOp = Channels * Wout * Hout * (3 + 6 + 3);
 	int LayerBandwidth = Channels * Win * Hin + Channels * Hout * Wout;
 	Kernel_T *Kernel = UserKernel(Name,
@@ -226,7 +226,7 @@ int GenerateResizeMultiChannel_fp16(char *Name, unsigned int Win, unsigned int H
 		default:
 			ResizeKerName = "KerResizeBilinear_fp16";
 	}
-	printf("%s\n", ResizeKerName);
+	GenTilingDebug("%s\n", ResizeKerName);
 	int LayerOp = Channels * Wout * Hout * (3 + 6 + 3);
 	int LayerBandwidth = Channels * Win * Hin + Channels * Hout * Wout;
 	Kernel_T *Kernel = UserKernel(Name,

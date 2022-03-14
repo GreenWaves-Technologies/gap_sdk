@@ -1,7 +1,5 @@
 # User Test
 #------------------------------------------
-
-
 FFT_BUILD_DIR ?= $(CURDIR)/BUILD_MODEL
 FFT_MODEL_GEN = $(FFT_BUILD_DIR)/GenSTFT
 FFT_SRCG += $(TILER_DSP_GENERATOR_PATH)/DSP_Generators.c
@@ -44,18 +42,20 @@ endif
 $(FFT_BUILD_DIR):
 	mkdir $(FFT_BUILD_DIR)
 
-$(WIN_LUT): $(FFT_BUILD_DIR)
+$(WIN_LUT): | $(FFT_BUILD_DIR)
 	python $(TILER_MFCC_GEN_LUT_SCRIPT) --fft_lut_file $(WIN_LUT) --win_func "hamming" --dtype $(TYPE) --frame_size $(NFFT) --frame_step 160 --n_fft $(NFFT) --gen_inv
 
 # Build the code generator from the model code
-$(FFT_MODEL_GEN): $(FFT_BUILD_DIR)
+$(FFT_MODEL_GEN): | $(FFT_BUILD_DIR)
 	gcc -g -o $(FFT_MODEL_GEN) -I. -I$(TILER_DSP_GENERATOR_PATH) -I$(TILER_INC) -I$(TILER_EMU_INC) $(CURDIR)/FFTGenCode.c $(FFT_SRCG) $(TILER_LIB) $(GEN_FLAG) -DN_FFT=$(NFFT) $(SDL_FLAGS) -DDATA_TYPE=$(DATA_TYPE)
 
 # Run the code generator  kernel code
-$(FFT_GEN_SRC): $(FFT_MODEL_GEN) $(WIN_LUT)
+$(FFT_GEN_SRC): $(FFT_MODEL_GEN) $(WIN_LUT) | $(FFT_BUILD_DIR)
 	$(FFT_MODEL_GEN) -o $(FFT_BUILD_DIR) -c $(FFT_BUILD_DIR) $(MODEL_GEN_EXTRA_FLAGS)
 
 gen_fft_code: $(FFT_GEN_SRC)
 
 clean_fft_code:
 	rm -rf $(FFT_BUILD_DIR)
+
+.PHONY: gen_fft_code clean_fft_code

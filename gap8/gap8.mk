@@ -271,7 +271,7 @@ examples.checkout:
 	git submodule update --recursive --init examples
 
 tests.checkout:
-	git submodule update --init tests/pmsis_tests tests/bsp_tests tests/sfu_tests tests/pmsis_bench
+	git submodule update --init tests/sfu_tests
 
 test:
 	plptest --max-timeout=$(TIMEOUT) --bench-csv-file=results.csv

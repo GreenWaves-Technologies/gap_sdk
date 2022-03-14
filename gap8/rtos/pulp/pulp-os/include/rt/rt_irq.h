@@ -40,7 +40,6 @@
 void __rt_irq_init();
 void rt_irq_set_handler(int irq, void (*handler)());
 
-
 extern void __rt_fc_socevents_handler();
 
 #ifdef __riscv__
@@ -159,5 +158,8 @@ static inline void rt_irq_enable()
 #endif
 
 /// @endcond
+
+static inline int pi_irq_disable(void ) { return rt_irq_disable(); }
+static inline void pi_irq_restore(int irq) { rt_irq_restore(irq); }
 
 #endif

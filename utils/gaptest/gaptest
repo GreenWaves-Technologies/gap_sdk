@@ -245,7 +245,10 @@ sub process_yml {
             && (grep( /^$config_tag$/, @{$test_variant->{tags}}))
             && (grep( /^$config_os$/, @{$test_variant->{os}}))
             && (grep( /^$config_chip$/, @{$test_variant->{chips}}))
-            && (grep( /^$config_platform$/, @{$test_variant->{platforms}})))
+            && (grep( /^$config_platform$/, @{$test_variant->{platforms}}))
+            && ((grep( /^$config_board$/, @{$test_variant->{boards}}))
+                || ($config_board eq '') || (scalar(@{$test_variant->{boards}}) == 0 ))
+            )
         {
             # Only launch the test if it is belong to the job
             if (($tests_job_counter % $job_total) ne ($job_index - 1))
@@ -455,6 +458,7 @@ while (@ARGV) {
     ($arg eq '--list-selected') && do { $list_select_tests = 1; next};
     ($arg eq '--init') && do { $test_init = 1; next};
     ($arg eq '--builder') && do { $builder = shift(@ARGV); next };
+    ($arg eq '--board') && do { $board = shift(@ARGV); next};
     # short options
     ($arg eq '-c') && do { $chip = shift(@ARGV); next };
     ($arg eq '-t') && do { $tag = shift(@ARGV); next};

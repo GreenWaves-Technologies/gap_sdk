@@ -126,4 +126,20 @@ int CNN_Convert(
 	KernelOper_T kop
 );
 
+int CNN_Concatenate_Width(
+        char *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int Size,
+        int Height,
+
+        int In1Width,
+        int In2Width,
+        int In3Width,
+        int In4Width,
+
+        KernelOper_T ConcatOper
+);
+
 #endif

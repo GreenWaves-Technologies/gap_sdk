@@ -103,7 +103,7 @@ Next Steps
 
 Here are some next steps for exploring the GAP SDK:
 
-- Try other :ref:`examples`
+- Try other :ref:`sdk_examples`
 - Learn about :ref:`application_development`
-- Discover :ref:`tools` such as the Autotiler and NNTool
+- Discover :ref:`sdk_tools` such as the Autotiler and NNTool
 - Check out :ref:`user_dev_guides` for other additional information

@@ -45,6 +45,7 @@ Hyper_periph::Hyper_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
   
     this->top->new_reg(itf_name + "/state", &this->state, 32);
     this->top->new_reg(itf_name + "/active", &this->active, 8);
+    this->top->new_reg(itf_name + "/busy", &this->busy, 1);
 
     this->pending_word_event = top->event_new(this, Hyper_periph::handle_pending_word);
     this->check_state_event = top->event_new(this, Hyper_periph::handle_check_state);
@@ -210,6 +211,7 @@ void Hyper_periph::reset(bool active)
         this->state.set(HYPER_STATE_IDLE);
         this->active.release();
         this->pending_is_write = false;
+        this->busy.set(0);
     }
 }
 
@@ -341,6 +343,8 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
         {
             _this->state.set(HYPER_STATE_DELAY);
             _this->active.set(1);
+            _this->busy.set(1);
+            _this->top->busy_set(1);
             if (_this->iter_2d)
             {
                 _this->delay = 24;
@@ -454,6 +458,8 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
     {
         _this->state.set(HYPER_STATE_IDLE);
         _this->active.release();
+        _this->busy.set(0);
+        _this->top->busy_set(-1);
         send_cs = true;
         cs_value = 0;
 

@@ -139,7 +139,6 @@ static inline void pmsis_exit(int err)
 #include "alloc_pool.h"
 #include "trace.h"
 #include "soc.h"
-#include "freq.h"
 #include "perf.h"
 #include "cluster.h"
 #include "pe.h"

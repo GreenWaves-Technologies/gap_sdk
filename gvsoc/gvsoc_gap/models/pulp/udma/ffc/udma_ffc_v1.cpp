@@ -50,6 +50,7 @@ Ffc_periph::Ffc_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
 
     /* Busy signal for VCD tracing */
     this->top->new_reg(itf_name + "/busy", &this->busy, 8);
+    this->top->new_reg(itf_name + "/busy_1", &this->busy_1, 1);
 }
 
 
@@ -62,6 +63,7 @@ void Ffc_periph::reset(bool active)
 
     // Since busy signal is displayed as a state, we need to release it when the FFC is not busy. */
     this->busy.release();
+    this->busy_1.set(0);
 }
 
 
@@ -103,6 +105,7 @@ vp::io_req_status_e Ffc_periph::custom_req(vp::io_req *req, uint64_t offset)
             /* start converting data */
             this->enqueue_event();
             this->busy.set(1);
+            this->busy_1.set(1);
             break;
         default:
             break;
@@ -216,6 +219,7 @@ void Ffc_periph::handle_event(void* __this, vp::clock_event* event)
                 _this->state = FFC_STATE_IDLE;
                 // Since busy signal is displayed as a state, we need to release it when the FFC is not busy. */
                 _this->busy.release();
+                _this->busy_1.set(0);
             }
             else if (!_this->ffc_queue.empty())
             {

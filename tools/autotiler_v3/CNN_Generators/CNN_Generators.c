@@ -1946,38 +1946,38 @@ int CNN_ConvolutionPoolReLU(
 	LayerBandwidth += Bias_DataSize*OutFeat;
 
 	if (Log) {
-		printf("InFeat: %d, OutFeat: %d\n", InFeat, OutFeat);
-        	printf("Conv => W:  %d, Pad:[%d,%d] PadT:[%d,%d] => Wc: %d, Filter:[%d,%d]\n", Width,  PadInc[0], PadInc[1], PadIncT[0], PadIncT[1], Wc, Fcx, Fcy);
-        	printf("     => H:  %d, Pad:[%d,%d] PadT:[%d,%d] => Hc: %d\n", Height, PadInc[2], PadInc[3], PadIncT[2], PadIncT[3], Hc);
-        	printf("Pool => Wc: %d, Pad:[%d,%d] => Wo: %d, Filter:[%d,%d]\n", Wc, PadInp[0], PadInp[1], Wo, Fpx, Fpy);
-        	printf("     => Hc: %d, Pad:[%d,%d] => Ho: %d\n", Hc, PadInp[2], PadInp[3], Ho);
-        	printf("OverlapC: %d\n", OverlapC);
-        	printf("OverlapP: %d\n", OverlapP);
-        	printf("TileCons: %d\n", TileCons);
-		printf("UsedIn  : [%d x %d]\n", UsedWidth, UsedHeight);
-		printf("UsedC   : [%d x %d]\n", UsedWc, UsedHc);
-		if (SetBiasKerName) printf("%20s: %s\n", "SetBiasKerName", SetBiasKerName);
-		if (ConvKerName) printf("%20s: %s\n", "ConvKerName", ConvKerName);
-		if (DPReductionKerName) printf("%20s: %s\n", "DPReductionKerName", DPReductionKerName);
-		if (PoolKerName) printf("%20s: %s\n", "PoolKerName", PoolKerName);
-		if (ReLUKerName) printf("%20s: %s\n", "ReLUKerName", ReLUKerName);
-		printf("Nb Oper : %lld\n", LayerOp);
+		GenTilingDebug("InFeat: %d, OutFeat: %d\n", InFeat, OutFeat);
+        	GenTilingDebug("Conv => W:  %d, Pad:[%d,%d] PadT:[%d,%d] => Wc: %d, Filter:[%d,%d]\n", Width,  PadInc[0], PadInc[1], PadIncT[0], PadIncT[1], Wc, Fcx, Fcy);
+        	GenTilingDebug("     => H:  %d, Pad:[%d,%d] PadT:[%d,%d] => Hc: %d\n", Height, PadInc[2], PadInc[3], PadIncT[2], PadIncT[3], Hc);
+        	GenTilingDebug("Pool => Wc: %d, Pad:[%d,%d] => Wo: %d, Filter:[%d,%d]\n", Wc, PadInp[0], PadInp[1], Wo, Fpx, Fpy);
+        	GenTilingDebug("     => Hc: %d, Pad:[%d,%d] => Ho: %d\n", Hc, PadInp[2], PadInp[3], Ho);
+        	GenTilingDebug("OverlapC: %d\n", OverlapC);
+        	GenTilingDebug("OverlapP: %d\n", OverlapP);
+        	GenTilingDebug("TileCons: %d\n", TileCons);
+		GenTilingDebug("UsedIn  : [%d x %d]\n", UsedWidth, UsedHeight);
+		GenTilingDebug("UsedC   : [%d x %d]\n", UsedWc, UsedHc);
+		if (SetBiasKerName) GenTilingDebug("%20s: %s\n", "SetBiasKerName", SetBiasKerName);
+		if (ConvKerName) GenTilingDebug("%20s: %s\n", "ConvKerName", ConvKerName);
+		if (DPReductionKerName) GenTilingDebug("%20s: %s\n", "DPReductionKerName", DPReductionKerName);
+		if (PoolKerName) GenTilingDebug("%20s: %s\n", "PoolKerName", PoolKerName);
+		if (ReLUKerName) GenTilingDebug("%20s: %s\n", "ReLUKerName", ReLUKerName);
+		GenTilingDebug("Nb Oper : %lld\n", LayerOp);
 		
 	}
 	if (Ctrl && (Ctrl->EnableIm2Col==1) && (ConvOper==KOP_CONV_DP) && (PoolOper==KOP_NONE) && (Fcx==1) && (Fcy==1) && (Dcx==1) && (Dcy==1)) {
 		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
 		if ((InFeat+OutFeat)<80) {
-			if (Log) printf("Mapping this convolution to matrix multiplication with small first operand\n");
+			if (Log) GenTilingDebug("Mapping this convolution to matrix multiplication with small first operand\n");
 			int Ok = CNN_MatMulSmallM1(Name, 0,
 			   		In_DataSize, Filter_DataSize, Bias_DataSize, Out_DataSize,
 					In_Q, Filter_Q, Bias_Q, Out_Q,
 			   		In_InL3, Filter_InL3, Bias_InL3, Out_InL3,
 			   		InFeat, OutFeat, Width*Height, InFeat, Width, Height, Scx, Scy,
 			   		OutLB, OutUB, KOP_MATMUL_SM1, ReLUOper);
-			if (!Ok&&Log) printf("Mapping this convolution to matrix multiplication with small first operand FAILED, trying with standard mult implementation\n");
+			if (!Ok&&Log) GenTilingDebug("Mapping this convolution to matrix multiplication with small first operand FAILED, trying with standard mult implementation\n");
 			if (Ok) return Ok;
 		}
-		if (Log) printf("Mapping this convolution to matrix multiplication\n");
+		if (Log) GenTilingDebug("Mapping this convolution to matrix multiplication\n");
 		int Ok = CNN_MatMul(Name, 0,
 			   In_DataSize, Filter_DataSize, Bias_DataSize, Out_DataSize,
 			   In_Q, Filter_Q, Bias_Q, Out_Q,
@@ -1986,7 +1986,7 @@ int CNN_ConvolutionPoolReLU(
 			   OutLB, OutUB, KOP_MATMUL, ReLUOper);
 		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
 		if (Ok) return Ok;
-		if (Log) printf("Mapping this convolution to matrix multiplication FAILED, reverting to standard implementation\n");
+		if (Log) GenTilingDebug("Mapping this convolution to matrix multiplication FAILED, reverting to standard implementation\n");
 	}
 
 	/* User kernel C arguments */
@@ -2428,38 +2428,38 @@ int CNN_ConvolutionMulBiasPoolReLU(
 	LayerBandwidth += MulBias_DataSize*OutFeat;
 
 	if (Log) {
-		printf("InFeat: %d, OutFeat: %d\n", InFeat, OutFeat);
-        	printf("Conv => W:  %d, Pad:[%d,%d] PadT:[%d,%d] => Wc: %d, Filter:[%d,%d]\n", Width,  PadInc[0], PadInc[1], PadIncT[0], PadIncT[1], Wc, Fcx, Fcy);
-        	printf("     => H:  %d, Pad:[%d,%d] PadT:[%d,%d] => Hc: %d\n", Height, PadInc[2], PadInc[3], PadIncT[2], PadIncT[3], Hc);
-        	printf("Pool => Wc: %d, Pad:[%d,%d] => Wo: %d, Filter:[%d,%d]\n", Wc, PadInp[0], PadInp[1], Wo, Fpx, Fpy);
-        	printf("     => Hc: %d, Pad:[%d,%d] => Ho: %d\n", Hc, PadInp[2], PadInp[3], Ho);
-        	printf("OverlapC: %d\n", OverlapC);
-        	printf("OverlapP: %d\n", OverlapP);
-        	printf("TileCons: %d\n", TileCons);
-		printf("UsedIn  : [%d x %d]\n", UsedWidth, UsedHeight);
-		printf("UsedC   : [%d x %d]\n", UsedWc, UsedHc);
-		if (SetBiasKerName) printf("%20s: %s\n", "SetBiasKerName", SetBiasKerName);
-		if (ConvKerName) printf("%20s: %s\n", "ConvKerName", ConvKerName);
-		if (DPReductionKerName) printf("%20s: %s\n", "DPReductionKerName", DPReductionKerName);
-		if (PoolKerName) printf("%20s: %s\n", "PoolKerName", PoolKerName);
-		if (ReLUKerName) printf("%20s: %s\n", "ReLUKerName", ReLUKerName);
-		printf("Nb Oper : %lld\n", LayerOp);
+		GenTilingDebug("InFeat: %d, OutFeat: %d\n", InFeat, OutFeat);
+        	GenTilingDebug("Conv => W:  %d, Pad:[%d,%d] PadT:[%d,%d] => Wc: %d, Filter:[%d,%d]\n", Width,  PadInc[0], PadInc[1], PadIncT[0], PadIncT[1], Wc, Fcx, Fcy);
+        	GenTilingDebug("     => H:  %d, Pad:[%d,%d] PadT:[%d,%d] => Hc: %d\n", Height, PadInc[2], PadInc[3], PadIncT[2], PadIncT[3], Hc);
+        	GenTilingDebug("Pool => Wc: %d, Pad:[%d,%d] => Wo: %d, Filter:[%d,%d]\n", Wc, PadInp[0], PadInp[1], Wo, Fpx, Fpy);
+        	GenTilingDebug("     => Hc: %d, Pad:[%d,%d] => Ho: %d\n", Hc, PadInp[2], PadInp[3], Ho);
+        	GenTilingDebug("OverlapC: %d\n", OverlapC);
+        	GenTilingDebug("OverlapP: %d\n", OverlapP);
+        	GenTilingDebug("TileCons: %d\n", TileCons);
+		GenTilingDebug("UsedIn  : [%d x %d]\n", UsedWidth, UsedHeight);
+		GenTilingDebug("UsedC   : [%d x %d]\n", UsedWc, UsedHc);
+		if (SetBiasKerName) GenTilingDebug("%20s: %s\n", "SetBiasKerName", SetBiasKerName);
+		if (ConvKerName) GenTilingDebug("%20s: %s\n", "ConvKerName", ConvKerName);
+		if (DPReductionKerName) GenTilingDebug("%20s: %s\n", "DPReductionKerName", DPReductionKerName);
+		if (PoolKerName) GenTilingDebug("%20s: %s\n", "PoolKerName", PoolKerName);
+		if (ReLUKerName) GenTilingDebug("%20s: %s\n", "ReLUKerName", ReLUKerName);
+		GenTilingDebug("Nb Oper : %lld\n", LayerOp);
 		
 	}
 	if (Ctrl && (Ctrl->EnableIm2Col==1) && (ConvOper==KOP_CONV_DP) && (PoolOper==KOP_NONE) && (Fcx==1) && (Fcy==1) && (Dcx==1) && (Dcy==1)) {
 		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
 		if ((InFeat+OutFeat)<80) {
-			if (Log) printf("Mapping this convolution to matrix multiplication with small first operand\n");
+			if (Log) GenTilingDebug("Mapping this convolution to matrix multiplication with small first operand\n");
 			int Ok = CNN_MatMulScaleSmallM1(Name, 0,
 			   		In_DataSize, Filter_DataSize, Bias_DataSize, MulBias_DataSize, Out_DataSize,
 			   		In_Q, Filter_Q, Bias_Q, MulBias_Q, Out_Q,
 			   		In_InL3, Filter_InL3, Bias_InL3, MulBias_InL3, Out_InL3,
 			   		InFeat, OutFeat, Width*Height, InFeat, Width, Height, Scx, Scy,
 			   		OutLB, OutUB, MulBiasScalar?KOP_MATMUL_SCALE_SCALAR_SM1:KOP_MATMUL_SCALE_SM1, ReLUOper);
-			if (!Ok&&Log) printf("Mapping this convolution to matrix multiplication with small first operand FAILED, trying with standard mult implementation\n");
+			if (!Ok&&Log) GenTilingDebug("Mapping this convolution to matrix multiplication with small first operand FAILED, trying with standard mult implementation\n");
 			if (Ok) return Ok;
 		}
-		if (Log) printf("Mapping this convolution to matrix multiplication\n");
+		if (Log) GenTilingDebug("Mapping this convolution to matrix multiplication\n");
 		int Ok = CNN_MatMulScale(Name, 0,
 			   In_DataSize, Filter_DataSize, Bias_DataSize, MulBias_DataSize, Out_DataSize,
 			   In_Q, Filter_Q, Bias_Q, MulBias_Q, Out_Q,
@@ -2468,7 +2468,7 @@ int CNN_ConvolutionMulBiasPoolReLU(
 			   OutLB, OutUB, MulBiasScalar?KOP_MATMUL_SCALE_SCALAR:KOP_MATMUL_SCALE, ReLUOper);
 		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
 		if (Ok) return Ok;
-		if (Log) printf("Mapping this convolution to matrix multiplication FAILED, reverting to standard implementation\n");
+		if (Log) GenTilingDebug("Mapping this convolution to matrix multiplication FAILED, reverting to standard implementation\n");
 	}
 
 	/* User kernel C arguments */
@@ -3154,14 +3154,14 @@ int CNN_PoolReLU(
 	LayerBandwidth += Wo*Ho*Out_DataSize*OutFeat;
 
 	if (Log) {
-        	printf("Pool => W: %d, Pad:[%d,%d] => Wo: %d\n", Width,  PadInp[0], PadInp[1], Wo);
-        	printf("     => H: %d, Pad:[%d,%d] => Ho: %d\n", Height, PadInp[2], PadInp[3], Ho);
-        	printf("OverlapP: %d\n", OverlapP);
-        	printf("TileCons: %d\n", TileCons);
-		printf("UsedIn  : [%d x %d]\n", UsedWidth, UsedHeight);
-		if (PoolKerName) printf("%20s: %s\n", "PoolKerName", PoolKerName);
-		if (ReLUKerName) printf("%20s: %s\n", "ReLUKerName", ReLUKerName);
-		printf("Nb Oper : %lld\n", LayerOp);
+        	GenTilingDebug("Pool => W: %d, Pad:[%d,%d] => Wo: %d\n", Width,  PadInp[0], PadInp[1], Wo);
+        	GenTilingDebug("     => H: %d, Pad:[%d,%d] => Ho: %d\n", Height, PadInp[2], PadInp[3], Ho);
+        	GenTilingDebug("OverlapP: %d\n", OverlapP);
+        	GenTilingDebug("TileCons: %d\n", TileCons);
+		GenTilingDebug("UsedIn  : [%d x %d]\n", UsedWidth, UsedHeight);
+		if (PoolKerName) GenTilingDebug("%20s: %s\n", "PoolKerName", PoolKerName);
+		if (ReLUKerName) GenTilingDebug("%20s: %s\n", "ReLUKerName", ReLUKerName);
+		GenTilingDebug("Nb Oper : %lld\n", LayerOp);
 	}
 
 	CKernel_Arg_T **KCArgs = AllocateCArgs(2);
@@ -3336,11 +3336,11 @@ int CNN_GlobalPool(
 	LayerBandwidth += Wo*Ho*Out_DataSize*OutFeat;
 
 	if (Log) {
-        	printf("Global Pool => W: %d => Wo: %d\n", Width,  Wo);
-        	printf("            => H: %d => Ho: %d\n", Height, Ho);
-        	printf("            => Feat: %d\n", OutFeat);
-		if (PoolKerName)      printf("%20s: %s\n", "PoolKerName", PoolKerName);
-		printf("Nb Oper : %lld\n", LayerOp);
+        	GenTilingDebug("Global Pool => W: %d => Wo: %d\n", Width,  Wo);
+        	GenTilingDebug("            => H: %d => Ho: %d\n", Height, Ho);
+        	GenTilingDebug("            => Feat: %d\n", OutFeat);
+		if (PoolKerName)      GenTilingDebug("%20s: %s\n", "PoolKerName", PoolKerName);
+		GenTilingDebug("Nb Oper : %lld\n", LayerOp);
 	}
 
         Kernel_T *Kernel;
@@ -3380,12 +3380,12 @@ int CNN_GlobalPool(
 		if (PoolKerName==0) GenTilingError("CNN_GlobalPool Kernel: %s, Can't find a matching double precision Pooling basic kernel", Name);
 		if (PoolReductKerName==0) GenTilingError("CNN_GlobalPool Kernel: %s, Can't find a matching double precision Reduction Pooling basic kernel", Name);
 		if (Log) {
-        		printf("Global Pool DP => W: %d => Wo: %d\n", Width,  Wo);
-        		printf("               => H: %d => Ho: %d\n", Height, Ho);
-        		printf("               => Feat: %d\n", OutFeat);
-			if (PoolKerName)       printf("%20s: %s\n", "PoolKerName", PoolKerName);
-			if (PoolReductKerName) printf("%20s: %s\n", "PoolReductKerName", PoolReductKerName);
-			printf("Nb Oper : %lld\n", LayerOp);
+        		GenTilingDebug("Global Pool DP => W: %d => Wo: %d\n", Width,  Wo);
+        		GenTilingDebug("               => H: %d => Ho: %d\n", Height, Ho);
+        		GenTilingDebug("               => Feat: %d\n", OutFeat);
+			if (PoolKerName)       GenTilingDebug("%20s: %s\n", "PoolKerName", PoolKerName);
+			if (PoolReductKerName) GenTilingDebug("%20s: %s\n", "PoolReductKerName", PoolReductKerName);
+			GenTilingDebug("Nb Oper : %lld\n", LayerOp);
 		}
        		Kernel = UserKernel(Name,
 			KernelIterSpace(2, IterParSpace(D0, InFeat, 8), IterTiledSpace(T0)),
@@ -3544,8 +3544,8 @@ int CNN_LinearReLU(
 	LayerBandwidth += Bias_DataSize*OutDim;
 
 	if (Log) {
-		printf("Linear Layer %s, %s: InDim: %d, OutDim: %d, Activation: %s\n", Name, CNN_KernelOperImage(LinearOper), InDim, OutDim, CNN_KernelOperImage(ReLUOper));
-		if (LinearKerName) printf("Linear Kernel: %s\n", LinearKerName);
+		GenTilingDebug("Linear Layer %s, %s: InDim: %d, OutDim: %d, Activation: %s\n", Name, CNN_KernelOperImage(LinearOper), InDim, OutDim, CNN_KernelOperImage(ReLUOper));
+		if (LinearKerName) GenTilingDebug("Linear Kernel: %s\n", LinearKerName);
 	}
 	Kernel_T *Kernel;
 
@@ -3595,10 +3595,10 @@ int CNN_LinearReLU(
 		char *ReductKerName = CNN_FindMatchingKernel(KOP_DP_REDUCT_LINEAR, ReLUOper, 0, 4, Bias_DataSize, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
 	
 		if (Log) {
-			printf("Linear Layer %s, %s: InDim: %d, OutDim: %d, Activation: %s, output parallel failed, switching to feature parallel form\n",
+			GenTilingDebug("Linear Layer %s, %s: InDim: %d, OutDim: %d, Activation: %s, output parallel failed, switching to feature parallel form\n",
 				Name, CNN_KernelOperImage(LinearOper), InDim, OutDim, CNN_KernelOperImage(ReLUOper));
-			if (LinearKerName) printf("Linear Kernel   : %s\n", LinearKerName);
-			if (ReductKerName) printf("Reduction Kernel: %s\n", ReductKerName);
+			if (LinearKerName) GenTilingDebug("Linear Kernel   : %s\n", LinearKerName);
+			if (ReductKerName) GenTilingDebug("Reduction Kernel: %s\n", ReductKerName);
 		}
 		if (LinearKerName==0 || ReductKerName==0) GenTilingError("CNN_LinearReLU Kernel: %s, Can't find a matching %s basic kernel", Name, ReLUOper?"with linear rectification":"");
 
@@ -3645,7 +3645,7 @@ int CNN_LinearReLU(
 		);
 
 		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
-		if (Log && (Kernel==0)) printf("Feature parallel with in buffered failed, switching to non buffered in form\n");
+		if (Log && (Kernel==0)) GenTilingDebug("Feature parallel with in buffered failed, switching to non buffered in form\n");
 		if (Kernel==0) {
 			Object_T **KArgs = AllocateKerArgs(5);
 			int Ka=0;
@@ -4549,13 +4549,13 @@ int CNN_MatMul(
 	}
 
 	if (Log) {
-		printf("CNN_MatMul: %s\n", Name);
-		printf("In1  => W: %4d, H: %4d\n", ColM1, LineM1);
-		printf("In2  => W: %4d, H: %4d, w: %4d, h: %4d, Sx: %1d, Sy: %1d\n", ColM2, LineM2, Width, Height, Scx, Scy);
-		printf("Out  => W: %4d, H: %4d => %s\n", ColO, LineO, ColFirst?"Column first":"Line First");
-		if (MatMulKerName) printf("%20s: %s\n", "MatMulKerName", MatMulKerName);
-		printf("ReLU: %s\n", CNN_KernelOperImage(ReLUOper));
-		// printf("Nb Oper : %lld\n", LayerOp);
+		GenTilingDebug("CNN_MatMul: %s\n", Name);
+		GenTilingDebug("In1  => W: %4d, H: %4d\n", ColM1, LineM1);
+		GenTilingDebug("In2  => W: %4d, H: %4d, w: %4d, h: %4d, Sx: %1d, Sy: %1d\n", ColM2, LineM2, Width, Height, Scx, Scy);
+		GenTilingDebug("Out  => W: %4d, H: %4d => %s\n", ColO, LineO, ColFirst?"Column first":"Line First");
+		if (MatMulKerName) GenTilingDebug("%20s: %s\n", "MatMulKerName", MatMulKerName);
+		GenTilingDebug("ReLU: %s\n", CNN_KernelOperImage(ReLUOper));
+		// GenTilingDebug("Nb Oper : %lld\n", LayerOp);
 	}
 
 	int ObjCons = !Transposed?OBJ_CONSTRAINTS_TILE_VER:0;
@@ -4780,14 +4780,14 @@ int CNN_MatMulSmallM1(
 	}
 
 	if (Log) {
-		printf("CNN_MatMulSmallM1: %s\n", Name);
-		printf("In1  => W: %4d, H: %4d\n", ColM1, LineM1);
-		printf("In2  => W: %4d, H: %4d, w: %4d, h: %4d, Sx: %1d, Sy: %1d, TileCons: %d\n", ColM2, LineM2, Width, Height, Scx, Scy, TileCons);
-		printf("Out  => W: %4d, H: %4d\n", ColO, LineO);
-		if (MatMulKerName) printf("%20s: %s\n", "MatMulKerName", MatMulKerName);
-		if (MatTransKerName) printf("%20s: %s\n", "MatTransKerName", MatTransKerName);
-		printf("ReLU: %s\n", CNN_KernelOperImage(ReLUOper));
-		printf("Nb Oper : %lld\n", LayerOp);
+		GenTilingDebug("CNN_MatMulSmallM1: %s\n", Name);
+		GenTilingDebug("In1  => W: %4d, H: %4d\n", ColM1, LineM1);
+		GenTilingDebug("In2  => W: %4d, H: %4d, w: %4d, h: %4d, Sx: %1d, Sy: %1d, TileCons: %d\n", ColM2, LineM2, Width, Height, Scx, Scy, TileCons);
+		GenTilingDebug("Out  => W: %4d, H: %4d\n", ColO, LineO);
+		if (MatMulKerName) GenTilingDebug("%20s: %s\n", "MatMulKerName", MatMulKerName);
+		if (MatTransKerName) GenTilingDebug("%20s: %s\n", "MatTransKerName", MatTransKerName);
+		GenTilingDebug("ReLU: %s\n", CNN_KernelOperImage(ReLUOper));
+		GenTilingDebug("Nb Oper : %lld\n", LayerOp);
 	}
 	Kernel_T *Kernel = UserKernel(Name,
 		KernelIterSpace(1, IterTiledSpace(T0)),
@@ -5020,13 +5020,13 @@ int CNN_MatMulScale(
 	}
 
 	if (Log) {
-		printf("CNN_MatMulScale: %s\n", Name);
-		printf("In1  => W: %4d, H: %4d\n", ColM1, LineM1);
-		printf("In2  => W: %4d, H: %4d, w: %4d, h: %4d, Sx: %1d, Sy: %1d\n", ColM2, LineM2, Width, Height, Scx, Scy);
-		printf("Out  => W: %4d, H: %4d => %s\n", ColO, LineO, ColFirst?"Column first":"Line First");
-		if (MatMulKerName) printf("%20s: %s\n", "MatMulKerName", MatMulKerName);
-		printf("ReLU: %s\n", CNN_KernelOperImage(ReLUOper));
-		// printf("Nb Oper : %lld\n", LayerOp);
+		GenTilingDebug("CNN_MatMulScale: %s\n", Name);
+		GenTilingDebug("In1  => W: %4d, H: %4d\n", ColM1, LineM1);
+		GenTilingDebug("In2  => W: %4d, H: %4d, w: %4d, h: %4d, Sx: %1d, Sy: %1d\n", ColM2, LineM2, Width, Height, Scx, Scy);
+		GenTilingDebug("Out  => W: %4d, H: %4d => %s\n", ColO, LineO, ColFirst?"Column first":"Line First");
+		if (MatMulKerName) GenTilingDebug("%20s: %s\n", "MatMulKerName", MatMulKerName);
+		GenTilingDebug("ReLU: %s\n", CNN_KernelOperImage(ReLUOper));
+		// GenTilingDebug("Nb Oper : %lld\n", LayerOp);
 	}
 	Kernel_T *Kernel = UserKernel(Name,
 		KernelIterSpace(2, IterTiledSpace(T1), IterTiledSpace(T0)),
@@ -5263,14 +5263,14 @@ int CNN_MatMulScaleSmallM1(
 	}
 
 	if (Log) {
-		printf("CNN_MatMulScaleSmallM1: %s\n", Name);
-		printf("In1  => W: %4d, H: %4d\n", ColM1, LineM1);
-		printf("In2  => W: %4d, H: %4d, w: %4d, h: %4d, Sx: %1d, Sy: %1d, TileCons: %d\n", ColM2, LineM2, Width, Height, Scx, Scy, TileCons);
-		printf("Out  => W: %4d, H: %4d\n", ColO, LineO);
-		if (MatMulKerName) printf("%20s: %s\n", "MatMulKerName", MatMulKerName);
-		if (MatTransKerName) printf("%20s: %s\n", "MatTransKerName", MatTransKerName);
-		printf("ReLU: %s\n", CNN_KernelOperImage(ReLUOper));
-		printf("Nb Oper : %lld\n", LayerOp);
+		GenTilingDebug("CNN_MatMulScaleSmallM1: %s\n", Name);
+		GenTilingDebug("In1  => W: %4d, H: %4d\n", ColM1, LineM1);
+		GenTilingDebug("In2  => W: %4d, H: %4d, w: %4d, h: %4d, Sx: %1d, Sy: %1d, TileCons: %d\n", ColM2, LineM2, Width, Height, Scx, Scy, TileCons);
+		GenTilingDebug("Out  => W: %4d, H: %4d\n", ColO, LineO);
+		if (MatMulKerName) GenTilingDebug("%20s: %s\n", "MatMulKerName", MatMulKerName);
+		if (MatTransKerName) GenTilingDebug("%20s: %s\n", "MatTransKerName", MatTransKerName);
+		GenTilingDebug("ReLU: %s\n", CNN_KernelOperImage(ReLUOper));
+		GenTilingDebug("Nb Oper : %lld\n", LayerOp);
 	}
 	Kernel_T *Kernel = UserKernel(Name,
 		KernelIterSpace(1, IterTiledSpace(T0)),

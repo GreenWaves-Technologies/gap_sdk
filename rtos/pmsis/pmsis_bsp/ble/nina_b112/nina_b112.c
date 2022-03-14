@@ -17,6 +17,7 @@
 #include "bsp/bsp.h"
 #include "bsp/ble/nina_b112.h"
 #include "nina_b112_defines.h"
+#include <string.h>
 
 /*******************************************************************************
  * Definitions
@@ -107,6 +108,23 @@ static int32_t __pi_nina_b112_at_cmd(struct pi_device *device, const char *cmd,
 static int32_t __pi_nina_b112_peer_connect(struct pi_device *device, const char *addr);
 
 static int32_t __pi_nina_b112_peer_disconnect(struct pi_device *device, const char *addr);
+
+/*******************************************************************************
+ * Board specific functions
+ ******************************************************************************/
+
+// These functions can be overloaded by the board-specific bsp part
+// in order to overload default behavior
+
+void __attribute__((weak)) bsp_nina_b112_conf_init(struct pi_nina_b112_conf *conf)
+{
+    conf->uart_itf = (uint8_t) CONFIG_NINA_B112_UART_ID;
+}
+
+int __attribute__((weak)) bsp_nina_b112_open()
+{
+    return 0;
+}
 
 /*******************************************************************************
  * Internal functions
@@ -376,7 +394,7 @@ static int __pi_nina_b112_open(struct pi_device *device)
         return -3;
     }
     device->data = (void *) nina;
-#if (CHIP_VERSION == 1) || (CHIP_VERSION == 2)
+#if !defined(__GAP9__) && ((CHIP_VERSION == 1) || (CHIP_VERSION == 2))
     bsp_nina_b112_open_old();
 #else
     bsp_nina_b112_open();

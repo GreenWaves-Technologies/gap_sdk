@@ -595,6 +595,8 @@ public:
     void channel_register(int id, Udma_channel *channel);
     void channel_unregister(int id, Udma_channel *channel);
 
+    void busy_set(int inc);
+
     vp::io_master l2_itf;
 
     Udma_rx_channels *rx_channels;
@@ -631,6 +633,9 @@ private:
     vp::clock_engine *periph_clock_dual_edges;
     vp::clk_slave fast_clock_itf;
     vp::clock_engine *fast_clock;
+
+    vp::reg_1 busy;
+    int busy_count;
 
     int nb_periphs;
     int l2_read_fifo_size;

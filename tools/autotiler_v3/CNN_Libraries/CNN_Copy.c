@@ -62,24 +62,69 @@ static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
 }
 
 #define B_CLR(x, bits)  ((x)&(~((1<<(bits))-1)))
-void CNN_Copy_void(KerCopy_void_T *Arg)
+static inline void ParCopy(char *__restrict__ To, char *__restrict__ From, unsigned int Size, unsigned int CoreId)
 
 {
-	signed char *__restrict__ From = Arg->In;
-	signed char *__restrict__ To = Arg->Out;
-	unsigned int Size = Arg->N;
-	unsigned int CoreId = gap_coreid();
-	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
-	unsigned int Iter = Max(0, Last-First);
+        unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+        unsigned int Iter = Max(0, Last-First);
 
 	int *pFrom = (int *) (From+First), *pTo = (int *) (To+First);
-	for (int i=0; i<Iter/8; i++) {
-		int V0 = pFrom[2*i], V1 = pFrom[2*i+1];
+        for (int i=0; i<Iter/8; i++) {
+                int V0 = pFrom[2*i], V1 = pFrom[2*i+1];
 		pTo[2*i] = V0; pTo[2*i+1] = V1;
 	}
 	if (Iter & 0x4) *((int *) (To + First + B_CLR(Iter, 3))) = *((int *) (From + First + B_CLR(Iter, 3)));
 	if (Iter & 0x2) *((short int *) (To + First + B_CLR(Iter, 2))) = *((short int *) (From + First + B_CLR(Iter, 2)));
 	if (Iter & 0x1) *((signed char *) (To + First + Iter - 1)) = *((signed char *) (From + First + Iter - 1));
+}
+
+static inline void Copy(char *__restrict__ To, char *__restrict__ From, unsigned int Size)
+
+{
+	int *pFrom = (int *) (From), *pTo = (int *) (To);
+        for (int i=0; i<Size/8; i++) {
+                int V0 = pFrom[2*i], V1 = pFrom[2*i+1];
+		pTo[2*i] = V0; pTo[2*i+1] = V1;
+	}
+	if (Size & 0x4) *((int *) (To + B_CLR(Size, 3))) = *((int *) (From + B_CLR(Size, 3)));
+	if (Size & 0x2) *((short int *) (To + B_CLR(Size, 2))) = *((short int *) (From + B_CLR(Size, 2)));
+	if (Size & 0x1) *((signed char *) (To + Size - 1)) = *((signed char *) (From + Size - 1));
+}
+
+void CNN_Copy_void(KerCopy_void_T *Arg)
+
+{
+	ParCopy(Arg->Out, Arg->In, Arg->N, gap_coreid());
+        gap_waitbarrier(0);
+}
+
+void CNN_Concat_Width(CNN_Concat_Width_Arg_T *Arg)
+
+{
+	char * __restrict__ In1 = (char * __restrict__) Arg->In1;
+	char * __restrict__ In2 = (char * __restrict__) Arg->In2;
+	char * __restrict__ In3 = (char * __restrict__) Arg->In3;
+	char * __restrict__ In4 = (char * __restrict__) Arg->In4;
+	char * __restrict__ Out = (char * __restrict__) Arg->Out;
+	int DataSize = (int) Arg->DataSize;
+	int H = (int) Arg->H;
+	int W1 = (int) Arg->W1 * DataSize;
+	int W2 = (int) Arg->W2 * DataSize;
+	int W3 = (int) Arg->W3 * DataSize;
+	int W4 = (int) Arg->W4 * DataSize;
+	int Wo = W1 + W2 + W3 + W4;
+
+	unsigned int CoreId = gap_coreid();
+        unsigned int Chunk = ChunkSize(H), First = Chunk*CoreId, Last = Min(First+Chunk, H);
+
+        for (int h=First; h<Last; h++) {
+        	Copy(Out+h*Wo         , In1+h*W1, W1);
+        	Copy(Out+h*Wo+W1      , In2+h*W2, W2);
+        	if (W3)
+        	Copy(Out+h*Wo+W1+W2   , In3+h*W3, W3);
+        	if (W4)
+        	Copy(Out+h*Wo+W1+W2+W3, In4+h*W4, W4);
+	}
         gap_waitbarrier(0);
 }
 

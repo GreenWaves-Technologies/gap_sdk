@@ -43,6 +43,11 @@
 
 #if (!defined(HW_VERIF_ONLY))
 
+#ifdef __GAP9__
+#define PI_INLINE_FREQ_LVL_0
+#include "pmsis/chips/gap9/gap9.h"
+#endif
+
 /* Backend includes. */
 #include "pmsis/backend/implementation_specific_defines.h"
 #include "pmsis/targets/target.h"

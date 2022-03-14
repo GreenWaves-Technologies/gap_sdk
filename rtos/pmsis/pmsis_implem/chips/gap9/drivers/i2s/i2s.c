@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-/*
- * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
- */
-
 #include <pmsis.h>
 #include <string.h>
 

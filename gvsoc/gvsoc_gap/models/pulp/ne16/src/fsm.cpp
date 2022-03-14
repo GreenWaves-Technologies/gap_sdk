@@ -99,6 +99,7 @@ void Ne16::fsm_end_handler(void *__this, vp::clock_event *event) {
       _this->trace.msg(vp::trace::LEVEL_INFO, "Starting a new job from the queue.\n");
   }
   _this->activity.set(0);
+  _this->busy.set(0);
   _this->state.set(IDLE);
 }
 
@@ -156,6 +157,7 @@ int Ne16::fsm() {
     
     case START:
       this->activity.set(1);
+      this->busy.set(1);
       this->trace.msg(vp::trace::LEVEL_INFO, "Starting a job (id=%d) with the following configuration:\n", this->cxt_job_id[this->cxt_use_ptr]);
       this->printout();
 

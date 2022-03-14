@@ -17,11 +17,10 @@ with open("MfccConfig.json", "r") as f:
 frame_size = config['frame_size']
 frame_step = config['frame_step']
 n_fft = config['n_fft']
-n_mels = config['mfcc_bank_cnt']
+n_mels = config['n_mels']
 fmin = config['fmin']
 fmax = config['fmax']
 dtype = config.get('dtype', "int")
-high_prec = config.get('use_high_prec', False) or dtype == "fix32_scal"
 use_power = False
 rad4 = round(math.log(n_fft//2, 4)) == math.log(n_fft//2, 4)
 ndct = config.get('n_dct', False)

@@ -258,13 +258,13 @@ vp::io_req_status_e timer::handle_configure(int counter, uint32_t *data, unsigne
     config[counter] = *data;
     depack_config(counter, config[counter]);
 
-    this->trace.msg(vp::trace::LEVEL_INFO, "Modified configuration (timer: %d, enabled: %d, irq: %d, iem: %d, cmp-clr: %d, one-shot: %d, prescaler: %d, prescaler value: 0x%x, is64: %d)\n", 
-      counter, is_enabled[counter], irq_enabled[counter], iem[counter], cmp_clr[counter], one_shot[counter], prescaler[counter], prescaler_value[counter], is_64);
+    this->trace.msg(vp::trace::LEVEL_INFO, "Modified configuration (timer: %d, enabled: %d, irq: %d, iem: %d, cmp-clr: %d, one-shot: %d, prescaler: %d, prescaler value: 0x%x, is64: %d, ref_clock: %d)\n", 
+      counter, is_enabled[counter], irq_enabled[counter], iem[counter], cmp_clr[counter], one_shot[counter], prescaler[counter], prescaler_value[counter], is_64, ref_clock[counter]);
 
     if ((config[counter] >> TIMER_CFG_LO_RESET_BIT) & 1) timer_reset(counter);
 
     // Put back reserved bits to 0 in case they were written
-    uint32_t setMask = (1 << TIMER_CFG_LO_ENABLE_BIT) | (1 << TIMER_CFG_LO_IRQEN_BIT) | (1 << TIMER_CFG_LO_IRQEN_BIT) | (1 << TIMER_CFG_LO_MODE_BIT) | (1 << TIMER_CFG_LO_ONE_S_BIT) | (1 << TIMER_CFG_LO_PEN_BIT) | (((1 << TIMER_CFG_LO_PVAL_WIDTH)-1)<<TIMER_CFG_LO_PVAL_BIT);
+    uint32_t setMask = (1 << TIMER_CFG_LO_ENABLE_BIT) | (1 << TIMER_CFG_LO_IRQEN_BIT) | (1 << TIMER_CFG_LO_IRQEN_BIT) | (1 << TIMER_CFG_LO_MODE_BIT) | (1 << TIMER_CFG_LO_ONE_S_BIT) | (1 << TIMER_CFG_LO_PEN_BIT) | (((1 << TIMER_CFG_LO_PVAL_WIDTH)-1)<<TIMER_CFG_LO_PVAL_BIT) | (((1 << TIMER_CFG_LO_CCFG_WIDTH)-1)<<TIMER_CFG_LO_CCFG_BIT);
     if (counter == 0) setMask |= 1 << TIMER_CFG_LO_CASC_BIT;
 
     config[counter] &= setMask;
@@ -397,7 +397,7 @@ int timer::build()
   new_master_port("irq_itf_0", &irq_itf[0]);
   new_master_port("irq_itf_1", &irq_itf[1]);
 
-  new_master_port("busy", &busy_itf);
+  new_master_port("busy", &this->busy_itf);
 
   ref_clock_itf.set_sync_meth(&timer::ref_clock_sync);
   new_slave_port("ref_clock", &ref_clock_itf);

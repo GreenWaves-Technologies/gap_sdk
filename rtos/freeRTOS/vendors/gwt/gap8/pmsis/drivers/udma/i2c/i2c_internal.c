@@ -254,6 +254,7 @@ static void __pi_i2c_task_fifo_enqueue(struct i2c_itf_data_s *driver_data,
                                        struct pi_task *task)
 {
     uint32_t irq = __disable_irq();
+    task->next = NULL;
     /* Enqueue transfer in SW fifo. */
     if (driver_data->fifo_head == NULL)
     {
@@ -422,11 +423,16 @@ static void __pi_i2c_cs_data_add(struct i2c_itf_data_s *driver_data,
                                  struct i2c_cs_data_s *cs_data)
 {
     struct i2c_cs_data_s *head = driver_data->cs_list;
-    while (head != NULL)
+    if(head)
     {
-        head = head->next;
+        cs_data->next = head;
+        head = cs_data;
     }
-    head->next = cs_data;
+    else
+    {
+        head = cs_data;
+        cs_data->next = NULL;
+    }
 }
 
 static void __pi_i2c_cs_data_remove(struct i2c_itf_data_s *driver_data,
@@ -513,7 +519,7 @@ int32_t __pi_i2c_open(struct pi_i2c_conf *conf, struct i2c_cs_data_s **device_da
         driver_data->hw_buffer[1] = NULL;
         driver_data->fifo_head = NULL;
         driver_data->fifo_tail = NULL;
-        driver_data->pending = NULL;
+        driver_data->pending = pi_l2_malloc(sizeof(struct i2c_pending_transfer_s));
         driver_data->nb_open = 0;
         driver_data->i2c_cmd_index = 0;
         driver_data->cs_list = NULL;

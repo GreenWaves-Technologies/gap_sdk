@@ -30,12 +30,6 @@ We provide you with a set of tools and two different operating systems for GAP:
     Thanks to device models, full application with real device drivers can be
     simulated. Currently, we provide simulations of devices such as cameras,
     microphones, LCDs, etc.
-  * [Profiler](https://greenwaves-technologies.com/profiler/) is a part of
-    GAP SDK and is used with GVSOC.
-    Profiler gives a visual view of what is happening inside the chip and
-    allows to control the simulator through a graphic interface. Profiler is
-    an extremely useful tool for developing and debugging applications on GAP
-    processors.
   * [Autotiler](https://greenwaves-technologies.com/manuals/BUILD/AUTOTILER/html/index.html):
     a code generator for GAP, which can generate a user algorithm (CNN,
     MatrixAdd, MatrixMult, FFT, MFCC, etc) with optimized memory management.
@@ -251,6 +245,22 @@ make gvsoc
 make openocd.all
 ```
 
+### Build SDK Doc
+
+SDK Doc is build and generated based on SPHINX [https://www.sphinx-doc.org/en/master/], the SDK will have installed all the necessary packages for you.  
+You just need to run:
+
+```bash
+cd doc
+make html
+```
+
+This will generate the doc in HTML in 
+```
+doc/_build/html/  
+```
+and open the file index.html with your browser
+
 ### Helloworld
 
 Finally try a test project. First connect your GAPuino to your PCs USB port.
@@ -372,32 +382,7 @@ You can also run this example on the GAP virtual platform with this command:
 make clean all run platform=gvsoc PMSIS_OS=freertos/pulpos
 ```
 
-### Using the virtual platform with profiler
-
-#### Using GAP Profiler
-
-Install the profiler:
-
-```bash
-make profiler
-```
-
-For further information, you can open the doc : gap_sdk/doc/_build/html/index.html
-and find Tools -> Profiler
-
-In the doc, we will show you how to install and use the profiler step by step.
-
-Note:
-1. If you are using Anaconda in Ubuntu 20.04, Anaconda has default Qt version: 5.9.7,
-   which is not aligned to the default version in Ubuntu 20.04 (5.12.8).
-   The solution is to use only the one from system (5.12.8):
-   ```bash
-   export PATH=/usr/lib/qt5/bin:$PATH
-   ```
-
-2. Profiler build process doesn't support GCC-10+ for now.
-   The current solution is switch to gcc-9.
-
+### Using the virtual platform 
 #### Using VCD traces with GTKWave
 
 You can also generate VCD traces to see more details about the execution:
@@ -406,7 +391,7 @@ You can also generate VCD traces to see more details about the execution:
 make clean all run platform=gvsoc runner_args=--vcd
 ```
 
-You should see a message from the platform telling how to open the profiler.
+You should see a message from the platform telling how to open the gtkwave files (view.gtkw).
 
 ## Using the flasher (Hyperflash)
 
@@ -491,24 +476,6 @@ make clean sdk
 
 You can find a list of [releases](https://github.com/GreenWaves-Technologies/gap_sdk/releases)
 on Github.
-
-
-## Cmake Build (experimental)
-
-In order to build with cmake, source config file as explained before, 
-and then run the following code:
-
-```bash
-# If your current directory is the SDK top:
-CMAKE_GENERATOR=Ninja cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTARGET_CHIP=GAP9_V2 -DCMAKE_INSTALL_PREFIX=$(pwd)/install/workstation -D
-$ If your SDK is somewhere else:
-export SDK_PATH=PATH/TO/YOUR/SDK
-CMAKE_GENERATOR=Ninja cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTARGET_CHIP=GAP9_V2 -DCMAKE_INSTALL_PREFIX=$SDK_PATH/install/workstation -DCONFIG_GAP_SDK_HOME=$SDK_PATH
-# finally:
-cmake --build build
-cmake --install build 
-```
-To be noted: cmake build also takes care of python dependencies by default.
 
 ## Getting help
 

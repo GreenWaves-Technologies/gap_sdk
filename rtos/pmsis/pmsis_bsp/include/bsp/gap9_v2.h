@@ -27,7 +27,6 @@
 #define CONFIG_APS25XXXN
 #define CONFIG_VIRTUAL_EEPROM
 #define CONFIG_ATXP032
-#define CONFIG_NINA_B112
 
 #define CONFIG_HIMAX_CPI_ITF 0
 #define CONFIG_HIMAX_I2C_ITF 0
@@ -45,13 +44,23 @@
 #define CONFIG_SPIRAM_START     0
 #define CONFIG_SPIRAM_SIZE     (1<<20)
 
+#if defined(__PLATFORM_RTL__)
+#define CONFIG_APS25XXXN_SPI_ITF   1
+#define CONFIG_APS25XXXN_SPI_CS    0
+#else
 #define CONFIG_APS25XXXN_SPI_ITF   0
 #define CONFIG_APS25XXXN_SPI_CS    1
+#endif
 #define CONFIG_APS25XXXN_START     0
 #define CONFIG_APS25XXXN_SIZE     (1<<25)
 
+#if defined(__PLATFORM_RTL__)
+#define CONFIG_ATXP032_SPI_ITF   1
+#define CONFIG_ATXP032_SPI_CS    1
+#else
 #define CONFIG_ATXP032_SPI_ITF   0
 #define CONFIG_ATXP032_SPI_CS    0
+#endif
 
 #define CONFIG_SPIFLASH_SPI_ITF     0
 #define CONFIG_SPIFLASH_SPI_CS      0
@@ -68,13 +77,6 @@
 
 #define CONFIG_VIRTUAL_EEPROM_I2C_ADDR   0x14
 #define CONFIG_VIRTUAL_EEPROM_I2C_ITF    0
-
-#define CONFIG_NINA_B112_UART_ID             ( 1 )
-/* BLE Nina. */
-#define GPIOA2_NINA_RST                ( PI_PAD_040)
-#define GPIOA21_NINA17                 ( PI_PAD_041)
-#define GPIO_NINA_PWRON                ( PI_PAD_042)
-#define GPIO_NINA17_DSR                ( PI_PAD_043)
 
 #if defined(__PLATFORM_GVSOC__)
 
