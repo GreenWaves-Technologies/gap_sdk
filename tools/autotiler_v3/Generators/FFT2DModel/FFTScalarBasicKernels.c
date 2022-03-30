@@ -779,7 +779,6 @@ void Radix2FFT_DIF_2D_Scalar_Horizontal(FFT_2D_Arg_T *Arg)
 
 /* Vertical part of a Radix2 2D FFT (in place), W=Arg->Nb, H=Arg->N_fft */
 void Radix2FFT_DIF_2D_Scalar_Vertical(FFT_2D_Arg_T *Arg)
-
 {
         int i;
         signed short int * __restrict__ In = Arg->Data;

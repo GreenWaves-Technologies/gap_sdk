@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-/* 
- * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
- */
- 
 #pragma once
 
 static inline int pi_i2s_frame_read(struct pi_device *dev, uint32_t frame, void **mem_block, size_t *size)

@@ -159,6 +159,7 @@ class mchan : public vp::component
 public:
 
   mchan(js::config *config);
+  void busy_set(int count);
 
   int build();
   void start();
@@ -242,7 +243,10 @@ private:
   bool ext_is_stalled;
   int nb_cmd_started;
 
-  vp::trace     cmd_events[MCHAN_NB_COUNTERS];
+  vp::reg_1 busy;
+  int busy_count;
+  vp::reg_1 channel_busy[MCHAN_NB_COUNTERS];
+  vp::trace cmd_events[MCHAN_NB_COUNTERS];
 
   vp::wire_master<bool> busy_itf;
   vp::power::power_source background_power;
@@ -535,6 +539,8 @@ void mchan::cmd_start(int cmd_id)
 {
     uint8_t one = 1;
     this->cmd_events[cmd_id].event(&one);
+    this->channel_busy[cmd_id].set(1);
+    this->busy_set(1);
     this->nb_cmd_started++;
     if (this->nb_cmd_started == 1)
     {
@@ -944,6 +950,8 @@ void mchan::check_ext_write_handler(void *__this, vp::clock_event *event)
 void mchan::handle_cmd_termination(Mchan_cmd *cmd)
 {
     this->cmd_events[cmd->counter_id].event(NULL);
+    this->channel_busy[cmd->counter_id].set(0);
+    this->busy_set(-1);
     this->nb_cmd_started--;
     if (this->nb_cmd_started == 0)
     {
@@ -1190,7 +1198,10 @@ int mchan::build()
   for (int i=0; i<MCHAN_NB_COUNTERS; i++)
   {
     traces.new_trace_event("channel_" + std::to_string(i), &this->cmd_events[i], 8);
+    this->new_reg("busy_" + std::to_string(i), &this->channel_busy[i], 1);
   }
+
+  this->new_reg("busy", &this->busy, 1);
 
   this->power.new_power_source("background", &this->background_power, this->get_js_config()->get("**/power_models/background"));
   this->power.new_power_source("active", &this->active_power, this->get_js_config()->get("**/power_models/active"));
@@ -1244,11 +1255,24 @@ void mchan::reset(bool active)
     for (int i=0; i<MCHAN_NB_COUNTERS; i++)
     {
       this->cmd_events[i].event(NULL);
+      this->channel_busy[i].set(0);
     }
+    this->busy_count = 0;
+    this->busy.set(this->busy_count != 0);
   }
   else
   {
   }
+}
+
+void mchan::busy_set(int count)
+{
+    this->busy_count += count;
+    if (this->busy_count < 0)
+    {
+        this->busy_count = 0;
+    }
+    this->busy.set(this->busy_count != 0);
 }
 
 void Mchan_cmd::init()

@@ -35,13 +35,6 @@ int __os_native_kickoff(void *arg)
 
     hal_compiler_barrier();
 
-    /*
-     * This should be used in case of printf via uart before scheduler has started.
-     * Output will be on terminal instead of uart. After scheduler has started, output
-     * will be via uart.
-     */
-    extern uint8_t g_freertos_scheduler_started;
-    g_freertos_scheduler_started = 1;
 
     extern SemaphoreHandle_t g_printf_mutex;
     g_printf_mutex = xSemaphoreCreateMutex();
@@ -50,6 +43,13 @@ int __os_native_kickoff(void *arg)
         printf("Error : printf mutex not created !\n", g_printf_mutex);
         pmsis_exit(-4322);
     }
+    /*
+     * This should be used in case of printf via uart before scheduler has started.
+     * Output will be on terminal instead of uart. After scheduler has started, output
+     * will be via uart.
+     */
+    extern uint8_t g_freertos_scheduler_started;
+    g_freertos_scheduler_started = 1;
 
     /* Start the kernel.  From here on, only tasks and interrupts will run. */
     vTaskStartScheduler();

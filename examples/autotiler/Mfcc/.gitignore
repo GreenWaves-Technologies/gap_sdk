@@ -1,5 +1,6 @@
-.ipynb*
+.ipynb_checkpoints
 BUILD*
 results.txt
 mfcc_emul
 ground_truth.h
+GapMel.bin

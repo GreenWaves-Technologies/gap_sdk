@@ -417,7 +417,7 @@ static inline int pi_log_default_vprintf(const char *format, va_list list)
 #define MRAM_DBG(fmt, ...) PI_LOG_DBG(MRAM_TAG, fmt, ##__VA_ARGS__)
 #define MRAM_TRC(fmt, ...) PI_LOG_TRC(MRAM_TAG, fmt, ##__VA_ARGS__)
 
-#define freq_TAG "freq"
+#define FREQ_TAG "freq"
 #define FREQ_ERR(fmt, ...) PI_LOG_ERR(FREQ_TAG, fmt, ##__VA_ARGS__)
 #define FREQ_WNG(fmt, ...) PI_LOG_WNG(FREQ_TAG, fmt, ##__VA_ARGS__)
 #define FREQ_INF(fmt, ...) PI_LOG_INF(FREQ_TAG, fmt, ##__VA_ARGS__)

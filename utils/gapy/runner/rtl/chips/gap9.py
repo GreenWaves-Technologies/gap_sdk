@@ -49,8 +49,8 @@ class Runner(runner.chips.gap9_v2.Runner, runner.rtl.rtl_runner.Runner):
         self.set_cmd_arg('+TB_DEBUG_VERBOSITY=%d' % self.config.get_int('**/rtl/verbosity'))
 
         if os.environ.get('BOARD_NAME') == 'gap9_evk':
-            self.set_cmd_arg('+ENABLE_HYPER0_CS1_MX25U51245G_VIP=1')
-            self.set_cmd_arg('+ENABLE_HYPER0_CS0_PSRAM_VIP=1')
+            self.set_cmd_arg('+ENABLE_HYPER0_CS0_MX25U51245G_VIP=1')
+            self.set_cmd_arg('+ENABLE_HYPER0_CS1_PSRAM_VIP=1')
             self.set_cmd_arg('+VIP_MODE=CUSTOM')
 
         boot_mode = self.config.get_str('**/runner/boot/mode')

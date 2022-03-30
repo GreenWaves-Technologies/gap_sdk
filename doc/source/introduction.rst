@@ -15,7 +15,7 @@ It provides:
 
 - Two different operating systems: FreeRTOS and PulpOS
 - a common API to create applications that can run on both OSes and interacts easily with other devices
-- :ref:`examples` to help you create your own application.
+- :ref:`sdk_examples` to help you create your own application.
 
 GAP Chips
 ---------

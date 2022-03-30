@@ -375,7 +375,7 @@ void Dco::check_state()
 
         this->dco_frequency = this->get_dco_frequency(code, 0);
 
-        this->trace.msg(vp::trace::LEVEL_DEBUG, "Setting new DCO frequency (input_code: 0x%x, frequency: %d Hz)\n", code, this->dco_frequency);
+        this->trace.msg(vp::trace::LEVEL_TRACE, "Setting new DCO frequency (input_code: 0x%x, frequency: %d Hz)\n", code, this->dco_frequency);
 
         this->top->set_frequency(this->id, this->dco_frequency, this->is_open_loop || this->is_locked);
     }

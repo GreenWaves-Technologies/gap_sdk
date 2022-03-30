@@ -36,7 +36,7 @@ endif
 ifdef GAP9
 
 gen:
-	./gap9-efuse-gen  --output=gap9_fuser_map.h --name=fuser_map
+	./gap9-efuse-gen  --output=gap9_fuser_map.h --name=fuser_map --usecase=mram
 
 endif
 

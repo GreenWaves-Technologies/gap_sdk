@@ -21,15 +21,17 @@
 extern "C" {
 #endif
 
+#ifndef PI_INLINE_FREQ_LVL_0
+#define PI_INLINE_FREQ_LVL_0 static inline
+#endif
 
+#ifndef __GAP9__
 typedef enum {
   PI_FREQ_DOMAIN_FC     = 0,
   PI_FREQ_DOMAIN_CL     = 1,
   PI_FREQ_DOMAIN_PERIPH = 2,
-#ifdef __GAP9__
-  PI_FREQ_DOMAIN_SFU    = 3,
-#endif
 } pi_freq_domain_e;
+#endif
 
 /**
  * \brief Get current frequency of a domain.
@@ -39,7 +41,7 @@ typedef enum {
  * \param     domain The frequency domain.
  * \return           The frequency in Hz.
  */
-static inline uint32_t pi_freq_get(pi_freq_domain_e domain);
+PI_INLINE_FREQ_LVL_0 uint32_t pi_freq_get(pi_freq_domain_e domain);
 
 /**
  * \brief Set frequency of a domain.
@@ -51,7 +53,7 @@ static inline uint32_t pi_freq_get(pi_freq_domain_e domain);
  * \param     freq   The desired frequency in Hz.
  * \return           0 if successfull, -1 otherwise.
  */
-static inline int32_t pi_freq_set(pi_freq_domain_e domain, uint32_t freq);
+PI_INLINE_FREQ_LVL_0 int32_t pi_freq_set(pi_freq_domain_e domain, uint32_t freq);
 
 #ifdef __cplusplus
 }

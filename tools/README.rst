@@ -1,4 +1,4 @@
-.. _tools:
+.. _sdk_tools:
 
 Tools
 =====
@@ -6,10 +6,8 @@ Tools
 .. toctree::
    :maxdepth: 1
 
+   audio-framework/docs/source/index.rst
    docs/autotiler.rst
    docs/gap8-openocd.rst
-   gap-configs/README.rst
-   gapy/README.rst
    docs/gvsoc/index.rst
    docs/profiler/index.rst
-   littlefs/README.rst

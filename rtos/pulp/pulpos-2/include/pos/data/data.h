@@ -57,6 +57,7 @@
 #define POS_HANDLER __attribute__((section(".text_l2")))
 #define POS_TEXT_L2 __attribute__((section(".text_l2")))
 #define PI_LOCAL_CODE POS_TEXT_L2
+#define PI_TEXT_L2 POS_TEXT_L2
 
 #define PI_FC_L1       __attribute__((section(".data_fc")))
 #define PI_FC_L1_TINY  __attribute__((section(".data_tiny_fc"))) POS_FC_TINY_ATTRIBUTE

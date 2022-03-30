@@ -424,7 +424,7 @@ static Kernel_T *RNN_Stack_Seq_NE16(
                 None:   DimIn==0, ExposeSequence==0
                 Out:    DimIn==0, ExposeSequence!=0
         */
-        printf("RNN Segment: %s NC: %d, First: %d, Last: %d, UseIn: %d, UseHardAct: %d Qw: %d\n",
+        GenTilingDebug("RNN Segment: %s NC: %d, First: %d, Last: %d, UseIn: %d, UseHardAct: %d Qw: %d\n",
                 Name, NCells, FirstSeq, LastSeq, UseIn, UseHardAct, FilterDataSizeBits);
         if (Abs(FeatDataSize)!=1 && Abs(FeatDataSize)!=2) GenTilingError("Node: %s Input DataSize %d not supported in NE16", Name, FeatDataSize);
 
@@ -467,7 +467,7 @@ static Kernel_T *RNN_Stack_Seq_NE16(
         int IntKi = ROUND_UP_N(DimState, (Mode16?32:16));
         int IntKiInput = (UseIn?ROUND_UP_N(DimIn, (Mode16?32:16)):0);
         int IntStateSize = IntKi + IntKiInput;
-        printf("IntKi %d IntKiInput %d IntStateSize %d dimin %d bias_ds %d\n", IntKi, IntKiInput, IntStateSize, DimIn, BiasDataSize);
+        GenTilingDebug("IntKi %d IntKiInput %d IntStateSize %d dimin %d bias_ds %d\n", IntKi, IntKiInput, IntStateSize, DimIn, BiasDataSize);
         Kernel_T *Kernel = UserKernel(Name,
                 KernelIterSpace(3, Dynamic?IterFixedSpaceDynBound(D0, NCells, "NCells"):IterFixedSpace(D0, NCells), IterParSpace(D1, DimState, OutSizeConstraint), IterTiledSpace(T0)),
                 TileOrientation,
@@ -617,11 +617,11 @@ int RNN_Stack_NE16(
                 if (Ctrl->DynamicIter) Dynamic = 1;
         }
         if (Log) {
-                printf("RNN, %d Cells%s, DimState: %d, DimIn: %d, Input Cells: %d, Output Cells: %d, Order: %s\n",
+                GenTilingDebug("RNN, %d Cells%s, DimState: %d, DimIn: %d, Input Cells: %d, Output Cells: %d, Order: %s\n",
                         NCells, Dynamic?" Dynamic":"", DimState, DimIn, K0, K1, Revert?"Reverse":"Regular");
-                printf("Basic Kernel: %s\n", RNNKerName);
-                printf("In Seq: %d, %s Seq: %d, Out Seq: %d\n", N1, N2_IO?"In/Out":"void", N2, N3);
-                printf("Use hard act: %d\n", UseHardAct);
+                GenTilingDebug("Basic Kernel: %s\n", RNNKerName);
+                GenTilingDebug("In Seq: %d, %s Seq: %d, Out Seq: %d\n", N1, N2_IO?"In/Out":"void", N2, N3);
+                GenTilingDebug("Use hard act: %d\n", UseHardAct);
         }
 
         if (!((NCells==K0 && NCells==K1) || (NCells==K0 && K1==1))) GenTilingError("RNN_NE16 is valid only for NC=K0=K1 (all in and out) or NC=K0,K1=1 (all in, single out)");
@@ -641,23 +641,23 @@ int RNN_Stack_NE16(
                         G1_Name, G2_Name, G3_Name, N1, N2, N3, N2_IO);
                 if (DoBuffer) {
                         if (Ok) {
-                                if (Log) printf("Mapped sequence with all coeffs promoted to buffer\n");
+                                if (Log) GenTilingDebug("Mapped sequence with all coeffs promoted to buffer\n");
                         } else {
-                                if (Log) printf("Failed to map sequence with all coeffs promoted to buffer, reverting to tile based\n");
+                                if (Log) GenTilingDebug("Failed to map sequence with all coeffs promoted to buffer, reverting to tile based\n");
                                 DoBuffer = 0;
                         }
                 } else if (DoConstraint) {
                         if (Ok) {
-                                if (Log) printf("Mapped sequence tile based with %d output size constraint\n", DoConstraint);
+                                if (Log) GenTilingDebug("Mapped sequence tile based with %d output size constraint\n", DoConstraint);
                         } else {
-                                if (Log) printf("Failed to map sequence tile based with %d output size constraint, relaxing constraint\n", DoConstraint);
+                                if (Log) GenTilingDebug("Failed to map sequence tile based with %d output size constraint, relaxing constraint\n", DoConstraint);
                                 DoConstraint = (DoConstraint>16)?DoConstraint/2:1;
                         }
                 } else {
                         if (Ok) {
-                                if (Log) printf("Mapped sequence tile based with no output size constraint\n");
+                                if (Log) GenTilingDebug("Mapped sequence tile based with no output size constraint\n");
                         } else {
-                                if (Log) printf("No solution found\n");
+                                if (Log) GenTilingDebug("No solution found\n");
                                 break;
                         }
                 }
@@ -718,9 +718,9 @@ int RNN_Stack_NE16(
                                                             )
                                                 );
         } else {
-                printf("--- %d, %d %d %d %d, %d\n", Revert, N1, N2, N3, N2_IO, DimIn);
+                GenTilingDebug("--- %d, %d %d %d %d, %d\n", Revert, N1, N2, N3, N2_IO, DimIn);
                 if (N1>0) {
-                        printf("do N1\n");
+                        GenTilingDebug("do N1\n");
                         GroupCCalls[A++] = UserKernelCall(G1_Name, LOC_GROUP,
                                                 Bindings(9,
                                                         (!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING,
@@ -734,7 +734,7 @@ int RNN_Stack_NE16(
                                                         (AlwaysReset==0)?C_Arg("Reset"):AT_NO_ARG_BINDING));
                 }
                 if (N2>0&&N2_IO) {
-                        printf("do N2 IO\n");
+                        GenTilingDebug("do N2 IO\n");
                         GroupCCalls[A++] = UserKernelCall(G2_Name, LOC_GROUP,
                                                 Bindings(10, (N1)?C_Arg("G1O"):((!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING),
                                                             (N3)?C_Arg("G2O"):((!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING),
@@ -750,7 +750,7 @@ int RNN_Stack_NE16(
                                                 );
                 }
                 if (N2>0&&!N2_IO) {
-                        printf("do N2 !IO\n");
+                        GenTilingDebug("do N2 !IO\n");
                         GroupCCalls[A++] = UserKernelCall(G2_Name, LOC_GROUP,
                                                 Bindings(7, C_Arg("G1O"),
                                                             C_Arg("G2O"),
@@ -763,7 +763,7 @@ int RNN_Stack_NE16(
                                                 );
                 }
                 if (N3>0) {
-                        printf("do N3\n");
+                        GenTilingDebug("do N3\n");
                         GroupCCalls[A++] = UserKernelCall(G3_Name, LOC_GROUP,
                                                 Bindings(8, (N2)?C_Arg("G2O"):C_Arg("G1O"),
                                                             (!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING,
@@ -835,7 +835,7 @@ static Kernel_T *LSTM_Stack_Seq_NE16(
                 None:   DimIn==0, ExposeSequence==0
                 Out:    DimIn==0, ExposeSequence!=0
         */
-        printf("LSTM Segment: %s NC: %d, First: %d, Last: %d, UseIn: %d, Hard Act: %d Always Reset: %d Dynamic: %d ExposeSeq: %d Feat: %d Buffer: %d\n",
+        GenTilingDebug("LSTM Segment: %s NC: %d, First: %d, Last: %d, UseIn: %d, Hard Act: %d Always Reset: %d Dynamic: %d ExposeSeq: %d Feat: %d Buffer: %d\n",
                 Name, NCells, FirstSeq, LastSeq, UseIn, HardAct, AlwaysReset, Dynamic, ExposeSequence, FeatDataSize, Buffer);
         if (Abs(FeatDataSize)!=1 && Abs(FeatDataSize)!=2) GenTilingError("Node: %s Input DataSize %d not supported in NE16", Name, FeatDataSize);
 
@@ -884,7 +884,7 @@ static Kernel_T *LSTM_Stack_Seq_NE16(
 
         int DimStateInt = ROUND_UP_N(DimState, (Mode16?32:16));
         int DimInInt = (UseIn?ROUND_UP_N(DimIn, (Mode16?32:16)):0);
-        printf("DimInInt %d DimStateInt %d DimIn %d DimState %d bias_ds %d\n", DimInInt, DimStateInt, DimIn, DimState, BiasDataSize);
+        GenTilingDebug("DimInInt %d DimStateInt %d DimIn %d DimState %d bias_ds %d\n", DimInInt, DimStateInt, DimIn, DimState, BiasDataSize);
 
         Kernel_T *Kernel = UserKernel(Name,
                 KernelIterSpace(3, Dynamic?IterFixedSpaceDynBound(D0, NCells, "NCells"):IterFixedSpace(D0, NCells), IterParSpace(D1, DimState, OutSizeConstraint), IterTiledSpace(T0)),
@@ -1070,7 +1070,7 @@ int LSTM_Stack_NE16(
         int ParFeat = 1;
 
         unsigned S_Attr = 0 | ((!AlwaysReset)?O_IN:0) | ((!AlwaysReset)?O_OUT:0);
-        printf("LSTM_Stack_NE16: KOP_LSTM, %s - Feature Size %d\n", (UseHardAct?"KOP_HSIGMOID":"KOP_SIGMOID"), FeatDataSize);
+        GenTilingDebug("LSTM_Stack_NE16: KOP_LSTM, %s - Feature Size %d\n", (UseHardAct?"KOP_HSIGMOID":"KOP_SIGMOID"), FeatDataSize);
         char *LSTMKerName = CNN_FindMatchingKernel(
                 KOP_LSTM, (UseHardAct?KOP_HSIGMOID:KOP_SIGMOID), CALL_PARALLEL,
                 FeatDataSize, 0, 0, 0, FeatDataSize, 0,0,0,0,1,1, 0,0,0,0, 0, 0, 0);
@@ -1093,11 +1093,11 @@ int LSTM_Stack_NE16(
                 if (Ctrl->DynamicIter) Dynamic = 1;
         }
         if (Log) {
-                printf("LSTM, %d Cells%s, DimState: %d, DimIn: %d, Input Cells: %d, Output Cells: %d, Order: %s\n",
+                GenTilingDebug("LSTM, %d Cells%s, DimState: %d, DimIn: %d, Input Cells: %d, Output Cells: %d, Order: %s\n",
                         NCells, Dynamic?" Dynamic":"", DimState, DimIn, K0, K1, Revert?"Reverse":"Regular");
-                printf("Basic Kernel: %s\n", LSTMKerName);
-                printf("In Seq: %d, %s Seq: %d, Out Seq: %d\n", N1, N2_IO?"In/Out":"void", N2, N3);
-                printf("Use hard act: %d\n", UseHardAct);
+                GenTilingDebug("Basic Kernel: %s\n", LSTMKerName);
+                GenTilingDebug("In Seq: %d, %s Seq: %d, Out Seq: %d\n", N1, N2_IO?"In/Out":"void", N2, N3);
+                GenTilingDebug("Use hard act: %d\n", UseHardAct);
         }
 
         if (Dynamic && !((NCells==K0 && NCells==K1) || (NCells==K0 && K1==1))) GenTilingError("RNN with dynamic cell count is valid only for NC=K0=K1 (all in and out) or NC=K0,K1=1 (all in, single out)");
@@ -1118,23 +1118,23 @@ int LSTM_Stack_NE16(
                         G1_Name, G2_Name, G3_Name, N1, N2, N3, N2_IO);
                 if (DoBuffer) {
                         if (Ok) {
-                                if (Log) printf("Mapped sequence with all coeffs promoted to buffer\n");
+                                if (Log) GenTilingDebug("Mapped sequence with all coeffs promoted to buffer\n");
                         } else {
-                                if (Log) printf("Failed to map sequence with all coeffs promoted to buffer, reverting to tile based\n");
+                                if (Log) GenTilingDebug("Failed to map sequence with all coeffs promoted to buffer, reverting to tile based\n");
                                 DoBuffer = 0;
                         }
                 } else if (DoConstraint) {
                         if (Ok) {
-                                if (Log) printf("Mapped sequence tile based with %d output size constraint\n", DoConstraint);
+                                if (Log) GenTilingDebug("Mapped sequence tile based with %d output size constraint\n", DoConstraint);
                         } else {
-                                if (Log) printf("Failed to map sequence tile based with %d output size constraint, relaxing constraint\n", DoConstraint);
+                                if (Log) GenTilingDebug("Failed to map sequence tile based with %d output size constraint, relaxing constraint\n", DoConstraint);
                                 DoConstraint = (DoConstraint>16)?DoConstraint-8:1;
                         }
                 } else {
                         if (Ok) {
-                                if (Log) printf("Mapped sequence tile based with no output size constraint\n");
+                                if (Log) GenTilingDebug("Mapped sequence tile based with no output size constraint\n");
                         } else {
-                                if (Log) printf("No solution found\n");
+                                if (Log) GenTilingDebug("No solution found\n");
                                 break;
                         }
                 }
@@ -1391,7 +1391,7 @@ static Kernel_T *GRU_Stack_Seq_NE16(
                 None:   DimIn==0, ExposeSequence==0
                 Out:    DimIn==0, ExposeSequence!=0
         */
-        printf("GRU Segment: %s NC: %d, First: %d, Last: %d, UseIn: %d, Hard Act: %d Always Reset: %d Dynamic: %d ExposeSeq: %d Feat: %d Buffer: %d\n",
+        GenTilingDebug("GRU Segment: %s NC: %d, First: %d, Last: %d, UseIn: %d, Hard Act: %d Always Reset: %d Dynamic: %d ExposeSeq: %d Feat: %d Buffer: %d\n",
                 Name, NCells, FirstSeq, LastSeq, UseIn, HardAct, AlwaysReset, Dynamic, ExposeSequence, FeatDataSize, Buffer);
         if (Abs(FeatDataSize)!=1 && Abs(FeatDataSize)!=2) GenTilingError("Node: %s Input DataSize %d not supported in NE16", Name, FeatDataSize);
 
@@ -1440,7 +1440,7 @@ static Kernel_T *GRU_Stack_Seq_NE16(
 
         int DimStateInt = ROUND_UP_N(DimState, (Mode16?32:16));
         int DimInInt = (UseIn?ROUND_UP_N(DimIn, (Mode16?32:16)):0);
-        printf("DimInInt %d DimStateInt %d DimIn %d DimState %d bias_ds %d\n", DimInInt, DimStateInt, DimIn, DimState, BiasDataSize);
+        GenTilingDebug("DimInInt %d DimStateInt %d DimIn %d DimState %d bias_ds %d\n", DimInInt, DimStateInt, DimIn, DimState, BiasDataSize);
 
         Kernel_T *Kernel = UserKernel(Name,
                 KernelIterSpace(3, Dynamic?IterFixedSpaceDynBound(D0, NCells, "NCells"):IterFixedSpace(D0, NCells), IterParSpace(D1, DimState, OutSizeConstraint), IterTiledSpace(T0)),
@@ -1606,7 +1606,7 @@ int GRU_Stack_NE16(
         int ParFeat = 1;
 
         unsigned S_Attr = 0 | ((!AlwaysReset)?O_IN:0) | ((!AlwaysReset)?O_OUT:0);
-        printf("GRU_Stack_NE16: KOP_GRU, %s - Feature Size %d\n", (UseHardAct?"KOP_HSIGMOID":"KOP_SIGMOID"), FeatDataSize);
+        GenTilingDebug("GRU_Stack_NE16: KOP_GRU, %s - Feature Size %d\n", (UseHardAct?"KOP_HSIGMOID":"KOP_SIGMOID"), FeatDataSize);
         char *GRUKerName = CNN_FindMatchingKernel(
                 KOP_GRU, (UseHardAct?KOP_HSIGMOID:KOP_SIGMOID), CALL_PARALLEL,
                 FeatDataSize, 0, 0, 0, FeatDataSize, 0,0,0,0,1,1, 0,0,0,0, 0, 0, 0);
@@ -1629,11 +1629,11 @@ int GRU_Stack_NE16(
                 if (Ctrl->DynamicIter) Dynamic = 1;
         }
         if (Log) {
-                printf("GRU, %d Cells%s, DimState: %d, DimIn: %d, Input Cells: %d, Output Cells: %d, Order: %s\n",
+                GenTilingDebug("GRU, %d Cells%s, DimState: %d, DimIn: %d, Input Cells: %d, Output Cells: %d, Order: %s\n",
                         NCells, Dynamic?" Dynamic":"", DimState, DimIn, K0, K1, Revert?"Reverse":"Regular");
-                printf("Basic Kernel: %s\n", GRUKerName);
-                printf("In Seq: %d, %s Seq: %d, Out Seq: %d\n", N1, N2_IO?"In/Out":"void", N2, N3);
-                printf("Use hard act: %d\n", UseHardAct);
+                GenTilingDebug("Basic Kernel: %s\n", GRUKerName);
+                GenTilingDebug("In Seq: %d, %s Seq: %d, Out Seq: %d\n", N1, N2_IO?"In/Out":"void", N2, N3);
+                GenTilingDebug("Use hard act: %d\n", UseHardAct);
         }
 
         if (Dynamic && !((NCells==K0 && NCells==K1) || (NCells==K0 && K1==1))) GenTilingError("RNN with dynamic cell count is valid only for NC=K0=K1 (all in and out) or NC=K0,K1=1 (all in, single out)");
@@ -1654,23 +1654,23 @@ int GRU_Stack_NE16(
                         G1_Name, G2_Name, G3_Name, N1, N2, N3, N2_IO);
                 if (DoBuffer) {
                         if (Ok) {
-                                if (Log) printf("Mapped sequence with all coeffs promoted to buffer\n");
+                                if (Log) GenTilingDebug("Mapped sequence with all coeffs promoted to buffer\n");
                         } else {
-                                if (Log) printf("Failed to map sequence with all coeffs promoted to buffer, reverting to tile based\n");
+                                if (Log) GenTilingDebug("Failed to map sequence with all coeffs promoted to buffer, reverting to tile based\n");
                                 DoBuffer = 0;
                         }
                 } else if (DoConstraint) {
                         if (Ok) {
-                                if (Log) printf("Mapped sequence tile based with %d output size constraint\n", DoConstraint);
+                                if (Log) GenTilingDebug("Mapped sequence tile based with %d output size constraint\n", DoConstraint);
                         } else {
-                                if (Log) printf("Failed to map sequence tile based with %d output size constraint, relaxing constraint\n", DoConstraint);
+                                if (Log) GenTilingDebug("Failed to map sequence tile based with %d output size constraint, relaxing constraint\n", DoConstraint);
                                 DoConstraint = (DoConstraint>16)?DoConstraint-8:1;
                         }
                 } else {
                         if (Ok) {
-                                if (Log) printf("Mapped sequence tile based with no output size constraint\n");
+                                if (Log) GenTilingDebug("Mapped sequence tile based with no output size constraint\n");
                         } else {
-                                if (Log) printf("No solution found\n");
+                                if (Log) GenTilingDebug("No solution found\n");
                                 break;
                         }
                 }

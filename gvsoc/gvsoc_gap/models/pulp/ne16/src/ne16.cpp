@@ -59,6 +59,7 @@ void Ne16::reset(bool active)
     this->cxt_job_id[0] = this->cxt_job_id[1] = -1;
     this->running_job_id  = 0;
     this->job_running     = 0;
+    this->busy.set(0);
 }
 
 // The `hwpe_slave` member function models an access to the NE16 SLAVE interface
@@ -146,6 +147,7 @@ int Ne16::build()
     this->traces.new_trace("trace", &this->trace, vp::DEBUG);
     this->new_reg("fsm_state", &this->state, 32);
     this->new_reg("ne16_busy", &this->activity, 8);
+    this->new_reg("busy", &this->busy, 1);
     this->activity.set(0);
     this->state.set(IDLE);
 

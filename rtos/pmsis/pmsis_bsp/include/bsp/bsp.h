@@ -190,7 +190,7 @@ void bsp_nina_w10_conf_init(struct pi_nina_w10_conf *conf);
 int bsp_nina_w10_open(struct pi_nina_w10_conf *conf);
 #endif
 
-#if defined(CONFIG_NINA_B112)
+#if defined(CONFIG_BLE_NINA_B112)
 #include "bsp/ble/nina_b112/nina_b112_old.h"
 int bsp_nina_b112_open_old();
 #include "bsp/ble/nina_b112.h"

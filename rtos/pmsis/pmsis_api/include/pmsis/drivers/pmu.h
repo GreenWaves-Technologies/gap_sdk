@@ -49,7 +49,7 @@ extern "C" {
  *
  * \note When changing frequency, voltage may need to be changed first.
  */
-int pi_pmu_voltage_set(pi_pmu_domain_e domain, uint32_t voltage);
+//int pi_pmu_voltage_set(pi_pmu_domain_e domain, uint32_t voltage);
 
 /**
  * \brief Get current PMU state.

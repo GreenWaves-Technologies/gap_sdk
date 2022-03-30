@@ -36,11 +36,13 @@
 #define PI_INLINE_HYPER_LVL_0 static inline
 #define PI_INLINE_OCTOSPI_LVL_0 static inline
 #define PI_INLINE_I2S_LVL_0 static inline
+#define PI_INLINE_FREQ_LVL_0
 
 #if defined(__GAP9__)
 #include "pmsis/chips/gap8/perf.h"
 #include "pmsis/chips/gap9/pad.h"
 #include "pmsis/chips/gap9/gpio.h"
+#include "pmsis/chips/gap9/gap9.h"
 #else
 #include "pmsis/chips/pulp/pulp.h"
 #endif
@@ -77,9 +79,6 @@
 #include "pmsis/drivers/udma_fifo.h"
 #include "pmsis/drivers/udma_timestamp.h"
 #include "pmsis/cluster/dma/cl_dma.h"
-#if defined(__GAP9__)
-#include "pmsis/chips/gap9/gap9.h"
-#endif
 
 
 #include "hal/utils.h"

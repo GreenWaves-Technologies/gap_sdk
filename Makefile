@@ -159,7 +159,7 @@ gvsoc.checkout:
 
 gvsoc.build:
 	cmake -S gvsoc -B build/gvsoc -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTARGET_CHIP=GAP9_V2 -DCONFIG_GVSOC_SKIP_UDMA_BUILD=$(CONFIG_GVSOC_SKIP_UDMA_BUILD)
-	cmake --build build/gvsoc
+	cmake --build build/gvsoc -j 4
 	cmake --install build/gvsoc --prefix $(GAP_SDK_HOME)/install/workstation
 
 gvsoc.clean:
@@ -174,11 +174,11 @@ openocd.checkout:
 	if [ ! -e utils/openocd ]; then \
 		git clone https://github.com/riscv/riscv-openocd.git utils/openocd; \
 		cd utils/openocd; \
-		git checkout c56aa667c2ffee906a6d7a7084b70bece863fc73; \
+		git checkout 1449af5bd; \
 	fi
 
 openocd.build: openocd.checkout
-	cd utils/openocd && ./bootstrap && ./configure --enable-jtag_dpi --prefix=$(INSTALL_DIR)/openocd && $(MAKE) && $(MAKE) install
+	cd utils/openocd && ./bootstrap && ./configure --enable-jtag_dpi --disable-werror --prefix=$(INSTALL_DIR)/openocd && $(MAKE) && $(MAKE) install
 
 openocd.clean:
 	rm -rf $(INSTALL_DIR)/openocd tools/openocd
@@ -278,7 +278,7 @@ examples.checkout:
 	git submodule update --recursive --init examples
 
 tests.checkout:
-	git submodule update --init tests/pmsis_tests tests/bsp_tests tests/sfu_tests tests/pmsis_bench
+	git submodule update --init tests/sfu_tests
 
 test:
 	plptest --max-timeout=$(TIMEOUT) --bench-csv-file=results.csv

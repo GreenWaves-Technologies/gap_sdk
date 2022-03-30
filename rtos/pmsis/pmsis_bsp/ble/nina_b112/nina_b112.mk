@@ -1,0 +1,6 @@
+BSP_BLE_NINA_B112_SRC= ble/ble.c ble/nina_b112/nina_b112.c ble/nina_b112/nina_b112_old.c
+
+ifdef CONFIG_BLE_NINA_B112
+PMSIS_BSP_SRC += $(BSP_BLE_NINA_B112_SRC)
+PMSIS_BSP_CFLAGS += -DCONFIG_BLE_NINA_B112=1
+endif

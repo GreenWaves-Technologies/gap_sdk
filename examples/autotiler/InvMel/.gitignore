@@ -1,0 +1,7 @@
+.ipynb_checkpoints
+BUILD*
+results.txt
+GapInvMel.bin
+GapMel.bin
+MelEmulExe
+!samples/*

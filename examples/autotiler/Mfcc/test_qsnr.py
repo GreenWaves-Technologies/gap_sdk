@@ -68,7 +68,7 @@ def main():
     n_fft = config['n_fft']
     n_fft_int = n_fft if dtype == "fix32_scal" else n_fft // 2
     rad4 = round(math.log(n_fft_int, 4)) == math.log(n_fft_int, 4)
-    n_mels = config['mfcc_bank_cnt']
+    n_mels = config['n_mels']
     fmin = config['fmin']
     fmax = config['fmax']
     high_prec = dtype == "fix32_scal"

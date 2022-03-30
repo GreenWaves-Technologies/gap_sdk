@@ -52,7 +52,7 @@ static void RunFFT()
 	elapsed = gap_cl_readhwtimer() - start;
 	printf("RFFT:      %10d Cycles %10d Cycles/Frame\n", elapsed, elapsed/N_FRAME);
 	start = gap_cl_readhwtimer();
-	IRFFT(Out, FFTInSig, TwiddlesLUT, RFFTTwiddlesLUT, SwapTable, (short int *)InvWindowLUT);
+	IRFFT(Out, FFTInSig, TwiddlesLUT, RFFTTwiddlesLUT, SwapTable, InvWindowLUT);
 	elapsed = gap_cl_readhwtimer() - start;
 	printf("IRFFT:     %10d Cycles %10d Cycles/Frame\n", elapsed, elapsed/N_FRAME);
 
@@ -63,6 +63,7 @@ void test_kickoff(void *arg)
 	#ifndef __EMUL__
 		struct pi_device cluster_dev;
 		struct pi_cluster_conf cl_conf;
+    	pi_cluster_conf_init(&cl_conf);
 		cl_conf.id = 0;
 
 		pi_open_from_conf(&cluster_dev, (void *) &cl_conf);

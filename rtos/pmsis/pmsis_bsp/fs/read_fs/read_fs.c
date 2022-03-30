@@ -626,7 +626,7 @@ static int32_t __pi_read_fs_direct_read_async(pi_fs_file_t *_file, void *buffer,
     pi_read_fs_file_t *file = (pi_read_fs_file_t *) _file;
     pi_read_fs_t *fs = (pi_read_fs_t *) file->fs_file.fs->data;
     // Mask interrupt to update file current position and get information
-    //int irq = pi_irq_disable();
+    int irq = pi_irq_disable();
     
     int real_size = size;
     unsigned int addr = file->addr + file->offset;
@@ -636,7 +636,7 @@ static int32_t __pi_read_fs_direct_read_async(pi_fs_file_t *_file, void *buffer,
     }
     file->offset += real_size;
     
-    //pi_irq_restore(irq);
+    pi_irq_restore(irq);
     
     pi_flash_read_async(fs->flash, addr, (void *) buffer, real_size, event);
     

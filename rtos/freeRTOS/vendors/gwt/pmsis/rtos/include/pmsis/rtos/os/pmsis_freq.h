@@ -51,6 +51,8 @@
  * API implementation
  ******************************************************************************/
 
+#if !defined(__GAP9__)
+
 static inline uint32_t pi_freq_get(pi_freq_domain_e domain)
 {
     switch (domain)
@@ -92,5 +94,7 @@ static inline int32_t pi_freq_set(pi_freq_domain_e domain, uint32_t freq)
 
     return ((retval == -1) ? -1 : 0);
 }
+
+#endif
 
 #endif  /* __PI_FREQ_H__ */

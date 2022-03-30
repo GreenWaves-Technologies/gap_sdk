@@ -290,7 +290,7 @@ string(REPLACE ";" " " linker_options "${linker_opt}")
 
 set(freertos_flags "-D__USE_TCDM_MALLOC__=1" "-DPMSIS_DRIVERS=1" "-D__FC_MALLOC_NATIVE__=0" "-D__L2_MALLOC_NATIVE__=0" "-D__PMSIS_L2_MALLOC_NATIVE__=0" "-D__riscv__" "-D__GAP__" "-D__GAP9__" "-D__RISCV_ARCH_GAP__=1" "-DCHIP_VERSION=2" "-D__FREERTOS__" "-DFEATURE_CLUSTER=1" "-DCONFIG_GAP9_V2")
 
-list(APPEND freertos_flags "-DPI_LOG_DEFAULT_LEVEL=PI_LOG_TRACE")
+#list(APPEND freertos_flags "-DPI_LOG_DEFAULT_LEVEL=PI_LOG_TRACE")
 
 set(common_flags "-g" "-fmessage-length=0" "-fno-exceptions" "-ffunction-sections" "-fdata-sections" "-funsigned-char" "-fno-delete-null-pointer-checks" "-fomit-frame-pointer" "-Os")
 

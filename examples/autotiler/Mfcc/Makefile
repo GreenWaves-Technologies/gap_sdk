@@ -1,33 +1,29 @@
 # User Test
 #------------------------------------
-ifeq '$(TARGET_CHIP_FAMILY)' 'GAP8'
-	COMPILE_MODEL_EXTRA_FLAGS += -DNO_FLOAT16
-endif
 WAV_FILE = $(CURDIR)/samples/yes.wav
 include MfccModel.mk
+include $(RULES_DIR)/at_common_decl.mk
 
-io=host
-#PMSIS_OS?=pulpos
+io?=host
+
 APP              = test
-APP_SRCS        += MfccRunTest.c $(GAP_LIB_PATH)/wav_io/wavIO.c $(MFCCBUILD_DIR)/MFCCKernels.c $(TILER_DSP_KERNEL_PATH)/LUT_Tables/TwiddlesDef.c $(TILER_DSP_KERNEL_PATH)/LUT_Tables/RFFTTwiddlesDef.c $(TILER_DSP_KERNEL_PATH)/LUT_Tables/SwapTablesDef.c
-APP_SRCS  		+= $(TILER_DSP_KERNEL_PATH)/MfccBasicKernels.c $(TILER_DSP_KERNEL_PATH)/FFT_Library.c $(TILER_DSP_KERNEL_PATH)/math_funcs.c $(TILER_DSP_KERNEL_PATH)/CmplxFunctions.c $(TILER_DSP_KERNEL_PATH)/PreProcessing.c 
+APP_SRCS        += MfccRunTest.c $(GAP_LIB_PATH)/wav_io/wavIO.c $(MFCC_SRC_CODE) $(MODEL_LIB_DSP)
 APP_INC	        += 
 APP_LDFLAGS		+= -lm
-APP_CFLAGS      += -O3 -I. -I$(TILER_DSP_KERNEL_PATH) -I$(TILER_DSP_KERNEL_PATH)/LUT_Tables -I$(GAP_SDK_HOME)/libs/gap_lib/include -DAT_WAV=$(WAV_FILE)
+APP_CFLAGS      += -O3 -I$(TILER_DSP_KERNEL_PATH) -I$(GAP_SDK_HOME)/libs/gap_lib/include -DAT_WAV=$(WAV_FILE)
 APP_CFLAGS 		+= -I$(MFCCBUILD_DIR) -I$(TILER_INC) -I$(TILER_EMU_INC) -DPERF #-DPRINTDEB #-DPRINT_INOUT
-BFLOAT = 1
-ifeq '$(BFLOAT)' '1'
-	APP_CFLAGS += -DF16_DSP_BFLOAT
-endif
+APP_CFLAGS 		+= -DFREQ_CL=370 -DFREQ_FC=370 -DFREQ_PE=370
+
 TEST = 1
 ifeq ($(TEST), 1)
 	APP_CFLAGS += -DTEST
-gen_gt:
+ground_truth.h:
 	python gen_ground_truth.py samples/yes.wav
+gen_gt: ground_truth.h
 else
 gen_gt:
 endif
 
-all:: gen_mfcc_code gen_gt
+all:: $(MFCC_SRC_CODE) gen_gt
 
 include $(RULES_DIR)/pmsis_rules.mk

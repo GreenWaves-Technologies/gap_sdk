@@ -44,6 +44,10 @@ ifeq ($(platform), gvsoc)
 CONFIG_BOOT_MODE ?= flash
 endif
 
+ifeq ($(platform), rtl)
+CONFIG_BOOT_MODE ?= flash
+endif
+
 # Enable traces with GVSOC
 ifeq ($(platform), gvsoc)
 ifeq ($(ENABLE_CORE_TRACES), 1)
@@ -70,21 +74,13 @@ endif
 # Configuration GAP9
 
 CONFIG_FAST_OSC_FREQUENCY    ?= 24576063 # Fast clock freq
-CONFIG_FLL_MAXDCO_FREQ       ?= 900000000
 
 CONFIG_FREQUENCY_PERIPH      ?= 160000000
 CONFIG_FREQUENCY_FC          ?= 50000000
 CONFIG_FREQUENCY_CLUSTER     ?= 50000000
 CONFIG_FREQUENCY_SFU         ?= 50000000
 
-CONFIG_MAX_FREQUENCY_PERIPH  ?= 0
-CONFIG_MAX_FREQUENCY_FC      ?= 0
-CONFIG_MAX_FREQUENCY_CLUSTER ?= 0
-CONFIG_MAX_FREQUENCY_SFU     ?= 0
-
 CONFIG_FREQUENCY_FPGA        ?= 50000000
-
-override APP_CFLAGS += -DCONFIG_FLL_MAXDCO_FREQ=$(CONFIG_FLL_MAXDCO_FREQ)
 
 ifdef CONFIG_OPEN_LOOP
 override APP_CFLAGS += -DCONFIG_OPEN_LOOP
@@ -425,7 +421,7 @@ profiler:
 
 profile:
 	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) --config-opt="gvsoc/debug-mode=true" --config-opt="gvsoc/events/gen_gtkw=false" run --image --flash --exec-prepare --binary=$(BIN) $(runner_args)
-	cd $(BUILDDIR) && profiler gvsoc_config.json --signal-tree-file=$(GAP_SDK_HOME)/tools/profiler_v2/gui/images/signalstree.txt
+	cd $(BUILDDIR) && profiler gvsoc_config.json --signal-tree-file=$(GAP_SDK_HOME)/tools/profiler_v2/gui/images/signalstree_gap9.json
 
 size:
 	$(GAP_SDK_HOME)/utils/bin/binary-size --binary=$(BIN) --depth=10 --groups=$(PMSIS_OS)

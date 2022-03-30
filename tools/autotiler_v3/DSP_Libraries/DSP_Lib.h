@@ -132,7 +132,7 @@ typedef struct {
         void *__restrict__ Mel_Coeffs;
         signed char *__restrict__ shift_buff;
         signed char *__restrict__ shift_fft;
-        fbank_type_t *__restrict__ Mel_FilterBank;
+        short int *__restrict__ Mel_FilterBank;
         short int Mel_NBanks;
         short int Mel_Coeff_dyn;
         signed char IsMagSquared;
@@ -242,42 +242,62 @@ typedef struct {
         unsigned int W_Out;
         unsigned int OutFirstCol;
         int ColFirst;
+        int Norm;
 } MatMul_DSP_T;
 
 /********************************************************************************************************************************************************************/
 /****************** FFT Library  ************************************************************************************************************************************/
 /********************************************************************************************************************************************************************/
 
-extern void Radix4FFT_DIF_Seq   (signed short *__restrict__ Data, signed short *__restrict__ Twiddles, unsigned int N_fft, int Inverse);
-extern void Radix2FFT_DIF_Scalar(signed short *__restrict__ Data, signed short *__restrict__ Twiddles, int N_fft);
-extern void Radix2FFT_DIF_Seq   (signed short *__restrict__ Data, signed short *__restrict__ Twiddles, int N_fft);
+/* Utils to Copy LUT from L2 to L1 */
+extern void FFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format);
+extern void RFFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format);
 
+/* Sequential functions */
+extern void Radix4FFT_DIF_Seq_Fix16(signed short *__restrict__ Data, signed short *__restrict__ Twiddles, int N_fft, int Inverse);
+extern void Radix4FFT_DIF_Seq_f16  (F16_DSP *__restrict__ Data, F16_DSP *__restrict__ Twiddles, int N_fft, int Inverse);
+extern void Radix4FFT_DIF_Seq_f32  (float *__restrict__ Data, float *__restrict__ Twiddles, int N_fft, int Inverse);
+extern void Radix2FFT_DIF_Seq_Fix16(signed short *__restrict__ Data, signed short *__restrict__ Twiddles, int N_fft, int Inverse);
+extern void Radix2FFT_DIF_Seq_f16  (F16_DSP *__restrict__ Data, F16_DSP *__restrict__ Twiddles, int N_fft, int Inverse);
+extern void Radix2FFT_DIF_Seq_f32  (float *__restrict__ Data, float *__restrict__ Twiddles, int N_fft, int Inverse);
+
+extern void SwapSamples_Seq_Fix16(short int *Data, short int *SwapTable, int Ni);
+extern void SwapSamples_Seq_f16  (F16_DSP *Data, short int *SwapTable, int Ni);
+extern void SwapSamples_Seq_f32  (float *Data, short int *SwapTable, int Ni);
+
+extern void RFFT_DIF_Seq_Fix16(short int *Data, short int *RFFT_Out, short int *Twiddles, short int *RTwiddles, short int *SwapTable, int N_fft);
+extern void RFFT_DIF_Seq_f16  (F16_DSP *Data, F16_DSP *RFFT_Out, F16_DSP *Twiddles, F16_DSP *RTwiddles, short int *SwapTable, int N_fft);
+extern void RFFT_DIF_Seq_f32  (float *Data, float *RFFT_Out, float *Twiddles, float *RTwiddles, short int *SwapTable, int N_fft);
+
+extern void IRFFT_DIF_Seq_Fix16(short int *Data, short int *RFFT_Out, short int *Twiddles, short int *RTwiddles, short int *SwapTable, int N_fft);
+extern void IRFFT_DIF_Seq_f16  (F16_DSP *Data, F16_DSP *RFFT_Out, F16_DSP *Twiddles, F16_DSP *RTwiddles, short int *SwapTable, int N_fft);
+extern void IRFFT_DIF_Seq_f32  (float *Data, float *RFFT_Out, float *Twiddles, float *RTwiddles, short int *SwapTable, int N_fft);
+
+/* Parallel functions */
 extern void Radix4FFT_DIF_Par_Fix16(FFT_Arg_T *Arg);
 extern void Radix4FFT_DIF_Par_Fix32(FFT_Arg_T *Arg);
+extern void Radix4FFT_DIF_Par_f16(FFT_Arg_T *Arg);
 extern void Radix4FFT_DIF_Par_f32(FFT_Arg_T *Arg);
 extern void Radix2FFT_DIF_Par_Fix16_Fast(FFT_Arg_T *Arg);
 extern void Radix2FFT_DIF_Par_Fix16(FFT_Arg_T *Arg);
 extern void Radix2FFT_DIF_Par_Fix32(FFT_Arg_T *Arg);
 extern void Radix2FFT_DIF_Par_Fix32_Scal(FFT_scal_Arg_T *Arg);
 extern void Radix2FFT_DIF_Par_f32  (FFT_Arg_T *Arg);
-extern void Radix4FFT_DIF_Par_f16(FFT_Arg_T *Arg);
 extern void Radix2FFT_DIF_Par_f16(FFT_Arg_T *Arg);
-extern void RFFT_DIF_Par_f16(RFFT_Arg_T *Arg);
-extern void IRFFT_DIF_Par_f16(RFFT_Arg_T *Arg);
-extern void SwapSamples_Par_f16(SwapSamples_Arg_T *Arg);
 
 extern void SwapSamples_Par(SwapSamples_Arg_T *Arg);
+extern void SwapSamples_Par_f16(SwapSamples_Arg_T *Arg);
 extern void SwapSamples_Par_f32(SwapSamples_Arg_T *Arg);
 extern void SwapSamples_Par_Fix32(SwapSamples_Arg_T *Arg);
 extern void SwapSamples_scal(SwapSamples_scal_Arg_T *Arg);
-extern void FFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format);
-extern void RFFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format);
 
 extern void RFFT_DIF_Par_Fix16(RFFT_Arg_T *Arg);
 extern void RFFT_DIF_Par_Fix32_Scal(RFFT_scal_Arg_T *Arg);
+extern void RFFT_DIF_Par_f16(RFFT_Arg_T *Arg);
 extern void RFFT_DIF_Par_f32(RFFT_Arg_T *Arg);
 
 extern void IRFFT_DIF_Par_Fix16(RFFT_Arg_T *Arg);
+extern void IRFFT_DIF_Par_f16(RFFT_Arg_T *Arg);
 extern void IRFFT_DIF_Par_f32(RFFT_Arg_T *Arg);
 
 
@@ -366,6 +386,8 @@ extern void WindowingReal2Cmplx_PadCenter_f16(Windowing_T *Arg);
 extern void WindowingReal2Real_f16(Windowing_T *Arg);
 extern void WindowingReal2Real_PadCenter_f16(Windowing_T *Arg);
 
+extern void KerParMatMulDSP_Fix16(MatMul_DSP_T *Arg);
+extern void KerParMatMulDSPT_Fix16(MatMul_DSP_T *Arg);
 extern void KerParMatMulDSP_fp16(MatMul_DSP_T *Arg);
 extern void KerParMatMulDSPT_fp16(MatMul_DSP_T *Arg);
 extern void KerParMatMulDSP_fp32(MatMul_DSP_T *Arg);

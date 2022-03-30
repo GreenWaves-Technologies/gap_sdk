@@ -175,6 +175,14 @@ struct pi_pmu_sleep_conf_s
 };
 
 
+typedef enum {
+    PI_PMU_VOLTAGE_DOMAIN_CHIP = 0   /*!< Chip voltage domain. */
+} pi_pmu_voltage_domain_e;
+
+
+int pi_pmu_voltage_set(pi_pmu_voltage_domain_e domain, uint32_t voltage);
+
+
 /**
  * \brief Change power domain state.
  *

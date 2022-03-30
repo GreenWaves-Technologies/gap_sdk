@@ -164,22 +164,6 @@ int bsp_himax_open(struct pi_himax_conf *conf)
   return 0;
 }
 
-void bsp_nina_b112_conf_init(struct pi_nina_b112_conf *conf)
-{
-    conf->uart_itf = (uint8_t) CONFIG_NINA_B112_UART_ID;
-}
-
-int bsp_nina_b112_open(struct pi_nina_b112_conf *conf)
-{
-    return 0;
-}
-
-int bsp_nina_b112_open_old()
-{
-    __bsp_init_pads();
-    return 0;
-}
-
 void bsp_init()
 {
 }

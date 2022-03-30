@@ -1330,6 +1330,10 @@ std::string Testbench::handle_command(Gv_proxy *proxy, FILE *req_file, FILE *rep
                         config->slot = value;
                         slots.push_back(value);
                     }
+                    else if (name == "width")
+                    {
+                        config->rx_file_reader.width = value;
+                    }
                     else if (name == "filepath")
                     {
                         strcpy(filepath, value_str.c_str());
@@ -1405,6 +1409,10 @@ std::string Testbench::handle_command(Gv_proxy *proxy, FILE *req_file, FILE *rep
                     else if (name == "filepath")
                     {
                         strcpy(filepath, value_str.c_str());
+                    }
+                    else if (name == "width")
+                    {
+                        config->tx_file_dumper.width = value;
                     }
                     else if (name == "filetype")
                     {

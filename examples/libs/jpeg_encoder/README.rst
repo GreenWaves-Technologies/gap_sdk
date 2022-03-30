@@ -1,11 +1,11 @@
 Jpeg Encoder
-=====
+============
 
 This is an example of JPEG encoding.
 It reads the input PGM image from the flash, encodes it to JPEG, and saves it to the workstation using semi-hosting.
 
 You can run this example with "make clean all run" or "make clean all run platform=gvsoc".
-Once it has been run, the output JPEG image can be opened in the build folder with 
+Once it has been run, the output JPEG image can be opened in the build folder with
 
 .. code-block:: c
 
@@ -20,7 +20,7 @@ You can run the encoder on the Gap Cluster or Fabric Controller. This flag ``RUN
 
 
 Jpeg Quality and Compression
---------
+----------------------------
 
 There are different level of jpeg compression available. The default value (without defining any flag in the Makefile) is JPEG_Q_50 which representes 50% compression.
 

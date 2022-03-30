@@ -430,7 +430,7 @@ static inline void kernel_fftrad2_scal(cmplx *DataV, v2s W, signed char *shift_f
   The last stage is handled differently since twidlles are (1, 0) leading to a some cycle count reduction
 */
 
-void Radix4FFT_DIF_Seq(signed short *__restrict__ Data, signed short *__restrict__ Twiddles, unsigned int N_fft, int Inverse)
+void Radix4FFT_DIF_Seq_Fix16(signed short *__restrict__ Data, signed short *__restrict__ Twiddles, int N_fft, int Inverse)
 
 {
         int iCnt1, iCnt2, iCnt3,
@@ -443,6 +443,11 @@ void Radix4FFT_DIF_Seq(signed short *__restrict__ Data, signed short *__restrict
 
         int i;
 
+        if (Inverse) {
+                for (iCnt1=0; iCnt1<N_fft; iCnt1++){
+                        DataV[iCnt1][1] = -DataV[iCnt1][1];
+                }
+        }
         // Layers 0,1,2 ...
         iL = 1; iM = N_fft >> 2;
         for (iCnt1 = 0; iCnt1 < (iLog4N-1); ++iCnt1) {
@@ -453,7 +458,7 @@ void Radix4FFT_DIF_Seq(signed short *__restrict__ Data, signed short *__restrict
                         for (iCnt3 = 0; iCnt3 < iL; ++iCnt3) {
                                 Radix4FFTKernelDIF((v2s *) (DataV + iA       ), (v2s *) (DataV + iA + iM), 
                                                    (v2s *) (DataV + iA + 2*iM), (v2s *) (DataV + iA + 3*iM),
-                                                   W1, W2, W3, Inverse);
+                                                   W1, W2, W3, 0);
                                 iA = iA + 4 * iM;
                         }
                         iQ += iL;
@@ -464,10 +469,115 @@ void Radix4FFT_DIF_Seq(signed short *__restrict__ Data, signed short *__restrict
         iA = 0; iL = (N_fft>>2); iM = 1;
         for (iCnt3 = 0; iCnt3 < iL; ++iCnt3) {
                 Radix4FFTKernel_Twiddle0((v2s *) (DataV + iA       ), (v2s *) (DataV + iA +   iM),
-                                         (v2s *) (DataV + iA + 2*iM), (v2s *) (DataV + iA + 3*iM), Inverse);
+                                         (v2s *) (DataV + iA + 2*iM), (v2s *) (DataV + iA + 3*iM), 0);
                 iA =  iA + 4 * iM;
         }
+        if (Inverse) {
+                for (iCnt1=0; iCnt1<N_fft; iCnt1++){
+                        DataV[iCnt1][1] = -DataV[iCnt1][1];
+                }
+        }
 
+}
+
+
+void Radix4FFT_DIF_Seq_f16(F16_DSP *__restrict__ Data, F16_DSP *__restrict__ Twiddles, int N_fft, int Inverse)
+
+{
+        int iCnt1, iCnt2, iCnt3,
+            iL,    iM,    iQ,
+            iA,    iB,    iC,     iD;
+        int iLog4N  = (gap_fl1(N_fft))>>1;
+        F16V_DSP *DataV  = (F16V_DSP *) Data;
+        F16V_DSP *CoeffV = (F16V_DSP *) Twiddles;
+        int CoreId;
+
+        int i;
+
+        if (Inverse) {
+                for (iCnt1=0; iCnt1<N_fft; iCnt1++){
+                        DataV[iCnt1][1] = -DataV[iCnt1][1];
+                }
+        }
+        // Layers 0,1,2 ...
+        iL = 1; iM = N_fft >> 2;
+        for (iCnt1 = 0; iCnt1 < (iLog4N-1); ++iCnt1) {
+                iQ = 0;
+                for (iCnt2 = 0; iCnt2 < iM; ++iCnt2) {
+                        iA = iCnt2;
+                        F16V_DSP W1 = CoeffV[  iQ], W2 = CoeffV[2*iQ], W3 = CoeffV[3*iQ];
+                        for (iCnt3 = 0; iCnt3 < iL; ++iCnt3) {
+                                Radix4FFTKernelDIF_f16((F16V_DSP *) (DataV + iA       ), (F16V_DSP *) (DataV + iA + iM), 
+                                                       (F16V_DSP *) (DataV + iA + 2*iM), (F16V_DSP *) (DataV + iA + 3*iM),
+                                                       W1, W2, W3, 0);
+                                iA = iA + 4 * iM;
+                        }
+                        iQ += iL;
+                }
+                iL <<= 2; iM >>= 2;
+        }
+        // Final layer for known twiddles
+        iA = 0; iL = (N_fft>>2); iM = 1;
+        for (iCnt3 = 0; iCnt3 < iL; ++iCnt3) {
+                Radix4FFTKernel_Twiddle0_f16((F16V_DSP *) (DataV + iA       ), (F16V_DSP *) (DataV + iA +   iM),
+                                             (F16V_DSP *) (DataV + iA + 2*iM), (F16V_DSP *) (DataV + iA + 3*iM), 0);
+                iA =  iA + 4 * iM;
+        }
+        if (Inverse) {
+                for (iCnt1=0; iCnt1<N_fft; iCnt1++){
+                        DataV[iCnt1][1] = -DataV[iCnt1][1];
+                }
+        }
+}
+
+
+void Radix4FFT_DIF_Seq_f32(float *__restrict__ Data, float *__restrict__ Twiddles, int N_fft, int Inverse)
+
+{
+        int iCnt1, iCnt2, iCnt3,
+            iL,    iM,    iQ,
+            iA,    iB,    iC,     iD;
+        int iLog4N  = (gap_fl1(N_fft))>>1;
+        int CoreId;
+
+        int i;
+
+        if (Inverse) {
+                for (iCnt1=0; iCnt1<N_fft; iCnt1++){
+                        Data[2*iCnt1+1] = -Data[2*iCnt1+1];
+                }
+        }
+        // Layers 0,1,2 ...
+        iL = 1; iM = N_fft >> 2;
+        for (iCnt1 = 0; iCnt1 < (iLog4N-1); ++iCnt1) {
+                iQ = 0;
+                for (iCnt2 = 0; iCnt2 < iM; ++iCnt2) {
+                        float W1r = Twiddles[2*  iQ], W1i = Twiddles[2*  iQ + 1],
+                              W2r = Twiddles[2*2*iQ], W2i = Twiddles[2*2*iQ + 1],
+                              W3r = Twiddles[2*3*iQ], W3i = Twiddles[2*3*iQ + 1];
+                        iA = iCnt2;
+                        for (iCnt3 = 0; iCnt3 < iL; ++iCnt3) {
+                                Radix4FFTKernelDIF_f32((Data + 2*(iA       )), (Data + 2*(iA +   iM)), 
+                                                       (Data + 2*(iA + 2*iM)), (Data + 2*(iA + 3*iM)),
+                                                       W1r, W1i, W2r, W2i, W3r, W3i, 0);
+                                iA = iA + 4 * iM;
+                        }
+                        iQ += iL;
+                }
+                iL <<= 2; iM >>= 2;
+        }
+        // Final layer for known twiddles
+        iA = 0; iL = (N_fft>>2); iM = 1;
+        for (iCnt3 = 0; iCnt3 < iL; ++iCnt3) {
+                Radix4FFTKernel_Twiddle0_f32((Data + 2*(iA       )), (Data + 2*(iA +   iM)),
+                                             (Data + 2*(iA + 2*iM)), (Data + 2*(iA + 3*iM)), 0);
+                iA =  iA + 4 * iM;
+        }
+        if (Inverse) {
+                for (iCnt1=0; iCnt1<N_fft; iCnt1++){
+                        Data[2*iCnt1+1] = -Data[2*iCnt1+1];
+                }
+        }
 }
 
 /*
@@ -884,7 +994,7 @@ void Radix2FFT_DIF_Scalar(signed short *__restrict__ Data, signed short *__restr
   Input are natural order, output is digitally-reversed.
   The last stage is handled differently since twidlles are (1, 0) leading to a some cycle count reduction
 */
-void Radix2FFT_DIF_Seq(signed short *__restrict__ Data, signed short *__restrict__ Twiddles, int N_fft)
+void Radix2FFT_DIF_Seq_Fix16(signed short *__restrict__ Data, signed short *__restrict__ Twiddles, int N_fft, int Inverse)
 
 {
         int iLog2N  = gap_fl1(N_fft);
@@ -897,7 +1007,12 @@ void Radix2FFT_DIF_Seq(signed short *__restrict__ Data, signed short *__restrict
         iL = 1;
         iM = N_fft / 2;
 
-        for (iCnt1 = 0; iCnt1 < (iLog2N-1); iCnt1++) {
+        if (Inverse) {
+                for (iCnt1=0; iCnt1<N_fft; iCnt1++){
+                        DataV[iCnt1][1] = -DataV[iCnt1][1];
+                }
+        }
+        for (iCnt1 = 0; iCnt1 < (iLog2N-2); iCnt1++) {
                 iQ = 0;
                 for (iCnt2 = 0; iCnt2 < iM; iCnt2++) {
                         v2s W = CoeffV[iQ];
@@ -906,8 +1021,79 @@ void Radix2FFT_DIF_Seq(signed short *__restrict__ Data, signed short *__restrict
                                 v2s Tmp;
                                 iB = iA + iM;
                                 Tmp = DataV[iA] - DataV[iB];
-                                DataV[iA] = (DataV[iA] + DataV[iB]) >> (v2s) {FFT2_SCALEDOWN, FFT2_SCALEDOWN};
+                                DataV[iA] = gap_add2div2(DataV[iA], DataV[iB]);
                                 DataV[iB] = gap_cplxmulsdiv2(Tmp, W);
+                                iA = iA + 2 * iM;
+                        }
+                        iQ += iL;
+                }
+                iL <<= 1;
+                iM >>= 1;
+        }
+        // Layer iLog2N - 2
+        iM = 2; iL = (N_fft>>(1+1)); iQ = 0;
+        for (iCnt2 = 0; iCnt2 < iM; ++iCnt2) {
+                v2s W = CoeffV[  iQ];
+                iA = iCnt2;
+                for (iCnt3 = 0; iCnt3 < iL; ++iCnt3) {
+                        v2s Tmp;
+                        iB = iA + iM;
+                        //printf("core %d stage %d iL %d idx %d %d\n",CoreId,iCnt1+1,iL,iA,iB);
+                        Tmp = (DataV[iA]) - (DataV[iB]);
+                        DataV[iA] = (DataV[iA] + DataV[iB]);
+                        DataV[iB] = (v2s) gap_cplxmuls(Tmp, W);
+                        iA = iA + 2 * iM;
+                }
+                iQ += iL;
+        }
+
+        iA = 0;
+        /* Last Layer: W = (1, 0) */
+        for (iCnt3 = 0; iCnt3 < (N_fft>>1); iCnt3++) {
+                v2s Tmp;
+                iB = iA + 1;
+                Tmp = (DataV[iA] - DataV[iB]);
+                DataV[iA] = (DataV[iA] + DataV[iB]);
+                DataV[iB] = Tmp;
+                iA = iA + 2;
+        }
+        if (Inverse) {
+                for (iCnt1=0; iCnt1<N_fft; iCnt1++){
+                        DataV[iCnt1][1] = -DataV[iCnt1][1];
+                }
+        }
+}
+
+
+void Radix2FFT_DIF_Seq_f16(F16_DSP *__restrict__ Data, F16_DSP *__restrict__ Twiddles, int N_fft, int Inverse)
+
+{
+        int iLog2N  = gap_fl1(N_fft);
+        int iCnt1, iCnt2, iCnt3,
+            iQ,    iL,    iM,
+            iA,    iB;
+        F16V_DSP *CoeffV = (F16V_DSP *) Twiddles;
+        F16V_DSP *DataV  = (F16V_DSP *) Data;
+
+        iL = 1;
+        iM = N_fft / 2;
+
+        if (Inverse) {
+                for (iCnt1=0; iCnt1<N_fft; iCnt1++){
+                        DataV[iCnt1][1] = -DataV[iCnt1][1];
+                }
+        }
+        for (iCnt1 = 0; iCnt1 < (iLog2N-1); iCnt1++) {
+                iQ = 0;
+                for (iCnt2 = 0; iCnt2 < iM; iCnt2++) {
+                        F16V_DSP W = CoeffV[iQ];
+                        iA = iCnt2;
+                        for (iCnt3 = 0; iCnt3 < iL; iCnt3++) {
+                                F16V_DSP Tmp;
+                                iB = iA + iM;
+                                Tmp       = DataV[iA] - DataV[iB];
+                                DataV[iA] = DataV[iA] + DataV[iB];
+                                DataV[iB] = CplxMult_f16(Tmp, W);
                                 iA = iA + 2 * iM;
                         }
                         iQ += iL;
@@ -918,12 +1104,79 @@ void Radix2FFT_DIF_Seq(signed short *__restrict__ Data, signed short *__restrict
         iA = 0;
         /* Last Layer: W = (1, 0) */
         for (iCnt3 = 0; iCnt3 < (N_fft>>1); iCnt3++) {
-                v2s Tmp;
+                F16V_DSP Tmp;
                 iB = iA + 1;
                 Tmp = (DataV[iA] - DataV[iB]);
                 DataV[iA] = (DataV[iA] + DataV[iB]);
                 DataV[iB] = Tmp;
                 iA = iA + 2;
+        }
+        if (Inverse) {
+                F16_DSP invN = 1.0 / (F16_DSP) N_fft;
+                for (iCnt1=0; iCnt1<N_fft; iCnt1++){
+                        DataV[iCnt1][0] =  DataV[iCnt1][0] * invN;
+                        DataV[iCnt1][1] = -DataV[iCnt1][1] * invN;
+                }
+        }
+}
+
+
+void Radix2FFT_DIF_Seq_f32(float *__restrict__ Data, float *__restrict__ Twiddles, int N_fft, int Inverse)
+
+{
+        int iLog2N  = gap_fl1(N_fft);
+        int iCnt1, iCnt2, iCnt3,
+            iQ,    iL,    iM,
+            iA,    iB;
+
+        iL = 1;
+        iM = N_fft / 2;
+
+        if (Inverse) {
+                for (iCnt1=0; iCnt1<N_fft; iCnt1++){
+                        Data[2*iCnt1+1] = -Data[2*iCnt1+1];
+                }
+        }
+        for (iCnt1 = 0; iCnt1 < (iLog2N-1); iCnt1++) {
+                iQ = 0;
+                for (iCnt2 = 0; iCnt2 < iM; iCnt2++) {
+                        float Wr = Twiddles[2*iQ], Wi = Twiddles[2*iQ+1];
+                        iA = iCnt2;
+                        for (iCnt3 = 0; iCnt3 < iL; iCnt3++) {
+                                float Tmpr, Tmpi;
+                                iB = iA + iM;
+                                Tmpr = Data[2*iA  ] - Data[2*iB  ];
+                                Tmpi = Data[2*iA+1] - Data[2*iB+1];
+                                Data[2*iA  ] = (Data[2*iA  ] + Data[2*iB  ]);
+                                Data[2*iA+1] = (Data[2*iA+1] + Data[2*iB+1]);
+                                Data[2*iB  ] = (Tmpr*Wr - Tmpi*Wi);
+                                Data[2*iB+1] = (Tmpr*Wi + Tmpi*Wr);
+                                iA = iA + 2 * iM;
+                        }
+                        iQ += iL;
+                }
+                iL <<= 1;
+                iM >>= 1;
+        }
+        iA = 0;
+        /* Last Layer: W = (1, 0) */
+        for (iCnt3 = 0; iCnt3 < (N_fft>>1); iCnt3++) {
+                float Tmpr, Tmpi;
+                iB = iA + 1;
+                Tmpr = Data[2*iA  ] - Data[2*iB  ];
+                Tmpi = Data[2*iA+1] - Data[2*iB+1];
+                Data[2*iA  ] = (Data[2*iA  ] + Data[2*iB  ]);
+                Data[2*iA+1] = (Data[2*iA+1] + Data[2*iB+1]);
+                Data[2*iB  ] = Tmpr;
+                Data[2*iB+1] = Tmpi;
+                iA = iA + 2;
+        }
+        if (Inverse) {
+                float invN = 1.0 / (float) N_fft;
+                for (iCnt1=0; iCnt1<N_fft; iCnt1++){
+                        Data[2*iCnt1  ] = -Data[2*iCnt1  ] * invN;
+                        Data[2*iCnt1+1] = -Data[2*iCnt1+1] * invN;
+                }
         }
 }
 
@@ -1621,6 +1874,401 @@ void Radix2FFT_DIF_Par_Fix32(FFT_Arg_T *Arg)
         gap_waitbarrier(0);
 }
 
+/* Real Sample FFT functions: Sequential */
+
+void RFFT_DIF_Seq_Fix16(short int *Data, short int *RFFT_Out, short int *Twiddles, short int *RTwiddles, short int *SwapTable, int N_fft)
+{
+        v2s *__restrict__ RFFT_OutV = (v2s * __restrict__) RFFT_Out;
+        v2s *__restrict__ RTwiddlesV = (v2s * __restrict__) RTwiddles;
+
+        if (((N_fft >> 1) == 256) || ((N_fft >> 1) == 1024)) {
+                Radix4FFT_DIF_Seq_Fix16(Data, Twiddles, (N_fft>>1), 0);
+        } else {
+                Radix2FFT_DIF_Seq_Fix16(Data, Twiddles, (N_fft>>1), 0);
+        }
+        SwapSamples_Seq_Fix16(Data, SwapTable, (N_fft>>1));
+
+        int  k;                          /* Loop Counter */
+        signed short int twR, twI;       /* RFFT Twiddle coefficients */
+        v2s *pA = (v2s *) Data;          /* increasing pointer */
+        v2s *pB = (v2s *) Data;          /* decreasing pointer */
+        v2s xA, xB;                      /* temporary variables */
+        v2s t1, t2, tw;                  /* temporary variables */
+        signed short int p0, p1, p2, p3; /* temporary variables */
+        int xBR, xBI, xAR, xAI;
+
+        k = (N_fft>>1) - 1;
+        /* Pack first and last sample of the frequency domain together */
+        xBR = pB[0][0];
+        xBI = pB[0][1];
+ 
+        // real(tw * (xB - xA)) = twR * (xBR - xAR) - twI * (xBI - xAI);
+        // imag(tw * (xB - xA)) = twI * (xBR - xAR) + twR * (xBI - xAI);
+        // XA(1) = 1/2*( U1 - imag(U2) +  i*( U1 +imag(U2) ));
+        RFFT_OutV[0][0] = ( xBR + xBI ) >> 1;
+        RFFT_OutV[0][1] = 0;
+
+        // Gr(N) = Gr(0) - Gi(0)
+        // Gi(N) = 0
+        RFFT_OutV[k+1][0] = ( xBR - xBI );
+        RFFT_OutV[k+1][1] = 0;
+
+        pB  = pA + k;
+        pA += 1;
+        RTwiddlesV += 1;
+        RFFT_OutV += 1;
+        for (int i=0; i<k; i++) {
+                /*
+                    function X = my_split_rfft(X, ifftFlag)
+                    % X is a series of real numbers
+                    L  = length(X);
+                    XC = X(1:2:end) +i*X(2:2:end);
+                    XA = fft(XC);
+                    XB = conj(XA([1 end:-1:2]));
+                    TW = i*exp(-2*pi*i*[0:L/2-1]/L).';
+                    for l = 2:L/2
+                    XA(l) = 1/2 * (XA(l) + XB(l) + TW(l) * (XB(l) - XA(l)));
+                    end
+                    XA(1) = 1/2* (XA(1) + XB(1) + TW(1) * (XB(1) - XA(1))) + i*( 1/2*( XA(1) + XB(1) + i*( XA(1) - XB(1))));
+                    X = XA;
+                */
+
+                xA = pA[ i];
+                xB = pB[-i];
+
+                tw = RTwiddlesV[i];
+                /* t1 = {xBR - xAR, xBI + xAI} */
+                t1 = gap_add2div4(-xA, gap_cplxconj(xB));
+                t2 = gap_add2div4( xA, gap_cplxconj(xB));
+                RFFT_OutV[i] = gap_cplxmuls(tw, t1) + t2;
+        }
+        #ifdef PRINTDEB
+        printf("\nout_rfft = np.array([\n\t"); for (int j=0; j<((N_fft>>1)+1); j++) printf("%d%+dj, ",  RFFT_OutV[j-1][0], RFFT_OutV[j-1][1]); printf("])\n");
+        #endif
+}
+
+void RFFT_DIF_Seq_f16(F16_DSP *Data, F16_DSP *RFFT_Out, F16_DSP *Twiddles, F16_DSP *RTwiddles, short int *SwapTable, int N_fft)
+{
+        F16V_DSP *__restrict__ RFFT_OutV = (F16V_DSP * __restrict__) RFFT_Out;
+        F16V_DSP *__restrict__ RTwiddlesV = (F16V_DSP * __restrict__) RTwiddles;
+
+        if (((N_fft >> 1) == 256) || ((N_fft >> 1) == 1024)) {
+                Radix4FFT_DIF_Seq_f16(Data, Twiddles, (N_fft>>1), 0);
+        } else {
+                Radix2FFT_DIF_Seq_f16(Data, Twiddles, (N_fft>>1), 0);
+        }
+        SwapSamples_Seq_f16(Data, SwapTable, (N_fft>>1));
+
+        int  k;                                 /* Loop Counter */
+        F16_DSP twR, twI;                         /* RFFT Twiddle coefficients */
+        F16V_DSP *pA = (F16V_DSP *) Data;               /* increasing pointer */
+        F16V_DSP *pB = (F16V_DSP *) Data;               /* decreasing pointer */
+        F16_DSP xAR, xAI, xBR, xBI;               /* temporary variables */
+        F16V_DSP xA, xB, t1, t2, tw;
+        F16_DSP t1a, t1b;                         /* temporary variables */
+        F16_DSP p0, p1, p2, p3;                   /* temporary variables */
+
+        k = (N_fft>>1) - 1;
+        /* Pack first and last sample of the frequency domain together */
+        xBR = pB[0][0];
+        xBI = pB[0][1];
+ 
+        // real(tw * (xB - xA)) = twR * (xBR - xAR) - twI * (xBI - xAI);
+        // imag(tw * (xB - xA)) = twI * (xBR - xAR) + twR * (xBI - xAI);
+        RFFT_OutV[0][0] = xBR + xBI;
+        RFFT_OutV[0][1] = 0.0f;
+        // XA(1) = 1/2*( U1 - imag(U2) +  i*( U1 +imag(U2) ));
+        RFFT_OutV[k+1][0] = xBR - xBI;
+        RFFT_OutV[k+1][1] = 0.0f;
+
+        pB  = pA + k;
+        pA += 1;
+        RTwiddlesV += 1;
+        RFFT_OutV += 1;
+        for (int i=0; i<k; i++) {
+                /*
+                    function X = my_split_rfft(X, ifftFlag)
+                    % X is a series of real numbers
+                    L  = length(X);
+                    XC = X(1:2:end) +i*X(2:2:end);
+                    XA = fft(XC);
+                    XB = conj(XA([1 end:-1:2]));
+                    TW = i*exp(-2*pi*i*[0:L/2-1]/L).';
+                    for l = 2:L/2
+                    XA(l) = 1/2 * (XA(l) + XB(l) + TW(l) * (XB(l) - XA(l)));
+                    end
+                    XA(1) = 1/2* (XA(1) + XB(1) + TW(1) * (XB(1) - XA(1))) + i*( 1/2*( XA(1) + XB(1) + i*( XA(1) - XB(1))));
+                    X = XA;
+                */
+                xA = pA[ i];
+                xB = pB[-i];
+
+                tw = RTwiddlesV[i];
+                /* t1 = {xBR - xAR, xBI + xAI} */
+                /* t1 = {xBR + xAR,-xBI + xAI} */
+                t2 = xB * (F16V_DSP) {1.0, -1.0};
+                t1 = t2 - xA;
+                t2 = t2 + xA;
+                RFFT_OutV[i] = (CplxMult_f16(tw, t1) + t2) * (F16V_DSP) {0.5f, 0.5f};
+        }
+        #ifdef PRINTDEB
+        printf("\nout_rfft = np.array([\n\t"); for (int j=0; j<((N_fft>>1)+1); j++) printf("%f%+fj, ",  RFFT_OutV[j-1][0], RFFT_OutV[j-1][1]); printf("])\n");
+        #endif
+}
+
+void RFFT_DIF_Seq_f32(float *Data, float *RFFT_Out, float *Twiddles, float *RTwiddles, short int *SwapTable, int N_fft)
+{
+        if (((N_fft >> 1) == 256) || ((N_fft >> 1) == 1024)) {
+                Radix4FFT_DIF_Seq_f32(Data, Twiddles, (N_fft>>1), 0);
+        } else {
+                Radix2FFT_DIF_Seq_f32(Data, Twiddles, (N_fft>>1), 0);
+        }
+        SwapSamples_Seq_f32(Data, SwapTable, (N_fft>>1));
+
+        int  k;                                 /* Loop Counter */
+        float twR, twI;                         /* RFFT Twiddle coefficients */
+        float *pA = Data;                       /* increasing pointer */
+        float *pB = Data;                       /* decreasing pointer */
+        float xAR, xAI, xBR, xBI;               /* temporary variables */
+        float t1a, t1b;                         /* temporary variables */
+        float p0, p1, p2, p3;                   /* temporary variables */
+
+        k = (N_fft>>1) - 1;
+        /* Pack first and last sample of the frequency domain together */
+        xBR = pB[0];
+        xBI = pB[1];
+        RFFT_Out[0] = xBR + xBI;
+        RFFT_Out[1] = 0.0f;
+        RFFT_Out[2*(k+1)]   = xBR - xBI;
+        RFFT_Out[2*(k+1)+1] = 0.0f;
+
+        pB  = pA + 2*k;
+        pA += 2;
+        RTwiddles += 2;
+        RFFT_Out += 2;
+        for (int i=0; i<N_fft; i++)
+        {
+                /*
+                    function X = my_split_rfft(X, ifftFlag)
+                    % X is a series of real numbers
+                    L  = length(X);
+                    XC = X(1:2:end) +i*X(2:2:end);
+                    XA = fft(XC);
+                    XB = conj(XA([1 end:-1:2]));
+                    TW = i*exp(-2*pi*i*[0:L/2-1]/L).';
+                    for l = 2:L/2
+                        XA(l) = 1/2 * (XA(l) + XB(l) + TW(l) * (XB(l) - XA(l)));
+                    end
+                    XA(1) = 1/2* (XA(1) + XB(1) + TW(1) * (XB(1) - XA(1))) + i*( 1/2*( XA(1) + XB(1) + i*( XA(1) - XB(1))));
+                    X = XA;
+                */
+
+                xBR = pB[-2*i];
+                xBI = pB[-2*i+1];
+                xAR = pA[2*i];
+                xAI = pA[2*i+1];
+
+                twR = RTwiddles[2*i];
+                twI = RTwiddles[2*i+1];
+
+                t1a = xBR - xAR ;
+                t1b = xBI + xAI ;
+
+                // printf("%d xAr %10.8f, xAI %10.8f, xBR %10.8f, xBI %10.8f, twR %10.8f, twI %10.8f\n", i, xAR, xAI, xBR, xBI, twR, twI);
+                // real(tw * (xB - xA)) = twR * (xBR - xAR) - twI * (xBI - xAI);
+                // imag(tw * (xB - xA)) = twI * (xBR - xAR) + twR * (xBI - xAI);
+                p0 = twR * t1a;
+                p1 = twI * t1a;
+                p2 = twR * t1b;
+                p3 = twI * t1b;
+
+                RFFT_Out[2*i]   = 0.5f * (xAR + xBR + p0 + p3 ); //xAR
+                RFFT_Out[2*i+1] = 0.5f * (xAI - xBI + p1 - p2 ); //xAI
+        }
+        #ifdef PRINTDEB
+        RFFT_Out -= 2;
+        printf("\nout_rfft = np.array([\n\t"); for (int j=0; j<((N_fft>>1)+1); j++) printf("%f%+fj, ",  RFFT_Out[2*(j)], RFFT_Out[2*(j)+1]); printf("])\n");
+        #endif
+}
+
+
+void IRFFT_DIF_Seq_Fix16(short int *Data, short int *RFFT_Out, short int *Twiddles, short int *RTwiddles, short int *SwapTable, int N_fft)
+{
+        v2s *__restrict__ RFFT_OutV = (v2s * __restrict__) RFFT_Out;
+        v2s *__restrict__ RTwiddlesV = (v2s * __restrict__) RTwiddles;
+
+        int  k;                                 /* Loop Counter */
+        short int twR, twI;                         /* RFFT Twiddle coefficients */
+        v2s *pA = (v2s *) Data;               /* increasing pointer */
+        v2s *pB = (v2s *) Data;               /* decreasing pointer */
+        short int xAR, xAI, xBR, xBI;               /* temporary variables */
+        v2s xA, xB, t1, t2, tw;
+
+        k = (N_fft>>1) - 1;
+        xAR = pA[0][0];
+        xAI = pA[0][1];
+        xBR = pA[k+1][0];
+
+        RFFT_OutV[0][0] = (xAR + xAI + xBR) >> 1;
+        RFFT_OutV[0][1] = (xAR + xAI - xBR) >> 1;
+
+        pB  =  pA + k;
+        pA +=  1;
+        RTwiddlesV += 1;
+        RFFT_OutV += 1;
+
+        for (int i=0; i<k; i++)
+        {
+                /* G is half of the frequency complex spectrum */
+                //for k = 2:N
+                //    Xk(k) = 1/2 * (G(k) + conj(G(N-k+2)) + Tw(k)*( G(k) - conj(G(N-k+2))));
+                xA = pA[ i];
+                xB = pB[-i];
+
+                tw = RTwiddlesV[i];
+                /* t1 = {xAR - xBR, xAI + xBI} */
+                t1 = gap_sub2div2(xA, gap_cplxconj(xB));
+                t2 = gap_add2div2(xA, gap_cplxconj(xB));
+                RFFT_OutV[i] = t2 - gap_cplxmuls(gap_cplxconj(tw), t1);
+        }
+        RFFT_OutV -= 1;
+
+        if (((N_fft >> 1) == 256) || ((N_fft >> 1) == 1024)) {
+                Radix4FFT_DIF_Seq_Fix16(RFFT_Out, Twiddles, (N_fft>>1), 1);
+        } else {
+                Radix2FFT_DIF_Seq_Fix16(RFFT_Out, Twiddles, (N_fft>>1), 1);
+        }
+        SwapSamples_Seq_Fix16(RFFT_Out, SwapTable, (N_fft>>1));
+
+        #ifdef PRINTDEB
+        printf("\nout_rfft = np.array([\n\t"); for (int j=0; j<(N_fft>>1); j++) printf("%d%+dj, ",  RFFT_OutV[j][0], RFFT_OutV[j][1]); printf("])\n");
+        #endif
+}
+
+void IRFFT_DIF_Seq_f16(F16_DSP *Data, F16_DSP *RFFT_Out, F16_DSP *Twiddles, F16_DSP *RTwiddles, short int *SwapTable, int N_fft)
+{
+        F16V_DSP *__restrict__ RFFT_OutV = (F16V_DSP * __restrict__) RFFT_Out;
+        F16V_DSP *__restrict__ RTwiddlesV = (F16V_DSP * __restrict__) RTwiddles;
+
+        int  k;                                 /* Loop Counter */
+        F16_DSP twR, twI;                         /* RFFT Twiddle coefficients */
+        F16V_DSP *pA = (F16V_DSP *) Data;               /* increasing pointer */
+        F16V_DSP *pB = (F16V_DSP *) Data;               /* decreasing pointer */
+        F16_DSP xAR, xAI, xBR, xBI;               /* temporary variables */
+        F16V_DSP xA, xB, xBconj, t1, t2, tw;
+        F16_DSP t1a, t1b;                         /* temporary variables */
+        F16_DSP p0, p1, p2, p3;                   /* temporary variables */
+
+        k = (N_fft>>1) - 1;
+        xAR = pA[0][0];
+        xAI = pA[0][1];
+        xBR = pA[k+1][0];
+
+        RFFT_OutV[0][0] = 0.5f * ( xAR + xAI + xBR);
+        RFFT_OutV[0][1] = 0.5f * ( xAR + xAI - xBR);
+
+        pB  =  pA + k;
+        pA +=  1;
+        RTwiddlesV += 1;
+        RFFT_OutV += 1;
+        for (int i=0; i<k; i++)
+        {
+                /* G is half of the frequency complex spectrum */
+                //for k = 2:N
+                //    Xk(k) = 1/2 * (G(k) + conj(G(N-k+2)) + Tw(k)*( G(k) - conj(G(N-k+2))));
+                xB =  pB[-i];
+                xA =  pA[ i];
+
+                tw = RTwiddlesV[i];
+                xBconj = xB * (F16V_DSP) {1.0, -1.0};
+                t1 = xA - xBconj;
+                t2 = xA + xBconj;
+
+                // xA + xB* - {t1R*twR + twI*t1I, -t1R*twI + t1I*twR} = 
+                // {xAR + xBR - t1R*twR - twI*t1I = xAR + xBR - r - s,
+                //  xAI - xBI + t1R*twI - twR*t1I = xAI - xBI + t - u}
+                RFFT_OutV[i] = (t2 - CplxMult_f16(tw*(F16V_DSP){1.0, -1.0}, t1)) * (F16V_DSP) {0.5f, 0.5f};
+        }
+        RFFT_OutV -= 1;
+
+        if (((N_fft >> 1) == 256) || ((N_fft >> 1) == 1024)) {
+                Radix4FFT_DIF_Seq_f16(RFFT_Out, Twiddles, (N_fft>>1), 1);
+        } else {
+                Radix2FFT_DIF_Seq_f16(RFFT_Out, Twiddles, (N_fft>>1), 1);
+        }
+        SwapSamples_Seq_f16(RFFT_Out, SwapTable, (N_fft>>1));
+
+        #ifdef PRINTDEB
+        printf("\nout_rfft = np.array([\n\t"); for (int j=0; j<(N_fft>>1); j++) printf("%f%+fj, ",  RFFT_OutV[j][0], RFFT_OutV[j][1]); printf("])\n");
+        #endif
+}
+
+void IRFFT_DIF_Seq_f32(float *Data, float *RFFT_Out, float *Twiddles, float *RTwiddles, short int *SwapTable, int N_fft)
+{
+        int  k;                                 /* Loop Counter */
+        float twR, twI;                         /* RFFT Twiddle coefficients */
+        float *pA = Data;                       /* increasing pointer */
+        float *pB = Data;                       /* decreasing pointer */
+        float xAR, xAI, xBR, xBI;               /* temporary variables */
+        float t1a, t1b;                         /* temporary variables */
+        float r, s, t, u;                   /* temporary variables */
+
+        k = (N_fft>>1) - 1;
+        xAR = pA[0];
+        xAI = pA[1];
+        xBR = pA[2*(k+1)];
+
+        RFFT_Out[0] = 0.5f * ( xAR + xAI + xBR );
+        RFFT_Out[1] = 0.5f * ( xAR + xAI - xBR );
+
+        pB  =  pA + 2*k;
+        pA +=  2;
+        RTwiddles += 2;
+        RFFT_Out += 2;
+
+        for (int i=0; i<k; i++)
+        {
+                /* G is half of the frequency complex spectrum */
+                //for k = 2:N
+                //    Xk(k) = 1/2 * (G(k) + conj(G(N-k+2)) + Tw(k)*( G(k) - conj(G(N-k+2))));
+                xBR =  pB[-2*i];
+                xBI =  pB[-2*i+1];
+                xAR =  pA[2*i];
+                xAI =  pA[2*i+1];
+
+                twR = RTwiddles[2*i];
+                twI = RTwiddles[2*i+1];
+
+                t1a = xAR - xBR ;
+                t1b = xAI + xBI ;
+
+                r = twR * t1a;
+                s = twI * t1b;
+                t = twI * t1a;
+                u = twR * t1b;
+
+                // real(tw * (xA - xB)) = twR * (xAR - xBR) - twI * (xAI - xBI);
+                // imag(tw * (xA - xB)) = twI * (xAR - xBR) + twR * (xAI - xBI);
+                RFFT_Out[2*i]   = 0.5f * (xAR + xBR - r - s ); //xAR
+                RFFT_Out[2*i+1] = 0.5f * (xAI - xBI + t - u ); //xAI
+        }
+        RFFT_Out -= 2;
+
+        if (((N_fft >> 1) == 256) || ((N_fft >> 1) == 1024)) {
+                Radix4FFT_DIF_Seq_f32(RFFT_Out, Twiddles, (N_fft>>1), 1);
+        } else {
+                Radix2FFT_DIF_Seq_f32(RFFT_Out, Twiddles, (N_fft>>1), 1);
+        }
+        SwapSamples_Seq_f32(RFFT_Out, SwapTable, (N_fft>>1));
+
+        #ifdef PRINTDEB
+        printf("\nout_rfft = np.array([\n\t"); for (int j=0; j<(N_fft>>1); j++) printf("%f%+fj, ",  RFFT_Out[2*j+0], RFFT_Out[2*j+1]); printf("])\n");
+        #endif
+}
+
+
+/* Real Sample FFT functions: Parallel */
+
 void RFFT_DIF_Par_Fix16(RFFT_Arg_T *Arg){
         v2s *__restrict__ Data = (v2s * __restrict__) Arg->Data;
         v2s *__restrict__ RFFT_Out = (v2s * __restrict__) Arg->RFFT_Out;
@@ -2224,6 +2872,45 @@ if (CoreId==0){
 
 
 /* -------------------------------------------------------- Swap Functions ------------------------------------------------------------- */
+
+void SwapSamples_Seq_Fix16(short int *Data, short int *SwapTable, int Ni)
+
+{
+        v2s *__restrict__ DataV = (v2s *) Data;
+        for (int i = 0; i < Ni; i++) {
+                v2s S = DataV[i];
+                int SwapIndex = SwapTable[i];
+                if (i < SwapIndex) {
+                       DataV[i] = DataV[SwapIndex]; DataV[SwapIndex] = S;
+                }
+        }
+}
+
+void SwapSamples_Seq_f16(F16_DSP *Data, short int *SwapTable, int Ni)
+
+{
+        F16V_DSP *__restrict__ DataV = (F16V_DSP *) Data;
+        for (int i = 0; i < Ni; i++) {
+                F16V_DSP S = DataV[i];
+                int SwapIndex = SwapTable[i];
+                if (i < SwapIndex) {
+                       DataV[i] = DataV[SwapIndex]; DataV[SwapIndex] = S;
+                }
+        }
+}
+
+void SwapSamples_Seq_f32(float *Data, short int *SwapTable, int Ni)
+
+{
+        for (int i = 0; i < Ni; i++) {
+                float R = Data[2*i], I = Data[2*i+1];
+                int SwapIndex = SwapTable[i];
+                if (i < SwapIndex) {
+                        Data[2*i  ] = Data[2*SwapIndex];   Data[2*SwapIndex] = R;
+                        Data[2*i+1] = Data[2*SwapIndex+1]; Data[2*SwapIndex+1] = I;
+                }
+        }
+}
 
 void SwapSamples_Par(SwapSamples_Arg_T *Arg)
 

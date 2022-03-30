@@ -408,21 +408,21 @@ Kernel_T *CNN_MM_ConvolutionNE16(
         unsigned int Cos = NeedConvout?4:1;
 
         if (Log) {
-                printf("InFeat: %d%s, OutFeat: %d, InFeatCons: %d\n", InFeat, " Im2Col", OutFeat, InTileCons);
-                printf("Conv => W:  %4d, Pad:[%d,%d] PadT:[%d,%d] => Wc: %d, Filter:[%d,%d]x%d Bits\n", Width,  PadInc[0], PadInc[1], PadIncT[0], PadIncT[1], Wc, Fcx, Fcy, Filter_DataSizeBits);
-                printf("     => H:  %4d, Pad:[%d,%d] PadT:[%d,%d] => Hc: %d\n", Height, PadInc[2], PadInc[3], PadIncT[2], PadIncT[3], Hc);
-                printf("%s -- >ConvOut_DataSize: %d\n", NeedConvout?"NeedConvOut":"NoConvOut", Cos);
-                printf("Pool => Wc: %4d, Pad:[%d,%d] => Wo: %d, Filter:[%d,%d] %d\n", UsedWc, PadInp[0], PadInp[1], Wo, Fpx, Fpy, Mode16);
-                printf("     => Hc: %4d, Pad:[%d,%d] => Ho: %d\n", UsedHc, PadInp[2], PadInp[3], Ho);
-                printf("OverlapC: %d\n", OverlapC);
-                printf("OverlapP: %d\n", OverlapP);
-                printf("UsedIn  : [%d x %d]\n", UsedWidth, UsedHeight);
-                printf("UsedC   : [%d x %d]\n", UsedWc, UsedHc);
-                if (SetBiasKerName) printf("%20s: %s\n", "SetBiasKerName", SetBiasKerName);
-                if (ConvKerName) printf("%20s: %s\n", "ConvKerName", ConvKerName);
-                if (DPReductionKerName) printf("%20s: %s\n", "DPReductionKerName", DPReductionKerName);
-                if (PoolKerName) printf("%20s: %s\n", "PoolKerName", PoolKerName);
-                printf("Nb Oper : %lld\n", LayerOp);
+                GenTilingDebug("InFeat: %d%s, OutFeat: %d, InFeatCons: %d\n", InFeat, " Im2Col", OutFeat, InTileCons);
+                GenTilingDebug("Conv => W:  %4d, Pad:[%d,%d] PadT:[%d,%d] => Wc: %d, Filter:[%d,%d]x%d Bits\n", Width,  PadInc[0], PadInc[1], PadIncT[0], PadIncT[1], Wc, Fcx, Fcy, Filter_DataSizeBits);
+                GenTilingDebug("     => H:  %4d, Pad:[%d,%d] PadT:[%d,%d] => Hc: %d\n", Height, PadInc[2], PadInc[3], PadIncT[2], PadIncT[3], Hc);
+                GenTilingDebug("%s -- >ConvOut_DataSize: %d\n", NeedConvout?"NeedConvOut":"NoConvOut", Cos);
+                GenTilingDebug("Pool => Wc: %4d, Pad:[%d,%d] => Wo: %d, Filter:[%d,%d] %d\n", UsedWc, PadInp[0], PadInp[1], Wo, Fpx, Fpy, Mode16);
+                GenTilingDebug("     => Hc: %4d, Pad:[%d,%d] => Ho: %d\n", UsedHc, PadInp[2], PadInp[3], Ho);
+                GenTilingDebug("OverlapC: %d\n", OverlapC);
+                GenTilingDebug("OverlapP: %d\n", OverlapP);
+                GenTilingDebug("UsedIn  : [%d x %d]\n", UsedWidth, UsedHeight);
+                GenTilingDebug("UsedC   : [%d x %d]\n", UsedWc, UsedHc);
+                if (SetBiasKerName) GenTilingDebug("%20s: %s\n", "SetBiasKerName", SetBiasKerName);
+                if (ConvKerName) GenTilingDebug("%20s: %s\n", "ConvKerName", ConvKerName);
+                if (DPReductionKerName) GenTilingDebug("%20s: %s\n", "DPReductionKerName", DPReductionKerName);
+                if (PoolKerName) GenTilingDebug("%20s: %s\n", "PoolKerName", PoolKerName);
+                GenTilingDebug("Nb Oper : %lld\n", LayerOp);
 
         }
         /* User kernel C arguments */
@@ -733,22 +733,22 @@ static Kernel_T *CNN_ConvolutionNE16_Internal(
         unsigned int Cos = NeedConvout?4:1;
 
         if (Log) {
-                printf("InFeat: %d%s, OutFeat: %d, InFeatCons: %d\n", InFeat, InFeatOneTile?" (FULL)":"(PART)", OutFeat, InTileCons);
-                printf("Conv => W:  %4d, Pad:[%d,%d] PadT:[%d,%d] => Wc: %d, Filter:[%d,%d]x%d Bits\n", Width,  PadInc[0], PadInc[1], PadIncT[0], PadIncT[1], Wc, Fcx, Fcy, Filter_DataSizeBits);
-                printf("     => H:  %4d, Pad:[%d,%d] PadT:[%d,%d] => Hc: %d\n", Height, PadInc[2], PadInc[3], PadIncT[2], PadIncT[3], Hc);
-                printf("%s -- >ConvOut_DataSize: %d\n", NeedConvout?"NeedConvOut":"NoConvOut", Cos);
-                printf("Pool => Wc: %4d, Pad:[%d,%d] => Wo: %d, Filter:[%d,%d] %d\n", UsedWc, PadInp[0], PadInp[1], Wo, Fpx, Fpy, Mode16);
-                printf("     => Hc: %4d, Pad:[%d,%d] => Ho: %d\n", UsedHc, PadInp[2], PadInp[3], Ho);
-                printf("OverlapC: %d\n", OverlapC);
-                printf("OverlapP: %d\n", OverlapP);
-                printf("TileCons: %d, MinTile: %d\n", TileCons, MinTileDim);
-                printf("UsedIn  : [%d x %d]\n", UsedWidth, UsedHeight);
-                printf("UsedC   : [%d x %d]\n", UsedWc, UsedHc);
-                if (SetBiasKerName) printf("%20s: %s\n", "SetBiasKerName", SetBiasKerName);
-                if (ConvKerName) printf("%20s: %s\n", "ConvKerName", ConvKerName);
-                if (DPReductionKerName) printf("%20s: %s\n", "DPReductionKerName", DPReductionKerName);
-                if (PoolKerName) printf("%20s: %s\n", "PoolKerName", PoolKerName);
-                printf("Nb Oper : %lld\n", LayerOp);
+                GenTilingDebug("InFeat: %d%s, OutFeat: %d, InFeatCons: %d\n", InFeat, InFeatOneTile?" (FULL)":"(PART)", OutFeat, InTileCons);
+                GenTilingDebug("Conv => W:  %4d, Pad:[%d,%d] PadT:[%d,%d] => Wc: %d, Filter:[%d,%d]x%d Bits\n", Width,  PadInc[0], PadInc[1], PadIncT[0], PadIncT[1], Wc, Fcx, Fcy, Filter_DataSizeBits);
+                GenTilingDebug("     => H:  %4d, Pad:[%d,%d] PadT:[%d,%d] => Hc: %d\n", Height, PadInc[2], PadInc[3], PadIncT[2], PadIncT[3], Hc);
+                GenTilingDebug("%s -- >ConvOut_DataSize: %d\n", NeedConvout?"NeedConvOut":"NoConvOut", Cos);
+                GenTilingDebug("Pool => Wc: %4d, Pad:[%d,%d] => Wo: %d, Filter:[%d,%d] %d\n", UsedWc, PadInp[0], PadInp[1], Wo, Fpx, Fpy, Mode16);
+                GenTilingDebug("     => Hc: %4d, Pad:[%d,%d] => Ho: %d\n", UsedHc, PadInp[2], PadInp[3], Ho);
+                GenTilingDebug("OverlapC: %d\n", OverlapC);
+                GenTilingDebug("OverlapP: %d\n", OverlapP);
+                GenTilingDebug("TileCons: %d, MinTile: %d\n", TileCons, MinTileDim);
+                GenTilingDebug("UsedIn  : [%d x %d]\n", UsedWidth, UsedHeight);
+                GenTilingDebug("UsedC   : [%d x %d]\n", UsedWc, UsedHc);
+                if (SetBiasKerName) GenTilingDebug("%20s: %s\n", "SetBiasKerName", SetBiasKerName);
+                if (ConvKerName) GenTilingDebug("%20s: %s\n", "ConvKerName", ConvKerName);
+                if (DPReductionKerName) GenTilingDebug("%20s: %s\n", "DPReductionKerName", DPReductionKerName);
+                if (PoolKerName) GenTilingDebug("%20s: %s\n", "PoolKerName", PoolKerName);
+                GenTilingDebug("Nb Oper : %lld\n", LayerOp);
 
         }
         /* User kernel C arguments */
@@ -947,7 +947,7 @@ int CNN_ConvolutionNE16(
 
 {
         if (Fcx==1 && Fcy==1 && Height==1 && Width==1) {
-                printf("This is a pointwise on 1x1 input --> Mapping to CNN_Linear_NE16\n");
+                GenTilingDebug("This is a pointwise on 1x1 input --> Mapping to CNN_Linear_NE16\n");
                 CNN_LinearAct_NE16(Name, Ctrl, In_DataSize, Out_DataSize, Bias_DataSize, Scale_DataSize, Filter_DataSizeBits, InFeat, OutFeat, KOP_LINEAR, ActOper);
                 return 1;
         }
@@ -972,14 +972,14 @@ int CNN_ConvolutionNE16(
 
         AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
         if (HWC) {
-                printf("---------------------------------------------------------- CNN_ConvolutionNE16 MM ---------------------------------------------------------------------------\n");
+                GenTilingDebug("---------------------------------------------------------- CNN_ConvolutionNE16 MM ---------------------------------------------------------------------------\n");
                 Ker = CNN_MM_ConvolutionNE16(Name, Ctrl, 
                                              In_DataSize, Out_DataSize, Bias_DataSize, Scale_DataSize, Filter_DataSizeBits, InFeat, OutFeat, Width, Height,
                                              ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PadValue, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper);
                 if (Ker) return 1;
-                else  printf("---------------------------------------------------------- MM NO SOLUTION FOUND ---------------------------------------------------------------------------\n");
+                else  GenTilingDebug("---------------------------------------------------------- MM NO SOLUTION FOUND ---------------------------------------------------------------------------\n");
         }
-        printf("----------------------------------------------------------CNN_ConvolutionNE16------------------------------------------------------------------------------\n");
+        GenTilingDebug("----------------------------------------------------------CNN_ConvolutionNE16------------------------------------------------------------------------------\n");
         Ker = CNN_ConvolutionNE16_Internal(Name, Ctrl,
                     In_DataSize, Out_DataSize, Bias_DataSize, Scale_DataSize, Filter_DataSizeBits, InFeat, OutFeat, Width, Height,
                     ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PadValue, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad, ActOper,
@@ -1013,7 +1013,7 @@ int CNN_ConvolutionNE16(
                 Kernel_T *Sol = TakeSol1?Sol1:Sol2;
                 int Full = (GetKernelTileSize(Sol, "In", D0) == InFeat);
 
-                printf("Eval [%s] CNN_ConvolutionNE16, %35s: %s InFeat: %4d/%4d, Tile: %4d/%4d, Tiling Overhead: %f (%s overhead is %f)\n",
+                GenTilingDebug("Eval [%s] CNN_ConvolutionNE16, %35s: %s InFeat: %4d/%4d, Tile: %4d/%4d, Tiling Overhead: %f (%s overhead is %f)\n",
                         DW?"DW":"PW", Name, Full?"FULL ":"TILED", InFeat, GetKernelTileSize(Sol, "In", D0),
                          GetKernelTileSize(Sol, "In", T0), TakeSol1?Sol1TileCons:Sol2TileCons, Sol->Cost->TileOverhead,
                         (!TakeSol1)?"FULL ":"TILED", (!TakeSol1)?Sol1->Cost->TileOverhead:Sol2->Cost->TileOverhead);
@@ -1025,18 +1025,18 @@ int CNN_ConvolutionNE16(
         } else if (Sol1) {
                 Kernel_T *Sol = Sol1;
                 int Full = (GetKernelTileSize(Sol, "In", D0) == InFeat);
-                printf("Eval [%s] CNN_ConvolutionNE16, %35s: %s InFeat: %4d/%4d, Tile: %4d/%4d, Tiling Overhead: %f\n", DW?"DW":"PW",
+                GenTilingDebug("Eval [%s] CNN_ConvolutionNE16, %35s: %s InFeat: %4d/%4d, Tile: %4d/%4d, Tiling Overhead: %f\n", DW?"DW":"PW",
                     Name, Full?"FULL ":"TILED", InFeat, GetKernelTileSize(Sol, "In", D0), GetKernelTileSize(Sol1, "In", T0), Sol1TileCons, Sol1->Cost->TileOverhead);
                 PushBackUserKernel(Sol1);
         } else if (Sol2) {
                 Kernel_T *Sol = Sol2;
                 int Full = (GetKernelTileSize(Sol, "In", D0) == InFeat);
-                printf("Eval [%s] CNN_ConvolutionNE16, %35s: %s InFeat: %4d/%4d, Tile: %4d/%4d, Tiling Overhead: %f\n", DW?"DW":"PW",
+                GenTilingDebug("Eval [%s] CNN_ConvolutionNE16, %35s: %s InFeat: %4d/%4d, Tile: %4d/%4d, Tiling Overhead: %f\n", DW?"DW":"PW",
                     Name, Full?"FULL ":"TILED", InFeat, GetKernelTileSize(Sol, "In", D0), GetKernelTileSize(Sol2, "In", T0), Sol2TileCons, Sol2->Cost->TileOverhead);
                 PushBackUserKernel(Sol2);
         } else GenTilingError("CNN_ConvolutionNE16, %s: can't find any possible mapping");
         AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
-        printf("-----------------------------------------------------------------------------------------------------------------------------------------------------------\n");
+        GenTilingDebug("-----------------------------------------------------------------------------------------------------------------------------------------------------------\n");
         return 1;
 }
 
@@ -1154,10 +1154,10 @@ static Kernel_T *CNN_LinearAct_NE16_Internal(
                                                                WOffsetCfg, QuantRightShift, QuantBits, QuantNoRect, NormShift, NormBias);
 
         if (Log) {
-                printf("Linear Layer %s, %s: InDim: %d%s, Cons: %d, OutDim: %d, Cons: %d, Activation: %s\n",
+                GenTilingDebug("Linear Layer %s, %s: InDim: %d%s, Cons: %d, OutDim: %d, Cons: %d, Activation: %s\n",
                        Name, CNN_KernelOperImage(LinearOper), InDim, InFeatOneTile?" (FULL)":"(PART)", InTileCons, OutDim, OutTileCons, CNN_KernelOperImage(ActOper));
-                if (LinearKerName) printf("Linear Kernel: %s\n", LinearKerName);
-                if (ActKerName)    printf("Act Kernel: %s\n", ActKerName);
+                if (LinearKerName) GenTilingDebug("Linear Kernel: %s\n", LinearKerName);
+                if (ActKerName)    GenTilingDebug("Act Kernel: %s\n", ActKerName);
         }
         Kernel_T *Kernel;
 
@@ -1289,7 +1289,7 @@ int CNN_LinearAct_NE16(
                 int TakeSol1 = ((K*Sol1->Cost->TileOverhead) < Sol2->Cost->TileOverhead);
                 Kernel_T *Sol = TakeSol1?Sol1:Sol2;
                 int Full = (GetKernelTileSize(Sol, "In", D0) == InDim);
-                printf("Eval CNN_LinearAct_NE16, %35s: %s InDim: %4d/%4d, OutDim: %4d/%4d, Tiling Overhead: %f (%s overhead is %f)\n",
+                GenTilingDebug("Eval CNN_LinearAct_NE16, %35s: %s InDim: %4d/%4d, OutDim: %4d/%4d, Tiling Overhead: %f (%s overhead is %f)\n",
                        Name, Full?"FULL ":"TILED", InDim, GetKernelTileSize(Sol, "In", D0), OutDim, GetKernelTileSize(Sol, "Out", D1),
                        Sol->Cost->TileOverhead, (!TakeSol1)?"FULL ":"TILED", (!TakeSol1)?Sol1->Cost->TileOverhead:Sol2->Cost->TileOverhead);
                 if (TakeSol1) {
@@ -1300,13 +1300,13 @@ int CNN_LinearAct_NE16(
         } else if (Sol1) {
                 Kernel_T *Sol = Sol1;
                 int Full = (GetKernelTileSize(Sol, "In", D0) == InDim);
-                printf("Eval CNN_LinearAct_NE16, %35s: %s InDim: %4d/%4d, OutDim: %4d/%4d, Tiling Overhead: %f\n",
+                GenTilingDebug("Eval CNN_LinearAct_NE16, %35s: %s InDim: %4d/%4d, OutDim: %4d/%4d, Tiling Overhead: %f\n",
                         Name, Full?"FULL ":"TILED", InDim, GetKernelTileSize(Sol, "In", D0), OutDim, GetKernelTileSize(Sol, "Out", D1), Sol->Cost->TileOverhead);
                 PushBackUserKernel(Sol1);
         } else if (Sol2) {
                 Kernel_T *Sol = Sol2;
                 int Full = (GetKernelTileSize(Sol, "In", D0) == InDim);
-                printf("Eval CNN_LinearAct_NE16, %35s: %s InDim: %4d/%4d, OutDim: %4d/%4d, Tiling Overhead: %f\n",
+                GenTilingDebug("Eval CNN_LinearAct_NE16, %35s: %s InDim: %4d/%4d, OutDim: %4d/%4d, Tiling Overhead: %f\n",
                         Name, Full?"FULL ":"TILED", InDim, GetKernelTileSize(Sol, "In", D0), OutDim, GetKernelTileSize(Sol, "Out", D1), Sol->Cost->TileOverhead);
                 PushBackUserKernel(Sol2);
         } else GenTilingError("CNN_LinearAct_NE16, %s: can't find any possible mapping");
@@ -1434,13 +1434,13 @@ int CNN_MatMulAct_NE16(
         LayerBandwidth += (int64_t) LineM1*Bias_DataSize;
 
         if (Log) {
-                printf("CNN_MatMul_SQ8: %s\n", Name);
-                printf("In1  => W: %4d, H: %4d %s\n", ColM1, LineM1, Transposed?"(TRANSPOSED)":"");
-                printf("In2  => W: %4d, H: %4d Padded To: %4d\n", ColM2, LineM2, PaddedLineM2);
-                printf("Out  => W: %4d, H: %4d => %s\n", ColO, LineO, ColFirst?"Column first":"Line First");
-                if (MatMulKerName) printf("%20s: %s\n", "MatMulKerName", MatMulKerName);
-                if (ActKerName)    printf("%20s: %s\n", "ActKerName", ActKerName);
-                // printf("Nb Oper : %lld\n", LayerOp);
+                GenTilingDebug("CNN_MatMul_SQ8: %s\n", Name);
+                GenTilingDebug("In1  => W: %4d, H: %4d %s\n", ColM1, LineM1, Transposed?"(TRANSPOSED)":"");
+                GenTilingDebug("In2  => W: %4d, H: %4d Padded To: %4d\n", ColM2, LineM2, PaddedLineM2);
+                GenTilingDebug("Out  => W: %4d, H: %4d => %s\n", ColO, LineO, ColFirst?"Column first":"Line First");
+                if (MatMulKerName) GenTilingDebug("%20s: %s\n", "MatMulKerName", MatMulKerName);
+                if (ActKerName)    GenTilingDebug("%20s: %s\n", "ActKerName", ActKerName);
+                // GenTilingDebug("Nb Oper : %lld\n", LayerOp);
         }
 
         int StreamoutMode   = !Mode16;

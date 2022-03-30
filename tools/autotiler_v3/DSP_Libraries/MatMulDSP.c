@@ -17,6 +17,275 @@ static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
 	return Chunk;
 }
 
+
+void KerParMatMulDSP_Fix16(MatMul_DSP_T *Arg)
+
+{
+	short int * __restrict__ In1 = (short int * __restrict__) Arg->In1;
+	short int * __restrict__ In2 = (short int * __restrict__) Arg->In2;
+	short int * __restrict__ Out = (short int * __restrict__) Arg->Out;
+	short int *BufferColIn2      = (short int *) Arg->BufferColIn2;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	unsigned int W_Out = Arg->W_Out;
+	unsigned int OutFirstCol = Arg->OutFirstCol;
+	int ColFirst = Arg->ColFirst;
+	int Norm = Arg->Norm;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+	unsigned int Line, Col, i;
+	v2s *VBuff1 = (v2s *) (&BufferColIn2[0]);
+	v2s *VBuff2 = (v2s *) (&BufferColIn2[1*H_In2]);
+	v2s *VBuff3 = (v2s *) (&BufferColIn2[2*H_In2]);
+	v2s *VBuff4 = (v2s *) (&BufferColIn2[3*H_In2]);
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Iter = (Last>First)?(Last-First):0;
+	unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+	int OffLine = 0, OffCol = 0;
+
+	if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+	for (Col=0; Col<W_In2/4; Col++) {
+		for (i=F; i<L; i++) {
+			BufferColIn2[i        ] = In2[i*W_In2+4*Col];
+			BufferColIn2[i+1*H_In2] = In2[i*W_In2+4*Col+1];
+			BufferColIn2[i+2*H_In2] = In2[i*W_In2+4*Col+2];
+			BufferColIn2[i+3*H_In2] = In2[i*W_In2+4*Col+3];
+		}
+		gap_waitbarrier(0);
+		for (Line=0; Line<Iter/2; Line++) {
+	        	int l1 = 2*Line + First;
+	        	v2s *VIn1 = (v2s *) (&In1[(l1  )*W_In1 + 0]);
+	        	v2s *VIn2 = (v2s *) (&In1[(l1+1)*W_In1 + 0]);
+			int S1 = 0, S5 = 0;
+			int S2 = 0, S6 = 0;
+			int S3 = 0, S7 = 0;
+			int S4 = 0, S8 = 0;
+			for (i=0; i<W_In1/2; i++) {
+				S1 = gap_sumdotp2(VIn1[i], VBuff1[i], S1);
+				S2 = gap_sumdotp2(VIn1[i], VBuff2[i], S2);
+				S3 = gap_sumdotp2(VIn1[i], VBuff3[i], S3);
+				S4 = gap_sumdotp2(VIn1[i], VBuff4[i], S4);
+				S5 = gap_sumdotp2(VIn2[i], VBuff1[i], S5);
+				S6 = gap_sumdotp2(VIn2[i], VBuff2[i], S6);
+				S7 = gap_sumdotp2(VIn2[i], VBuff3[i], S7);
+				S8 = gap_sumdotp2(VIn2[i], VBuff4[i], S8);
+			}
+			if (W_In1&0x1) {
+				S1 += In1[(l1  )*W_In1 + W_In1-1] * BufferColIn2[W_In1-1];
+				S2 += In1[(l1  )*W_In1 + W_In1-1] * BufferColIn2[W_In1-1+1*H_In2];
+				S3 += In1[(l1  )*W_In1 + W_In1-1] * BufferColIn2[W_In1-1+2*H_In2];
+				S4 += In1[(l1  )*W_In1 + W_In1-1] * BufferColIn2[W_In1-1+3*H_In2];
+				S5 += In1[(l1+1)*W_In1 + W_In1-1] * BufferColIn2[W_In1-1];
+				S6 += In1[(l1+1)*W_In1 + W_In1-1] * BufferColIn2[W_In1-1+1*H_In2];
+				S7 += In1[(l1+1)*W_In1 + W_In1-1] * BufferColIn2[W_In1-1+2*H_In2];
+				S8 += In1[(l1+1)*W_In1 + W_In1-1] * BufferColIn2[W_In1-1+3*H_In2];
+			}
+		       	Out[(l1  +OffLine)*W_Out+4*Col  +OffCol] = gap_clip(gap_roundnorm_reg(S1, Norm), 15);
+		       	Out[(l1  +OffLine)*W_Out+4*Col+1+OffCol] = gap_clip(gap_roundnorm_reg(S2, Norm), 15);
+		       	Out[(l1  +OffLine)*W_Out+4*Col+2+OffCol] = gap_clip(gap_roundnorm_reg(S3, Norm), 15);
+		       	Out[(l1  +OffLine)*W_Out+4*Col+3+OffCol] = gap_clip(gap_roundnorm_reg(S4, Norm), 15);
+		       	Out[(l1+1+OffLine)*W_Out+4*Col  +OffCol] = gap_clip(gap_roundnorm_reg(S5, Norm), 15);
+		       	Out[(l1+1+OffLine)*W_Out+4*Col+1+OffCol] = gap_clip(gap_roundnorm_reg(S6, Norm), 15);
+		       	Out[(l1+1+OffLine)*W_Out+4*Col+2+OffCol] = gap_clip(gap_roundnorm_reg(S7, Norm), 15);
+		       	Out[(l1+1+OffLine)*W_Out+4*Col+3+OffCol] = gap_clip(gap_roundnorm_reg(S8, Norm), 15);
+		}
+		if (Iter&0x1) {
+			int l1 = Last-1;
+	        	v2s *VIn1 = (v2s *) (&In1[(l1  )*W_In1 + 0]);
+			int S1 = 0;
+			int S2 = 0;
+			int S3 = 0;
+			int S4 = 0;
+			for (i=0; i<W_In1/2; i++) {
+				S1 = gap_sumdotp2(VIn1[i], VBuff1[i], S1);
+				S2 = gap_sumdotp2(VIn1[i], VBuff2[i], S2);
+				S3 = gap_sumdotp2(VIn1[i], VBuff3[i], S3);
+				S4 = gap_sumdotp2(VIn1[i], VBuff4[i], S4);
+			}
+			if (W_In1&0x1) {
+				S1 += In1[(l1)*W_In1 + W_In1-1] * BufferColIn2[W_In1-1];
+				S2 += In1[(l1)*W_In1 + W_In1-1] * BufferColIn2[W_In1-1+1*H_In2];
+				S3 += In1[(l1)*W_In1 + W_In1-1] * BufferColIn2[W_In1-1+2*H_In2];
+				S4 += In1[(l1)*W_In1 + W_In1-1] * BufferColIn2[W_In1-1+3*H_In2];
+			}
+		       	Out[(l1  +OffLine)*W_Out+4*Col  +OffCol] = gap_clip(gap_roundnorm_reg(S1, Norm), 15);
+		       	Out[(l1  +OffLine)*W_Out+4*Col+1+OffCol] = gap_clip(gap_roundnorm_reg(S2, Norm), 15);
+		       	Out[(l1  +OffLine)*W_Out+4*Col+2+OffCol] = gap_clip(gap_roundnorm_reg(S3, Norm), 15);
+		       	Out[(l1  +OffLine)*W_Out+4*Col+3+OffCol] = gap_clip(gap_roundnorm_reg(S4, Norm), 15);
+		}
+		gap_waitbarrier(0);
+	}
+	for (Col=(W_In2/4)*4; Col<W_In2; Col++) {
+		for (i=F; i<L; i++) BufferColIn2[i] = In2[i*W_In2+Col];
+		gap_waitbarrier(0);
+		for (Line=0; Line<Iter/2; Line++) {
+	        	int l1 = 2*Line + First;
+	        	v2s *VIn1 = (v2s *) (&In1[(l1  )*W_In1 + 0]);
+	        	v2s *VIn2 = (v2s *) (&In1[(l1+1)*W_In1 + 0]);
+			int S1 = 0, S5 = 0;
+			for (i=0; i<W_In1/2; i++) {
+				S1 = gap_sumdotp2(VIn1[i], VBuff1[i], S1);
+				S5 = gap_sumdotp2(VIn2[i], VBuff1[i], S5);
+			}
+			if (W_In1&0x1) {
+				S1 += In1[(l1  )*W_In1 + W_In1-1] * BufferColIn2[W_In1-1];
+				S5 += In1[(l1+1)*W_In1 + W_In1-1] * BufferColIn2[W_In1-1];
+			}
+		       	Out[(l1  +OffLine)*W_Out+Col  +OffCol] = gap_clip(gap_roundnorm_reg(S1, Norm), 15);
+		       	Out[(l1+1+OffLine)*W_Out+Col  +OffCol] = gap_clip(gap_roundnorm_reg(S5, Norm), 15);
+		}
+		if (Iter&0x1) {
+			int l1 = Last-1;
+	        	v2s *VIn1 = (v2s *) (&In1[(l1  )*W_In1 + 0]);
+			int S1 = 0;
+			for (i=0; i<W_In1/2; i++) S1 = gap_sumdotp2(VIn1[i], VBuff1[i], S1);
+			if (W_In1&0x1) S1 += In1[(l1)*W_In1 + W_In1-1] * BufferColIn2[W_In1-1];
+		       	Out[(l1  +OffLine)*W_Out+Col  +OffCol] = gap_clip(gap_roundnorm_reg(S1, Norm), 15);
+		}
+		gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulDSPT_Fix16(MatMul_DSP_T *Arg)
+
+{
+	short int * __restrict__ In1 = (short int * __restrict__) Arg->In1;
+	short int * __restrict__ In2 = (short int * __restrict__) Arg->In2;
+	short int * __restrict__ Out = (short int * __restrict__) Arg->Out;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	unsigned int W_Out = Arg->W_Out;
+	unsigned int OutFirstCol = Arg->OutFirstCol;
+	int ColFirst = Arg->ColFirst;
+	int Norm = Arg->Norm;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+	unsigned int Line, Col, i;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Iter = (Last>First)?(Last-First):0;
+	int OffLine = 0, OffCol = 0;
+
+	if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+	short int * pOut = Out + (OffLine+First)*W_Out + OffCol;
+	for (Line=0; Line<Iter/2; Line++) {
+        	short int *pIn2 = In2;
+        	int l1 = 2*Line + First;
+        	v2s *VIn1 = (v2s *) (&In1[(l1  )*W_In1 + 0]);
+        	v2s *VIn2 = (v2s *) (&In1[(l1+1)*W_In1 + 0]);
+		for (Col=0; Col<W_In2/4; Col++) {
+			v2s *VBuff0 = (v2s *) (pIn2);
+			v2s *VBuff1 = (v2s *) (pIn2+H_In2);
+			v2s *VBuff2 = (v2s *) (pIn2+2*H_In2);
+			v2s *VBuff3 = (v2s *) (pIn2+3*H_In2);
+			int S0 = 0, S4=S0;
+			int S1 = 0, S5=S1;
+			int S2 = 0, S6=S2;
+			int S3 = 0, S7=S3;
+			for (i=0; i<W_In1/2; i++) {
+				S0 = gap_sumdotp2(VIn1[i], VBuff0[i], S0);
+				S1 = gap_sumdotp2(VIn1[i], VBuff1[i], S1);
+				S2 = gap_sumdotp2(VIn1[i], VBuff2[i], S2);
+				S3 = gap_sumdotp2(VIn1[i], VBuff3[i], S3);
+				S4 = gap_sumdotp2(VIn2[i], VBuff0[i], S4);
+				S5 = gap_sumdotp2(VIn2[i], VBuff1[i], S5);
+				S6 = gap_sumdotp2(VIn2[i], VBuff2[i], S6);
+				S7 = gap_sumdotp2(VIn2[i], VBuff3[i], S7);
+			}
+			if (W_In1&0x1) {
+				S0 += In1[(l1  )*W_In1 + W_In1-1] * pIn2[W_In1-1];
+				S1 += In1[(l1  )*W_In1 + W_In1-1] * pIn2[W_In1-1+H_In2];
+				S2 += In1[(l1  )*W_In1 + W_In1-1] * pIn2[W_In1-1+2*H_In2];
+				S3 += In1[(l1  )*W_In1 + W_In1-1] * pIn2[W_In1-1+3*H_In2];
+				S4 += In1[(l1+1)*W_In1 + W_In1-1] * pIn2[W_In1-1];
+				S5 += In1[(l1+1)*W_In1 + W_In1-1] * pIn2[W_In1-1+H_In2];
+				S6 += In1[(l1+1)*W_In1 + W_In1-1] * pIn2[W_In1-1+2*H_In2];
+				S7 += In1[(l1+1)*W_In1 + W_In1-1] * pIn2[W_In1-1+3*H_In2];
+			}
+		       	pOut[      (4*Col  )] = gap_clip(gap_roundnorm_reg(S0, Norm), 15);
+		       	pOut[      (4*Col+1)] = gap_clip(gap_roundnorm_reg(S1, Norm), 15);
+		       	pOut[      (4*Col+2)] = gap_clip(gap_roundnorm_reg(S2, Norm), 15);
+		       	pOut[      (4*Col+3)] = gap_clip(gap_roundnorm_reg(S3, Norm), 15);
+		       	pOut[W_Out+(4*Col  )] = gap_clip(gap_roundnorm_reg(S4, Norm), 15);
+		       	pOut[W_Out+(4*Col+1)] = gap_clip(gap_roundnorm_reg(S5, Norm), 15);
+		       	pOut[W_Out+(4*Col+2)] = gap_clip(gap_roundnorm_reg(S6, Norm), 15);
+		       	pOut[W_Out+(4*Col+3)] = gap_clip(gap_roundnorm_reg(S7, Norm), 15);
+		       	pIn2 += 4*H_In2;
+		}
+		for (Col=(W_In2/4)*4; Col<W_In2; Col++) {
+			v2s *VBuff0 = (v2s *) (pIn2);
+			int S0 = 0, S4=S0;
+			for (i=0; i<W_In1/2; i++) {
+				S0 = gap_sumdotp2(VIn1[i], VBuff0[i], S0);
+				S4 = gap_sumdotp2(VIn2[i], VBuff0[i], S4);
+			}
+			if (W_In1&0x1) {
+				S0 += In1[(l1  )*W_In1 + W_In1-1] * pIn2[W_In1-1];
+				S4 += In1[(l1+1)*W_In1 + W_In1-1] * pIn2[W_In1-1];
+			}
+		       	pOut[      (W_In2-1)] = gap_clip(gap_roundnorm_reg(S0, Norm), 15);
+		       	pOut[W_Out+(W_In2-1)] = gap_clip(gap_roundnorm_reg(S4, Norm), 15);
+		       	pIn2 += H_In2;
+		}
+		pOut += 2*W_Out;
+	}
+	if (Iter&0x1) {
+        	short int *pIn2 = In2;
+        	int l1 = Last-1;
+        	v2s *VIn1 = (v2s *) (&In1[(l1  )*W_In1 + 0]);
+        	for (Col=0; Col<W_In2/4; Col++) {
+			v2s *VBuff0 = (v2s *) (pIn2);
+			v2s *VBuff1 = (v2s *) (pIn2+H_In2);
+			v2s *VBuff2 = (v2s *) (pIn2+2*H_In2);
+			v2s *VBuff3 = (v2s *) (pIn2+3*H_In2);
+			int S0 = 0;
+			int S1 = 0;
+			int S2 = 0;
+			int S3 = 0;
+			for (i=0; i<W_In1/2; i++) {
+				S0 = gap_sumdotp2(VIn1[i], VBuff0[i], S0);
+				S1 = gap_sumdotp2(VIn1[i], VBuff1[i], S1);
+				S2 = gap_sumdotp2(VIn1[i], VBuff2[i], S2);
+				S3 = gap_sumdotp2(VIn1[i], VBuff3[i], S3);
+			}
+			if (W_In1&0x1) {
+				S0 += In1[(l1  )*W_In1 + W_In1-1] * pIn2[W_In1-1];
+				S1 += In1[(l1  )*W_In1 + W_In1-1] * pIn2[W_In1-1+H_In2];
+				S2 += In1[(l1  )*W_In1 + W_In1-1] * pIn2[W_In1-1+2*H_In2];
+				S3 += In1[(l1  )*W_In1 + W_In1-1] * pIn2[W_In1-1+3*H_In2];
+			}
+		       	pOut[      (4*Col  )] = gap_clip(gap_roundnorm_reg(S0, Norm), 15);
+		       	pOut[      (4*Col+1)] = gap_clip(gap_roundnorm_reg(S1, Norm), 15);
+		       	pOut[      (4*Col+2)] = gap_clip(gap_roundnorm_reg(S2, Norm), 15);
+		       	pOut[      (4*Col+3)] = gap_clip(gap_roundnorm_reg(S3, Norm), 15);
+		       	pIn2 += 4*H_In2;
+		}
+		for (Col=(W_In2/4)*4; Col<W_In2; Col++) {
+			v2s *VBuff0 = (v2s *) (pIn2);
+			int S0 = 0;
+			for (i=0; i<W_In1/2; i++) {
+				S0 = gap_sumdotp2(VIn1[i], VBuff0[i], S0);
+			}
+			if (W_In1&0x1) {
+				S0 += In1[(l1  )*W_In1 + W_In1-1] * pIn2[W_In1-1];
+			}
+		       	pOut[(W_In2-1)] = gap_clip(gap_roundnorm_reg(S0, Norm), 15);
+		       	pIn2 += H_In2;
+		}
+        }
+	gap_waitbarrier(0);
+}
+
+
 void KerParMatMulDSP_fp16(MatMul_DSP_T *Arg)
 
 {
