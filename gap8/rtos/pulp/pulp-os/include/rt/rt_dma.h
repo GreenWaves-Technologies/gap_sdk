@@ -158,7 +158,7 @@ static inline void rt_dma_memcpy(unsigned int ext, unsigned int loc, unsigned sh
   gv_vcd_dump_trace(trace, 4);
 #endif
 
-  int id = -1;
+  int id = copy->id;
 #if MCHAN_VERSION >= 7
   eu_mutex_lock_from_id(0);
 #endif
@@ -186,7 +186,7 @@ static inline void rt_dma_memcpy_2d(unsigned int ext, unsigned int loc, unsigned
   gv_vcd_dump_trace(trace, 4);
 #endif
 
-  int id = -1;
+  int id = copy->id;
 #if MCHAN_VERSION >= 7
   eu_mutex_lock_from_id(0);
 #endif

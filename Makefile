@@ -25,6 +25,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# the MAGICK_ROOT variable can be used to pass an alternative installation
+# prefix for the GraphicsMagick library. 
+ifdef MAGICK_ROOT
+export MAGICK_ROOT := $(realpath $(MAGICK_ROOT))
+endif
+
 ifeq ($(TARGET_CHIP), GAP9)
 use_old_build = 1
 endif

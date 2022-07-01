@@ -1,7 +1,7 @@
 VSIM_DETECTED_PATH=$(dir $(shell which vsim))
 BUILD_DIR ?= build
 
-CFLAGS += -std=gnu++11 -MMD -MP -O3 -g
+CFLAGS += -std=c++11 -MMD -MP -O3 -g
 
 CFLAGS += -I$(INSTALL_DIR)/include -fPIC
 LDFLAGS += -L$(INSTALL_DIR)/lib -fPIC -shared -O3 -g -ljson
