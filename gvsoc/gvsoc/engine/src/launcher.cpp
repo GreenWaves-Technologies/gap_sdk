@@ -31,6 +31,8 @@ public:
 
     void run();
 
+    void start();
+
     int64_t stop();
 
     int64_t step(int64_t duration);
@@ -58,6 +60,12 @@ void Gvsoc_launcher::open(std::string config_path)
     this->instance = ((vp::top *)this->handler)->top_instance;
 
     gv_start(this->handler);
+}
+
+void Gvsoc_launcher::start()
+{
+    gv_reset(this->handler, true);
+    gv_reset(this->handler, false);
 }
 
 void Gvsoc_launcher::close()

@@ -663,7 +663,7 @@ static inline void __attribute__((always_inline)) KerParMatMulB8_SQ8_act(
         int ColFirst = Arg->ColFirst;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
         unsigned int H_In2 = W_In1;
         unsigned int H_Out = H_In1;
@@ -842,7 +842,7 @@ static inline void __attribute__((always_inline)) KerParMatMulSxSyB8_SQ8_act(
 	unsigned char * __restrict__ ScaleN = Arg->ScaleN;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	unsigned int H_In2 = W_In1;
 	unsigned int H_Out = H_In1;
@@ -953,7 +953,7 @@ static inline void __attribute__((always_inline)) KerParMatMulB16_SQ8_act(
         int ColFirst = Arg->ColFirst;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
         unsigned int H_In2 = W_In1;
         unsigned int H_Out = H_In1;
@@ -1133,7 +1133,7 @@ static inline void __attribute__((always_inline)) KerParMatMulSxSyB16_SQ8_act(
 	unsigned char * __restrict__ ScaleN = Arg->ScaleN;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	unsigned int H_In2 = W_In1;
 	unsigned int H_Out = H_In1;
@@ -1245,7 +1245,7 @@ static inline void __attribute__((always_inline)) KerParMatMulB32_SQ8_act(
         int ColFirst = Arg->ColFirst;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
         unsigned int H_In2 = W_In1;
         unsigned int H_Out = H_In1;
@@ -1487,7 +1487,7 @@ static inline void __attribute__((always_inline)) KerParMatMulSxSyB32_SQ8_act(
 	unsigned char * __restrict__ ScaleN = Arg->ScaleN;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	unsigned int H_In2 = W_In1;
 	unsigned int H_Out = H_In1;
@@ -1604,7 +1604,7 @@ void KerParMatMulB8_SF_SQ8_act(
         unsigned int Iter = (Last>First)?(Last-First):0;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	for (int i=0; i<Iter/4; i++) {
 		int l2 = 4*i+First;
@@ -1738,7 +1738,7 @@ static inline void __attribute__((always_inline)) KerParMatMulB16_SF_SQ8_act(
         unsigned int Iter = (Last>First)?(Last-First):0;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	for (int i=0; i<Iter/4; i++) {
 		int l2 = 4*i+First;
@@ -1871,7 +1871,7 @@ static inline void __attribute__((always_inline)) KerParMatMulB32_SF_SQ8_act(
 	unsigned int Iter = (Last>First)?(Last-First):0;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	for (int i=0; i<Iter/4; i++) {
 		int l2 = 4*i+First;
@@ -2033,7 +2033,7 @@ static inline void __attribute__((always_inline)) KerParMatVectMul_SQ8_act(
 	unsigned int ScaleN		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALEN];
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Arg->Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Arg->Feat);
 
@@ -2123,7 +2123,7 @@ static inline void __attribute__((always_inline)) KerParMatVectMul_HWC_SQ8_act(
 	unsigned int ScaleN		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALEN];
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 	int S				= W*H;
 
 	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
@@ -2224,7 +2224,7 @@ static inline void __attribute__((always_inline)) KerParMatMulNoBias_PL_SQ8_act(
         int ColFirst = Arg->ColFirst;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
         unsigned int H_In2 = W_In1;
         unsigned int H_Out = H_In1;
@@ -2445,7 +2445,7 @@ static inline void __attribute__((always_inline)) KerParMatMulB32_PL_SQ8_act(
         int ColFirst = Arg->ColFirst;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
         unsigned int H_In2 = W_In1;
         unsigned int H_Out = H_In1;
@@ -2673,7 +2673,7 @@ static inline void __attribute__((always_inline)) KerParMatMulTransposedB32_SQ8_
         int ColFirst = Arg->ColFirst;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
         unsigned int H_In2 = W_In1;
         unsigned int H_Out = H_In1;
@@ -2899,7 +2899,7 @@ static inline void __attribute__((always_inline)) KerParMatMulTransposedB32_PL_S
         int ColFirst = Arg->ColFirst;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
         unsigned int H_In2 = W_In1;
         unsigned int H_Out = H_In1;

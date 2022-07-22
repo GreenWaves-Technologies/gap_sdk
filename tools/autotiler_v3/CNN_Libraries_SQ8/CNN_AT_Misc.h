@@ -69,4 +69,23 @@ void AT_ChecksumTensor(
         void *L2_BufferAddr,
         unsigned int L2_BufferSize,
         void *Addr);
+
+void AT_DumpTensorCompressed(
+        char *NodeName,
+        char *ArgName,
+        int Loc,
+        void *L3_Device,
+        void *L3_Event,
+        int LUTBits,
+        int Sparse,
+        int Dim,
+        int D0,
+        int D1,
+        int D2,
+        int D3,
+        int D4,
+        void *L2_BufferAddr,
+        unsigned int L2_BufferSize,
+        char *Addr,
+        int *ItemAddresses);
 #endif

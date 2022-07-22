@@ -5,3 +5,4 @@ configparser
 argcomplete
 requests
 six
+kconfiglib

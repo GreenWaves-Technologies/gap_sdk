@@ -3,7 +3,7 @@ project(gvsoc)
 
 if(NOT DEFINED VP_MODEL_ROOT_DIRS)
     set(VP_MODEL_ROOT_DIRS
-        "${CMAKE_CURRENT_SOURCE_DIR}/gvosc/models"
+        "${CMAKE_CURRENT_SOURCE_DIR}/gvsoc/models"
         "${CMAKE_CURRENT_SOURCE_DIR}/gvsoc_gap/models"
         )
 endif()
@@ -45,6 +45,7 @@ set(SUPPORTED_TARGET_CHIPS
     "GAP8_V3"
     "GAP9"
     "GAP9_V2"
+    "GAP9_5"
     )
 if(NOT "${TARGET_CHIP}" IN_LIST SUPPORTED_TARGET_CHIPS)
     message(FATAL_ERROR "${TARGET_CHIP} chip is not supported by GVSOC")

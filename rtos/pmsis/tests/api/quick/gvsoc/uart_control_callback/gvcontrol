@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+
+import argparse
+import gv.gvsoc_control as gvsoc
+
+parser = argparse.ArgumentParser(description='Control GVSOC')
+
+parser.add_argument("--host", dest="host", default="localhost", help="Specify host name")
+parser.add_argument("--port", dest="port", default=42951, type=int, help="Specify host port")
+
+args = parser.parse_args()
+
+current_rx_value = 0
+rx_status = None
+
+def handle_rx(received_size, received_bytes, gv):
+
+    global current_rx_value
+    global rx_status
+
+    if rx_status is not None:
+        return
+
+    for i in range(0, received_size):
+        if received_bytes[i] != current_rx_value & 0xff:
+            rx_status = 'Error, expected 0x%x, got 0x%x' % (current_rx_value, received_bytes[i])
+
+        current_rx_value += 1
+
+
+gv = gvsoc.Proxy(args.host, args.port)
+
+testbench = gvsoc.Testbench(gv)
+
+# Open Uart 0 interface
+uart = testbench.uart_get(0)
+
+uart.open(baudrate=10000000)
+
+uart.rx_attach_callback(handle_rx, gv)
+uart.rx_enable()
+
+gv.run(100000000000)
+
+current = 0
+for j in range(0, 100):
+    buff = []
+    for i in range(0, 45):
+        buff.append(current & 0xff)
+        current += 1
+
+    uart.tx(bytes(buff))
+
+    gv.run(2000000000)
+
+uart.rx_disable()
+uart.rx_detach_callback()
+
+if rx_status is not None:
+    print (rx_status)
+    gv.quit(1)
+else:
+    gv.quit()
+
+gv.close()

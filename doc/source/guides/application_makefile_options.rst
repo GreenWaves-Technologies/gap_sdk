@@ -44,6 +44,10 @@ Here is a description of these options:
 
 - ``runner_args="<options>"`` to pass runner specific options.
 
+- ``gdbserver=1`` to launch execution with a GDB server so that GDB can be connected to the platform.
+
+- ``gdbport=<port>`` to specify the GDB port when opening a GDB server.
+
 - ``CONFIG_BOOT_DEVICE=<value>`` to specify the device from which to boot. ``<value>`` includes:
 
   - ``spiflash`` to boot from SPI flash

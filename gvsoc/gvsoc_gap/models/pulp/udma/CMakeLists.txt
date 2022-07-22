@@ -45,6 +45,42 @@ elseif("${TARGET_CHIP}" STREQUAL "GAP9_V2")
         DEFINITIONS
         -DUDMA_VERSION=4
         )
+elseif("${TARGET_CHIP}" STREQUAL "GAP9_5")
+    # Model versions
+    set(UDMA_UART_VERSION  "2")
+    set(UDMA_AES_VERSION   "1")
+    set(UDMA_FFC_VERSION   "1")
+    set(UDMA_I2C_VERSION   "4")
+    set(UDMA_I2S_VERSION   "3")
+    set(UDMA_HYPER_VERSION "3")
+    set(UDMA_MRAM_VERSION  "2")
+    set(UDMA_SFU_VERSION   "1")
+
+    set(UDMA_SOURCES
+        "udma_v5_impl.cpp"
+        "dc_fifo.cpp"
+        "udma_v4_addrgens.cpp"
+        "udma_v4_rx_channels.cpp"
+        "udma_v4_tx_channels.cpp"
+        )
+
+    vp_model(NAME "udma_model"
+        OUTPUT_NAME "udma_v5_gap9_5_impl"
+        PREFIX "pulp/udma"
+        SOURCES ${UDMA_SOURCES}
+        )
+
+    # FIXME ugly workaround because of some udma models
+    vp_model_include_directories(
+        NAME udma_model
+        DIRECTORY
+        "../../../../../rtos/pulp/gap_archi/include/archi/chips/gap9_5"
+        )
+    vp_model_compile_definitions(
+        NAME udma_model
+        DEFINITIONS
+        -DUDMA_VERSION=5
+        )
 else()
     message(FATAL_ERROR "${TARGET_CHIP} is not known by GVSOC")
 endif()

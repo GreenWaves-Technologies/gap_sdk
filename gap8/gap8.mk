@@ -67,7 +67,6 @@ clean: littlefs.clean
 	$(RM) $(INSTALL_DIR)
 	$(RM) $(BUILD_DIR)
 	if [ -e $(GAP_SDK_HOME)/tools/autotiler_v3/Makefile ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler_v3 clean; fi
-	$(MAKE) -C $(GAP_SDK_HOME)/tools/nntool clean
 	if [ -e tools/profiler ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/profiler clean; fi
 
 minimal: pulp-os freertos gapy.all openocd_tools.all plptest.all
@@ -89,7 +88,7 @@ install_others: | $(INSTALL_BIN_DIR)
 
 # This rules is to compile pmsis-bsp for pulp os on gap8, wihtout having to recompile the whole sdk
 pmsis-bsp.build:
-	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp all
+	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/bsp all
 
 gap_configs.checkout:
 	git submodule update --init utils/gap_configs
@@ -104,9 +103,9 @@ pulprt.build:
 	$(MAKE) -C $(GAP_SDK_HOME)/gap8/rtos/pulp build.pulprt
 
 pulp-os: $(TARGET_INSTALL_DIR) install_others pulprt.checkout
-	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api -f tools/export.mk build
+	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/api -f tools/export.mk build
 	$(MAKE) -C $(GAP_SDK_HOME)/gap8/rtos/pulp build
-	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp all
+	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/bsp all
 	$(MAKE) -C $(GAP_SDK_HOME)/libs/gap_lib all
 
 # PulpOS_v2
@@ -192,7 +191,7 @@ profiler:
 	cp tools/profiler/gui/build/profiler $(INSTALL_DIR)/bin
 
 nntool:
-	$(MAKE) -C $(GAP_SDK_HOME)/tools/nntool all
+	$(MAKE) -C $(GAP_SDK_HOME)/tools/nntool/nntool req
 
 sfu.clean:
 ifneq ("$(wildcard tools/sfu_gen/Makefile)","")

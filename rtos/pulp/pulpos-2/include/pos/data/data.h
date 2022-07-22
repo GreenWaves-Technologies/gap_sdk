@@ -24,27 +24,6 @@
 
 #include <archi/pulp.h>
 
-#define POS_BITFIELD_ALLOC_ID 0
-#define POS_SEM_ALLOC_ID      1
-#define POS_BARRIER_ALLOC_ID  2
-#define POS_MUTEX_ALLOC_ID    3
-
-#define POS_BITFIELD_ALLOC_INIT (((1 << ARCHI_EU_NB_HW_BITFIELD) - 1) & ~0xf)
-#define POS_SEM_ALLOC_INIT      ((1 << ARCHI_EU_NB_HW_SEMAPHORE) - 1)
-#define POS_BARRIER_ALLOC_INIT  (((1 << ARCHI_EU_NB_HW_BARRIER) - 1) & ~0x3)
-#define POS_MUTEX_ALLOC_INIT    ((1 << ARCHI_EU_NB_HW_MUTEX) - 1)
-
-// This event is used by FC to notify few events to the cluster:
-//  - A remote cluster to FC event was handled and the cluster can then try to
-//    post again another event in case it was working
-//  - There was a remote request handled so the cluster can check iif the one is
-//    waiting for has finished
-#define POS_EVENT_CLUSTER_CALL_EVT 1
-#define POS_EVENT_CLUSTER_SYNC     2
-#define POS_EVENT_CLUSTER_TASK     3
-
-#define POS_EVENT_FC_ENQUEUE 1
-
 #ifndef LANGUAGE_ASSEMBLY
 
 // We cannot use tiny attribute if we use a generic riscv toolchain or LLVM or we there is fc specific memeory (TCDM or L2)
@@ -79,33 +58,14 @@
 struct pi_task_implem
 {
     unsigned int time;
+#if defined(CONFIG_MULTI_THREADING)
+    void *waiting;
+#endif
 } __attribute__((packed));
 
 
-#define CLUSTER_TASK_CUSTOM 1
 
-typedef struct pi_cluster_task {
-    // entry function and its argument(s)
-    void (*entry)(void*);
-    void *arg;
-    // pointer to first stack, and size for each cores
-    void *stacks;
-    uint32_t stack_size;
-    uint32_t slave_stack_size;
-    // Number of cores to be activated
-    int nb_cores;
-    // callback called at task completion
-    struct pi_task *completion_callback;
-    int stack_allocated;
-    // to implement a fifo
-    struct pi_cluster_task *next;
-
-    int core_mask;
-    uint8_t event_based;
-} pi_cluster_task_t;
-
-
-#define CLUSTER_TASK_IMPLEM struct pos_cluster_task_implem implem
+#define CLUSTER_TASK_IMPLEM
 #define PI_TASK_IMPLEM struct pi_task_implem implem
 
 #define PI_TASK_IMPLEM_NB_DATA 8
@@ -119,19 +79,6 @@ typedef struct pi_task{
     PI_TASK_IMPLEM;
 
 } pi_task_t;
-
-typedef struct pi_cl_workitem_s
-{
-    void (*entry)(struct pi_cl_workitem_s *task, int id);
-    struct pi_cl_workitem_s *next;
-    void (*callback_entry)(void *arg);
-    void *callback_arg;
-    struct pi_cl_workitem_s *piped_task;
-    uint32_t args[4];
-    uint8_t nb_cores;
-    uint8_t nb_cores_popped;
-    uint8_t nb_done_cores;
-} pi_cl_workitem_t;
 
 
 struct pi_mem_slab {
@@ -155,16 +102,6 @@ struct pi_mem_slab {
 #endif
 
 
-#define PI_CLUSTER_PE_TASK_T_ENTRY           (0*4)
-#define PI_CLUSTER_PE_TASK_T_NEXT            (1*4)
-#define PI_CLUSTER_PE_TASK_T_CALLBACK_ENTRY  (2*4)
-#define PI_CLUSTER_PE_TASK_T_CALLBACK_ARG    (3*4)
-#define PI_CLUSTER_PE_TASK_T_PIPED_TASK      (4*4)
-#define PI_CLUSTER_PE_TASK_T_ARGS            (5*4)
-#define PI_CLUSTER_PE_TASK_T_NB_CORES        (9*4)
-#define PI_CLUSTER_PE_TASK_T_NB_CORES_POPPED (9*4 + 1)
-#define PI_CLUSTER_PE_TASK_T_NB_DONE_CORES   (9*4 + 2)
-
 #define PI_CALLBACK_T_NEXT       (0*4)
 #define PI_CALLBACK_T_ENTRY      (1*4)
 #define PI_CALLBACK_T_ARG        (2*4)
@@ -184,18 +121,6 @@ struct pi_mem_slab {
 #define PI_TASK_T_DATA_7         (12*4)
 
 
-#define PI_CLUSTER_TASK_ENTRY                 (0*4)
-#define PI_CLUSTER_TASK_ARG                   (1*4)
-#define PI_CLUSTER_TASK_STACKS                (2*4)
-#define PI_CLUSTER_TASK_STACK_SIZE            (3*4)
-#define PI_CLUSTER_TASK_SLAVE_STACK_SIZE      (4*4)
-#define PI_CLUSTER_TASK_NB_CORES              (5*4)
-#define PI_CLUSTER_TASK_COMPLETION_CALLBACK   (6*4)
-#define PI_CLUSTER_TASK_STACK_ALLOCATED       (7*4)
-#define PI_CLUSTER_TASK_NEXT                  (8*4)
-#define PI_CLUSTER_TASK_CORE_MASK             (9*4)
-#define PI_CLUSTER_TASK_EVENT_BASED           (10*4)
-
 
 
 
@@ -214,11 +139,23 @@ struct pi_mem_slab {
 #include "sched.h"
 #include "pos/data/irq.h"
 #include "pos/data/spim.h"
-#include "alloc.h"
+
+#ifndef __GAP9__
+#include "alloc.h" // given by pmsis implem for GAP9
+#endif
+
 #include "pos/data/uart.h"
 #include "soc_event.h"
-#include "cluster.h"
 #include "lock.h"
+
+#ifndef LANGUAGE_ASSEMBLY
+#include "pmsis/pmsis_types.h"
+#include "pmsis/cluster/cl_pmsis_types.h"
+#endif
+
+#ifdef __GAP9__
+#include "chips/gap9/drivers/cluster/data.h"
+#endif
 
 #ifndef __GAP9__
 #include "pos/data/hyperbus.h"

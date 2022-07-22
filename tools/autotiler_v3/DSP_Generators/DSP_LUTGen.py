@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import os
 import json
 import numpy as np
@@ -78,6 +77,7 @@ def main():
 	assert "frame_size" in list(models_params.keys())
 	# Get basic sizes information
 	frame_size = models_params["frame_size"]
+	window_size = models_params.get("window_size", frame_size)
 
 	dtype = models_params.get("dtype", "float32")
 
@@ -117,7 +117,11 @@ def main():
 	window_fn = models_params.get("win_func", None)
 	if window_fn is not None:
 		win_func = getattr(np, window_fn)
-		win_lut = win_func(frame_size)
+		win_lut = win_func(window_size)
+		if window_size < frame_size:
+			pad_before = int((frame_size - window_size) // 2)
+			pad_after = int((frame_size - window_size) - pad_before)
+			win_lut = np.pad(win_lut, (pad_before, pad_after))
 		WriteToFile(win_lut, build_dir+"/WindowLUT", args.save_text, dtype,
 					quantize=dtype in ["int", "fix16", "fix32_scal"], q_precision=WIN_LUT_Q)
 		if gen_inv_win:
@@ -174,7 +178,7 @@ def main():
 			filters = SetupMelFBanks(n_fft, n_mels, sample_rate=sample_rate, Fmin=fmin, Fmax=fmax)
 		sparse_filters, sparsity_fb, NCoeffMEL = SparseMelFilterBanksCode(filters, quantize=dtype in ["int", "fix16", "fix32_scal"], q_precision=MEL_COEFF_Q)
 		WriteToFile(sparse_filters, build_dir+"/MelFBCoeff", args.save_text, dtype, quantize=False)
-		WriteToFile(sparsity_fb, build_dir+"/MelFBSparsity", args.save_text, "fix16", quantize=False)
+		WriteToFile(sparsity_fb, build_dir+"/MelFBSparsity", args.save_text, "fix16", quantize=False, new_line=3)
 
 		if gen_inv_mel:
 			# Inverse matrix of filterbank generated with least squares algorithm

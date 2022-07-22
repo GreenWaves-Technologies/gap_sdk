@@ -527,8 +527,8 @@ int CNN_SoftMax2D_SQ8(
 
 	CNN_GenControl_T *Ctrl,
 
+	int Feat,
 	int Dim,
-	int N,
 
         KernelOper_T SoftMaxOper
 	);

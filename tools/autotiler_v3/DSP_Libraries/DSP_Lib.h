@@ -245,6 +245,15 @@ typedef struct {
         int Norm;
 } MatMul_DSP_T;
 
+typedef struct {
+        void *__restrict__ In1;                  /**< First input of a matric diadic operation */
+        void *__restrict__ In2;                  /**< Second input of a matric diadic operation */
+        void *__restrict__ Out;                  /**< Out of a matric diadic operation */
+        unsigned short int W;                    /**< Input Width */
+        unsigned short int H;                    /**< Input Height */
+        unsigned short int Norm;                 /**< Shift for fixed point */
+} KerMatAdd_DSP_T;
+
 /********************************************************************************************************************************************************************/
 /****************** FFT Library  ************************************************************************************************************************************/
 /********************************************************************************************************************************************************************/

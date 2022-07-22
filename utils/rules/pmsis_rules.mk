@@ -33,7 +33,15 @@ COMMON_CFLAGS          += -DCONFIG_VEGA -mvega -Wa,-mwinsn
 
 else ifeq ($(BOARD_NAME), gap9_v2)
 COMMON_CFLAGS          += -DCONFIG_GAP9_V2
+
+else ifeq ($(BOARD_NAME), gap9_5)
+COMMON_CFLAGS          += -DCONFIG_GAP9_5
 endif				# BOARD_NAME
+endif
+
+# Enable Assertion mechanism (pi_assert)
+ifdef DEBUG_ASSERT
+COMMON_CFLAGS += -DDEBUG_ASSERT=1
 endif
 
 ifdef RUNNER_CONFIG
@@ -163,6 +171,16 @@ override config_args += --config-opt=**/gvsoc/debug-mode=true
 endif
 
 
+ifdef gdbserver
+override config_args += --config-opt=**/gdbserver/config/enabled=true
+override config_args += --config-opt=**/gdbserver/enabled=true
+endif
+
+ifdef gdbport
+override config_args += --config-opt=**/gdbserver/config/port=$(gdbport)
+endif
+
+
 ifdef CONFIG_AUDIO_FRAMEWORK
 -include $(CONFIG_AUDIO_FRAMEWORK_BUILDDIR)/tc_sources.mk
 
@@ -269,7 +287,7 @@ help:
 ifeq '$(PMSIS_OS)' 'freertos'
 
 # Select PMSIS drivers
-PMSIS_BSP_DIR            = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp
+PMSIS_BSP_DIR            = $(GAP_SDK_HOME)/rtos/pmsis/bsp
 
 ifeq ($(CUSTOM_BSP),)
 include $(PMSIS_BSP_DIR)/rules/freertos_bsp_rules.mk
@@ -306,19 +324,13 @@ include $(GAP_SDK_HOME)/rtos/freeRTOS/vendors/gwt/rules/freeRTOS_rules.mk
 
 else
 
-ifeq '$(PMSIS_OS)' 'zephyr'
-
-include $(GAP_SDK_HOME)/utils/rules/zephyr_rules.mk
-
-else
-
 ifeq '$(USE_PULPOS)' '1'
 ifndef PULP_APP
 PULP_APP = $(APP)
 endif
 PULP_APP_SRCS     += $(APP_SRCS)
 PULP_APP_ASM_SRCS += $(APP_ASM_SRCS)
-PULP_CFLAGS       += $(foreach d, $(APP_INC), -I$d) $(APP_CFLAGS) $(COMMON_CFLAGS)
+PULP_CFLAGS       += $(APP_CFLAGS) $(COMMON_CFLAGS) $(foreach d, $(APP_INC), -I$d)
 PULP_LDFLAGS      += $(APP_LDFLAGS) $(COMMON_LDFLAGS)
 
 include $(PULPOS_HOME)/rules/pulpos.mk
@@ -345,8 +357,6 @@ LIBS += -lgaplib
 endif				# CONFIG_GAP_LIB
 
 include $(GAP_SDK_HOME)/utils/rules/pulp_rules.mk
-
-endif
 
 endif
 
@@ -411,7 +421,7 @@ vscode:
 	mkdir -p .vscode
 	mkdir -p .vscode/scripts
 	cp -r $(GAP_SDK_HOME)/utils/rules/vscode/settings.json .vscode
-	cat $(GAP_SDK_HOME)/utils/rules/vscode/tasks.json | sed s#@GAP_TOOLCHAIN@#$(GAP_RISCV_GCC_TOOLCHAIN)#g | sed s#@GAP_SDK@#$(GAP_SDK_HOME)#g > .vscode/tasks.json
+	cat $(GAP_SDK_HOME)/utils/rules/vscode/tasks.json | sed s#@GAP_TOOLCHAIN@#$(GAP_RISCV_GCC_TOOLCHAIN)#g | sed s#@GAP_SDK@#$(GAP_SDK_HOME)#g | sed s#@OCD_install_path@#`which openocd`#g | sed s#@OPENOCD_CABLE_CFG@#$(GAPY_OPENOCD_CABLE)#g | sed s#@TARGET_CFG@#$(GAP_OPENOCD_TOOLS)/tcl/gap9revb.tcl#g > .vscode/tasks.json
 	cat $(GAP_SDK_HOME)/utils/rules/vscode/launch.json | sed s#@BIN@#$(BIN)#g | sed s#@GDB@#`which riscv64-unknown-elf-gdb`# > .vscode/launch.json
 
 profiler:

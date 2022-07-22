@@ -364,7 +364,7 @@ static inline void cpu_perf_setall(unsigned int value) {
 }
 
 /* Return the value of the specified counter */
-static inline unsigned int cpu_perf_get(const unsigned int counterId) {
+static inline __attribute__((always_inline)) unsigned int cpu_perf_get(const unsigned int counterId) {
 #ifndef PLP_NO_PERF_COUNTERS
   unsigned int value = 0;
 

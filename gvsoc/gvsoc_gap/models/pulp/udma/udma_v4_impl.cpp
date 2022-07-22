@@ -244,7 +244,17 @@ void udma::cfg_rstn_req(uint64_t reg_offset, int size, uint8_t *value, bool is_w
         for (int i = 0; i < this->nb_periphs; i++)
         {
             if (this->periphs[i] != NULL && this->periphs[i]->id == i)
-                this->periphs[i]->reset(!((this->ctrl_regmap.cfg_rstn.get_32() >> i) & 1));
+            {
+                bool value = !((this->ctrl_regmap.cfg_rstn.get_32() >> i) & 1);
+                this->periphs[i]->reset(value);
+
+#if defined(HAS_SFU)
+                if (this->periphs[i] == this->sfu_periph)
+                {
+                    this->sfu_periph->domain_reset(value);
+                }
+#endif
+            }
         }
     }
 }
@@ -418,6 +428,12 @@ void udma::clk_reg(component *__this, component *clock)
     _this->periph_clock = (vp::clock_engine *)clock;
 }
 
+void udma::sfu_clk_reg(component *__this, component *clock)
+{
+    udma *_this = (udma *)__this;
+    _this->sfu_clock = (vp::clock_engine *)clock;
+}
+
 
 void udma::dual_edges_clk_reg(component *__this, component *clock)
 {
@@ -433,6 +449,10 @@ void udma::fast_clk_reg(component *__this, component *clock)
 
 int udma::build()
 {
+#if defined(HAS_SFU)
+    this->sfu_periph = NULL;
+#endif
+
     traces.new_trace("trace", &trace, vp::DEBUG);
     traces.new_trace("warning", &warning, vp::WARNING);
 
@@ -441,6 +461,9 @@ int udma::build()
 
     this->periph_clock_itf.set_reg_meth(&udma::clk_reg);
     new_slave_port("periph_clock", &this->periph_clock_itf);
+
+    this->sfu_clock_itf.set_reg_meth(&udma::sfu_clk_reg);
+    new_slave_port("sfu_clock", &this->sfu_clock_itf);
 
     this->periph_clock_dual_edges_itf.set_reg_meth(&udma::dual_edges_clk_reg);
     new_slave_port("periph_clock_dual_edges", &this->periph_clock_dual_edges_itf);
@@ -653,6 +676,7 @@ int udma::build()
                 {
                     Sfu_periph *periph = new Sfu_periph(this, id, j);
                     periphs[id] = periph;
+                    sfu_periph = periph;
                 }
                 else
                 {
@@ -711,14 +735,6 @@ void udma::start()
 
 void udma::reset(bool active)
 {
-    for (auto x: this->periphs)
-    {
-        if (x)
-        {
-            x->reset(active);
-        }
-    }
-
     for (auto x: this->addrgen_linear)
     {
         x->reset(active);

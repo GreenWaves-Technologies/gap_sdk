@@ -22,6 +22,7 @@
 #define __POS_IMPLEM_IRQ_H__
 
 #include "hal/pulp.h"
+#include "archi/chips/gap9_v2/itc/itc.h"
 
 
 

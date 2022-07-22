@@ -323,6 +323,7 @@ typedef struct {
 typedef struct iss_insn_s {
   iss_addr_t addr;
   iss_reg_t opcode;
+  bool fetched;
   iss_insn_t *(*fast_handler)(iss_t *, iss_insn_t*);
   iss_insn_t *(*handler)(iss_t *, iss_insn_t*);
   iss_insn_t *(*resource_handler)(iss_t *, iss_insn_t*);        // Handler called when an instruction with an associated resource is executed. The handler will take care of simulating the timing of the resource.
@@ -342,6 +343,9 @@ typedef struct iss_insn_s {
   int resource_id;   // Identifier of the resource associated to this instruction
   int resource_latency;          // Time required to get the result when accessing the resource
   int resource_bandwidth;        // Time required to accept the next access when accessing the resource
+
+  int input_latency;
+  int input_latency_reg;
 
   iss_insn_t *(*saved_handler)(iss_t *, iss_insn_t*);
   iss_insn_t *branch;
@@ -389,16 +393,19 @@ typedef struct
 
 typedef struct iss_cpu_state_s {
   iss_insn_t *hwloop_start_insn[2];
+  iss_insn_t *hwloop_end_insn[2];
 
   iss_addr_t bootaddr;
 
   int insn_cycles;
-  int saved_insn_cycles;
   int fetch_cycles;
 
   void (*stall_callback)(iss_t *iss);
+  void (*fetch_stall_callback)(iss_t *iss);
+  iss_opcode_t fetch_stall_opcode;
   int stall_reg;
   int stall_size;
+  bool do_fetch;
 
   iss_insn_arg_t saved_args[ISS_MAX_DECODE_ARGS];
 
@@ -406,6 +413,7 @@ typedef struct iss_cpu_state_s {
   iss_reg_t vf1;
 
   iss_insn_t *elw_insn;
+  bool elw_stalled;
   int elw_interrupted;
   iss_insn_t *hwloop_next_insn;
 
@@ -492,6 +500,7 @@ typedef struct iss_cpu_s {
   iss_insn_t *current_insn;
   iss_insn_t *prev_insn;
   iss_insn_t *stall_insn;
+  iss_insn_t *prefetch_insn;
   iss_regfile_t regfile;
   iss_cpu_state_t state;
   iss_config_t config;

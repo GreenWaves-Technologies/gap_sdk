@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+
+import argparse
+import gv.gvsoc_control as gvsoc
+import threading
+import time
+
+parser = argparse.ArgumentParser(description='Control GVSOC')
+
+parser.add_argument("--host", dest="host", default="localhost", help="Specify host name")
+parser.add_argument("--port", dest="port", default=42951, type=int, help="Specify host port")
+
+args = parser.parse_args()
+
+
+class My_thread(threading.Thread):
+
+    def __init__(self, id, gv, nb_iter):
+        super(My_thread, self).__init__()
+
+        self.id = id
+        self.gv = gv
+        self.nb_iter = nb_iter
+        self.axi = gvsoc.Router(gv)
+        self.nb_errors = 0
+
+    def run(self):
+
+        index = 0
+        started = False
+
+        while True:
+
+            self.gv.stop()
+
+            value = self.axi.mem_read_int(0x1c000000, 4)
+            if not started:
+
+                if value == 0x12345678 or value == 0x87654321:
+                    started = True
+            else:
+                if value != 0x12345678 and value != 0x87654321:
+                    self.nb_errors += 1
+
+                index += 1
+
+            self.gv.run(1000000000)
+
+            if index == nb_iter:
+                break
+
+        self.gv.run()
+
+
+    def stop(self):
+
+        self.join()
+        return self.nb_errors
+
+
+def wait_until_different(gv, value):
+    while True:
+        gv.run(1000000)
+        address = axi.mem_read_int(0x1c000000, 4)
+        if address != value:
+            break
+
+
+gv = gvsoc.Proxy(args.host, args.port)
+
+axi = gvsoc.Router(gv)
+
+nb_threads = 20
+nb_iter = 100
+
+threads = []
+
+for i in range(0, nb_threads):
+
+    thread = My_thread(i, gv, nb_iter)
+    thread.start()
+    threads.append(thread)
+
+gv.run()
+
+errors = 0
+
+for i in range(0, nb_threads):
+    thread = threads[i]
+    errors += thread.stop()
+
+gv.quit(errors)
+gv.close()
+
+exit(errors)

@@ -31,45 +31,26 @@ static inline uint32_t pos_irq_vector_base()
 
 
 
-extern char _l1_preload_start_inL2[];
-extern char _l1_preload_start[];
-extern char _l1_preload_size[];
-
 
 #if defined(ARCHI_HAS_L2)
 
 #if defined(ARCHI_HAS_L2_MULTI)
 
 extern unsigned char __l2_priv0_end;
-extern unsigned char __l2_priv1_end;
 extern unsigned char __l2_shared_end;
 
 static inline void *pos_l2_priv0_base() {
-  if ((int)&__l2_priv0_end >= ARCHI_L2_PRIV1_ADDR)
+  if ((int)&__l2_priv0_end >= ARCHI_L2_SHARED_ADDR)
     return NULL;
   else
     return (void *)&__l2_priv0_end;
 }
 
 static inline int pos_l2_priv0_size() {
-  if ((int)&__l2_priv0_end >= ARCHI_L2_PRIV1_ADDR)
+  if ((int)&__l2_priv0_end >= ARCHI_L2_SHARED_ADDR)
     return 0;
   else
-    return ARCHI_L2_PRIV1_ADDR - (int)&__l2_priv0_end;
-}
-
-static inline void *pos_l2_priv1_base() {
-  if ((int)&__l2_priv1_end >= ARCHI_L2_SHARED_ADDR)
-    return NULL;
-  else
-    return (void *)&__l2_priv1_end;
-}
-
-static inline int pos_l2_priv1_size() {
-  if ((int)&__l2_priv1_end >= ARCHI_L2_SHARED_ADDR)
-    return 0;
-  else
-    return ARCHI_L2_SHARED_ADDR - (int)&__l2_priv1_end;
+    return ARCHI_L2_SHARED_ADDR - (int)&__l2_priv0_end;
 }
 
 static inline void *pos_l2_shared_base() {
@@ -113,16 +94,6 @@ static inline int pos_l2_size() { return (int)&__l2_heap_size; }
 #endif
 
 
-
-#if defined(ARCHI_HAS_L1)
-
-extern unsigned char __l1_heap_start;
-extern unsigned char __l1_heap_size;
-
-static inline void *pos_l1_base(int cid) { return ((char *)&__l1_heap_start) + cid * ARCHI_CLUSTER_SIZE; }
-static inline int pos_l1_size(int cid) { return (int)&__l1_heap_size; }
-
-#endif
 
 
 extern unsigned char _bss_start;

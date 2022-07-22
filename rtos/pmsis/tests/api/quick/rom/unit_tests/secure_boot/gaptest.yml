@@ -1,0 +1,73 @@
+name: rom_secure_boot
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    qk:
+        name: qk
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: USE_QK=1 USE_CRC=0
+        compile_only: true
+    user:
+        name: user
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: USE_QK=0 USE_CRC=0
+        compile_only: true
+    qk_disable:
+        name: qk_disable
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: USE_QK=1 QK_LOCK=1
+        compile_only: true
+    itf1:
+        name: itf1
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: USE_ITF1=1
+        compile_only: true
+    xip:
+        name: xip
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: USE_XIP=1
+        compile_only: true
+    use_crc:
+        name: use_crc
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: USE_QK=0 USE_CRC=1
+        compile_only: true
+    qk_crc:
+        name: qk_crc
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: USE_QK=1 USE_CRC=1
+        compile_only: true
+    user_sign:
+        name: user_sign
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: USE_QK=0 USE_CRC=1 SIGN_ONLY=1
+        compile_only: true

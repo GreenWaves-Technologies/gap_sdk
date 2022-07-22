@@ -65,6 +65,7 @@ extern  void DumpAllocInfo(SymbolAlloc_T *Alloc);
 extern char *ArgLocImage(AT_MemLocation_T Loc);
 extern char *ATMemImage(AT_MemLocation_T Loc);
 extern char *MemoryBaseImage(AT_MemLocation_T Mem);
+extern char *MemBaseOffImage(AT_MemLocation_T Mem, unsigned int Offset, int Space, char *Str);
 extern void DumpFreeMemSlots(char *Mess, AT_MemLocation_T Mem, MemChunk_T **MemSlots, int Slots);
 
 extern void DumpDynamicMemoryUsage(CNNGraph_T *Graph, char *Banner);
@@ -75,10 +76,7 @@ extern int *AT_PrepareNodeGraphDump(CNNGraph_T *Graph, unsigned int Filter, int 
 extern void AT_DumpGraphNodeArg(CNNGraph_T *Graph, GraphNode_T *Node,
                          unsigned int Filter, int *Collect, char **EventHandle,
                          char *L2_Buffer, unsigned int L2_BufferSize,
-                         FILE *Fi);
+                         FILE *Fi, int Checksum);
 extern char *TruncToMax(char *S, int M);
-extern void AT_DumpChecksum(CNNGraph_T *Graph, GraphNode_T *Node, int *Collect, char **EventHandle,
-                         char *L2_Buffer, unsigned int L2_BufferSize,
-                         FILE *Fi);
 
 #endif

@@ -32,6 +32,13 @@ typedef struct {
 } KerCopy_void_T;
 
 typedef struct {
+	void *__restrict__ In;           /**< Input matrix */
+	void *__restrict__ Out;          /**< Output matrix */
+	unsigned int NTile;              /**< Number of input elements in this tile */
+	unsigned int NRepeat;            /**< Number of times to repeat the input */
+} KerRepeat_void_T;
+
+typedef struct {
     char *__restrict__ In1;
     char *__restrict__ In2;
     char *__restrict__ In3;
@@ -44,6 +51,20 @@ typedef struct {
     unsigned short int W4;
     unsigned char DataSize;
 } CNN_Concat_Width_Arg_T;
+
+typedef struct {
+    char *__restrict__ In;
+    char *__restrict__ Out1;
+    char *__restrict__ Out2;
+    char *__restrict__ Out3;
+    char *__restrict__ Out4;
+    unsigned short int H;
+    unsigned short int W1;
+    unsigned short int W2;
+    unsigned short int W3;
+    unsigned short int W4;
+    unsigned char DataSize;
+} CNN_Split_Width_Arg_T;
 
 typedef struct {
 	short int *__restrict__ In;		/**< Input matrix */
@@ -401,7 +422,11 @@ typedef struct {
 #define AT_INF_QUANT_NORM			6
 
 extern void CNN_Copy_void(KerCopy_void_T *Arg);
+extern void CNN_Repeat_void(KerRepeat_void_T *Arg);
 extern void CNN_Concat_Width(CNN_Concat_Width_Arg_T *Arg);
+extern void CNN_ParConcat_Width(CNN_Concat_Width_Arg_T *Arg);
+extern void CNN_Split_Width(CNN_Split_Width_Arg_T *Arg);
+extern void CNN_ParSplit_Width(CNN_Split_Width_Arg_T *Arg);
 
 /* Transpose byte */
 extern void CNN_ParTranspose_fps(KerMatTranspose_fps_T *Arg);

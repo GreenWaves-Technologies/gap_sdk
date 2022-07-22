@@ -1,0 +1,17 @@
+name: rom_wakeup_with_island_on
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    mram_cluster_on:
+        name: mram_cluster_on
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: CONFIG_BOOT_DEVICE=mram
+        compile_only: true

@@ -417,15 +417,15 @@ void vp::trace_engine::flush_event_traces(int64_t timestamp)
             {
                 if (current->width <= 16)
                 {
-                    this->vcd_user->event_update_logical(timestamp, current->id, *(uint16_t *)current->buffer);
+                    this->vcd_user->event_update_logical(timestamp, current->id, *(uint16_t *)current->buffer, current->flags);
                 }
                 else if (current->width <= 32)
                 {
-                    this->vcd_user->event_update_logical(timestamp, current->id, *(uint32_t *)current->buffer);
+                    this->vcd_user->event_update_logical(timestamp, current->id, *(uint32_t *)current->buffer, current->flags);
                 }
                 else if (current->width <= 64)
                 {
-                    this->vcd_user->event_update_logical(timestamp, current->id, *(uint64_t *)current->buffer);
+                    this->vcd_user->event_update_logical(timestamp, current->id, *(uint64_t *)current->buffer, current->flags);
                 }
                 else
                 {
@@ -437,7 +437,7 @@ void vp::trace_engine::flush_event_traces(int64_t timestamp)
             {
                 uint64_t value = (uint64_t)*(current->buffer);
 
-                this->vcd_user->event_update_logical(timestamp, current->id, value);
+                this->vcd_user->event_update_logical(timestamp, current->id, value, current->flags);
             }
         }
         else

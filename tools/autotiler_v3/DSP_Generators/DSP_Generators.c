@@ -250,6 +250,17 @@ void LoadMFCCLibrary()
 				)
 		);
 
+	LibKernelTemplate("KerMatAdd_DSP_T",
+			  CArgs(6,
+			  	TCArg("void * __restrict__", "In1"),
+        			TCArg("void * __restrict__", "In2"),
+        			TCArg("void * __restrict__", "Out"),
+        			TCArg("unsigned int",  	     "W"),
+        			TCArg("unsigned int",  	     "H"),
+        			TCArg("int",  		     "Norm")
+				)
+		);
+
 	/* FFT Basic Kernels */
 	LibKernel("Radix2FFT_DIF_Par_Fix16",	CALL_PARALLEL, 0, "FFT_Arg_T", NULL);
 	LibKernel("Radix2FFT_DIF_Par_Fix32",	CALL_PARALLEL, 0, "FFT_Arg_T", NULL);
@@ -1683,6 +1694,106 @@ int DSP_MatMul_Generator(
 		AddKernelFloatArgDim(Name, "In1", 3, LineM1, ColM1, ItemSize);
 		AddKernelFloatArgDim(Name, "In2", 3, LineM2, ColM2, ItemSize);
 		AddKernelFloatArgDim(Name, "Out", 3, LineO, ColO, ItemSize);
+	}
+	return (Kernel!=0);
+}
+
+int DSP_MatAdd_Generator(
+	char *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+	int W,
+	int H,
+	int DataType
+)
+{
+	int Log = 1;
+	Tile_Orientation_T TileOrientation = TILE_HOR;
+	int F = 0;
+	unsigned long long int LayerOp = (int64_t) W*H;
+	unsigned long long int LayerBandwidth = (int64_t) W*H*3;
+
+	int ItemSize;
+	char *MatAddKerName=0, *UserKernType=0, *UserKernPointer=0;
+	switch (DataType){
+		case FIX16:
+			MatAddKerName = "KerParMatAddDSP_Fix16";
+			UserKernType = "short int"; UserKernPointer = "short int * __restrict__";
+			ItemSize=2;
+			break;
+		case FIX32:
+			MatAddKerName = "KerParMatAddDSP_Fix32";
+			UserKernType = "int"; UserKernPointer = "int * __restrict__";
+			ItemSize=4;
+			break;
+		case FLOAT16:
+			MatAddKerName = "KerParMatAddDSP_fp16";
+			UserKernType = "F16_DSP"; UserKernPointer = "F16_DSP * __restrict__";
+			ItemSize=F16_SIZE; F = O_FLOAT;
+			break;
+		case FLOAT32:
+			MatAddKerName = "KerParMatAddDSP_fp32";
+			UserKernType = "float"; UserKernPointer = "float * __restrict__";
+			ItemSize=4; F = O_FLOAT;
+			break;
+		default:
+			GenTilingError("Data Type %d not known", DataType);
+	}
+
+	Kernel_T *Kernel = UserKernel(
+		Name,
+		// 2D kernel
+		KernelIterSpace(1, IterTiledSpace(T0)),
+		// Tile horizontally
+		TILE_HOR,
+		// C template for this user kernel
+		CArgs(4,
+                      TCArg(UserKernPointer, "In1"),
+                      TCArg(UserKernPointer, "In2"),
+                      TCArg(UserKernPointer, "Out"),
+                      (DataType==FIX16 || DataType==FIX32)?TCArg("short int", "Norm"):AT_NO_C_ARG
+		),
+		// Basic kernel we want to call on tiles, in this case MatSumPar
+		Calls(1,
+			Call(MatAddKerName, LOC_LOOP,
+				Bindings(6,
+					K_Arg("In1", KER_ARG_TILE),   // A tile from In1
+					K_Arg("In2", KER_ARG_TILE),   // A tile from In2
+					K_Arg("Out", KER_ARG_TILE),   // A tile from Out
+
+					K_Arg("In1", KER_ARG_TILE_W), // Tile width
+					K_Arg("In1", KER_ARG_TILE_H), // Tile height
+
+					(DataType==FIX16 || DataType==FIX32)?
+					C_Arg("Norm"):AT_IGNORE_ARG_BINDING
+				)
+			)
+		),
+		// All 3 user kernel arguments are of dimension WxH with
+		// basic type = plain int
+		KerArgs(3,
+			// First kernel argument, bound to In1. In1 in L2, double buffered access
+			KerArg("In1", KerArgSpace(1,T0), O_IN|O_DB, W, H,  ItemSize, 0, 0, 0, "In1"),
+			// Second kernel argument, bound to In2. In2 in L2, double buffered access
+			KerArg("In2", KerArgSpace(1,T0), O_IN|O_DB, W, H,  ItemSize, 0, 0, 0, "In2"),
+			// Third kernel argument, bound to Out. Out in L2, double buffered access
+			KerArg("Out", KerArgSpace(1,T0), O_OUT|O_DB, W, H, ItemSize, 0, 0, 0, "Out")
+		)
+	);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		if (DataType==FIX16 || DataType==FIX32) {
+			AddKernelArgDim(Name, "In1", 3, H, W, ItemSize);
+			AddKernelArgDim(Name, "In2", 3, H, W, ItemSize);
+			AddKernelArgDim(Name, "Out", 3, H, W, ItemSize);
+		} else {
+			AddKernelFloatArgDim(Name, "In1", 3, H, W, ItemSize);
+			AddKernelFloatArgDim(Name, "In2", 3, H, W, ItemSize);
+			AddKernelFloatArgDim(Name, "Out", 3, H, W, ItemSize);
+		}
 	}
 	return (Kernel!=0);
 }

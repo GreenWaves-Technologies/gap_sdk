@@ -1,0 +1,25 @@
+name: quiddikey
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    enroll:
+        name: enroll
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ENROLL=1
+        compile_only: true
+    test_start:
+        name: test_start
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: TEST_START=1
+        compile_only: true

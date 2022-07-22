@@ -1,0 +1,33 @@
+name: pm_retentive_gpio_wakeup_with_callbacks
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    std:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ~
+        compile_only: true
+    rtc:
+        name: rtc
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: RTC=1
+        compile_only: true
+    one_shot:
+        name: one_shot
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ONE_SHOT=1
+        compile_only: true

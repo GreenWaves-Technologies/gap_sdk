@@ -90,9 +90,10 @@ class Runner(runner.default_runner.Runner):
                             if os.environ.get('BOARD_NAME') == 'gap9_evk':
                                 if self.config.get_str('runner/platform') == 'fpga':
                                     flasher_binary = gap_tools + '/gap_bins/gap_flasher-gap9_evk-fpga.elf'
+                                    sector_size = 0x1000
                                 else:
                                     flasher_binary = gap_tools + '/gap_bins/gap_flasher-gap9_evk.elf'
-                                sector_size = 0x1000
+                                    sector_size = 0x1000
                             else:
                                 if self.config.get_str('runner/platform') == 'fpga':
                                     flasher_binary = gap_tools + '/gap_bins/gap_flasher-gapuino9.elf'
@@ -175,7 +176,16 @@ class Runner(runner.default_runner.Runner):
             else:
                 platform = self.config.get_str('runner/platform')
                 if chip_family == 'vega' or chip_family == 'gap9_v2':
-                    cmd = '%s -d0 -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -f "%s" -f "%s" -c "load_and_start_binary %s 0x%x"' % (openocd, cable, script, wsl_bin, entry)
+                    
+                    gdb_port = None
+                    if self.config.get_bool('**/gdbserver/config/enabled'):
+                        gdb_port = self.config.get_str('**/gdbserver/config/port')
+
+
+                    cmd = '%s -d0 -c "gdb_port %s; telnet_port disabled; tcl_port disabled" -f "%s" -f "%s"' % (openocd, 'disabled' if gdb_port is None else gdb_port, cable, script)
+
+                    if gdb_port is None:
+                        cmd += ' -c "load_and_start_binary %s 0x%x"' % (wsl_bin, entry)
                 else:
                     cmd = "%s -d0 -c 'gdb_port disabled; telnet_port disabled; tcl_port disabled' -f %s -f %s -f tcl/jtag_boot_entry.tcl -c 'gap8_jtag_load_binary_and_start \"%s\" elf 0x%x'" % (openocd, cable, script, wsl_bin, entry)
 

@@ -1,0 +1,17 @@
+name: spis_read_write_all
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    std:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ~
+        compile_only: true

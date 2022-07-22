@@ -64,6 +64,8 @@ size_t strcspn(const char *s, const char *reject);
 
 char *strchr(const char *s, int c);
 
+void *memmove(void *d, const void *s, size_t n);
+
 #ifdef __cplusplus
 }
 #endif

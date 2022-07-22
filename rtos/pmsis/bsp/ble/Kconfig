@@ -1,0 +1,13 @@
+menu "Bluetooth Low Energy"
+    config BSP_DRIVER_BLE_NINA_B112
+        bool "NINA B112"
+        default n
+        select PMSIS_GAP9_IMPLEM_GPIO
+        select PMSIS_GAP9_IMPLEM_UDMA_UART
+
+    config BSP_DRIVER_BLE_NINA_B312
+        bool "NINA B312"
+        default n
+        select PMSIS_GAP9_IMPLEM_GPIO
+        select PMSIS_GAP9_IMPLEM_UDMA_UART
+endmenu

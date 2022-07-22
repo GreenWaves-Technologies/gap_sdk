@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import json
 import numpy as np
 import sys

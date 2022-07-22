@@ -1,0 +1,41 @@
+name: xip_hyper_ram
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    access:
+        name: access
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: XIP_ACCESS_TEST=1
+        compile_only: true
+    illegal_insn:
+        name: illegal_insn
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ILLEGAL_INSN_ACCESS=1
+        compile_only: true
+    illegal_data:
+        name: illegal_data
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ILLEGAL_DATA_ACCESS=1
+        compile_only: true
+    reconf:
+        name: reconf
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: XIP_RECONF=1
+        compile_only: true

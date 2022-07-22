@@ -1,0 +1,22 @@
+name: cluster_semaphore
+platforms:
+    - gvsoc
+os:
+    - pulpos
+chips:
+    - gap9
+variants:
+    std:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ~
+    with_irq:
+        name: with_irq
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: WITH_IRQ=1

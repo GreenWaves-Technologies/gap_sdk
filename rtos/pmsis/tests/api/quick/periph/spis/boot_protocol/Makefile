@@ -1,0 +1,19 @@
+-include $(RULES_DIR)/properties.mk
+
+CONFIG_SPIM=1
+
+APP_CFLAGS = $(TEST_CFLAGS)
+
+APP_CFLAGS += -DSPI_ITF=0
+APP_CFLAGS += -DSPI_CS=0
+
+TEST_DURATION ?= 50
+APP_CFLAGS += -DTEST_DURATION=$(TEST_DURATION)
+
+CONFIG_TESTBENCH=1
+
+APP = test
+APP_SRCS += test.c
+APP_CFLAGS += -Os -g
+
+include $(RULES_DIR)/pmsis_rules.mk

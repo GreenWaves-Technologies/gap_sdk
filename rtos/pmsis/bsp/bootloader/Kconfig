@@ -1,0 +1,8 @@
+config BSP_DRIVER_BOOTLOADER
+    bool "Bootloader"
+    default n
+    select BSP_DRIVER_FLASH_PARTITION
+    select BSP_DRIVER_PARTITION
+    select BSP_DRIVER_CRC_MD5
+    select BSP_DRIVER_FLASH
+    select BSP_DRIVER_OTA

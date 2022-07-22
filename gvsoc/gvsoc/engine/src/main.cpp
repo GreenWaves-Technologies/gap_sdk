@@ -54,6 +54,9 @@ int main(int argc, char *argv[])
     int proxy_socket = -1;
     void *instance = gv_open(config_path, open_proxy, &proxy_socket, -1, -1);
 
+    gv_reset(instance, true);
+    gv_reset(instance, false);
+
     if (proxy_socket != -1)
     {
         printf("Opened proxy on socket %d\n", proxy_socket);

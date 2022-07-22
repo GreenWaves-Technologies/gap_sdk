@@ -89,7 +89,7 @@ static inline void pos_cl_mutex_lock(pos_cl_mutex_t *mutex)
 {
     while(pos_tas_lock_32((uint32_t)&mutex->value) == -1)
     {
-        eu_evt_maskWaitAndClr(1<<POS_EVENT_CLUSTER_SYNC);
+        eu_evt_maskWaitAndClr(1<<PI_CL_WAIT_TASK_EVT);
     }
 }
 
@@ -97,7 +97,7 @@ static inline void pos_cl_mutex_lock(pos_cl_mutex_t *mutex)
 static inline void pos_cl_mutex_unlock(pos_cl_mutex_t *mutex)
 {
     pos_tas_unlock_32((uint32_t)&mutex->value, 0);
-    eu_evt_trig(eu_evt_trig_addr(POS_EVENT_CLUSTER_SYNC), 0);
+    eu_evt_trig(eu_evt_trig_addr(PI_CL_WAIT_TASK_EVT), 0);
 }
 
 

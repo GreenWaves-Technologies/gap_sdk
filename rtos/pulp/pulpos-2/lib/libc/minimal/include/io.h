@@ -29,4 +29,6 @@ extern int pos_io_start();
 
 extern int pos_io_stop();
 
+extern void pos_io_init();
+
 #endif

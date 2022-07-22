@@ -13,7 +13,7 @@
         {
             "label": "Build from Makefile",
             "type": "shell",
-            "command": "export GAP_RISCV_GCC_TOOLCHAIN=@GAP_TOOLCHAIN@ && source @GAP_SDK@/configs/gap9_v2.sh && make all platform=fpga",
+            "command": "export GAP_RISCV_GCC_TOOLCHAIN=@GAP_TOOLCHAIN@ && source @GAP_SDK@/configs/gap9_evk_audio.sh && make all",
             "group": "build",
             "presentation": {
                 "reveal": "always",
@@ -23,7 +23,7 @@
         {
             "label": "Run make clean on folder",
             "type": "shell",
-            "command":"source @GAP_SDK@/configs/gap9_v2.sh && make clean",
+            "command":"source @GAP_SDK@/configs/gap9_evk_audio.sh && make clean",
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
@@ -32,7 +32,7 @@
         {
             "label": "Build from Makefile on GVSOC",
             "type": "shell",
-            "command": "export GAP_RISCV_GCC_TOOLCHAIN=@GAP_TOOLCHAIN@ && source @GAP_SDK@/configs/gap9_v2.sh && make all platform=gvsoc",
+            "command": "export GAP_RISCV_GCC_TOOLCHAIN=@GAP_TOOLCHAIN@ && source @GAP_SDK@/configs/gap9_evk_audio.sh && make all platform=gvsoc",
             "group": "build",
             "presentation": {
                 "reveal": "always",
@@ -51,7 +51,7 @@
         {
             "label": "openocd",
             "type": "shell",
-            "command": "@OCD_install_path@ -f @OPENOCD_CABLE_CFG@ -f @TARGET_CFG@",
+            "command": "@OCD_install_path@ -c 'gdb_port 3333; telnet_port disabled; tcl_port disabled' -f @OPENOCD_CABLE_CFG@ -f @TARGET_CFG@",
             "presentation": {
                 "reveal": "always",
                 "panel": "new"

@@ -1,0 +1,8 @@
+menu "Over-the-air"
+
+        config BSP_DRIVER_OTA
+                bool "OTA"
+                default n
+                select BSP_DRIVER_PARTITION
+                select BSP_DRIVER_FLASH_PARTITION
+endmenu

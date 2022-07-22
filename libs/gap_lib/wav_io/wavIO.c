@@ -8,6 +8,12 @@
  */
 #include "gaplib/wavIO.h"
 
+#ifndef SILENT
+    #define PRINTF printf
+#else
+    #define PRINTF(...) ((void) 0)
+#endif
+
 #define WAV_HEADER_SIZE	44
 
 #ifndef __EMUL__
@@ -121,15 +127,15 @@ static int ReadWavShort(switch_file_t File, short int* OutBuf, unsigned int NumS
 		if (!len) return 1;
 		RemainBytes -= len;
 		int offset = 0;
-		for (i=0; i<read_size/2; i++){
+		for (i=0; i<len/BytesPerSample; i++){
 			int data_in_channel;
 			for (ch=0; ch<Channels; ch++){
 				data_in_channel = data_buf[offset*2] | (data_buf[offset*2+1] << 8);
-				OutBuf[offset*Channels + ch] = (short int) data_in_channel;
+				OutBuf[i*Channels + ch] = (short int) data_in_channel;
 				offset += 1; //Bytes in each channel
 			}
 		}
-		OutBuf += len/BytesPerSample;
+		OutBuf += Channels*(len/BytesPerSample);
 	}
 	__FREE_L2(data_buf, ChunkSize*Channels*sizeof(short int));
 

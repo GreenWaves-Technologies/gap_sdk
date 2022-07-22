@@ -27,39 +27,56 @@
 #include "platform_wrapper.hpp"
 
 static inline void prefetcher_init(iss_t *iss);
-static inline iss_opcode_t prefetcher_get_word(iss_t *iss, iss_addr_t addr);
 static inline iss_opcode_t prefetcher_fill(iss_t *iss, iss_addr_t addr, bool timed);
 
 
-
-static inline iss_opcode_t prefetcher_fill(iss_prefetcher_t *prefetcher, iss_t *iss, iss_addr_t addr, bool timed, bool fill)
+// This can be called to force the core to refetch the current instruction,
+// for example after the pc has been modified
+static inline void prefetcher_refetch(iss_t *iss)
 {
-  uint32_t aligned_addr = addr & ~(ISS_PREFETCHER_SIZE-1);
-  iss_fetch_req(iss, aligned_addr, fill ? prefetcher->data : NULL, ISS_PREFETCHER_SIZE, false, timed);
-  prefetcher->addr = aligned_addr;
-  return 0;
+    // For that we tell the core to refetch
+    // and set it to inactive state to force it to recheck its state.
+    iss->cpu.state.do_fetch = true;
+    iss->is_active_reg.set(false);
+
+    if (iss->current_event->is_enqueued())
+    {
+      iss->event_cancel(iss->current_event);
+    }
 }
 
 
-
-static inline iss_opcode_t __attribute__((always_inline)) prefetcher_get_word_common(iss_prefetcher_t *prefetcher, iss_t *iss, iss_addr_t addr, bool timed)
+static inline int prefetcher_fill(iss_prefetcher_t *prefetcher, iss_t *iss, iss_addr_t addr)
 {
-  int index = addr - prefetcher->addr;
+  uint32_t aligned_addr = addr & ~(ISS_PREFETCHER_SIZE-1);
+  prefetcher->addr = aligned_addr;
+  return iss_fetch_req(iss, aligned_addr, prefetcher->data, ISS_PREFETCHER_SIZE, false);
+}
 
-  if (likely(index >= 0 && index  <= ISS_PREFETCHER_SIZE - sizeof(iss_opcode_t)))
-  {
-    return *(iss_opcode_t *)&prefetcher->data[index];
-  }
 
-  if (unlikely(index < 0 || index >= ISS_PREFETCHER_SIZE))
-  {
-    prefetcher_fill(prefetcher, iss, addr, timed, 1);
-    index = addr - prefetcher->addr;
-  }
+static inline void prefetcher_fetch_value_resume_1(iss_t *iss)
+{
+  iss_prefetcher_t *prefetcher = &iss->cpu.prefetcher;
+  iss_addr_t addr = iss->cpu.prefetch_insn->addr;
+  uint32_t next_addr = (addr + ISS_PREFETCHER_SIZE - 1) & ~(ISS_PREFETCHER_SIZE-1);
+  // Number of bytes of the opcode which fits the first line
+  int nb_bytes = next_addr - addr;
+
+  // And append the second part from second line
+  iss->cpu.prefetch_insn->opcode = iss->cpu.state.fetch_stall_opcode | (( *(iss_opcode_t *)&prefetcher->data[0]) << (nb_bytes*8));
+  iss_decode_pc_noexec(iss, iss->cpu.prefetch_insn);
+}
+
+
+static inline void prefetcher_fetch_value_after_fill_0(
+  iss_prefetcher_t *prefetcher, iss_t *iss, iss_insn_t *insn, int index)
+{
+  iss_addr_t addr = insn->addr;
 
   if (likely(index + ISS_OPCODE_MAX_SIZE <= ISS_PREFETCHER_SIZE))
   {
-    return *(iss_opcode_t *)&prefetcher->data[index];
+    insn->opcode = *(iss_opcode_t *)&prefetcher->data[index];
+    iss_decode_pc_noexec(iss, insn);
   }
   else
   {
@@ -74,18 +91,89 @@ static inline iss_opcode_t __attribute__((always_inline)) prefetcher_get_word_co
     // Copy first part from first line
     memcpy((void *)&opcode, (void *)&prefetcher->data[index], nb_bytes);
     // Fetch next line
-    prefetcher_fill(prefetcher, iss, next_addr, timed, 1);
+    if (prefetcher_fill(prefetcher, iss, next_addr))
+    {
+      iss->cpu.state.fetch_stall_callback = prefetcher_fetch_value_resume_1;
+      iss->cpu.state.fetch_stall_opcode = opcode;
+      iss->cpu.prefetch_insn = insn;
+      iss->stalled.inc(1);
+      return;
+    }
     // And append the second part from second line
     opcode = opcode | (( *(iss_opcode_t *)&prefetcher->data[0]) << (nb_bytes*8));
 
-    return opcode;
+    insn->opcode = opcode;
+    iss_decode_pc_noexec(iss, insn);
   }
 }
 
 
-
-static inline void __attribute__((always_inline)) prefetcher_fetch_word(iss_prefetcher_t *prefetcher, iss_t *iss, iss_addr_t addr)
+static inline void prefetcher_fetch_value_resume_0(iss_t *iss)
 {
+  iss_prefetcher_t *prefetcher = &iss->cpu.prefetcher;
+  iss_addr_t addr = iss->cpu.prefetch_insn->addr;
+  int index = addr - prefetcher->addr;
+  prefetcher_fetch_value_after_fill_0(prefetcher, iss, iss->cpu.prefetch_insn, index);
+}
+
+
+static inline void __attribute__((always_inline)) prefetcher_fetch_value(
+  iss_prefetcher_t *prefetcher, iss_t *iss, iss_insn_t *insn)
+{
+  iss_addr_t addr = insn->addr;
+  int index = addr - prefetcher->addr;
+
+  if (likely(index >= 0 && index  <= ISS_PREFETCHER_SIZE - sizeof(iss_opcode_t)))
+  {
+    insn->opcode = *(iss_opcode_t *)&prefetcher->data[index];
+    iss_decode_pc_noexec(iss, insn);
+    return;
+  }
+
+  if (unlikely(index < 0 || index >= ISS_PREFETCHER_SIZE))
+  {
+    if (prefetcher_fill(prefetcher, iss, addr))
+    {
+      iss->cpu.state.fetch_stall_callback = prefetcher_fetch_value_resume_0;
+      iss->cpu.prefetch_insn = insn;
+      iss->stalled.inc(1);
+      return;
+    }
+    index = addr - prefetcher->addr;
+  }
+
+  prefetcher_fetch_value_after_fill_0(prefetcher, iss, insn, index);
+}
+
+
+static inline void prefetcher_fetch_novalue_check_overflow(iss_prefetcher_t *prefetcher, iss_t *iss, iss_insn_t *insn, int index)
+{
+  if (unlikely(index + ISS_OPCODE_MAX_SIZE > ISS_PREFETCHER_SIZE))
+  {
+    if (prefetcher_fill(prefetcher, iss, prefetcher->addr + ISS_PREFETCHER_SIZE))
+    {
+      iss->cpu.state.fetch_stall_callback = NULL;
+      iss->cpu.prefetch_insn = insn;
+      iss->stalled.inc(1);
+      return;
+    }
+  }
+}
+
+
+static inline void prefetcher_fetch_novalue_resume_0(iss_t *iss)
+{
+  iss_prefetcher_t *prefetcher = &iss->cpu.prefetcher;
+  iss_addr_t addr = iss->cpu.prefetch_insn->addr;
+  int index = addr - prefetcher->addr;
+  prefetcher_fetch_novalue_check_overflow(prefetcher, iss, iss->cpu.prefetch_insn, index);
+}
+
+
+static inline void __attribute__((always_inline)) prefetcher_fetch_novalue(
+  iss_prefetcher_t *prefetcher, iss_t *iss, iss_insn_t *insn)
+{
+  iss_addr_t addr = insn->addr;
   int index = addr - prefetcher->addr;
 
   if (likely(index >= 0 && index  <= ISS_PREFETCHER_SIZE - sizeof(iss_opcode_t)))
@@ -95,33 +183,34 @@ static inline void __attribute__((always_inline)) prefetcher_fetch_word(iss_pref
 
   if (unlikely(index < 0 || index >= ISS_PREFETCHER_SIZE))
   {
-    prefetcher_fill(prefetcher, iss, addr, 1, 0);
+    if (prefetcher_fill(prefetcher, iss, addr))
+    {
+      iss->cpu.state.fetch_stall_callback = prefetcher_fetch_novalue_resume_0;
+      iss->cpu.state.fetch_stall_callback = NULL;
+      iss->cpu.prefetch_insn = insn;
+      iss->stalled.inc(1);
+      return;
+    }
     index = addr - prefetcher->addr;
   }
 
-  if (unlikely(index + ISS_OPCODE_MAX_SIZE > ISS_PREFETCHER_SIZE))
+  prefetcher_fetch_novalue_check_overflow(prefetcher, iss, insn, index);
+}
+
+
+
+
+
+static inline void __attribute__((always_inline)) prefetcher_fetch(iss_t *iss, iss_insn_t *insn)
+{
+  if (insn->fetched)
   {
-    prefetcher_fill(prefetcher, iss, prefetcher->addr + ISS_PREFETCHER_SIZE, 1, 0);
+    prefetcher_fetch_novalue(&iss->cpu.prefetcher, iss, insn);
   }
-}
-
-
-
-static inline iss_opcode_t prefetcher_get_word(iss_t *iss, iss_addr_t addr)
-{
-  return prefetcher_get_word_common(&iss->cpu.decode_prefetcher, iss, addr, 0);
-}
-
-
-
-static inline void __attribute__((always_inline)) prefetcher_fetch(iss_t *iss, iss_addr_t addr)
-{
-  prefetcher_fetch_word(&iss->cpu.prefetcher, iss, addr);
-  int64_t cycles = iss->cpu.state.fetch_cycles;
-  if (cycles)
+  else
   {
-    iss->cpu.state.insn_cycles += cycles;
-    iss->cpu.state.fetch_cycles = 0;
+    insn->fetched = true;
+    prefetcher_fetch_value(&iss->cpu.prefetcher, iss, insn);
   }
 }
 

@@ -31,13 +31,6 @@ Load FIR basic kernels
 */
 void LoadFIRLibrary();
 
-/**
-@brief Setup AutoTiler configuration for FIR
-
-Setup AutoTiler configuration
-*/
-void FIRConfiguration(unsigned int L1Memory);
-
 
 /**
 @brief Generate FIR for a given set of parameters for Q15 input and output data
@@ -68,6 +61,11 @@ void GeneratorFIR(
 	unsigned int Generic,		/**< 1: Use generic filter, 0: if available use a specialized version */
 	unsigned int Scalar		/**< 1: Use a scalar implementation, 0: use a vectorial implementation */
 	);
+
+void GeneratorFIR_fp16(char *Name, unsigned int NSamples, unsigned int NCoeffs);
+
+void GeneratorFIR_fp32(char *Name, unsigned int NSamples, unsigned int NCoeffs);
+
 
 /** @} */ // End of FIRGene
 /** @} */

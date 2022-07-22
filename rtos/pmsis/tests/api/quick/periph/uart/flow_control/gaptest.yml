@@ -1,0 +1,30 @@
+name: uart_flow_control
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    std:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: CONFIG_TESTBENCH_UART_ID=0
+    low_freq:
+        name: low_soc_freq
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: CONFIG_TESTBENCH_UART_ID=1 SOC_FREQ=10000000 BAUDRATE=50000000
+    with_traffic_gen:
+        name: with_traffic_gen
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: CONFIG_TESTBENCH_UART_ID=1 NO_BANDWIDTH_LIMITATION=1 USE_TRAFFIC_GEN=1 SOC_FREQ=10000000 BAUDRATE=50000000

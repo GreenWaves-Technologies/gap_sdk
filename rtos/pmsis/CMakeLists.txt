@@ -1,3 +1,4 @@
-
-add_subdirectory(pmsis_api)
-add_subdirectory(pmsis_implem)
+add_subdirectory(api)
+add_subdirectory(implem)
+add_subdirectory(archi)
+add_subdirectory(bsp)

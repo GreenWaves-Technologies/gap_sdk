@@ -111,6 +111,9 @@ extern void KerArgTileHeight(Kernel_T *Ker, Object_T *Obj, Kernel_Arg_T *Arg, in
 
 extern int ArgIsPadded(Kernel_T *Ker, Object_T *Obj, Kernel_Arg_T *Arg, int *Pad);
 
+extern int EvalArgAlignedSize(Kernel_T *Ker, Kernel_Arg_T *Arg, int Align);
+
+
 
 
 

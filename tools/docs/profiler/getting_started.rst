@@ -6,7 +6,7 @@ Getting Started
 Follow this guide to:
 
 - Install the profler and its dependencies
-- run mnist application
+- run fork application
 
 
 Install dependencies
@@ -32,17 +32,8 @@ How to build
     # First initialize gap_sdk
     cd ~/gap_sdk
     # source the initialization file and choose GAP9_v2
-    source sourceme.sh
-    #Simply run `make` in profiler directory
-    cd ~/profiler
-    make
-
-How to initialize the profiler
-------------------------------
-
-.. code-block:: bash
-
-    #execute initialization files
-    cd ~/profiler
-    source init.sh
+    source configs/gap9_v2.sh
+    #Now build the profiler
+    make profiler_v2
+    
 

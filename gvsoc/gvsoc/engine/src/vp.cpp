@@ -46,6 +46,8 @@
 #include <sys/prctl.h>
 #include <vp/time/time_scheduler.hpp>
 #include <vp/proxy.hpp>
+#include <vp/queue.hpp>
+#include <vp/signal.hpp>
 
 
 extern "C" long long int dpi_time_ps();
@@ -68,96 +70,37 @@ static Gv_proxy *proxy = NULL;
 
 
 
-uint64_t vp::reg::get_field(int offset, int width)
-{
-    uint64_t value = 0;
-    this->read(0, (offset + width + 7)/8, (uint8_t *)&value);
-    return (value >> offset) & ((1UL<<width)-1);
-}
 
 
-void vp::regmap::reset(bool active)
+
+void vp::component::get_trace(std::vector<vp::trace *> &traces, std::string path)
 {
-    for (auto x: this->get_registers())
+    if (this->get_path() != "" && path.find(this->get_path()) != 0)
     {
-        x->reset(active);
+        return;
     }
-}
 
-bool vp::regmap::access(uint64_t offset, int size, uint8_t *value, bool is_write)
-{
-    for (auto x: this->get_registers())
+    for (vp::component *component: this->get_childs())
     {
-        if (offset >= x->offset && offset + size <= x->offset + (x->width+7)/8)
+        component->get_trace(traces, path);
+    }
+
+    for (auto x: this->traces.traces)
+    {
+        if (x.second->get_full_path().find(path) == 0)
         {
-            vp::reg *aliased_reg = x;
-
-            if (x->alias)
-            {
-                x = x->alias();
-            }
-
-            x->access((offset - aliased_reg->offset), size, value, is_write);
-
-            if (aliased_reg->trace.get_active(vp::trace::LEVEL_DEBUG))
-            {
-                std::string regfields_values = "";
-
-                if (aliased_reg->regfields.size() != 0)
-                {
-                    for (auto y: aliased_reg->regfields)
-                    {
-                        char buff[256];
-                        snprintf(buff, 256, "0x%lx", x->get_field(y->bit, y->width));
-
-                        if (regfields_values != "")
-                            regfields_values += ", ";
-
-                        regfields_values += y->name + "=" + std::string(buff);
-                    }
-
-                    regfields_values = "{ " + regfields_values + " }";
-                }
-                else
-                {
-                    char buff[256];
-                    snprintf(buff, 256, "0x%lx", x->get_field(0, aliased_reg->width));
-                    regfields_values = std::string(buff);
-                }
-
-                aliased_reg->trace.msg(vp::trace::LEVEL_DEBUG,
-                    "Register access (name: %s, offset: 0x%x, size: 0x%x, is_write: 0x%x, value: %s)\n",
-                    aliased_reg->get_name().c_str(), offset, size, is_write, regfields_values.c_str()
-                );
-            }
-
-            return false;
+            traces.push_back(x.second);
         }
     }
 
-    vp_warning_always(this->trace, "Accessing invalid register (offset: 0x%lx, size: 0x%x, is_write: %d)\n", offset, size, is_write);
-    return true;
-}
-
-
-
-void vp::regmap::build(vp::component *comp, vp::trace *trace, std::string name)
-{
-    this->comp = comp;
-    this->trace = trace;
-
-    for (auto x: this->get_registers())
+    for (auto x: this->traces.trace_events)
     {
-        std::string reg_name = name;
-        if (reg_name == "")
-            reg_name = x->get_hw_name();
-        else
-            reg_name = reg_name + "/" + x->get_hw_name();
-
-        x->build(comp, reg_name);
+        if (x.second->get_full_path().find(path) == 0)
+        {
+            traces.push_back(x.second);
+        }
     }
 }
-
 
 void vp::component::reg_step_pre_start(std::function<void()> callback)
 {
@@ -257,13 +200,6 @@ int vp::component::build_new()
 
     this->final_bind();
 
-    this->reset_all(true);
-
-    if (!this->get_js_config()->get_child_bool("**/gvsoc/use_external_bridge"))
-    {
-        this->reset_all(false);
-    }
-
     return 0;
 }
 
@@ -291,6 +227,17 @@ void vp::component::start_all()
     this->start();
 }
 
+
+
+void vp::component::stop_all()
+{
+    for (auto &x : this->childs)
+    {
+        x->stop_all();
+    }
+
+    this->stop();
+}
 
 
 void vp::component::flush_all()
@@ -350,13 +297,22 @@ void vp::component::reset_all(bool active, bool from_itf)
             reg->reset(active);
         }
 
-        this->reset(active);
+        this->block::reset_all(active);
+
+        if (active)
+        {
+            for (clock_event *event: this->events)
+            {
+                this->event_cancel(event);
+            }
+        }
 
         for (auto &x : this->childs)
         {
             x->reset_all(active);
         }
     }
+
 }
 
 void vp::component_clock::reset_sync(void *__this, bool active)
@@ -539,6 +495,7 @@ vp::clock_event *vp::clock_engine::enqueue_other(vp::clock_event *event, int64_t
 
     // Check if we can enqueue to the fast circular queue in case were not
     // running.
+
     bool can_enqueue_to_cycle = false;
     if (!this->is_running())
     {
@@ -557,7 +514,9 @@ vp::clock_event *vp::clock_engine::enqueue_other(vp::clock_event *event, int64_t
     {
         this->must_flush_delayed_queue = true;
         if (this->period != 0)
+        {
             enqueue_to_engine(cycle * period);
+        }
 
         vp::clock_event *current = delayed_queue, *prev = NULL;
         int64_t full_cycle = cycle + get_cycles();
@@ -755,6 +714,12 @@ int64_t vp::clock_engine::exec()
 vp::clock_event::clock_event(component_clock *comp, clock_event_meth_t *meth)
     : comp(comp), _this((void *)static_cast<vp::component *>((vp::component_clock *)(comp))), meth(meth), enqueued(false)
 {
+    comp->add_clock_event(this);
+}
+
+void vp::component_clock::add_clock_event(clock_event *event)
+{
+    this->events.push_back(event);
 }
 
 vp::time_engine *vp::component::get_time_engine()
@@ -1446,7 +1411,7 @@ vp::component *vp::component::new_component(std::string name, js::config *config
 }
 
 vp::component::component(js::config *config)
-    : traces(*this), power(*this), reset_done_from_itf(false)
+    : block(NULL), traces(*this), power(*this), reset_done_from_itf(false)
 {
     this->comp_js_config = config;
 
@@ -1740,6 +1705,14 @@ extern "C" void gv_start(void *arg)
 }
 
 
+extern "C" void gv_reset(void *arg, bool active)
+{
+    vp::top *top = (vp::top *)arg;
+    vp::component *instance = (vp::component *)top->top_instance;
+    instance->reset_all(active);
+}
+
+
 extern "C" void gv_step(void *arg, int64_t timestamp)
 {
     vp::top *top = (vp::top *)arg;
@@ -1996,7 +1969,6 @@ vp::time_event *vp::time_scheduler::enqueue(time_event *event, int64_t time)
 }
 
 
-
 extern "C" int gv_run(void *arg)
 {
     vp::top *top = (vp::top *)arg;
@@ -2033,7 +2005,7 @@ extern "C" void gv_stop(void *arg, int retval)
         proxy->stop(retval);
     }
 
-    instance->stop();
+    instance->stop_all();
 
     delete top->power_engine;
 }

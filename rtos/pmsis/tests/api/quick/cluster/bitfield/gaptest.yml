@@ -1,0 +1,24 @@
+name: cluster_bitfield
+platforms:
+    - gvsoc
+os:
+    - pulpos
+chips:
+    - gap9
+variants:
+    std:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ~
+          #compile_only: true
+    with_irq:
+        name: with_irq
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: WITH_IRQ=1
+          #compile_only: true

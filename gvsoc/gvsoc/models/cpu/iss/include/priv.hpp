@@ -123,6 +123,7 @@ static inline iss_insn_t *wfi_exec(iss_t *iss, iss_insn_t *insn)
 
 static inline iss_insn_t *mret_exec(iss_t *iss, iss_insn_t *insn)
 {
+  iss_perf_account_dependency_stall(iss, 5);
   return iss_irq_handle_mret(iss);
 }
 

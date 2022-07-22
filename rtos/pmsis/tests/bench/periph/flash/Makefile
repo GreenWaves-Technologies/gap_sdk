@@ -1,0 +1,26 @@
+FLASH_TYPE ?= HYPERFLASH
+
+ifeq '$(FLASH_TYPE)' 'HYPERFLASH'
+APP_CFLAGS += -DUSE_HYPERFLASH
+else
+ifeq '$(FLASH_TYPE)' 'MRAM'
+
+APP_CFLAGS += -DUSE_MRAM
+
+else
+
+APP_CFLAGS += -DUSE_SPIFLASH
+CONFIG_ATXP032 = 1
+endif
+endif
+
+ifdef FULL_PLOT
+APP_CFLAGS += -DFULL_PLOT=1
+endif
+
+APP = test
+APP_SRCS = test.c
+APP_CFLAGS += -O3 -g
+APP_LDFLAGS += -O3 -g
+
+include $(RULES_DIR)/pmsis_rules.mk

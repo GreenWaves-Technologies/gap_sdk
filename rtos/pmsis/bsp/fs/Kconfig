@@ -1,0 +1,17 @@
+menu "File System"
+
+    config BSP_DRIVER_FS_HOSTFS
+        bool "HostFS"
+        default n
+
+    config BSP_DRIVER_FS_LITTLEFS
+        bool "LittleFS"
+        default n
+        select BSP_DRIVER_PARTITION
+
+    config BSP_DRIVER_FS_READFS
+        bool "ReadFS"
+        default n
+        select BSP_DRIVER_PARTITION
+        select BSP_DRIVER_FLASH
+endmenu

@@ -1,0 +1,24 @@
+menu "BSP Menu"
+
+    comment "Driver selection" 
+        
+    menu "Memory"
+        source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/eeprom/Kconfig"
+        source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/flash/Kconfig"
+        source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/ram/Kconfig"
+    endmenu
+
+    source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/adc/Kconfig"
+    source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/audio/Kconfig"
+    source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/ble/Kconfig"
+    source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/bootloader/Kconfig"
+    source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/camera/Kconfig"
+    source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/crc/Kconfig"
+    source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/display/Kconfig"
+    source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/fs/Kconfig"
+    source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/gpio/Kconfig"
+    source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/ota/Kconfig"
+    source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/partition/Kconfig"
+    source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/transport/Kconfig"
+
+endmenu

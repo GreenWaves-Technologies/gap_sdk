@@ -18,6 +18,8 @@
 #ifndef __ARCHI_GAP_UTILS_H__
 #define __ARCHI_GAP_UTILS_H__
 
+#ifndef LANGUAGE_ASSEMBLY
+
 static inline unsigned int __attribute__ ((always_inline)) ExtInsMaskFast_archi(unsigned int Size, unsigned int Offset) { return ((((Size-1))<<5)|(Offset)); }
 static inline unsigned int __attribute__ ((always_inline)) ExtInsMaskSafe_archi(unsigned int Size, unsigned int Offset) { return ((((Size-1)&0x1F)<<5)|(Offset&0x1F)); }
 
@@ -25,6 +27,7 @@ static inline unsigned int __attribute__ ((always_inline)) ExtInsMaskSafe_archi(
 #define GAP_WRITE_VOL(base, offset, value) __builtin_pulp_write_base_off_v((value), (base), (offset))
 #define GAP_WRITE(base, offset, value)     __builtin_pulp_OffsetedWrite((value), (int *)(base), (offset))
 #define GAP_READ(base, offset)             __builtin_pulp_OffsetedRead((int *)(base), (offset))
+#define GAP_WRITE_PTR(base, offset, value) __builtin_pulp_OffsetedWritePtr((int *)(value), (int *)(base), (offset))
 #else
 #define GAP_WRITE_VOL(base, offset, value) archi_write32((base) + (offset), (value))
 #define GAP_WRITE(base, offset, value)     archi_write32((base) + (offset), (value))
@@ -44,6 +47,8 @@ static inline unsigned int __attribute__ ((always_inline)) ExtInsMaskSafe_archi(
 #define GAP_BINSERT_R(dst,src,size,off)  __builtin_pulp_binsert_r((dst), (src), ExtInsMaskFast_archi((size), (off)))
 #define GAP_BEXTRACTU(src,size,off)    __builtin_pulp_bextractu((src), (size), (off))
 #define GAP_BEXTRACT(src,size,off)     __builtin_pulp_bextract((src), (size), (off))
+
+#endif
 
 #endif
 

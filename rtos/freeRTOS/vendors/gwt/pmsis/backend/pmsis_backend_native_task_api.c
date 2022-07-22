@@ -101,7 +101,7 @@ void pi_time_wait_us(int time_us)
     }
 }
 
-unsigned long long int pi_time_get_us()
+unsigned int pi_time_get_us()
 {
     #if defined(__GAP8__) || defined (__VEGA__)
     uint64_t time = 0;
@@ -116,13 +116,13 @@ unsigned long long int pi_time_get_us()
     pi_irq_restore(irq);
     return time;
     #else
-    uint64_t time = 0;
+    uint32_t time = 0;
     uint32_t irq = pi_irq_disable();
     uint32_t cur_timer_val = 0;
     extern struct pi_device sys_timer_hi_prec;
     int32_t status = pi_timer_current_value_read(&sys_timer_hi_prec, &cur_timer_val);
     uint32_t freq_timer = pi_timer_clock_freq_get(&sys_timer_hi_prec);
-    time = ((uint64_t)cur_timer_val * 1000000) / freq_timer;
+    time = ((float)cur_timer_val * 1000000) / freq_timer;
     //time += cur_timer_val;
     pi_irq_restore(irq);
     return time;
@@ -133,6 +133,24 @@ PI_FC_L1 struct pi_task_delayed_s delayed_task = {0};
 
 void pi_task_delayed_fifo_enqueue(struct pi_task *task, uint32_t delay_us)
 {
+#if defined(__GAP9__)
+    if (delay_us == 0)
+    {
+        /* task should be executed as soon as possible */
+        pi_task_push(task);
+    }
+    else
+    {
+        /* put minimum delay to timer resolution */
+        //FIXME use a defined value instead of hardcoded one
+        delay_us = (delay_us < 100) ? 100 : delay_us;
+
+        // All gap9 chips should be fine, as it just requires having two physical
+        // timers
+        extern struct pi_device sys_timer_hi_prec;
+        pi_timer_task_add(&sys_timer_hi_prec, delay_us, task);
+    }
+#else
     task->data[8] = (delay_us/1000)/portTICK_PERIOD_MS;
     /* Add 1ms, in case the next SysTick IRQ is too close. This will ensure at
        least 1ms has passed. */
@@ -147,6 +165,7 @@ void pi_task_delayed_fifo_enqueue(struct pi_task *task, uint32_t delay_us)
         delayed_task.fifo_tail->next = task;
     }
     delayed_task.fifo_tail = task;
+#endif
 }
 
 #if defined(__GAP8__)

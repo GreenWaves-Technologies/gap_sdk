@@ -77,7 +77,7 @@ proc gap_flasher_ctrl {ImageName ImageSize flash_offset sector_size flash_type d
             mem2array wait1 32 $gap_rdy 1
             sleep 1
         }
-        puts "wait on gap_rdy done witg buff ptr $buff_ptr"
+        #puts "wait on gap_rdy done witg buff ptr $buff_ptr"
         mww [expr $host_rdy] 0x0
         if { $size == 0 } {
             mww [expr $flash_run] 0x0
@@ -87,9 +87,10 @@ proc gap_flasher_ctrl {ImageName ImageSize flash_offset sector_size flash_type d
         mww [expr $flash_size] $curr_size
         # Shift addr to the left, and set the normal base addr as min to throw
         # away bin we already read
-    puts "loading image with addr [expr $buff_ptr(0) - $curr_offset] addr_min $buff_ptr(0) and size $curr_size"
+        #puts "loading image with addr [expr $buff_ptr(0) - $curr_offset] addr_min $buff_ptr(0) and size $curr_size"
+        puts -nonewline "\rloading image to flash - addr [expr $buff_ptr(0) - $curr_offset] - copied [expr $ImageSize - $size] / $ImageSize Bytes - [ format %.2f [expr (($ImageSize - $size)*100.0)/$ImageSize ]] %"
         load_image $ImageName [expr $buff_ptr(0) - $curr_offset] bin $buff_ptr(0) $curr_size
-        puts "load image done"
+        #puts "load image done"
         set curr_offset [expr $curr_offset + $curr_size]
         #signal app we wrote our buff
         # ACK the gap rdy now that we wrote sector (flasher may work)
@@ -166,7 +167,7 @@ proc gap_flasher_ctrl_VEGA {ImageName ImageSize flash_offset sector_size flash_t
             mem2array wait1 32 $gap_rdy 1
             sleep 100
         }
-        puts "wait on gap_rdy done witg buff ptr $buff_ptr"
+        #puts "wait on gap_rdy done witg buff ptr $buff_ptr"
         mww [expr $host_rdy] 0x0
         if { $size == 0 } {
             mww [expr $flash_run] 0x0
@@ -176,9 +177,10 @@ proc gap_flasher_ctrl_VEGA {ImageName ImageSize flash_offset sector_size flash_t
         mww [expr $flash_size] $curr_size
         # Shift addr to the left, and set the normal base addr as min to throw
         # away bin we already read
-    puts "loading image with addr [expr $buff_ptr(0) - $curr_offset] addr_min $buff_ptr(0) and size $curr_size"
+        #puts "loading image with addr [expr $buff_ptr(0) - $curr_offset] addr_min $buff_ptr(0) and size $curr_size"
+        puts -nonewline "\rloading image to flash - addr [expr $buff_ptr(0) - $curr_offset] - copied [expr $ImageSize - $size] / $ImageSize Bytes - [ format %.2f [expr (($ImageSize - $size)*100.0)/$ImageSize ]] %"
         load_image $ImageName [expr $buff_ptr(0) - $curr_offset] bin $buff_ptr(0) $curr_size
-        puts "load image done"
+        #puts "load image done"
         set curr_offset [expr $curr_offset + $curr_size]
         #signal app we wrote our buff
         # ACK the gap rdy now that we wrote sector (flasher may work)

@@ -134,22 +134,16 @@ pos_irq_c_handler_stub:
     sw   t3, 0x38(sp)
     sw   t4, 0x3C(sp)
     sw   t5, 0x40(sp)
-    sw   t6, 0x4C(sp)
 
     csrr   t0, 0x342
     slli   t0, t0, 2
-    la     t1, pos_irq_c_handlers
-#if !defined(ARCHI_CORE_HAS_PULPV2)
-    add    t1, t0, t1
-    lw     t1, 0x00(t1)
-#else
-    p.lw   t1, t0(t1)
-#endif
+    p.lw   t1, %tiny(pos_irq_c_handlers)(t0)
 
-    beqz   t1, pos_irq_no_handler
-
+    sw   t6, 0x4C(sp)
+    
     jalr   ra, t1
 
+    .global pos_irq_no_handler
 pos_irq_no_handler:
     lw   ra, 0x00(sp)
     lw   gp, 0x04(sp)

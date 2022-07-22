@@ -7,7 +7,7 @@ It provides:
 
 - An extensive set of tools including:
 
-   - NNTool: a set of tools to easily port NN graphs from various training packages to GAP chips.
+   - :ref:`nntool`: a set of tools to easily port NN graphs from various training packages to GAP chips.
    - :ref:`autotiler`: A code generator which can generate a user algorithm (CNN, MatrixAdd, MatrixMult,
      FFT, MFCC, etc) with optimized memory management.
    - :ref:`gvsoc`: a lightweight and flexible instruction set simulator which can simulate GAP processors,

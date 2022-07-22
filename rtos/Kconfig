@@ -1,0 +1,31 @@
+menu "RTOS Menu"
+    choice PMSIS_OS
+        prompt "OS Selection"
+        config PMSIS_OS_FREERTOS
+            bool "Freertos"
+            help
+                Select FreeRTOS as GAP SDK OS. Default value
+        config PMSIS_OS_PULPOS
+            bool "Pulpos"
+            help
+                Select Pulp OS as GAP SDK OS
+    endchoice
+
+    if PMSIS_OS_FREERTOS
+        source "$(GAP_SDK_HOME)/rtos/freeRTOS/Kconfig"        
+    endif
+
+    if PMSIS_OS_PULPOS
+        # TODO: Source PulpOS Kconfig here 
+    endif
+
+    menu "PMSIS Menu"
+        source "$(GAP_SDK_HOME)/rtos/pmsis/Kconfig"
+        source "$(GAP_SDK_HOME)/rtos/freeRTOS/vendors/gwt/gap9/pmsis/Kconfig"
+        source "$(GAP_SDK_HOME)/rtos/freeRTOS/vendors/gwt/pmsis/rtos/Kconfig"
+    endmenu
+
+    source "$(GAP_SDK_HOME)/rtos/pmsis/bsp/Kconfig"
+
+endmenu
+

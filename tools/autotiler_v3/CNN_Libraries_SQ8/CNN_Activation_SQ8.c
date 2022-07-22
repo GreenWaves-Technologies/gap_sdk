@@ -135,6 +135,60 @@ int TanhTable(int x, unsigned short * table){
 #endif
 }
 
+short int ERF_LUT_int16[256] = {
+           0,   578,  1155,  1732,  2308,  2883,  3456,  4028,  4598,
+        5165,  5731,  6293,  6852,  7408,  7961,  8510,  9055,  9595,
+       10131, 10663, 11189, 11711, 12227, 12737, 13242, 13741, 14234,
+       14721, 15201, 15675, 16142, 16602, 17056, 17502, 17941, 18373,
+       18798, 19215, 19625, 20028, 20422, 20809, 21189, 21561, 21925,
+       22281, 22629, 22970, 23303, 23628, 23946, 24256, 24558, 24853,
+       25140, 25420, 25693, 25958, 26215, 26466, 26709, 26946, 27175,
+       27398, 27614, 27823, 28026, 28222, 28412, 28596, 28773, 28945,
+       29111, 29271, 29425, 29574, 29718, 29856, 29990, 30118, 30242,
+       30360, 30474, 30584, 30689, 30791, 30888, 30981, 31070, 31155,
+       31237, 31315, 31390, 31461, 31530, 31595, 31657, 31717, 31774,
+       31828, 31879, 31928, 31975, 32019, 32062, 32102, 32140, 32176,
+       32211, 32243, 32274, 32303, 32331, 32358, 32382, 32406, 32428,
+       32449, 32469, 32488, 32506, 32522, 32538, 32553, 32567, 32580,
+       32592, 32604, 32615, 32625, 32635, 32644, 32652, 32660, 32668,
+       32674, 32681, 32687, 32693, 32698, 32703, 32708, 32712, 32716,
+       32720, 32724, 32727, 32730, 32733, 32735, 32738, 32740, 32742,
+       32744, 32746, 32748, 32749, 32751, 32752, 32754, 32755, 32756,
+       32757, 32758, 32758, 32759, 32760, 32761, 32761, 32762, 32762,
+       32763, 32763, 32764, 32764, 32764, 32765, 32765, 32765, 32765,
+       32766, 32766, 32766, 32766, 32766, 32767, 32767, 32767, 32767,
+       32767, 32767, 32767, 32767, 32767, 32767, 32767, 32768, 32768,
+       32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768,
+       32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768,
+       32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768,
+       32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768,
+       32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768,
+       32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768, 32768,
+       32768, 32768, 32768, 32768	
+};
+
+int ErfTable(int x, signed short * table) {
+#ifndef NEAREST
+	int result, ua, ub, ut;
+	int abs_x = Abs(x); // 2*x
+	if (abs_x > 255) {
+		result = 0x7FFF;
+	} else {
+		ua = table[abs_x];
+		ub = table[abs_x+1];
+		ut = abs_x & 0xFF;
+		result = ((ua << 8) + ut * (ub-ua)) >> 8;
+	}
+	result = (x>0)?result:(-result);
+	return result
+#else
+	int result;
+	int abs_x = Abs(x);
+	result = (abs_x > 255)?0x7FFF:table[abs_x];
+	return (x>0)?result:(-result);
+#endif
+}
+
 #define KER_ACT(Activation, in_d_type, out_d_type, p_type, in_n_bits, out_n_bits, is_unsigned) \
 do { \
 	unsigned int S = Arg->W*Arg->H*Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S); \
@@ -328,7 +382,7 @@ do { \
 do { \
 	unsigned int Feat = Arg->Feat; \
 	unsigned S = Arg->W*Arg->H; \
-	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S); \
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat); \
 	int * __restrict__ In = (int *__restrict__) Arg->In; \
 	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale; \
 	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN; \
@@ -338,8 +392,8 @@ do { \
 	int A0 = arr_at_as(Infos, AT_INF_A0, p_type); int B0 = arr_at_as(Infos, AT_INF_B0, p_type); int C0 = arr_at_as(Infos, AT_INF_C0, p_type); \
 	int Prenorm = arr_at_as(Infos, AT_INF_PRENORM, p_type); \
 \
-	for (unsigned int i=First; i<Last; i++) { \
-		for (unsigned int c=0; c<Feat; c++) { \
+	for (unsigned int i=0; i<S; i++) { \
+		for (unsigned int c=First; c<Last; c++) { \
 			int Acc0 = AT_SCALE(AT_NORM(In[Feat*i + c], Prenorm), Scale[c], ScaleN[c]); \
 			ACT_SWITCH(Acc0, Activation, ActScale, ActScaleN, A0, B0, C0, in_n_bits, is_unsigned); \
 			Out[Feat*i + c] = OUT_CLIP(Acc0, is_unsigned, out_n_bits); \
@@ -396,131 +450,131 @@ static void KerReductIO_Compact_SQ8_1(signed char *__restrict__ To, signed char 
  * Input Scaling and reduction to 8b then channel centric activation, Out location != In location. Features are evaluated in parallel
 */
 void KerParReduct_CC_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW(ACT_NONE, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW(ACT_NONE, signed char, signed char, 32, 8, 0);
 }
 
 
 void KerParReduct_CC_ReLU_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW(ACT_RELU, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW(ACT_RELU, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW(ACT_RELUN, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW(ACT_RELUN, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_ReLUM_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW(ACT_RELUM, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW(ACT_RELUM, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_ReLUMN_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW(ACT_RELUMN, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW(ACT_RELUMN, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW(ACT_HSIGMOID, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW(ACT_HSIGMOID, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW(ACT_HSWISH, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW(ACT_HSWISH, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW(ACT_LEAKYRELU, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW(ACT_LEAKYRELU, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW(ACT_SIGMOID, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW(ACT_SIGMOID, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW(ACT_TANH, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW(ACT_TANH, signed char, signed char, 32, 8, 0);
 }
 
 /*
  * Input Scaling and reduction to 8b then channel centric activation, Out location != In location. Features are evaluated in parallel. In: CHW Out: HWC
 */
 void KerParReduct_CC_CHW2HWC_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_NONE, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_NONE, signed char, signed char, 32, 8, 0);
 }
 
 
 void KerParReduct_CC_CHW2HWC_ReLU_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_RELU, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_RELU, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_CHW2HWC_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_RELUN, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_RELUN, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_CHW2HWC_ReLUM_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_RELUM, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_RELUM, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_CHW2HWC_ReLUMN_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_RELUMN, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_RELUMN, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_CHW2HWC_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_HSIGMOID, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_HSIGMOID, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_CHW2HWC_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_HSWISH, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_HSWISH, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_CHW2HWC_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_LEAKYRELU, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_LEAKYRELU, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_CHW2HWC_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_SIGMOID, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_SIGMOID, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_CHW2HWC_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_TANH, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_CHW2HWC(ACT_TANH, signed char, signed char, 32, 8, 0);
 }
 
 /*
  * Input Scaling and reduction to 8b then channel centric activation, Out location = In location. Features are evaluated in parallel
 */
 void KerParReductIO_CC_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_IO_ACT_CHW(ACT_NONE, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_IO_ACT_CHW(ACT_NONE, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReductIO_CC_ReLU_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_IO_ACT_CHW(ACT_RELU, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_IO_ACT_CHW(ACT_RELU, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReductIO_CC_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_IO_ACT_CHW(ACT_RELUN, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_IO_ACT_CHW(ACT_RELUN, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReductIO_CC_ReLUM_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_IO_ACT_CHW(ACT_RELUM, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_IO_ACT_CHW(ACT_RELUM, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReductIO_CC_ReLUMN_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_IO_ACT_CHW(ACT_RELUMN, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_IO_ACT_CHW(ACT_RELUMN, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReductIO_CC_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_IO_ACT_CHW(ACT_HSIGMOID, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_IO_ACT_CHW(ACT_HSIGMOID, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReductIO_CC_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_IO_ACT_CHW(ACT_HSWISH, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_IO_ACT_CHW(ACT_HSWISH, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReductIO_CC_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_IO_ACT_CHW(ACT_LEAKYRELU, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_IO_ACT_CHW(ACT_LEAKYRELU, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReductIO_CC_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_IO_ACT_CHW(ACT_SIGMOID, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_IO_ACT_CHW(ACT_SIGMOID, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReductIO_CC_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_IO_ACT_CHW(ACT_TANH, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_IO_ACT_CHW(ACT_TANH, signed char, signed char, 32, 8, 0);
 }
 
 
@@ -528,86 +582,86 @@ void KerParReductIO_CC_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg) {
  * Input Scaling and reduction to 8b then channel centric activation, Out location != In location. Features are evaluated one after the other in parallel
 */
 void KerReduct_CC_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_ACT_CHW(ACT_NONE, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_ACT_CHW(ACT_NONE, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_ReLU_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_ACT_CHW(ACT_RELU, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_ACT_CHW(ACT_RELU, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_ACT_CHW(ACT_RELUN, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_ACT_CHW(ACT_RELUN, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_ReLUM_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_ACT_CHW(ACT_RELUM, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_ACT_CHW(ACT_RELUM, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_ReLUMN_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_ACT_CHW(ACT_RELUMN, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_ACT_CHW(ACT_RELUMN, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_ACT_CHW(ACT_HSIGMOID, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_ACT_CHW(ACT_HSIGMOID, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_ACT_CHW(ACT_HSWISH, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_ACT_CHW(ACT_HSWISH, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_ACT_CHW(ACT_LEAKYRELU, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_ACT_CHW(ACT_LEAKYRELU, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_ACT_CHW(ACT_SIGMOID, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_ACT_CHW(ACT_SIGMOID, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_ACT_CHW(ACT_TANH, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_ACT_CHW(ACT_TANH, signed char, signed char, 32, 8, 0);
 }
 
 /* 
  * Input Scaling and reduction to 8b then channel centric activation, Out location = In location. Features are evaluated one after the other in parallel 
 */
 void KerReductIO_CC_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_IO_ACT_CHW(ACT_NONE, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_IO_ACT_CHW(ACT_NONE, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_ReLU_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_IO_ACT_CHW(ACT_RELU, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_IO_ACT_CHW(ACT_RELU, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_IO_ACT_CHW(ACT_RELUN, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_IO_ACT_CHW(ACT_RELUN, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_ReLUM_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_IO_ACT_CHW(ACT_RELUM, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_IO_ACT_CHW(ACT_RELUM, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_ReLUMN_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_IO_ACT_CHW(ACT_RELUMN, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_IO_ACT_CHW(ACT_RELUMN, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_IO_ACT_CHW(ACT_HSIGMOID, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_IO_ACT_CHW(ACT_HSIGMOID, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_IO_ACT_CHW(ACT_HSWISH, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_IO_ACT_CHW(ACT_HSWISH, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_IO_ACT_CHW(ACT_LEAKYRELU, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_IO_ACT_CHW(ACT_LEAKYRELU, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_IO_ACT_CHW(ACT_SIGMOID, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_IO_ACT_CHW(ACT_SIGMOID, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_REDUCT_IO_ACT_CHW(ACT_TANH, signed char, unsigned char, 32, 8, 0);
+	KER_REDUCT_IO_ACT_CHW(ACT_TANH, signed char, signed char, 32, 8, 0);
 }
 
 /*
@@ -615,43 +669,43 @@ void KerReductIO_CC_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg) {
 */
 
 void Ker_ActNone_SQ8(KerActivation_SQ8_T *Arg) {
-	KER_ACT(ACT_NONE, signed char, signed char, unsigned char, 8, 8, 0);
+	KER_ACT(ACT_NONE, signed char, signed char, signed char, 8, 8, 0);
 }
 
 void Ker_ReLU_SQ8(KerActivation_SQ8_T *Arg) {
-	KER_ACT(ACT_RELU, signed char, signed char, unsigned char, 8, 8, 0);
+	KER_ACT(ACT_RELU, signed char, signed char, signed char, 8, 8, 0);
 }
 
 void Ker_ReLUN_SQ8(KerActivation_SQ8_T *Arg) {
-	KER_ACT(ACT_RELUN, signed char, signed char, unsigned char, 8, 8, 0);
+	KER_ACT(ACT_RELUN, signed char, signed char, signed char, 8, 8, 0);
 }
 
 void Ker_ReLUM_SQ8(KerActivation_SQ8_T *Arg) {
-	KER_ACT(ACT_RELUM, signed char, signed char, unsigned char, 8, 8, 0);
+	KER_ACT(ACT_RELUM, signed char, signed char, signed char, 8, 8, 0);
 }
 
 void Ker_ReLUMN_SQ8(KerActivation_SQ8_T *Arg) {
-	KER_ACT(ACT_RELUMN, signed char, signed char, unsigned char, 8, 8, 0);
+	KER_ACT(ACT_RELUMN, signed char, signed char, signed char, 8, 8, 0);
 }
 
 void Ker_HSigmoid_SQ8(KerActivation_SQ8_T *Arg) {
-	KER_ACT(ACT_HSIGMOID, signed char, signed char, unsigned char, 8, 8, 0);
+	KER_ACT(ACT_HSIGMOID, signed char, signed char, signed char, 8, 8, 0);
 }
 
 void Ker_HSwish_SQ8(KerActivation_SQ8_T *Arg) {
-	KER_ACT(ACT_HSWISH, signed char, signed char, unsigned char, 8, 8, 0);
+	KER_ACT(ACT_HSWISH, signed char, signed char, signed char, 8, 8, 0);
 }
 
 void Ker_LeakyReLU_SQ8(KerActivation_SQ8_T *Arg) {
-	KER_ACT(ACT_LEAKYRELU, signed char, signed char, unsigned char, 8, 8, 0);
+	KER_ACT(ACT_LEAKYRELU, signed char, signed char, signed char, 8, 8, 0);
 }
 
 void Ker_Sigmoid_SQ8(KerActivation_SQ8_T *Arg) {
-	KER_ACT(ACT_SIGMOID, signed char, signed char, unsigned char, 8, 8, 0);
+	KER_ACT(ACT_SIGMOID, signed char, signed char, signed char, 8, 8, 0);
 }
 
 void Ker_Tanh_SQ8(KerActivation_SQ8_T *Arg) {
-	KER_ACT(ACT_TANH, signed char, signed char, unsigned char, 8, 8, 0);
+	KER_ACT(ACT_TANH, signed char, signed char, signed char, 8, 8, 0);
 }
 
 /* 
@@ -660,165 +714,165 @@ void Ker_Tanh_SQ8(KerActivation_SQ8_T *Arg) {
 
 /* ------------------------------------------------------ Signed 8 bits ------------------------------------------------------ */
 void KerReduct_CC_NoScale_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_NONE, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT(ACT_NONE, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_NoScale_ReLU_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_RELU, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT(ACT_RELU, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_NoScale_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_RELUN, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT(ACT_RELUN, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_NoScale_ReLUM_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_RELUM, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT(ACT_RELUM, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_NoScale_ReLUMN_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_RELUMN, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT(ACT_RELUMN, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_NoScale_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_HSIGMOID, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT(ACT_HSIGMOID, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_NoScale_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_HSWISH, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT(ACT_HSWISH, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_NoScale_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_LEAKYRELU, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT(ACT_LEAKYRELU, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_NoScale_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_SIGMOID, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT(ACT_SIGMOID, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReduct_CC_NoScale_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_TANH, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT(ACT_TANH, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_NoScale_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_NONE, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT_IO(ACT_NONE, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_NoScale_ReLU_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_RELU, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT_IO(ACT_RELU, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_NoScale_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_RELUN, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT_IO(ACT_RELUN, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_NoScale_ReLUM_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_RELUM, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT_IO(ACT_RELUM, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_NoScale_ReLUMN_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_RELUMN, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT_IO(ACT_RELUMN, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_NoScale_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_HSIGMOID, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT_IO(ACT_HSIGMOID, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_NoScale_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_HSWISH, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT_IO(ACT_HSWISH, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_NoScale_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_LEAKYRELU, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT_IO(ACT_LEAKYRELU, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_NoScale_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_SIGMOID, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT_IO(ACT_SIGMOID, int, signed char, signed char, 32, 8, 0);
 }
 
 void KerReductIO_CC_NoScale_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_TANH, int, signed char, unsigned char, 32, 8, 0);
+	KER_ACT_IO(ACT_TANH, int, signed char, signed char, 32, 8, 0);
 }
 
 
 /* ------------------------------------------------------ Signed 16 bits ------------------------------------------------------ */
 void KerReduct_CC_NoScale_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_NONE, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT(ACT_NONE, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReduct_CC_NoScale_ReLU_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_RELU, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT(ACT_RELU, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReduct_CC_NoScale_ReLUN_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_RELUN, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT(ACT_RELUN, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReduct_CC_NoScale_ReLUM_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_RELUM, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT(ACT_RELUM, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReduct_CC_NoScale_ReLUMN_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_RELUMN, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT(ACT_RELUMN, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReduct_CC_NoScale_HSigmoid_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_HSIGMOID, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT(ACT_HSIGMOID, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReduct_CC_NoScale_HSwish_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_HSWISH, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT(ACT_HSWISH, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReduct_CC_NoScale_LeakyReLU_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_LEAKYRELU, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT(ACT_LEAKYRELU, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReduct_CC_NoScale_Sigmoid_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_SIGMOID, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT(ACT_SIGMOID, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReduct_CC_NoScale_Tanh_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT(ACT_TANH, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT(ACT_TANH, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReductIO_CC_NoScale_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_NONE, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT_IO(ACT_NONE, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReductIO_CC_NoScale_ReLU_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_RELU, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT_IO(ACT_RELU, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReductIO_CC_NoScale_ReLUN_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_RELUN, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT_IO(ACT_RELUN, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReductIO_CC_NoScale_ReLUM_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_RELUM, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT_IO(ACT_RELUM, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReductIO_CC_NoScale_ReLUMN_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_RELUMN, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT_IO(ACT_RELUMN, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReductIO_CC_NoScale_HSigmoid_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_HSIGMOID, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT_IO(ACT_HSIGMOID, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReductIO_CC_NoScale_HSwish_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_HSWISH, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT_IO(ACT_HSWISH, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReductIO_CC_NoScale_LeakyReLU_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_LEAKYRELU, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT_IO(ACT_LEAKYRELU, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReductIO_CC_NoScale_Sigmoid_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_SIGMOID, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT_IO(ACT_SIGMOID, int, signed short, signed short, 32, 16, 0);
 }
 
 void KerReductIO_CC_NoScale_Tanh_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_ACT_IO(ACT_TANH, int, signed short, unsigned short, 32, 16, 0);
+	KER_ACT_IO(ACT_TANH, int, signed short, signed short, 32, 16, 0);
 }
 
 /* ---------------------------------------------------- Unsigned 8 bits ----------------------------------------------------- */
@@ -989,125 +1043,125 @@ void KerReductIO_CC_NoScale_Tanh_USQ16(KerConvLinReduct_SQ8_T *Arg) {
 
 /* ------------------------------------------------------ Signed 8 bits ------------------------------------------------------ */
 void KerParReduct_CC_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_NONE, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_NONE, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_ReLU_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_RELU, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_RELU, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_ReLUN_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_RELUN, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_RELUN, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_ReLUM_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_RELUM, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_RELUM, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_ReLUMN_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_RELUMN, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_RELUMN, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_HSigmoid_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_HSIGMOID, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_HSIGMOID, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_HSwish_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_HSWISH, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_HSWISH, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_LeakyReLU_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_LEAKYRELU, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_LEAKYRELU, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_Sigmoid_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_SIGMOID, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_SIGMOID, signed char, signed char, 32, 8, 0);
 }
 
 void KerParReduct_CC_Tanh_HWC_SQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_TANH, signed char, unsigned char, 32, 8, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_TANH, signed char, signed char, 32, 8, 0);
 }
 
 /* ----------------------------------------------------- UnSigned 8 bits ----------------------------------------------------- */
 void KerParReduct_CC_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_NONE, unsigned char, unsigned char, 32, 8, 1);
+	KER_PAR_REDUCT_ACT_HWC(ACT_NONE, unsigned char, signed char, 32, 8, 1);
 }
 
 void KerParReduct_CC_ReLU_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_RELU, unsigned char, unsigned char, 32, 8, 1);
+	KER_PAR_REDUCT_ACT_HWC(ACT_RELU, unsigned char, signed char, 32, 8, 1);
 }
 
 void KerParReduct_CC_ReLUN_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_RELUN, unsigned char, unsigned char, 32, 8, 1);
+	KER_PAR_REDUCT_ACT_HWC(ACT_RELUN, unsigned char, signed char, 32, 8, 1);
 }
 
 void KerParReduct_CC_ReLUM_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_RELUM, unsigned char, unsigned char, 32, 8, 1);
+	KER_PAR_REDUCT_ACT_HWC(ACT_RELUM, unsigned char, signed char, 32, 8, 1);
 }
 
 void KerParReduct_CC_ReLUMN_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_RELUMN, unsigned char, unsigned char, 32, 8, 1);
+	KER_PAR_REDUCT_ACT_HWC(ACT_RELUMN, unsigned char, signed char, 32, 8, 1);
 }
 
 void KerParReduct_CC_HSigmoid_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_HSIGMOID, unsigned char, unsigned char, 32, 8, 1);
+	KER_PAR_REDUCT_ACT_HWC(ACT_HSIGMOID, unsigned char, signed char, 32, 8, 1);
 }
 
 void KerParReduct_CC_HSwish_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_HSWISH, unsigned char, unsigned char, 32, 8, 1);
+	KER_PAR_REDUCT_ACT_HWC(ACT_HSWISH, unsigned char, signed char, 32, 8, 1);
 }
 
 void KerParReduct_CC_LeakyReLU_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_LEAKYRELU, unsigned char, unsigned char, 32, 8, 1);
+	KER_PAR_REDUCT_ACT_HWC(ACT_LEAKYRELU, unsigned char, signed char, 32, 8, 1);
 }
 
 void KerParReduct_CC_Sigmoid_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_SIGMOID, unsigned char, unsigned char, 32, 8, 1);
+	KER_PAR_REDUCT_ACT_HWC(ACT_SIGMOID, unsigned char, signed char, 32, 8, 1);
 }
 
 void KerParReduct_CC_Tanh_HWC_USQ8(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_TANH, unsigned char, unsigned char, 32, 8, 1);
+	KER_PAR_REDUCT_ACT_HWC(ACT_TANH, unsigned char, signed char, 32, 8, 1);
 }
 
 /* ----------------------------------------------------- Signed 16 bits ---------------------------------------------------- */
 void KerParReduct_CC_HWC_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_NONE, signed short, unsigned short, 32, 16, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_NONE, signed short, signed short, 32, 16, 0);
 }
 
 void KerParReduct_CC_ReLU_HWC_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_RELU, signed short, unsigned short, 32, 16, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_RELU, signed short, signed short, 32, 16, 0);
 }
 
 void KerParReduct_CC_ReLUN_HWC_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_RELUN, signed short, unsigned short, 32, 16, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_RELUN, signed short, signed short, 32, 16, 0);
 }
 
 void KerParReduct_CC_ReLUM_HWC_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_RELUM, signed short, unsigned short, 32, 16, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_RELUM, signed short, signed short, 32, 16, 0);
 }
 
 void KerParReduct_CC_ReLUMN_HWC_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_RELUMN, signed short, unsigned short, 32, 16, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_RELUMN, signed short, signed short, 32, 16, 0);
 }
 
 void KerParReduct_CC_HSigmoid_HWC_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_HSIGMOID, signed short, unsigned short, 32, 16, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_HSIGMOID, signed short, signed short, 32, 16, 0);
 }
 
 void KerParReduct_CC_HSwish_HWC_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_HSWISH, signed short, unsigned short, 32, 16, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_HSWISH, signed short, signed short, 32, 16, 0);
 }
 
 void KerParReduct_CC_LeakyReLU_HWC_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_LEAKYRELU, signed short, unsigned short, 32, 16, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_LEAKYRELU, signed short, signed short, 32, 16, 0);
 }
 
 void KerParReduct_CC_Sigmoid_HWC_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_SIGMOID, signed short, unsigned short, 32, 16, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_SIGMOID, signed short, signed short, 32, 16, 0);
 }
 
 void KerParReduct_CC_Tanh_HWC_SQ16(KerConvLinReduct_SQ8_T *Arg) {
-	KER_PAR_REDUCT_ACT_HWC(ACT_TANH, signed short, unsigned short, 32, 16, 0);
+	KER_PAR_REDUCT_ACT_HWC(ACT_TANH, signed short, signed short, 32, 16, 0);
 }
 
 

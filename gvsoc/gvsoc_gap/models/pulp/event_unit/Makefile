@@ -7,3 +7,8 @@ ifeq '$(event_unit/version)' '4'
 IMPLEMENTATIONS += pulp/event_unit/eu_v4_impl
 pulp/event_unit/eu_v4_impl_SRCS = pulp/event_unit/eu_v4_impl.cpp
 endif
+
+ifeq '$(event_unit/version)' '5'
+IMPLEMENTATIONS += pulp/event_unit/eu_v5_impl
+pulp/event_unit/eu_v4_impl_SRCS = pulp/event_unit/eu_v5_impl.cpp
+endif

@@ -11,6 +11,20 @@
 // Fir generator
 #include "FirGenerator.h"
 
+
+void FIRConfiguration(unsigned int L1Memory)
+
+{
+        SetInlineMode(ALWAYS_INLINE); // SetInlineMode(NEVER_INLINE);
+        SetSymbolNames("FIR_L1_Memory", "FIR_L2_Memory");
+        SetSymbolDynamics();
+
+        SetUsedFilesNames(0, 1, "FirBasicKernels.h");
+        SetGeneratedFilesNames("FirKernels.c", "FirKernels.h");
+
+        SetL1MemorySize(L1Memory);
+}
+
 int main(int argc, char **argv)
 {
     if (TilerParseOptions(argc, argv)) GenTilingError("Failed to initialize or incorrect output arguments directory.\n");

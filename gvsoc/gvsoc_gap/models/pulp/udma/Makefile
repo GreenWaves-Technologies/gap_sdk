@@ -141,6 +141,4 @@ endif
 
 endif
 
-ifeq '$(udma/hyper/version)' '3'
-VP_HEADERS += pulp/udma/hyper/udma_hyper_v3_refill.hpp
-endif
+VP_HEADERS += pulp/udma/udma_mem_refill.hpp

@@ -67,12 +67,19 @@ static int decode_insn(iss_t *iss, iss_insn_t *insn, iss_opcode_t opcode, iss_de
   if (!item->is_active) return -1;
 
   insn->latency = 0;
-  insn->hwloop_handler = NULL;
   insn->fast_handler = item->u.insn.fast_handler;
   insn->handler = item->u.insn.handler;
   insn->resource_id = item->u.insn.resource_id;
   insn->resource_latency = item->u.insn.resource_latency;
   insn->resource_bandwidth = item->u.insn.resource_bandwidth;
+
+  if (insn->hwloop_handler != NULL)
+  {
+      iss_insn_t *(*hwloop_handler)(iss_t *, iss_insn_t*) = insn->hwloop_handler;
+      insn->hwloop_handler = insn->handler;
+      insn->handler = hwloop_handler;
+      insn->fast_handler = hwloop_handler;
+  }
 
   if (item->u.insn.resource_id != -1)
   {
@@ -129,31 +136,10 @@ static int decode_insn(iss_t *iss, iss_insn_t *insn, iss_opcode_t opcode, iss_de
 
         if (darg->type == ISS_DECODER_ARG_TYPE_OUT_REG && darg->u.reg.latency != 0)
         {
-          iss_insn_t *next = insn_cache_get_decoded(iss, insn->addr + insn->size);
+          iss_insn_t *next = insn_cache_get(iss, insn->addr + insn->size);
 
-          // We can stall the next instruction either if latency is superior
-          // to 2 (due to number of pipeline stages) or if there is a data
-          // dependency
-
-          // Go through the registers and set the handler to the stall handler
-          // in case we find a register dependency so that we can properly
-          // handle the stall
-          bool set_pipe_latency = true;
-          for (int j=0; j<next->nb_in_reg; j++)
-          {
-            if (next->in_regs[j] == arg->u.reg.index)
-            {
-              insn->latency += darg->u.reg.latency;
-              set_pipe_latency = false;
-              break;
-            }
-          }
-
-          // If no dependency was found, apply the one for the pipeline stages
-          if (set_pipe_latency && darg->u.reg.latency > PIPELINE_STAGES)
-          {
-            insn->latency += darg->u.reg.latency - PIPELINE_STAGES + 1;
-          }
+          next->input_latency_reg = arg->u.reg.index;
+          next->input_latency = darg->u.reg.latency;
         }
 
 
@@ -173,6 +159,8 @@ static int decode_insn(iss_t *iss, iss_insn_t *insn, iss_opcode_t opcode, iss_de
         arg->u.indirect_imm.reg_index = decode_info(iss, insn, opcode, &darg->u.indirect_imm.reg.info, false);
         if (darg->u.indirect_imm.reg.flags & ISS_DECODER_ARG_FLAG_COMPRESSED) arg->u.indirect_imm.reg_index += 8;
         insn->in_regs[darg->u.indirect_imm.reg.id] = arg->u.indirect_imm.reg_index;
+        if (darg->u.indirect_imm.reg.id >= insn->nb_in_reg)
+          insn->nb_in_reg = darg->u.indirect_imm.reg.id + 1;
         arg->u.indirect_imm.imm = decode_info(iss, insn, opcode, &darg->u.indirect_imm.imm.info, darg->u.indirect_imm.imm.is_signed);
         insn->sim[darg->u.indirect_imm.imm.id] = arg->u.indirect_imm.imm;
         break;
@@ -181,12 +169,43 @@ static int decode_insn(iss_t *iss, iss_insn_t *insn, iss_opcode_t opcode, iss_de
         arg->u.indirect_reg.base_reg_index = decode_info(iss, insn, opcode, &darg->u.indirect_reg.base_reg.info, false);
         if (darg->u.indirect_reg.base_reg.flags & ISS_DECODER_ARG_FLAG_COMPRESSED) arg->u.indirect_reg.base_reg_index += 8;
         insn->in_regs[darg->u.indirect_reg.base_reg.id] = arg->u.indirect_reg.base_reg_index;
+        if (darg->u.indirect_reg.base_reg.id >= insn->nb_in_reg)
+          insn->nb_in_reg = darg->u.indirect_reg.base_reg.id + 1;
 
         arg->u.indirect_reg.offset_reg_index = decode_info(iss, insn, opcode, &darg->u.indirect_reg.offset_reg.info, false);
         if (darg->u.indirect_reg.offset_reg.flags & ISS_DECODER_ARG_FLAG_COMPRESSED) arg->u.indirect_reg.offset_reg_index += 8;
         insn->in_regs[darg->u.indirect_reg.offset_reg.id] = arg->u.indirect_reg.offset_reg_index;
+        if (darg->u.indirect_reg.offset_reg.id >= insn->nb_in_reg)
+          insn->nb_in_reg = darg->u.indirect_reg.offset_reg.id + 1;
 
         break;
+    }
+  }
+
+  if (insn->input_latency_reg != -1)
+  {
+    // We can stall the next instruction either if latency is superior
+    // to 2 (due to number of pipeline stages) or if there is a data
+    // dependency
+
+    // Go through the registers and set the handler to the stall handler
+    // in case we find a register dependency so that we can properly
+    // handle the stall
+    bool set_pipe_latency = true;
+    for (int j=0; j<insn->nb_in_reg; j++)
+    {
+      if (insn->in_regs[j] == insn->input_latency_reg)
+      {
+        insn->latency += insn->input_latency;
+        set_pipe_latency = false;
+        break;
+      }
+    }
+
+    // If no dependency was found, apply the one for the pipeline stages
+    if (set_pipe_latency && insn->input_latency > PIPELINE_STAGES)
+    {
+      insn->latency += insn->input_latency - PIPELINE_STAGES + 1;
     }
   }
 
@@ -292,7 +311,7 @@ iss_insn_t *iss_decode_pc_noexec(iss_t *iss, iss_insn_t *insn)
 {
   iss_decoder_msg(iss, "Decoding instruction (pc: 0x%lx)\n", insn->addr);
 
-  iss_opcode_t opcode = prefetcher_get_word(iss, insn->addr);
+  iss_opcode_t opcode = insn->opcode;
 
   iss_decoder_msg(iss, "Got opcode (opcode: 0x%lx)\n", opcode);
 

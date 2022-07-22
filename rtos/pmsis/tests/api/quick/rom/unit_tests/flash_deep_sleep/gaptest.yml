@@ -1,0 +1,25 @@
+name: rom_flash_deep_sleep
+platforms:
+    - gvsoc
+os:
+    - pulpos
+    #- freertos
+chips:
+    - gap9
+variants:
+    hyper:
+        name: hyper
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ~
+        compile_only: true
+#spiflash:
+#    name: spiflash
+#    tags:
+#        - integration
+#        - release
+#    duration: standard
+#    flags: FLASH_TYPE=spiflash CONFIG_BOOT_DEVICE=spiflash
+#    compile_only: true

@@ -1,0 +1,45 @@
+name: flash_simple
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap8
+    - gap9
+variants:
+    octospi:
+        name: 'octospiram'
+        chips:
+            - gap9
+        tags:
+            - integration
+            - release
+        duration: standard
+        boards:
+            - gap9_evk
+        platforms:
+            - rtl
+            - board
+        flags: 'RAM_TYPE=SPIRAM'
+    spiram:
+        name: 'spiram'
+        chips:
+            - gap8
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: 'RAM_TYPE=SPIRAM'
+    hyperram:
+        name: 'hyperram'
+        tags:
+            - integration
+            - release
+        duration: standard
+        boards:
+            - gap9_v2
+        platforms:
+            - gvsoc
+            - rtl
+        flags: 'RAM_TYPE=HYPERRAM'

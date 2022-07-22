@@ -1,0 +1,21 @@
+name: cluster_fork
+boards: []
+platforms: 
+    - rtl
+    - board
+    - gvsoc
+os: 
+    - freertos
+    - pulpos
+chips: 
+    - gap8
+    - gap9
+    - vega
+variants:
+    default:
+        name: default
+        tags:
+            - integration
+            - release
+        duration: fast
+        flags: ~

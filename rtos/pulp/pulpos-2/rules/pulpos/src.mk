@@ -1,15 +1,3 @@
-
-define include_target
-
--include $(1)/rules/pulpos/src.mk
-
-endef
-
-
-$(foreach module, $(PULPOS_MODULES), $(eval $(call include_target,$(module))))
-
-
-
 ifeq '$(CONFIG_CRT0)' '1'
 PULP_ASM_SRCS += kernel/crt0.S
 endif
@@ -19,12 +7,20 @@ PULP_SRCS += lib/libc/minimal/io.c lib/libc/minimal/fprintf.c lib/libc/minimal/p
 endif
 
 ifdef CONFIG_KERNEL
-PULP_SRCS += kernel/init.c kernel/kernel.c kernel/device.c kernel/task.c kernel/alloc.c \
-	kernel/alloc_pool.c kernel/irq.c kernel/soc_event.c kernel/log.c kernel/time.c kernel/mem_slab.c
+PULP_SRCS += kernel/init.c kernel/kernel.c kernel/device.c kernel/task.c \
+             kernel/irq.c kernel/soc_event.c kernel/log.c kernel/time.c kernel/mem_slab.c
+			 #kernel/alloc.c kernel/alloc_pool.c \ # now shared in pmsis implem
 
 PULP_ASM_SRCS += kernel/irq_asm.S kernel/time_asm.S
 
+ifdef CONFIG_MULTI_THREADING
+PULP_SRCS += kernel/thread.c
+PULP_ASM_SRCS += kernel/thread_asm.S
+PULP_CFLAGS += -DCONFIG_MULTI_THREADING=1
 endif
+
+endif
+
 
 
 # HYPER

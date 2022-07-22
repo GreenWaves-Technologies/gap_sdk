@@ -1,0 +1,228 @@
+
+#
+# Mnemonic Maps
+#
+mmap new  -reuse -name {Boolean as Logic} -radix %b -contents {{%c=FALSE -edgepriority 1 -shape low}
+{%c=TRUE -edgepriority 1 -shape high}}
+mmap new  -reuse -name {Example Map} -radix %x -contents {{%b=11???? -bgcolor orange -label REG:%x -linecolor yellow -shape bus}
+{%x=1F -bgcolor red -label ERROR -linecolor white -shape EVENT}
+{%x=2C -bgcolor red -label ERROR -linecolor white -shape EVENT}
+{%x=* -label %x -linecolor gray -shape bus}}
+
+array unset createdGroup
+array set createdGroup {}
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cfg_frameslice_en}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.cam_vsync_i}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.cam_hsync_i}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_data_msb[7:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_data_msb1[7:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.cam_data_i[7:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_r_pix[7:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_g_pix[7:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_b_pix[7:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_rgb_data_valid}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.udma_tx_data[23:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.udma_tx_valid}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.BUFFER_WIDTH}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.DATA_WIDTH}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.cam_clk_i}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.cfg_addr_i[4:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.cfg_data_i[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.cfg_data_o[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.cfg_ready_o}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.cfg_rwn_i}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.cfg_valid_i}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.clk_i}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.data_rx_data_o[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.data_rx_datasize_o[1:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.data_rx_destination_o[7:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.data_rx_ready_i}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.data_rx_valid_o}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.dft_cg_enable_i}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.dft_test_mode_i}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_colcounter[15:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_en_sync[1:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_enable}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_framecounter[5:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_rowcounter[15:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_sample_cnt[1:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_sample_msb}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_vsync[1:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_yuv_data_valid}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.r_yuv_pix[15:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.rstn_i}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_b_pix[7:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cam_clk_dft}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cam_hsync}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cam_hsync_polarity}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cam_vsync}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cam_vsync_polarity}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cfg_en}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cfg_format[2:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cfg_framedrop_en}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cfg_framedrop_val[5:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cfg_frameslice_llx[15:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cfg_frameslice_lly[15:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cfg_frameslice_urx[15:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cfg_frameslice_ury[15:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cfg_glob[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cfg_ll[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cfg_rgb[2:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cfg_rowlen[15:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cfg_size[15:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_cfg_ur[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_data_rx_ready}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_framevalid}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_g_pix[7:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_pixel_valid}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_r_pix[7:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_rgb_pix[23:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_sof}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_tx_valid}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.s_yuv_pix[15:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.udma_tx_ready}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_camera_if.udma_tx_valid_flush}]}
+	} ]]
+
+waveform xview limits 47465177223170fs 47469093570727fs

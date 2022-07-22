@@ -1,0 +1,22 @@
+name: flash_with_ram
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap8
+    - gap9
+variants:
+    hyperflash:
+        name: 'hyperflash'
+        tags:
+            - integration
+            - release
+        duration: standard
+        boards:
+            - gap9_v2
+        platforms:
+            - gvsoc
+            - rtl
+        flags: 'FLASH_TYPE=HYPER_FLASH'

@@ -73,7 +73,8 @@ def parse_testset(top_testset, testset, topParent, runner, path, rootdir):
 
   testset.struct.set_restrict(testset.restrict)
   testset.struct.set_parallel(testset.parallel)
-  testset.struct.skip = testset.skip
+  testset.struct.skip = testset.skip_message
+  testset.struct.exclude = testset.exclude_message
 
   for file in testset.files:
     CfgParser(runner, os.path.join(rootdir, file)).parse(testset.struct)
@@ -105,9 +106,12 @@ def parse_test(top_testset, test, topParent, runner, path):
   test.struct.set_restrict(test.restrict)
   test.struct.set_testcase(test.testcase)
   test.struct.scores = test.scores
-  test.struct.skip = test.skip
-  if test.skip is None and topParent is not None:
+  test.struct.skip = test.skip_message
+  test.struct.exclude = test.exclude_message
+  if test.skip_message is None and topParent is not None:
     test.struct.skip = topParent.get_skip()
+  if test.exclude_message is None and topParent is not None:
+    test.struct.exclude = topParent.get_exclude()
 
   test.struct.setTimeout(int(test.timeout))
 
@@ -228,7 +232,8 @@ class TestRunner(object):
         maxOutputLen=-1, maxTimeout=-1, worker_pool=None,
         db=False, pobjs=None, build=None, average_load=None, safe_stdout=False, home=None,
         bench_csv_file=None, bench_regexp=None, commands=None, dry_run=False,
-        exclude_commands=None, properties=[], tags=[]):
+        exclude_commands=None, properties=[], tags=[], job_id=None, nb_jobs=None,
+        flags=[], skip_tests=None):
 
         global test_runner
 
@@ -260,6 +265,10 @@ class TestRunner(object):
         self.dry_run = dry_run
         self.testplan = None
         self.tags = tags
+        self.job_id = job_id
+        self.nb_jobs = nb_jobs
+        self.flags = flags
+        self.skip_tests = skip_tests
 
         test_runner = self
 
@@ -273,6 +282,14 @@ class TestRunner(object):
         for prop in properties:
           name, value = prop.split('=')
           self.properties[name] = value
+
+        if self.properties.get('os') is None and os.environ.get('PMSIS_OS') is not None:
+          self.properties['os'] = os.environ.get('PMSIS_OS')
+
+        if self.properties.get('platform') is None and os.environ.get('PMSIS_PLATFORM') is not None:
+          self.properties['platform'] = os.environ.get('PMSIS_PLATFORM')
+
+        
 
     def get_property(self, name):
       return self.properties.get(name)
@@ -330,6 +347,10 @@ class TestRunner(object):
 
     def start(self, callback=None, *args, **kwargs):
 
+      if self.skip_tests is not None:
+        for test in self.tests:
+          test.skip_tests(self.skip_tests)
+
       self.command_callback = callback
 
       for config in self.configs:
@@ -361,17 +382,21 @@ class TestRunner(object):
 
     def testEnd(self, testrun):
 
-      if testrun.skip is not None:
-        testStr = bcolors.WARNING + 'SKIP: '.ljust(6) + bcolors.ENDC
+      if testrun.exclude is not None:
+        testStr = bcolors.HEADER + 'EXCLUDE '.ljust(8) + bcolors.ENDC
+      elif testrun.skip is not None:
+        testStr = bcolors.WARNING + 'SKIP '.ljust(8) + bcolors.ENDC
       elif testrun.status:
-        testStr = bcolors.OKGREEN + 'OK: '.ljust(6) + bcolors.ENDC
+        testStr = bcolors.OKGREEN + 'OK '.ljust(8) + bcolors.ENDC
       else:
-        testStr = bcolors.FAIL + 'KO: '.ljust(6) + bcolors.ENDC
+        testStr = bcolors.FAIL + 'KO '.ljust(8) + bcolors.ENDC
       print (testStr + bcolors.BOLD + testrun.test.getFullName().ljust(self.maxTestNameLen + 5) + bcolors.ENDC + ' %s' % (testrun.config))
       sys.stdout.flush()
 
       test = self.plpobjects.getTest(testrun.test.getFullName())
-      testResult = plpobjects.TestRun(self.plpobjects, test, testrun.status, testrun.duration, testrun.config, testrun.log, build=self.build, skip=testrun.skip)
+      testResult = plpobjects.TestRun(self.plpobjects, test, testrun.status, testrun.duration,
+          testrun.config, testrun.log, build=self.build, skip=testrun.skip, exclude=testrun.exclude
+      )
 
       if testrun in self.runnings:
         self.runnings.remove(testrun)
@@ -404,8 +429,8 @@ class TestRunner(object):
       if self.uiServer is not None and self.uiServer.handler is not None:
         self.uiServer.handler.transport.write(pickle.dumps(TestRunning(testrun.test.getFullName(), testrun.config)))
 
-      if testrun.skip is None:
-        print (bcolors.OKBLUE + 'START'.ljust(6) + bcolors.ENDC + bcolors.BOLD + testrun.test.getFullName().ljust(self.maxTestNameLen + 5) + bcolors.ENDC + ' %s' % (testrun.config))
+      if testrun.skip is None and testrun.exclude is None:
+        print (bcolors.OKBLUE + 'START'.ljust(8) + bcolors.ENDC + bcolors.BOLD + testrun.test.getFullName().ljust(self.maxTestNameLen + 5) + bcolors.ENDC + ' %s' % (testrun.config))
         sys.stdout.flush()
 
       testrun.run(reactor, self.testEnd, self.commands, self.exclude_commands, self.dry_run, testrun)
@@ -424,11 +449,7 @@ class TestRunner(object):
       return load < self.average_load
 
     def enqueueTestRun(self, testrun):
-      if not self.check_cpu_load():
-        self.pendings.append(testrun)
-        return
-
-      self.run(testrun)
+      self.pendings.append(testrun)
 
     def cpu_load_check(self):
       self.cpu_load_checker_call_id = reactor.callLater(1, self.cpu_load_check)
@@ -440,8 +461,6 @@ class TestRunner(object):
         self.testplan.dump()
 
     def runTests(self, tests, tests_re, callback=None, *args, **kwargs):
-
-      self.cpu_load_checker_call_id = reactor.callLater(1, self.cpu_load_check)
 
       self.runCompletionCallback = callback
       self.runCompletionArgs = args
@@ -466,6 +485,11 @@ class TestRunner(object):
                   test.run(config)
 
       self.enqueue_all = True
+
+      if self.nb_jobs > 1:
+          self.pendings = self.pendings[self.job_id::self.nb_jobs]
+
+      self.cpu_load_check()
 
       self.check_completion()
 

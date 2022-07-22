@@ -9,5 +9,5 @@ GAP SDK documentation
    source/libs/README.rst
    source/guides/index.rst
    source/examples/README.rst
-   source/tools/README.rst
+   source/tools/index.rst
    source/reference/index.rst

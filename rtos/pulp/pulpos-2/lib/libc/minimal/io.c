@@ -270,7 +270,7 @@ static void pos_libc_putc_host_req(void *_req)
   __asm__ __volatile__ ("" : : : "memory");
     req->done = 1;
   __asm__ __volatile__ ("" : : : "memory");
-    pos_cluster_notif_req_done(cid);
+    pi_cluster_notif_req_done(cid);
 }
 
 
@@ -281,11 +281,11 @@ int pos_libc_putc_host_cl_flush()
     req.done = 0;
     pos_task_init_from_cluster(&req.task);
     pi_task_callback(&req.task, pos_libc_putc_host_req, (void* )&req);
-    pos_cluster_push_fc_event(&req.task);
+    pi_cl_send_task_to_fc(&req.task);
 
     while((*(volatile int *)&req.done) == 0)
     {
-        eu_evt_maskWaitAndClr(1<<POS_EVENT_CLUSTER_CALL_EVT);
+        eu_evt_maskWaitAndClr(1<<PI_CL_WAIT_TASK_EVT);
     }
 
     return 0;
@@ -350,7 +350,7 @@ static void pos_libc_putc_uart_req(void *_req)
     pos_cl_libc_putc_uart_flush_t *req = _req;
     pos_libc_putc_uart_flush(pos_libc_uart_buffer_cl[req->cid]);
     req->done = 1;
-    pos_cluster_notif_req_done(req->cid);
+    pi_cluster_notif_req_done(req->cid);
 }
 
 
@@ -361,11 +361,11 @@ int pos_libc_putc_uart_cl_flush()
     req.done = 0;
     pos_task_init_from_cluster(&req.task);
     pi_task_callback(&req.task, pos_libc_putc_uart_req, (void* )&req);
-    pos_cluster_push_fc_event(&req.task);
+    pi_cl_send_task_to_fc(&req.task);
 
     while((*(volatile int *)&req.done) == 0)
     {
-        eu_evt_maskWaitAndClr(1<<POS_EVENT_CLUSTER_CALL_EVT);
+        eu_evt_maskWaitAndClr(1<<PI_CL_WAIT_TASK_EVT);
     }
 
     return 0;
@@ -629,9 +629,22 @@ size_t strspn( const char * s1, const char * s2 )
 }
 
 
-void __attribute__((constructor)) pos_io_init()
+void pos_io_init()
 {
 #if defined(POS_CONFIG_IO_UART) && POS_CONFIG_IO_UART == 1
     pos_io_uart_enabled = 0;
+    pos_libc_uart_buffer_index = 0;
+    for (int i=0; i<ARCHI_NB_CLUSTER; i++)
+    {
+        pos_libc_uart_buffer_index_cl[i] = 0;
+    }
+#endif
+
+#if defined(POS_CONFIG_IO_HOST) && POS_CONFIG_IO_HOST == 1
+    pos_libc_host_buffer_index = 0;
+    for (int i=0; i<ARCHI_NB_CLUSTER; i++)
+    {
+        pos_libc_host_buffer_index_cl[i] = 0;
+    }
 #endif
 }

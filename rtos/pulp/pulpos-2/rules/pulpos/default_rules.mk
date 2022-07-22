@@ -39,8 +39,6 @@ endif
 
 VPATH = $(PULPOS_HOME) $(PULPOS_MODULES)
 
-include $(PULPOS_HOME)/rules/pulpos/src.mk
-
 PULP_CFLAGS += -fno-jump-tables -fno-tree-loop-distribute-patterns
 
 ifeq '$(CONFIG_LIBC_MINIMAL)' '1'

@@ -13,7 +13,7 @@ pulp/ne16/ne16_SRCS = pulp/ne16/src/ne16.cpp \
                       pulp/ne16/src/ne16_normquant.cpp \
                       pulp/ne16/src/ne16_index.cpp \
                       pulp/ne16/src/ne16_debug.cpp
-pulp/ne16/ne16_CFLAGS = -Ipulp/ne16/include -DXTENSOR_USE_XSIMD -isystem $(XTENSOR_INCLUDE_DIR) -mtune=generic -std=c++14
+pulp/ne16/ne16_CFLAGS = -g -pg -Ipulp/ne16/include -DXTENSOR_USE_XSIMD -isystem $(XTENSOR_INCLUDE_DIR) -mtune=generic -std=c++14
 else
 IMPLEMENTATIONS += pulp/ne16/ne16
 pulp/ne16/ne16_SRCS = pulp/ne16/src/ne16_empty.cpp

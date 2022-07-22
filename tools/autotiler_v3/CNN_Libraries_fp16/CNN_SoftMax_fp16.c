@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+
 #include <stdio.h>
 #include <math.h>
 #include "CNN_BasicKernels_fp16.h"
@@ -61,7 +65,7 @@ void KerParSoftMax_fp16(KerSoftMax_fp16_T *Arg)
 		/* Turns In into distribution */
 		/* Find max */
 		M = -MIN_FLT16;
-		for (int i=First; i<Last; i++) M = MaxF(M, In[i]);
+		for (int i=First; i<Last; i++) M = MaxF(M, In[i+f*N]);
 		Reduct[CoreId] = M;
 		gap_waitbarrier(0);
 		if (CoreId==0) {
@@ -78,8 +82,8 @@ void KerParSoftMax_fp16(KerSoftMax_fp16_T *Arg)
 		M = Reduct[0];
 		Sum = 0.0;
 		for (int i=First; i<Last; i++) {
-			F16 Exp = FastExpF16(In[i] - M);
-			Out[i] = Exp; Sum += Exp;
+			F16 Exp = FastExpF16(In[i+f*N] - M);
+			Out[i+f*N] = Exp; Sum += Exp;
 		}
 		Reduct[CoreId] = Sum;
 		gap_waitbarrier(0);
@@ -91,7 +95,7 @@ void KerParSoftMax_fp16(KerSoftMax_fp16_T *Arg)
 		gap_waitbarrier(0);
 		Sum = Reduct[0];
 		InvSum = (F16) 1.0/Sum;
-		for (int i=First; i<Last; i++) Out[i] = Out[i]*InvSum;
+		for (int i=First; i<Last; i++) Out[i+f*N] = Out[i+f*N]*InvSum;
 		gap_waitbarrier(0);
 	}
 
@@ -113,3 +117,5 @@ void KerParTanh_fp16(KerSoftMax_fp16_T *Arg)
 	}
 }
 */
+
+#pragma GCC diagnostic pop

@@ -559,7 +559,6 @@ class R5(Instr):
                         ]
         elif format == 'CI5':
             self.args = [   OutReg(0, Range(7, 5)),
-                            InReg(0, Range(7, 5)),
                             UnsignedImm(0, Ranges([[2, 5, 12], [12, 1, 17]]), isSigned=True),
                         ]
         elif format == 'CI6':
@@ -1044,7 +1043,7 @@ Xfvec = IsaSubset('fvec', [
     R5('vfgt.h',    'R2VF', '1010101 ----- ----- 010 ----- 0110011', tags=['fother'], isa_tags=['f16vec']),
     R5('vfgt.r.h',  'R2VF', '1010101 ----- ----- 110 ----- 0110011', tags=['fother'], isa_tags=['f16vec']),
 
-    R5('vfcpka.h.s', 'RVF4','1011000 ----- ----- 010 ----- 0110011', tags=['fother'], isa_tags=['f16vec']),
+    R5('vfcpka.h.s', 'R2VF','1011000 ----- ----- 010 ----- 0110011', tags=['fother'], isa_tags=['f16vec']),
 
     # Unless RV32D supported
     R5('vfmv.x.h',   'R3F', '1001100 00000 ----- 010 ----- 0110011', tags=['fother'], isa_tags=['f16vecno32d']),
@@ -1109,7 +1108,7 @@ Xfvec = IsaSubset('fvec', [
     R5('vfgt.ah',    'R2VF', '1010101 ----- ----- 001 ----- 0110011', tags=['fother'], isa_tags=['f16altvec']),
     R5('vfgt.r.ah',  'R2VF', '1010101 ----- ----- 101 ----- 0110011', tags=['fother']),
 
-    R5('vfcpka.ah.s', 'RVF4','1011000 ----- ----- 001 ----- 0110011', tags=['fother'], isa_tags=['f16altvec']),
+    R5('vfcpka.ah.s', 'R2VF','1011000 ----- ----- 001 ----- 0110011', tags=['fother'], isa_tags=['f16altvec']),
 
     # Unless RV32D supported
     R5('vfmv.x.ah',   'R3F', '1001100 00000 ----- 001 ----- 0110011', tags=['fother'], isa_tags=['f16altvecno32d']),
@@ -1189,8 +1188,8 @@ Xfvec = IsaSubset('fvec', [
     R5('vfcvt.b.xu', 'R3F2','1001100 00011 ----- 111 ----- 0110011', tags=['fconv'], isa_tags=['f8vecno32d']),
 
     # If F extension also supported (implies FLEN>=32)
-    R5('vfcpka.b.s', 'RVF4','1011000 ----- ----- 011 ----- 0110011', tags=['fother'], isa_tags=['f8vecf']),
-    R5('vfcpkb.b.s', 'RVF4','1011000 ----- ----- 111 ----- 0110011', tags=['fother'], isa_tags=['f8vecf']),
+    R5('vfcpka.b.s', 'R2VF','1011000 ----- ----- 011 ----- 0110011', tags=['fother'], isa_tags=['f8vecf']),
+    R5('vfcpkb.b.s', 'R2VF','1011000 ----- ----- 111 ----- 0110011', tags=['fother'], isa_tags=['f8vecf']),
 
     # # If D extension also supported (implies FLEN>=64)
     # R5('vfcvt.s.b',  'RVF2','1001100 00111 ----- 000 ----- 0110011', tags=['fconv'], isa_tags=['f8vecd']),

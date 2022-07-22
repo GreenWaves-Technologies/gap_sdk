@@ -59,11 +59,11 @@ namespace vp {
     int bytes;
     int id;
     uint8_t *buffer;
+    uint8_t flags;
     void set_vcd_user(gv::Vcd_user *user);
 
   private:
     Event_file *file;
-    uint8_t flags;
     uint8_t *flags_mask;
 
   };

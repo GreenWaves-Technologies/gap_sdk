@@ -59,6 +59,10 @@ extern unsigned int __L3_Read, __L3_Write, __L2_Read, __L2_Write;
 
 #define AT_OSPIRAM_FREE(dev,ptr,size) free(ptr)
 
+#define AT_DEFAULTRAM_ALLOC(dev,size) malloc(size)
+
+#define AT_DEFAULTRAM_FREE(dev,ptr,size) free(ptr)
+
 #define AT_L2_ALLOC(dev,size) malloc(size)
 
 #define AT_L2_FREE(dev,ptr,size) free(ptr)
@@ -673,7 +677,176 @@ static inline void __at_emramflash_fs_copy_2d(FILE *file, unsigned int ext, void
 
 #define AT_EMRAMFLASH_FS_CL_WAIT(file,event) 
 
+/*
+ * DEFAULT RAM: According to the BSP
+ */
 
+#define AT_DEFAULTRAM_TYPE 0
+
+typedef int AT_DEFAULTRAM_CONF_T;
+typedef int AT_DEFAULTRAM_T;
+typedef char *AT_DEFAULTRAM_EXT_ADDR_TYPE;
+typedef char *AT_DEFAULTRAM_LOC_ADDR_TYPE;
+typedef int AT_DEFAULTRAM_FC_EVENT;
+typedef int AT_DEFAULTRAM_CL_EVENT;
+typedef char *AT_DEFAULTRAM_POINTER;
+typedef char *AT_DEFAULTRAM_INT_ADDR_TYPE;
+
+#define AT_DEFAULTRAM_EXT2LOC 0
+#define AT_DEFAULTRAM_LOC2EXT 1
+ 
+#define AT_DEFAULTRAM_CONF_INIT(dev,type,name)
+
+#define AT_DEFAULTRAM_OPEN(dev,conf,err) \
+  do { *(err) = 0; } while (0)
+
+#define AT_DEFAULTRAM_CLOSE(dev)
+
+#define AT_DEFAULTRAM_FC_COPY(dev,ext,loc,size,dir,event) \
+do { \
+  int i; \
+  char *To   = (dir==AT_DEFAULTRAM_EXT2LOC)?((char *) (loc)):((char *) (ext)); \
+  char *From = (dir==AT_DEFAULTRAM_EXT2LOC)?((char *) (ext)):((char *) (loc)); \
+ \
+  if (dir==AT_DEFAULTRAM_EXT2LOC) { \
+    if (1) __L3_Read += size; else __L2_Read += size; \
+  } else { \
+    if (1) __L3_Write += size; else __L2_Write += size; \
+  } \
+ \
+  for (i=0; i<size; i++) To[i] = From[i]; \
+} while (0)
+
+#define AT_DEFAULTRAM_FC_COPY2D(dev,ext,loc,size,stride,length,dir,event) \
+do { \
+  int CopyIn = (dir==AT_DEFAULTRAM_EXT2LOC); \
+  char *To   = CopyIn?((char *) (loc)):((char *) (ext)); \
+  char *From = CopyIn?((char *) (ext)):((char *) (loc)); \
+  int i, j, Chunk; \
+ \
+  if (dir==AT_DEFAULTRAM_EXT2LOC) { \
+    if (1) __L3_Read += size; else __L2_Read += size; \
+  } else { \
+    if (1) __L3_Write += size; else __L2_Write += size; \
+  } \
+  for (Chunk=0; Chunk<size; Chunk+=length)  { \
+    for (i=0; i<length; i++) To[i] = From[i]; \
+      if (CopyIn) { \
+      From += stride; To += length; \
+    } else { \
+      To += stride; From += length; \
+    } \
+  } \
+} while (0)
+
+#define AT_DEFAULTRAM_FC_WAIT(dev,event)
+
+#define AT_DEFAULTRAM_CL_COPY(dev,ext,loc,size,dir,event) AT_DEFAULTRAM_FC_COPY(dev,ext,loc,size,dir,event)
+#define AT_DEFAULTRAM_CL_COPY2D(dev,ext,loc,size,stride,length,dir,event) AT_DEFAULTRAM_FC_COPY2D(dev,ext,loc,size,stride,length,dir,event)
+#define AT_DEFAULTRAM_CL_WAIT(dev,event)
+
+/*
+ * DEFAULTflash
+ */
+
+#define AT_DEFAULTFLASH_TYPE 1
+
+typedef int AT_DEFAULTFLASH_CONF_T;
+typedef int AT_DEFAULTFLASH_T;
+typedef int AT_DEFAULTFLASH_EXT_ADDR_TYPE;
+typedef int AT_DEFAULTFLASH_LOC_ADDR_TYPE;
+typedef int AT_DEFAULTFLASH_EVENT;
+
+#define AT_DEFAULTFLASH_EXT2LOC 0
+#define AT_DEFAULTFLASH_LOC2EXT 1
+ 
+#define AT_DEFAULTFLASH_CONF_INIT(dev,type,name)
+
+#define AT_DEFAULTFLASH_OPEN(dev,conf,err)
+
+#define AT_DEFAULTFLASH_CLOSE(dev)
+
+#define AT_DEFAULTFLASH_COPY(dev,ext,loc,size,dir,event)
+
+#define AT_DEFAULTFLASH_COPY2D(dev,ext,loc,size,stride,len,dir,event)
+
+#define AT_DEFAULTFLASH_WAIT(dev,event)
+
+
+/*
+ * DEFAULTflash FS
+ */
+
+#define AT_DEFAULTFLASH_FS_TYPE 1
+
+static inline void __at_defaultflash_fs_copy(FILE *file, unsigned int ext, void *loc, int size, int dir)
+{
+  fseek(file, ext, SEEK_SET);
+  if (dir==AT_DEFAULTRAM_LOC2EXT) {
+    fwrite(loc, 1, size, file); __L3_Write += size;
+  } else {
+    fread(loc, 1, size, file); __L3_Read += size;
+  }
+}
+
+static inline void __at_defaultflash_fs_copy_2d(FILE *file, unsigned int ext, void *loc, int size, int stride, int length, int dir)
+{
+  int Chunk;
+  for (Chunk=0; Chunk<size; Chunk+=length)
+  {
+    if (length > size)
+      length = size;
+
+    fseek(file, ext, SEEK_SET);
+    if (dir==AT_DEFAULTRAM_LOC2EXT) {
+      fwrite(loc, 1, length, file); __L3_Write += length;
+    } else {
+      fread(loc, 1, length, file); __L3_Read += length;
+    }
+
+    loc = ((char *)loc) + length;
+    ext += stride;
+  }
+}
+
+typedef int AT_DEFAULTFLASH_FS_CONF_T;
+typedef FILE *AT_DEFAULTFLASH_FS_T;
+typedef unsigned int AT_DEFAULTFLASH_FS_EXT_ADDR_TYPE;
+typedef void *AT_DEFAULTFLASH_FS_INT_ADDR_TYPE;
+typedef int AT_DEFAULTFLASH_FS_FC_EVENT;
+typedef int AT_DEFAULTFLASH_FS_CL_EVENT;
+
+#define AT_DEFAULTFLASH_FS_EXT2LOC 0
+#define AT_DEFAULTFLASH_FS_LOC2EXT 1
+ 
+#define AT_DEFAULTFLASH_FS_CONF_INIT(dev,type,name)
+
+#define AT_DEFAULTFLASH_FS_OPEN(file,conf,filename,err) \
+  do { *(file) = fopen(filename, "r"); *(err) = *(file) == NULL; } while(0)
+
+#define AT_DEFAULTFLASH_FS_OPEN_WRITE(file,conf,filename,err) \
+  do { *(file) = fopen(filename, "w"); *(err) = *(file) == NULL; } while(0)
+
+#define AT_DEFAULTFLASH_FS_OPEN_SET_SIZE(file, size)
+
+#define AT_DEFAULTFLASH_FS_CLOSE(file) \
+  fclose(*file)
+
+#define AT_DEFAULTFLASH_FS_FC_COPY(file,ext,loc,size,dir,event) \
+  __at_defaultflash_fs_copy(*(file), ext, loc, size, dir)
+
+#define AT_DEFAULTFLASH_FS_FC_COPY2D(file, ext,loc,size,stride,len,dir,event) \
+  __at_defaultflash_fs_copy_2d(*(file), ext, loc, size, stride, len, dir)
+
+#define AT_DEFAULTFLASH_FS_FC_WAIT(file,event)
+
+#define AT_DEFAULTFLASH_FS_CL_COPY(file,ext,loc,size,dir,event) \
+  __at_defaultflash_fs_copy(*(file), ext, loc, size, dir)
+
+#define AT_DEFAULTFLASH_FS_CL_COPY2D(file, ext,loc,size,stride,len,dir,event) \
+  __at_defaultflash_fs_copy_2d(*(file), ext, loc, size, stride, len, dir)
+
+#define AT_DEFAULTFLASH_FS_CL_WAIT(file,event)
 
 /*
  * DMA
@@ -744,6 +917,138 @@ typedef void *AT_FORK_ARG_TYPE;
 #define AT_FORK(nb_cores,entry,arg)
 #define AT_FORK_CC(nb_cores,entry,arg)
 #define AT_FORK_WAIT()
+
+#define AT_FORK_ASYNC(nb_cores,entry,arg)
+#define AT_FORK_ASYNC_WAIT()
+
+#define AT_YIELD()	(0)
+
+/*
+ * Compression
+ */
+
+typedef struct pi_cl_dma_decompressor_cmd_s
+{
+    char *ext;                                       	/*!< L2 address */
+    char *loc;                                       	/*!< cluster TCDM address */
+    char *lastext;                                       	/*!< L2 address */
+    char *lastloc;                                       	/*!< cluster TCDM address */
+    unsigned int size;                                      /*!< size of the transfer in number of items */
+    unsigned int special_symbol;                            /*!< special symbol (only used in T3 mode) */
+    unsigned short *lut;                                      /*!< array containing LUT elements */
+    unsigned char lut_size;                                   /*!< number of elements in the LUT (max 256) */
+    unsigned char item_bit_width;                             /*!< length in bits of the item in l2 (ranging from 1 to 32) */
+    unsigned char bit_offset;                                 /*!< bit offset (from 0 to 7) */
+    unsigned char start_byte;                                 /*!< start byte, also called byte offset (from 0 to 3) */
+    int mode;                 /*!< T1, T2, T3 */
+    int direction;             /*!< L2->TCDM (decompression), TCDM->L2 (compression) */
+    int transf_type; /*!< L2->TCDM (decompression), TCDM->L2 (compression) */
+    int extension_type;   /*!< extension type in TCDM - 8, 16 or 32 bits */
+    int extension_sign;   /*!< signed/unsigned */
+    int l2_2d;         /*!< parameters for the L2 2D transfer */
+    int tcdm_2d;       /*!< parameters for the TCDM 2 transfer */
+    unsigned char done;                                       /*!< done flag, set by the internal driver to 1 when transfer is done */
+} pi_cl_dma_decompressor_cmd_t;
+
+typedef char * AT_COMPRESSOR_EXT_ADDR_TYPE;
+typedef char * AT_COMPRESSOR_INT_ADDR_TYPE;
+typedef pi_cl_dma_decompressor_cmd_t AT_COMPRESSOR_EVENT_TYPE;
+
+#define PI_CL_DMA_DECOMPRESSOR_MODE_T2 0
+#define PI_CL_DMA_DECOMPRESSOR_MODE_T3 1
+#define PI_CL_DMA_DECOMPRESSOR_DIR_EXT2LOC 0
+#define PI_CL_DMA_DECOMPRESSOR_TRANSF_EXT_LIN_LOC_LIN 0
+#define PI_CL_DMA_DECOMPRESSOR_EXT_TYPE_8 0
+#define PI_CL_DMA_DECOMPRESSOR_EXT_TYPE_16 1
+#define PI_CL_DMA_DECOMPRESSOR_EXT_SIGN_UNSIGNED 0
+
+#define PI_CL_DMA_DECOMPRESSOR_CMD(__CMD) \
+do { \
+	char *l2_addr = (__CMD)->ext+(__CMD)->start_byte; \
+	char *l1_addr = (__CMD)->loc; \
+	int bit_offset = (__CMD)->bit_offset; \
+	int cnt = 0; \
+	int read_bit = 0, idx = 0; \
+	int read_prefix = (__CMD)->mode == PI_CL_DMA_DECOMPRESSOR_MODE_T3; \
+  printf("read l2 %p %d L1 %p %d Items %d Sparse %d Mode %d\n", l2_addr, l2_addr-(__CMD)->lastext, l1_addr, l1_addr-(__CMD)->lastloc, (__CMD)->size, read_prefix, (__CMD)->mode); \
+  (__CMD)->lastext = l2_addr; (__CMD)->lastloc = l1_addr; \
+	while (cnt < (__CMD)->size) { \
+		if (read_prefix) { \
+			if (*l2_addr&(1<<(7-bit_offset))) { \
+				read_prefix = 0; \
+			} else { \
+				if ((__CMD)->extension_type==PI_CL_DMA_DECOMPRESSOR_EXT_TYPE_16) { \
+					*((unsigned short *) l1_addr) = (unsigned short)(__CMD)->special_symbol; \
+					l1_addr += 2; \
+				} else { \
+					*(l1_addr++) = (unsigned char)(__CMD)->special_symbol; \
+				} \
+				cnt++; \
+			} \
+			bit_offset++; \
+		} else { \
+			idx = (idx << 1) + (*l2_addr&(1<<(7-bit_offset))?1:0); \
+			bit_offset++; \
+			read_bit++; \
+			if (read_bit >= (__CMD)->item_bit_width) { \
+				if ((__CMD)->extension_type==PI_CL_DMA_DECOMPRESSOR_EXT_TYPE_16) { \
+					*((unsigned short *)l1_addr) = (__CMD)->lut[idx]; \
+					l1_addr += 2; \
+				} else { \
+					*(l1_addr++) = ((unsigned char *)((__CMD)->lut))[idx]; \
+				} \
+				cnt++; \
+        read_bit = 0; \
+        idx = 0; \
+        read_prefix = (__CMD)->mode == PI_CL_DMA_DECOMPRESSOR_MODE_T3; \
+			} \
+		} \
+		if (bit_offset>=8) { \
+			l2_addr++; \
+			bit_offset = 0; \
+		} \
+	} \
+} while(0)
+
+#define AT_INIT_COMPRESS(__lut, __lut_size, __lut_bits, __val_len, __is_sparse, __sparse_val) \
+{ \
+	.ext            = 0,\
+	.loc            = 0,\
+	.lastext            = 0,\
+	.lastloc            = 0,\
+	.size           = 0,\
+	.mode           = ((__is_sparse)?PI_CL_DMA_DECOMPRESSOR_MODE_T3:PI_CL_DMA_DECOMPRESSOR_MODE_T2),\
+	.direction      = PI_CL_DMA_DECOMPRESSOR_DIR_EXT2LOC,\
+	.transf_type    = PI_CL_DMA_DECOMPRESSOR_TRANSF_EXT_LIN_LOC_LIN,\
+	.extension_type = (((__val_len)==1)?PI_CL_DMA_DECOMPRESSOR_EXT_TYPE_8:PI_CL_DMA_DECOMPRESSOR_EXT_TYPE_16),\
+	.extension_sign = PI_CL_DMA_DECOMPRESSOR_EXT_SIGN_UNSIGNED,\
+	.item_bit_width = (__lut_bits),\
+	.bit_offset     = 0,\
+	.start_byte     = 0,\
+	.lut            = (__lut),\
+	.lut_size       = (__lut_size),\
+	.l2_2d          = 0,\
+	.tcdm_2d        = 0,\
+	.special_symbol = (__sparse_val),\
+	.done           = 0,\
+}
+
+#define AT_COMPRESSOR_COPY(__file, __ext, __loc, __size, __dir, __event) \
+do {                                      	\
+	(__event)->ext = (char *)(((uintptr_t)(__ext))&((uintptr_t)-4));               \
+	(__event)->loc = (__loc);                    \
+	(__event)->start_byte = (unsigned char)(((uintptr_t)(__ext))&(uintptr_t)3);         \
+	(__event)->size = (__size);                  \
+	PI_CL_DMA_DECOMPRESSOR_CMD(__event);   \
+} while(0)
+
+#define AT_COMPRESSOR_WAIT(file,event)
+
+#define AT_SET_COMPRESSOR_UPDATE(__event) \
+do { \
+  printf("event %s set to mode %d\n", #__event, (__event)->mode); \
+} while (0) \
+
 
 #endif
 

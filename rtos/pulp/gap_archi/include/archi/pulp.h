@@ -31,10 +31,10 @@
 #define  A_PULP_CHIP_INC(x) _A_PULP_CHIP_INC(x)
 #endif
 
-#if defined(PULP_CHIP_FAMILY)
-#include A_PULP_CHIP_INC(PULP_CHIP_FAMILY_STR)
-#else
+//#if defined(PULP_CHIP_FAMILY)
+//#include A_PULP_CHIP_INC(PULP_CHIP_FAMILY_STR)
+//#else
 #include A_PULP_CHIP_INC(PULP_CHIP_STR)
-#endif
+//#endif
 
 #endif

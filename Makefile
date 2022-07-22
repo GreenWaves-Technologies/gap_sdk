@@ -89,6 +89,7 @@ help:
 	@echo " - ${ECHO_BOLD}minimal${ECHO_CLEAR}     : get latest sources for all rtos and libs"
 	@echo " - ${ECHO_BOLD}gvsoc${ECHO_CLEAR}       : build GVSOC simulation platform"
 	@echo " - ${ECHO_BOLD}openocd.all${ECHO_CLEAR} : build OpenOCD tools to run simulation on boards"
+	@echo " - ${ECHO_BOLD}nntool${ECHO_CLEAR}      : build nntool"
 	@echo ""
 	@echo "Note: to speed up compilation, you can use the \"-j\" option with most rules"
 
@@ -102,7 +103,6 @@ clean: littlefs.clean
 	$(RM) $(INSTALL_DIR)
 	$(RM) $(BUILD_DIR)
 	if [ -e $(GAP_SDK_HOME)/tools/autotiler_v3/Makefile ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler_v3 clean; fi
-	$(MAKE) -C $(GAP_SDK_HOME)/tools/nntool clean
 	if [ -e tools/profiler ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/profiler clean; fi
 
 all: sfu.build
@@ -111,7 +111,7 @@ clean: sfu.clean
 
 # Compat
 sdk: all
-mini_checkout: pmsis-bsp.checkout pmsis-api.checkout examples.checkout
+mini_checkout: pmsis.checkout examples.checkout
 freertos: freertos.all mini_checkout
 
 
@@ -125,11 +125,8 @@ install_others: | $(INSTALL_BIN_DIR)
 
 
 # Sources
-pmsis-bsp.checkout:
-	git submodule update --init rtos/pmsis/pmsis_bsp
-
-pmsis-api.checkout:
-	git submodule update --init rtos/pmsis/pmsis_api
+pmsis.checkout:
+	git submodule update --init rtos/pmsis
 
 gap_configs.checkout:
 	git submodule update --init utils/gap_configs
@@ -158,9 +155,11 @@ gvsoc.checkout:
 	git submodule update --init --recursive gvsoc
 
 gvsoc.build:
-	cmake -S gvsoc -B build/gvsoc -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTARGET_CHIP=GAP9_V2 -DCONFIG_GVSOC_SKIP_UDMA_BUILD=$(CONFIG_GVSOC_SKIP_UDMA_BUILD)
-	cmake --build build/gvsoc -j 4
-	cmake --install build/gvsoc --prefix $(GAP_SDK_HOME)/install/workstation
+	# With openmp
+	cmake -S gvsoc -B build/gvsoc/$(TARGET_CHIP) -DCMAKE_CXX_FLAGS=-fopenmp -DCMAKE_EXE_LINKER_FLAGS=-fopenmp -DCMAKE_SHARED_LINKER_FLAGS=-fopenmp -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTARGET_CHIP=GAP9_V2 -DCONFIG_GVSOC_SKIP_UDMA_BUILD=$(CONFIG_GVSOC_SKIP_UDMA_BUILD)
+	#cmake -S gvsoc -B build/gvsoc/$(TARGET_CHIP) -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTARGET_CHIP=$(TARGET_CHIP) -DCONFIG_GVSOC_SKIP_UDMA_BUILD=$(CONFIG_GVSOC_SKIP_UDMA_BUILD)
+	cmake --build build/gvsoc/$(TARGET_CHIP) -j 4
+	cmake --install build/gvsoc/$(TARGET_CHIP) --prefix $(GAP_SDK_HOME)/install/workstation
 
 gvsoc.clean:
 	$(MAKE) -C gvsoc/gvsoc clean BUILD_DIR=$(BUILD_DIR)/gvsoc INSTALL_DIR=$(INSTALL_DIR) TARGET_INSTALL_DIR=$(GAP_SDK_HOME)/install
@@ -191,13 +190,8 @@ profiler_v2:
 	cmake --build $(PROFILER_V2_BUILD_DIR)
 	cmake --install $(PROFILER_V2_BUILD_DIR) --prefix $(INSTALL_DIR)
 
-profiler:
-	$(MAKE) -C tools/profiler all
-	mkdir -p $(INSTALL_DIR)/bin
-	cp tools/profiler/gui/build/profiler $(INSTALL_DIR)/bin
-
 nntool:
-	$(MAKE) -C $(GAP_SDK_HOME)/tools/nntool all
+	$(MAKE) -C $(GAP_SDK_HOME)/tools/nntool/nntool req
 
 
 # SFUConfigurationGenerator (aka sfu_gen)

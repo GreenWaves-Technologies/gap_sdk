@@ -31,7 +31,7 @@
                 },
                 {
                     "description": "Connection to Openocd",
-                    "text": "target extended-remote @IP_address@:3333",
+                    "text": "target extended-remote :3333",
                     "ignoreFailures": false
                 },
                 {
@@ -80,7 +80,7 @@
                 },
                 {
                     "description": "Connection to Openocd",
-                    "text": "target extended-remote @IP_address@:3333",
+                    "text": "target extended-remote :3333",
                     "ignoreFailures": false
                 },
                 {

@@ -1,0 +1,33 @@
+name: xip_icache
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    fc:
+        name: fc
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: FC=1
+        compile_only: true
+    fc_flush:
+        name: fc_flush
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: FC_FLUSH=1
+        compile_only: true
+    cluster:
+        name: cluster
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: CLUSTER=1
+        compile_only: true

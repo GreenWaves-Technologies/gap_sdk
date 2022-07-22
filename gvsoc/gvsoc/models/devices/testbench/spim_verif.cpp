@@ -498,7 +498,7 @@ int64_t Spim_verif::exec()
                 this->trace.msg(vp::trace::LEVEL_TRACE, "SPI master cs end\n");
                 this->spi->cs_itf.sync(1);
                 this->slave_state = SPIS_STATE_END_WAIT_CYCLES;
-                this->slave_wait_cycles = 3;
+                this->slave_wait_cycles = 4; // GAP9_5 requires at least 4 dummy cycles
                 break;
 
             case SPIS_STATE_END_WAIT_CYCLES:
@@ -879,7 +879,7 @@ void Spim_verif::enqueue_transfer(int address, int size, int is_rx, int is_duple
     this->slave_pending_mosi = 2;
     this->slave_pending_rx_addr = address;
     this->slave_pending_tx_addr = address;
-    this->slave_wait_cycles = 3;
+    this->slave_wait_cycles = 4; // GAP9_5 requires at least 4 dummy cycles
     this->slave_pending_is_rx = is_rx || is_duplex;
     this->slave_pending_is_tx = !is_rx || is_duplex;
 

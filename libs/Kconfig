@@ -1,0 +1,13 @@
+menu "Librairies Menu"
+
+    config LIB_FRAME_STREAMER
+        bool "Frame streamer"
+        default n
+
+    config LIB_OPENMP
+        bool "OpenMP"
+        default n
+
+    source "$(GAP_SDK_HOME)/libs/gap_lib/Kconfig"
+
+endmenu

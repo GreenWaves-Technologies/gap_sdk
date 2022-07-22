@@ -1,0 +1,388 @@
+
+#
+# Mnemonic Maps
+#
+mmap new  -reuse -name {Boolean as Logic} -radix %b -contents {{%c=FALSE -edgepriority 1 -shape low}
+{%c=TRUE -edgepriority 1 -shape high}}
+mmap new  -reuse -name {Example Map} -radix %x -contents {{%b=11???? -bgcolor orange -label REG:%x -linecolor yellow -shape bus}
+{%x=1F -bgcolor red -label ERROR -linecolor white -shape EVENT}
+{%x=2C -bgcolor red -label ERROR -linecolor white -shape EVENT}
+{%x=* -label %x -linecolor gray -shape bus}}
+
+array unset createdGroup
+array set createdGroup {}
+#
+# Groups
+#
+if {[catch {group get -using [list Group 1]}]} {
+set createdGroup([list Group 1]) 1
+catch {group new -name {Group 1} -overlay 0}
+}
+if {[catch {group get -using [list Group 2]}]} {
+set createdGroup([list Group 2]) 1
+catch {group new -name {Group 2} -overlay 0}
+}
+if {[catch {group get -using [list timestamp]}]} {
+set createdGroup([list timestamp]) 1
+catch {group new -name timestamp -overlay 0}
+}
+if {[catch {group get -using [list apb_gpio]}]} {
+set createdGroup([list apb_gpio]) 1
+catch {group new -name apb_gpio -overlay 0}
+}
+if {[info exists createdGroup([list Group 1])]} {
+group using {Group 1}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.soc_event_i[3:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.cfg_addr_i[4:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.cfg_data_i[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.cfg_data_o[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.cfg_ready_o}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.cfg_rwn_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.cfg_valid_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.data_rx_data_o[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.data_rx_datasize_o[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.data_rx_destination_o[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.data_rx_ready_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.data_rx_valid_o}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.event_o}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.gpio_i[63:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.r_input_old}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.rstn_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_anygrant}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_arbiter_ack[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_arbiter_ack_bin[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_arbiter_ready}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_cnt_ext_en}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_cnt_ext_sel[5:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_cnt_ext_type[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_cnt_int_clr}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_cnt_int_stop}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_input_en[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_input_sel[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_input_type[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_clear_event}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cnt_start}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_counter[23:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_ext_clr}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_fall}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_fifo_ready}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_fifo_valid}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_in_event_ack[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_in_event_req[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_rise}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_soc_event_valid}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.sys_clk_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.i_udma_ctrl.r_cmp_evt[3:0]}]} ]
+}
+
+if {[info exists createdGroup([list Group 2])]} {
+group using {Group 2}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.event_data_i[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.DEST_ID_WIDTH}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.L2_ADDR_WIDTH}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.L2_DATA_WIDTH}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.N_2D_ADDRGENS}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.N_ADDRGENS}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.N_CFG_CHANNELS}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.N_FIFOS}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.N_FIFOS_LOG}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.N_LIN_ADDRGENS}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.N_OUTSTANDING}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.N_PERIPHS}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.N_REAL_PERIPHS}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.N_REAL_RX_CHANNELS}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.N_REAL_TX_CHANNELS}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.N_RX_CHANNELS}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.N_STREAMS}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.N_TIMEOUTS}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.N_TX_CHANNELS}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.TRANS_SIZE}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.apb_hresetn_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.apb_paddr_i[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.apb_penable_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.apb_prdata_i[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.apb_pready_o}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.apb_psel_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.apb_pslverr_o}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.apb_pwdata_i[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.apb_pwrite_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.ch_cfg_data_i[15:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.ch_cfg_destination_i[15:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.ch_cfg_ready_o[15:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.ch_cfg_regaddr_i[15:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.ch_cfg_valid_i[15:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.ch_events_o[39:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.dft_cg_enable_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.event_o[3:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.event_ready_o}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.event_valid_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.per_clk_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.periph_addr_o[4:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.periph_data_from_i[30:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.periph_data_to_o[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.periph_per_clk_o[30:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.periph_ready_i[30:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.periph_rst_n_o[30:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.periph_rwn_o}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.periph_sys_clk_o[30:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.periph_valid_o[30:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.rx_addr_i[35:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.rx_data_i[35:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.rx_datasize_i[35:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.rx_destination_i[35:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.rx_en_o[35:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.rx_l2_addr_o[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.rx_l2_be_o[3:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.rx_l2_gnt_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.rx_l2_req_o}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.rx_l2_wdata_o[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.rx_ready_o[35:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.rx_valid_i[35:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_addrgen_cfg_addr[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_addrgen_cfg_data[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_addrgen_cfg_data_rsp[39:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_addrgen_cfg_ready[39:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_addrgen_cfg_rwn}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_addrgen_cfg_valid[39:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_addrgen_en_datasize_tx[39:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_addrgen_en_rx[39:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_addrgen_en_tx[39:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_cg_value[30:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_clk_core}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_clk_core_en}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_ctrl_rx_addr[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_ctrl_rx_data[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_ctrl_rx_datasize[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_ctrl_rx_destination[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_ctrl_rx_ready[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_ctrl_rx_valid[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_ctrl_tx_addr[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_ctrl_tx_data[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_ctrl_tx_datasize[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_ctrl_tx_gnt[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_ctrl_tx_req[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_ctrl_tx_source[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_ctrl_tx_valid[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_periph_addr[4:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_periph_data_from[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_periph_data_from_cgunit[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_periph_data_to[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_periph_ready[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_periph_ready_from_cgunit}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_periph_rwn}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_periph_valid[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rstn_value[30:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_addr[38:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_addrgen_addr[20:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_addrgen_bytes_to_send[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_addrgen_datasize[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_addrgen_dest_valid}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_addrgen_destination[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_addrgen_extra_transfer}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_addrgen_extra_transfer_bts[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_addrgen_extra_transfer_multi}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_addrgen_extra_transfer_shift[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_addrgen_fifo}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_addrgen_fifo_id[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_data[38:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_datasize[38:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_destination[38:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_en[38:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_ready[38:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_rx_valid[38:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_snoop_rx_datasize[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_snoop_rx_id[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_snoop_rx_valid}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_snoop_tx_datasize[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_snoop_tx_id[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_snoop_tx_valid}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_stream_blocking[21:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_timeout_eot[39:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_timeout_rx[39:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_timeout_sot[39:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_addr[43:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_addrgen_addr[20:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_addrgen_bytes_to_send[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_addrgen_datasize[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_addrgen_dest_valid}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_addrgen_destination[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_addrgen_extra_transfer}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_addrgen_extra_transfer_bts[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_addrgen_extra_transfer_multi}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_addrgen_extra_transfer_shift[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_addrgen_fifo}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_addrgen_fifo_id[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_data[43:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_datasize[43:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_en[43:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_gnt[43:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_req[43:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_source[43:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.s_tx_valid[43:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.stream_in_data_i[21:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.stream_in_datasize_i[21:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.stream_in_ready_o[21:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.stream_in_valid_i[21:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.stream_out_data_o[21:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.stream_out_datasize_o[21:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.stream_out_ready_i[21:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.stream_out_valid_o[21:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.sys_clk_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.timeout_events_o[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.tx_addr_i[40:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.tx_data_o[40:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.tx_datasize_i[40:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.tx_en_o[40:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.tx_gnt_o[40:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.tx_l2_addr_o[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.tx_l2_gnt_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.tx_l2_rdata_i[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.tx_l2_req_o}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.tx_l2_rvalid_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.tx_req_i[40:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.tx_source_i[40:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_udmacore.tx_valid_o[40:0]}]} ]
+}
+
+if {[info exists createdGroup([list timestamp])]} {
+group using timestamp
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_clear_event}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.aux_events_i[15:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.cfg_addr_i[4:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.cfg_data_i[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.cfg_data_o[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.cfg_ready_o}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.cfg_rwn_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.cfg_valid_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.data_rx_data_o[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.data_rx_datasize_o[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.data_rx_destination_o[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.data_rx_ready_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.data_rx_valid_o}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.dft_test_mode_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.event_o}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.gpio_i[63:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.pwm_i[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.r_fifo_data_high[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.r_fifo_data_low[23:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.r_fifo_valid}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.r_input_old}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.ref_fast_clk_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.rstn_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_anygrant}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_arbiter_ack[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_arbiter_ack_bin[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_arbiter_ready}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_clk_select[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_cnt_ext_en}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_cnt_ext_sel[5:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_cnt_ext_type[1:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_cnt_int_clr}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_cnt_int_stop}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_gpio_input_sel[5:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_input_en[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_input_sel[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_input_type[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_prescaler[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cfg_pwm_input_sel[2:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_clk_muxed}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_cnt_start}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_counter[23:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_counter_sync[23:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_counter_valid}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_counter_valid_sync}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_ext_clr}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_fall}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_fifo_data_high[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_fifo_ready}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_fifo_valid}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_gpio_clk}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_in_event_ack[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_in_event_req[7:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_pwm_clk}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_rise}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_rstn_muxed}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_soc_event_valid}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_start_edge}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.s_stop_edge}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.soc_event_i[3:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.i_udma.i_timestamp.sys_clk_i}]} ]
+}
+
+if {[info exists createdGroup([list apb_gpio])]} {
+group using apb_gpio
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_apb_addr[5:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.APB_ADDR_WIDTH}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.HCLK}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.HRESETn}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.PADDR[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.PAD_NUM}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.PENABLE}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.PRDATA[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.PREADY}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.PSEL}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.PSLVERR}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.PWDATA[31:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.PWRITE}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.dft_cg_enable_i}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.gpio_dir[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.gpio_in[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.gpio_in_sync[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.gpio_out[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.interrupt}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.r_gpio_dir[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.r_gpio_en[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.r_gpio_in[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.r_gpio_inten[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.r_gpio_inttype[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.r_gpio_out[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.r_gpio_sync0[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.r_gpio_sync1[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.r_status[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_cg_en[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_clk_en[22:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_gpio_dir[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_gpio_en[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_gpio_fall[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_gpio_inten[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_gpio_inttype[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_gpio_out[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_gpio_rise[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_is_int_all[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_is_int_fall[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_is_int_rifa[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_is_int_rise[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_rise_int}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_write}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_write_dir[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_write_gpen[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_write_inten[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_write_inttype[89:0]}]} ] \
+    [subst  {[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.soc_peripherals_i.apb_gpio_i.s_write_out[89:0]}]} ]
+}
+
+
+set groupId0 [waveform add -groups timestamp]
+waveform hierarchy collapse $groupId0
+
+
+set groupId0 [waveform add -groups apb_gpio]
+
+
+waveform xview limits 0 2000fs

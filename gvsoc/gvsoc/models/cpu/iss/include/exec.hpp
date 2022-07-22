@@ -33,11 +33,6 @@ void iss_trace_dump(iss_t *iss, iss_insn_t *insn);
 void iss_trace_init(iss_t *iss);
 
 
-static inline void iss_exec_insn_resume(iss_t *iss)
-{
-  iss->cpu.state.insn_cycles = iss->cpu.state.saved_insn_cycles;
-}
-
 static inline void iss_exec_insn_terminate(iss_t *iss)
 {
   iss_exec_account_cycles(iss, iss->cpu.state.insn_cycles);
@@ -51,8 +46,7 @@ static inline void iss_exec_insn_terminate(iss_t *iss)
 static inline void iss_exec_insn_stall(iss_t *iss)
 {
   iss->cpu.stall_insn = iss->cpu.current_insn;
-  iss->cpu.state.saved_insn_cycles = iss->cpu.state.insn_cycles;
-  iss->cpu.state.insn_cycles = -1;
+  iss->stalled.inc(1);
 }
 
 static inline iss_insn_t *iss_exec_insn_handler(iss_t *instance, iss_insn_t *insn, iss_insn_t *(*handler)(iss_t *, iss_insn_t *))
@@ -90,18 +84,21 @@ static inline iss_insn_t *iss_exec_stalled_insn(iss_t *iss, iss_insn_t *insn)
 do { \
   iss->cpu.state.insn_cycles = 1; \
   iss_insn_t *insn = iss->cpu.current_insn; \
-  prefetcher_fetch(iss, insn->addr); \
-  if (iss->cpu.state.insn_cycles > 0) \
+  if (iss->cpu.state.fetch_cycles) \
   { \
-    iss->cpu.prev_insn = insn; \
-    iss->cpu.current_insn = func(iss, insn); \
+    iss->cpu.state.insn_cycles += iss->cpu.state.fetch_cycles; \
+    iss->cpu.state.fetch_cycles = 0; \
+    iss_pccr_account_event(iss, CSR_PCER_IMISS, iss->cpu.state.fetch_cycles); \
   } \
+  iss->cpu.current_insn = func(iss, insn); \
+  iss->cpu.prev_insn = insn; \
 } while(0)
 
 
 static inline int iss_exec_step_nofetch(iss_t *iss)
 {
   ISS_EXEC_NO_FETCH_COMMON(iss,iss_exec_insn_fast);
+  prefetcher_fetch(iss, iss->cpu.current_insn);
 
   return iss->cpu.state.insn_cycles;
 }
@@ -147,8 +144,10 @@ static inline int iss_exec_account_cycles(iss_t *iss, int cycles)
 
 static inline int iss_exec_step_nofetch_perf(iss_t *iss)
 {
-  iss_irq_check(iss);
+  if (iss_irq_check(iss))
+    return -1;
   ISS_EXEC_NO_FETCH_COMMON(iss,iss_exec_insn);
+  prefetcher_fetch(iss, iss->cpu.current_insn);
 
   int cycles = iss->cpu.state.insn_cycles;
 
@@ -175,15 +174,7 @@ static inline int iss_exec_step_check_all(iss_t *iss)
 
 static inline int iss_exec_is_stalled(iss_t *iss)
 {
-  return iss->cpu.state.insn_cycles == -1;
+  return iss->stalled.get();
 }
-
-#if 0
-static inline int iss_exec_step(iss_t *iss)
-{
-  uint64_t opcode = prefetcher_get_word(iss, 0x1a000000);
-  return 1;
-}
-#endif
 
 #endif

@@ -268,7 +268,7 @@ void Udma_tx_channels::handle_pending(void *__this, vp::clock_event *event)
         if (err == vp::IO_REQ_OK)
         {
             l2_req->set_latency(l2_req->get_latency() + _this->top->get_cycles() + 1);
-            _this->l2_waiting_reqs->push_from_latency(l2_req);
+            _this->l2_waiting_reqs->push(l2_req);
         }
         else
         {

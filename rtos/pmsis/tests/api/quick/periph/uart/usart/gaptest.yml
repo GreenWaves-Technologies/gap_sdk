@@ -1,0 +1,33 @@
+name: uart_usart
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    pol1_phase0:
+        name: pol1_phase0
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: CONFIG_TESTBENCH_UART_ID=0 POLARITY=1 PHASE=0
+        compile_only: true
+    pol0_phase1:
+        name: pol0_phase1
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: CONFIG_TESTBENCH_UART_ID=0 POLARITY=0 PHASE=1
+        compile_only: true
+    pol1_phase1:
+        name: pol1_phase1
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: CONFIG_TESTBENCH_UART_ID=0 POLARITY=1 PHASE=1
+        compile_only: true

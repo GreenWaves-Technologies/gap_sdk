@@ -33,6 +33,7 @@
 #include <udma_mram/udma_mram_regs.h>
 #include <udma_mram/udma_mram_regfields.h>
 #include <udma_mram/udma_mram_gvsoc.h>
+#include "../udma_mem_refill.hpp"
 
 
 #define MRAM_LINE_SIZE 16
@@ -130,6 +131,7 @@ private:
     void enqueue_read_req();
     static void handle_read_req(void *__this, vp::clock_event *event);
     int64_t get_mram_cycle_count(int64_t cycles);
+    static void refill_req(void *__this, udma_refill_req_t *req);
 
     vp::wire_master<mram_req_t *> out_req;    // Output interface to mram for requests
     vp::wire_master<mram_data_t *> out_data;  // Output interface to mram for data
@@ -170,6 +172,10 @@ private:
     vp::clock_event *read_2d_event;    // Event used to enqueue a new line in 2d mode
     vp::clock_event *rcv_event;        // Event enqueued by DC fifo when data is available in the FIFO
     vp::clock_event *read_event;       // Event enqueued to start a read request
+
+    vp::wire_slave<udma_refill_req_t *> refill_itf;
+    udma_refill_req_t *pending_refill_req;
+    bool is_refill_req;
 };
 
 #endif

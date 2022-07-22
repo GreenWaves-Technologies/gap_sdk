@@ -469,26 +469,34 @@ void trace_domain::conf_trace(int event, std::string path_str, bool enabled)
         file_path = delim + 1;
     }
 
+    std::vector<vp::trace *> traces;
+    this->get_trace(traces, path_str);
+
     vp::trace *trace = this->get_trace_from_path(path);
 
     if (trace != NULL)
     {
-        if (event)
+        traces.push_back(trace);
+    }
+
+    for (vp::trace *trace: traces)
+    {
+        if (event && trace->is_event)
         {
             if (enabled)
             {
                 vp::Event_trace *event_trace;
                 if (trace->is_real)
-                    event_trace = event_dumper.get_trace_real(path_str, file_path);
+                    event_trace = event_dumper.get_trace_real(trace->get_full_path(), file_path);
                 else if (trace->is_string)
-                    event_trace = event_dumper.get_trace_string(path_str, file_path);
+                    event_trace = event_dumper.get_trace_string(trace->get_full_path(), file_path);
                 else
-                    event_trace = event_dumper.get_trace(path_str, file_path, trace->width);
+                    event_trace = event_dumper.get_trace(trace->get_full_path(), file_path, trace->width);
                 trace->event_trace = event_trace;
             }
             trace->set_event_active(enabled);
         }
-        else
+        else if (!trace->is_event)
         {
             trace->set_active(enabled);
         }

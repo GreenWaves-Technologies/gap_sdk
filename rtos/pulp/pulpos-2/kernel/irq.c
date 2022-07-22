@@ -24,11 +24,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
+void pos_irq_no_handler();
 void pos_irq_c_handler_stub();
 
 
-uint32_t pos_irq_c_handlers[32];
+PI_FC_L1_TINY uint32_t pos_irq_c_handlers[32];
 
 
 unsigned int pos_irq_get_itvec(unsigned int ItBaseAddr, unsigned int ItIndex, unsigned int ItHandler)
@@ -95,7 +95,6 @@ void __attribute__((weak)) pos_irq_illegal_instr()
 void pos_irq_set_c_handler(int irq, void (*handler)())
 {
     pos_irq_c_handlers[irq] = (uint32_t)handler;
-    pos_irq_set_handler(irq, pos_irq_c_handler_stub);
 }
 
 
@@ -108,4 +107,9 @@ void pos_irq_init()
     // As the FC code may not be at the beginning of the L2, set the
     // vector base to get proper interrupt handlers
     pos_irq_set_fc_vector_base(pos_irq_vector_base());
+
+    for (int i=0; i<32; i++)
+    {
+        pos_irq_c_handlers[i] = (uint32_t)pos_irq_no_handler;
+    }
 }

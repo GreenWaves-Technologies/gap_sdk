@@ -336,7 +336,7 @@ static inline void __attribute__((always_inline)) KerParLinearLayerFullFeatB8_SQ
 	v4s * __restrict__ VectIn = (v4s *) In;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	for (int i=First; i<Last; i++) {
 		v4s * __restrict__ W = (v4s *) (&Weights[i*InDim]);
@@ -415,7 +415,7 @@ static inline void __attribute__((always_inline)) KerParLinearLayerFullFeatB16_S
 	v4s * __restrict__ VectIn = (v4s *) In;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	for (int i=First; i<Last; i++) {
 		v4s * __restrict__ W = (v4s *) (&Weights[i*InDim]);
@@ -490,7 +490,7 @@ static inline void __attribute__((always_inline)) KerParLinearLayerFullFeatB32_S
 	signed char * __restrict__ Out = (signed char * __restrict__) Arg->Out;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(OutDim), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, OutDim);
 	v4s * __restrict__ VectIn = (v4s *) In;

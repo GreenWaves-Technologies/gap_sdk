@@ -25,22 +25,7 @@
 #include "types.hpp"
 
 static inline void iss_exec_insn_stall(iss_t *iss);
-static inline void iss_exec_insn_resume(iss_t *iss);
 static inline void iss_exec_insn_terminate(iss_t *iss);
-
-#include "utils.hpp"
-#include "iss_api.hpp"
-#include "platform_wrapper.hpp"
-#include "regs.hpp"
-#include "perf.hpp"
-#include "lsu.hpp"
-#include "prefetcher.hpp"
-#include "insn_cache.hpp"
-#include "irq.hpp"
-#include "exceptions.hpp"
-#include "exec.hpp"
-#include "resource.hpp"
-
 
 int iss_open(iss_t *iss);
 void iss_reset(iss_t *iss, int active);
@@ -72,5 +57,19 @@ static inline iss_isa_set_t *iss_get_isa_set()
 {
     return &__iss_isa_set;
 }
+
+#include "utils.hpp"
+#include "iss_api.hpp"
+#include "platform_wrapper.hpp"
+#include "regs.hpp"
+#include "perf.hpp"
+#include "lsu.hpp"
+#include "prefetcher.hpp"
+#include "insn_cache.hpp"
+#include "irq.hpp"
+#include "exceptions.hpp"
+#include "exec.hpp"
+#include "resource.hpp"
+
 
 #endif

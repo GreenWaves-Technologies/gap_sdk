@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
@@ -135,12 +135,12 @@ void pos_time_timer_handler()
 }
 
 
-unsigned long long pi_time_get_us()
+unsigned  pi_time_get_us()
 {
     // Get 64 bit timer counter value and convert it to microseconds
     // as the timer input is connected to the ref clock.
     unsigned int count = timer_count_get(timer_base_fc(0, 1));
-    return ((unsigned long long)count) * 1000000 / TIMER_CLOCK;
+    return ((float)count) * 1000000 / TIMER_CLOCK;
 }
 
 void pi_task_push_delayed_us(pi_task_t *event, uint32_t us)
@@ -193,6 +193,56 @@ void pi_task_push_delayed_us(pi_task_t *event, uint32_t us)
                        TIMER_CFG_LO_ENABLE(1) |
                            TIMER_CFG_LO_IRQEN(1) |
                            TIMER_CFG_LO_CCFG(TIMER_SOURCE));
+    }
+
+    hal_irq_restore(irq);
+}
+
+void pi_task_cancel_delayed_us(pi_task_t *event)
+{
+    int irq = hal_irq_disable();
+
+    /* look for the task in the list and remove it */
+    struct pi_task* current_task = pos_time_first_delayed;
+    struct pi_task* previous_task = NULL;
+
+    /* we don't care if the task is not found, nothing to remove anyway */
+    while(current_task != NULL)
+    {
+        if (current_task == event)
+        {
+            if (previous_task != NULL)
+            {
+                previous_task->next = current_task->next;
+            }
+            else
+            {
+                /* previous task is NULL meaning that there is no task before */
+                /* the only possible case is that it's the head of the fifo */
+                pos_time_first_delayed = current_task->next;
+            }
+        }
+        previous_task = current_task;
+        current_task = current_task->next;
+    }
+
+    // And finally update the timer trigger time in case we removed the event
+    // from the head of the wait list.
+    if (NULL == pos_time_first_delayed)
+    {
+        // Set back default state where timer is only counting with
+        // no interrupt
+        timer_conf_set(timer_base_fc(0, 1),
+                       TIMER_CFG_LO_ENABLE(1) |
+                           TIMER_CFG_LO_CCFG(TIMER_SOURCE));
+
+        // Also clear timer interrupt as we might have a spurious one after
+        // we entered the handler
+#ifdef ARCHI_HAS_FC
+        pos_irq_clr(1 << ARCHI_FC_EVT_TIMER0_HI);
+#else
+        pos_irq_clr(1 << ARCHI_EVT_TIMER0_HI);
+#endif
     }
 
     hal_irq_restore(irq);

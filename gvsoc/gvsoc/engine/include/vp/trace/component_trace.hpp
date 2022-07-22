@@ -61,10 +61,11 @@ namespace vp {
 
     void set_trace_manager(trace_engine *trace_manager) { this->trace_manager = trace_manager; }
 
-  protected:
-
     std::map<std::string, trace *> traces;
     std::map<std::string, trace *> trace_events;
+    
+  protected:
+
     trace_engine *trace_manager = NULL;
 
   private:

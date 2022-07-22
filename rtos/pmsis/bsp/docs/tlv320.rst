@@ -1,0 +1,10 @@
+Audio
+-----
+
+TLV320
+"""""""
+
+.. doxygengroup:: TLV320
+   :members:
+   :private-members:
+   :protected-members:

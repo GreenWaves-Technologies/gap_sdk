@@ -14,147 +14,156 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Francesco Conti, University of Bologna & GreenWaves Technologies (f.conti@unibo.it)
  */
 
 #include <ne16.hpp>
+#include <omp.h>
 
 void Ne16::fsm_start_handler(void *__this, vp::clock_event *event) {
-  Ne16 *_this = (Ne16 *)__this;
-  _this->state.set(START);
-  if(_this->trace_level == L3_ALL) {
-    _this->trace.msg(vp::trace::LEVEL_DEBUG, "FSM START EVENT\n");
-  }
+    Ne16 *_this = (Ne16 *)__this;
+    _this->state.set(START);
+    if(_this->trace_level == L3_ALL) {
+        _this->trace.msg(vp::trace::LEVEL_DEBUG, "FSM START EVENT\n");
+    }
 
-  // clear state and propagate context
-  _this->clear_all();
-  _this->regfile_cxt();
-  _this->job_running = 1;
+    // clear state and propagate context
+    _this->clear_all();
+    _this->regfile_cxt();
+    _this->job_running = 1;
 
-  // convenience parameters used internally in the model, but not set by register file
-  _this->h_out     = (_this->subtile_nb_ho-(_this->subtile_rem_ho ? 1 : 0)) * _this->FILTER_SIZE + _this->subtile_rem_ho;
-  _this->w_out     = (_this->subtile_nb_wo-(_this->subtile_rem_wo ? 1 : 0)) * _this->FILTER_SIZE + _this->subtile_rem_wo;
-  _this->h_out_int = (_this->h_out/3)*3 + ((_this->h_out%3) ? 3 : 0);
-  _this->w_out_int = (_this->w_out/3)*3 + ((_this->w_out%3) ? 3 : 0);
-  _this->h_in_int  = (_this->h_out_int - 1) + _this->fs;
-  _this->w_in_int  = (_this->w_out_int - 1) + _this->fs;
-  _this->h_in      = (_this->h_out - 1) + _this->fs;
-  _this->w_in      = (_this->w_out - 1) + _this->fs;
-  _this->k_out     = _this->depthwise ? (_this->subtile_nb_ko-(_this->subtile_rem_ko ? 1 : 0)) * _this->TP_IN  + _this->subtile_rem_ko
+    // convenience parameters used internally in the model, but not set by register file
+    _this->h_out     = (_this->subtile_nb_ho-(_this->subtile_rem_ho ? 1 : 0)) * _this->FILTER_SIZE + _this->subtile_rem_ho;
+    _this->w_out     = (_this->subtile_nb_wo-(_this->subtile_rem_wo ? 1 : 0)) * _this->FILTER_SIZE + _this->subtile_rem_wo;
+    _this->h_out_int = (_this->h_out/3)*3 + ((_this->h_out%3) ? 3 : 0);
+    _this->w_out_int = (_this->w_out/3)*3 + ((_this->w_out%3) ? 3 : 0);
+    _this->h_in_int  = (_this->h_out_int - 1) + _this->fs;
+    _this->w_in_int  = (_this->w_out_int - 1) + _this->fs;
+    _this->h_in      = (_this->h_out - 1) + _this->fs;
+    _this->w_in      = (_this->w_out - 1) + _this->fs;
+    _this->k_out     = _this->depthwise ? (_this->subtile_nb_ko-(_this->subtile_rem_ko ? 1 : 0)) * _this->TP_IN  + _this->subtile_rem_ko
                                       : (_this->subtile_nb_ko-(_this->subtile_rem_ko ? 1 : 0)) * _this->TP_OUT + _this->subtile_rem_ko;
 
-  _this->k_in = (_this->subtile_nb_ki-(_this->subtile_rem_ki ? 1 : 0)) * _this->TP_IN  + _this->subtile_rem_ki;
+    _this->k_in = (_this->subtile_nb_ki-(_this->subtile_rem_ki ? 1 : 0)) * _this->TP_IN  + _this->subtile_rem_ki;
 
-  // streamin mode is not compatible with quantization_bits != 32 at the moment. sorry!
-  assert(!(_this->streamin && _this->quantization_bits!=32));
+    // streamin mode is not compatible with quantization_bits != 32 at the moment. sorry!
+    assert(!(_this->streamin && _this->quantization_bits!=32));
 
-  // padding is not compatible with FS=1. sorry!
-  // assert((_this->padding_top==0 && _this->padding_right==0 && _this->padding_bottom==0 && _this->padding_left==0) || _this->fs==3);
+    // padding is not compatible with FS=1. sorry!
+    // assert((_this->padding_top==0 && _this->padding_right==0 && _this->padding_bottom==0 && _this->padding_left==0) || _this->fs==3);
 
-  // filter masking is not compatible with FS=1. sorry!
-  assert((_this->filter_mask_top==0 && _this->filter_mask_right==0 && _this->filter_mask_bottom==0 && _this->filter_mask_left==0) || _this->fs==3);
+    // filter masking is not compatible with FS=1. sorry!
+    assert((_this->filter_mask_top==0 && _this->filter_mask_right==0 && _this->filter_mask_bottom==0 && _this->filter_mask_left==0) || _this->fs==3);
 
-  // depthwise is not compatible with FS=1. sorry!
-  assert((!_this->depthwise) || (_this->fs==3));
+    // depthwise is not compatible with FS=1. sorry!
+    assert((!_this->depthwise) || (_this->fs==3));
 
-  // in depthwise mode k_out == k_in!
-  assert((!_this->depthwise) || (_this->subtile_rem_ko==_this->subtile_rem_ki && _this->subtile_nb_ko==_this->subtile_nb_ki));
+    // in depthwise mode k_out == k_in!
+    assert((!_this->depthwise) || (_this->subtile_rem_ko==_this->subtile_rem_ki && _this->subtile_nb_ko==_this->subtile_nb_ki));
 
-  // depthwise and 16-bit mode are incompatible. sorry!
-  assert((!_this->mode16) || (!_this->depthwise));
+    // depthwise and 16-bit mode are incompatible. sorry!
+    assert((!_this->mode16) || (!_this->depthwise));
 
-  // in 16-bit mode, k_in must be mult(2). sorry!
-  assert((!_this->mode16) || (_this->k_in % 2 == 0));
-  if(_this->mode16 && _this->mode_linear) {
-    _this->k_in = _this->k_in * 2; 
-  }
+    // in 16-bit mode, k_in must be mult(2). sorry!
+    assert((!_this->mode16) || (_this->k_in % 2 == 0));
+    if(_this->mode16 && _this->mode_linear) {
+        _this->k_in = _this->k_in * 2;
+    }
 
-  // in linear mode, Ho=Wo=1 and mode is set to 1x1 (?)
-  assert((!_this->mode_linear) || (_this->fs==1));
-  if(_this->mode_linear) {
-    _this->h_out = 1;
-    _this->w_out = 1;
-  }
+    // in linear mode, Ho=Wo=1 and mode is set to 1x1 (?)
+    assert((!_this->mode_linear) || (_this->fs==1));
+    if(_this->mode_linear) {
+        _this->h_out = 1;
+        _this->w_out = 1;
+    }
 
-  _this->fsm_loop();
+    omp_set_dynamic(0);
+    _this->fsm_loop();
 }
 
 void Ne16::fsm_handler(void *__this, vp::clock_event *event) {
-  Ne16 *_this = (Ne16 *)__this;
-  _this->fsm_loop();
+    Ne16 *_this = (Ne16 *)__this;
+    _this->fsm_loop();
 }
 
 void Ne16::fsm_end_handler(void *__this, vp::clock_event *event) {
-  Ne16 *_this = (Ne16 *)__this;
-  int job_id = _this->cxt_job_id[_this->cxt_use_ptr];
-  _this->job_running = 0;
-  _this->cxt_job_id[_this->cxt_use_ptr] = -1;
-  _this->cxt_use_ptr = 1-_this->cxt_use_ptr;
-  _this->job_pending--;
-  _this->irq.sync(true);
-  _this->trace.msg(vp::trace::LEVEL_INFO, "Ending job (id=%d).\n", job_id);
-  if (!_this->fsm_start_event->is_enqueued() && _this->job_pending > 0) {
-      _this->event_enqueue(_this->fsm_start_event, 1);
-      _this->trace.msg(vp::trace::LEVEL_INFO, "Starting a new job from the queue.\n");
-  }
-  _this->activity.set(0);
-  _this->busy.set(0);
-  _this->state.set(IDLE);
+    Ne16 *_this = (Ne16 *)__this;
+    int job_id = _this->cxt_job_id[_this->cxt_use_ptr];
+    _this->job_running = 0;
+    _this->cxt_job_id[_this->cxt_use_ptr] = -1;
+    _this->cxt_use_ptr = 1-_this->cxt_use_ptr;
+    _this->job_pending--;
+    _this->irq.sync(true);
+    _this->trace.msg(vp::trace::LEVEL_INFO, "Ending job (id=%d).\n", job_id);
+    if (!_this->fsm_start_event->is_enqueued() && _this->job_pending > 0) {
+        _this->event_enqueue(_this->fsm_start_event, 1);
+        _this->trace.msg(vp::trace::LEVEL_INFO, "Starting a new job from the queue.\n");
+    }
+    _this->activity.set(0);
+    _this->busy.set(0);
+    _this->state.set(IDLE);
 }
 
 void Ne16::fsm_loop() {
-  auto latency = 0;
-  do {
-    latency = this->fsm();
-  } while(latency == 0 && state.get() != END);
-  if(state.get() == END && !this->fsm_end_event->is_enqueued()) {
-    this->event_enqueue(this->fsm_end_event, latency);
-  }
-  else if (!this->fsm_event->is_enqueued()) {
-    this->event_enqueue(this->fsm_event, latency);
+    auto latency = 0;
+    do {
+        latency = this->fsm();
+    } while(latency == 0 && state.get() != END);
+    if(state.get() == END && !this->fsm_end_event->is_enqueued()) {
+        this->event_enqueue(this->fsm_end_event, latency);
+    }
+    else if (!this->fsm_event->is_enqueued()) {
+        this->event_enqueue(this->fsm_event, latency);
   }
 }
 
 int Ne16::fsm() {
-  auto state_next = this->state.get();
-  auto latency = 0;
+    auto state_next = this->state.get();
+    auto latency = 0;
+    uint8_t *w_buffer = new uint8_t[32*this->mv_qw_lim*this->mv_k_out_lim]; // 8192 elements
+    uint8_t N;
+    auto a = 0;
+    auto iter_lim = 0;
+    auto iter = this->mv_qw_lim*this->mv_k_out_lim;
+    int  my_latency;
 
-  this->x_buffer_traces = false;
-  this->x_buffer_traces_postload = false;
-  this->accum_traces_poststreamin = false;
-  this->accum_traces = false;
-  this->accum_traces_postmatrixvec =false;
-  this->accum_traces_normquant = false;
-  this->accum_traces_streamout = false;
-  this->psum_block_traces = false;
-  this->binconv_traces = false;
-  this->fsm_traces = false;
-  if(this->trace_level == L1_ACTIV_INOUT) {
-    this->x_buffer_traces_postload = true;
-    this->accum_traces_streamout = true;
-  }
-  if(this->trace_level == L2_DEBUG) {
-    this->x_buffer_traces_postload = true;
-    this->fsm_traces = true;
-    this->accum_traces_poststreamin = true;
-    this->accum_traces_streamout = true;
-    this->accum_traces_postmatrixvec = true;
-    this->accum_traces_normquant = true;
-  }
-  if(this->trace_level == L3_ALL) {
-    this->x_buffer_traces = true;
-    this->x_buffer_traces_postload = true;
-    this->fsm_traces = true;
-    this->accum_traces = true;
-    this->accum_traces_poststreamin = true;
-    this->accum_traces_streamout = true;
-    this->accum_traces_postmatrixvec = true;
-    this->accum_traces_normquant = true;
-  }
+    this->x_buffer_traces = false;
+    this->x_buffer_traces_postload = false;
+    this->accum_traces_poststreamin = false;
+    this->accum_traces = false;
+    this->accum_traces_postmatrixvec =false;
+    this->accum_traces_normquant = false;
+    this->accum_traces_streamout = false;
+    this->psum_block_traces = false;
+    this->binconv_traces = false;
+    this->fsm_traces = false;
+    if(this->trace_level == L1_ACTIV_INOUT) {
+        this->x_buffer_traces_postload = true;
+        this->accum_traces_streamout = true;
+    }
+    if(this->trace_level == L2_DEBUG) {
+        this->x_buffer_traces_postload = true;
+        this->fsm_traces = true;
+        this->accum_traces_poststreamin = true;
+        this->accum_traces_streamout = true;
+        this->accum_traces_postmatrixvec = true;
+        this->accum_traces_normquant = true;
+    }
+    if(this->trace_level == L3_ALL) {
+        this->psum_block_traces = true;
+        this->x_buffer_traces = true;
+        this->x_buffer_traces_postload = true;
+        this->fsm_traces = true;
+        this->accum_traces = true;
+        this->accum_traces_poststreamin = true;
+        this->accum_traces_streamout = true;
+        this->accum_traces_postmatrixvec = true;
+        this->accum_traces_normquant = true;
+    }
 
   switch(this->state.get()) {
-    
+
     case START:
       this->activity.set(1);
       this->busy.set(1);
@@ -163,7 +172,7 @@ int Ne16::fsm() {
 
       state_next = START_STREAMIN;
       break;
-    
+
     case START_STREAMIN:
       if(this->fsm_traces) {
         this->trace.msg(vp::trace::LEVEL_DEBUG, "State START_STREAMIN\n");
@@ -223,7 +232,7 @@ int Ne16::fsm() {
       // emulate 6 cycles of latency due to FIFOs + ctrl
       latency += 6;
       break;
-      
+
     case LOAD:
       if(this->fsm_traces) {
         this->trace.msg(vp::trace::LEVEL_DEBUG, "State LOAD\n");
@@ -290,7 +299,7 @@ int Ne16::fsm() {
       }
 
       break;
-    
+
     case MATRIXVEC:
       if(this->fsm_traces) {
         this->trace.msg(vp::trace::LEVEL_DEBUG, "State MATRIXVEC\n");
@@ -299,53 +308,61 @@ int Ne16::fsm() {
         this->trace.msg(vp::trace::LEVEL_DEBUG, "  mv_qw_iter=%d\n", mv_qw_iter); // was simply qw
         this->trace.msg(vp::trace::LEVEL_DEBUG, "  mv_qw_lim=%d\n", mv_qw_lim); // was simply qw
       }
-      latency = this->matrixvec_cycle();
-      if(this->psum_block_traces) {
-        this->debug_psum_block();
-      }
-      if(this->accum_traces) {
-        this->debug_accum();
-      }
-      if(this->matrixvec_exit_idx()) {
 
-        // emulate 6 cycles of latency due to FIFOs + ctrl
-        if(!this->depthwise) {
-          latency += 6;
-        }
+      for (auto i=0; i<iter; i++) {
+          fill_weight_buffer(w_buffer, (i<<5));
+      }
+      latency += (iter+((!this->depthwise) ? 6:0));
 
-        if(this->fsm_traces) {
+      N = (iter >= 8) ? 4 : 1;
+
+      #pragma omp parallel for num_threads(N)
+      for (uint16_t i=0; i<iter; i++) {
+          this->matrixvec_cycle(w_buffer, (i<<5), (i % this->mv_qw_lim), (i / this->mv_qw_lim), i*9);
+          if(this->psum_block_traces) {
+              this->debug_psum_block();
+          }
+          if(this->accum_traces) {
+              this->debug_accum();
+          }
+      }
+
+      // Accumulators reduction process
+
+      for (uint32_t i=0; i<(this->mv_k_out_lim*this->COLUMN_SIZE); i+=this->COLUMN_SIZE) {
+          auto k_out = this->depthwise ? (this->dw_iter*this->COLUMN_SIZE) : i;
+          acc_reduction(i, k_out);
+      }
+
+      if(this->fsm_traces) {
           this->trace.msg(vp::trace::LEVEL_DEBUG, "Exiting MATRIXVEC\n");
-        }
-        if(this->accum_traces_postmatrixvec) {
+      }
+      if(this->accum_traces_postmatrixvec) {
           this->debug_accum();
-        }
-        if(!matrixvec_to_matrixvec_idx()) {
+      }
+      if(!matrixvec_to_matrixvec_idx()) {
           depthwise_update_idx();
           state_next = LOAD_MATRIXVEC;
-        }
-        else if(!this->matrixvec_to_load_idx()) {
+      }
+      else if(!this->matrixvec_to_load_idx()) {
           this->k_in_major_update_idx();
           state_next = STREAMIN_LOAD;
-        }
-        else if(this->output_quant && this->norm_option_shift) {
+      }
+      else if(this->output_quant && this->norm_option_shift) {
           this->normquant_shift_setup();
           state_next = NORMQUANT_SHIFT;
-        }
-        else if(this->output_quant) {
-
+      }
+      else if(this->output_quant) {
           this->normquant_mult_setup();
           state_next = NORMQUANT_MULT;
-        }
-        else {
-          this->streamout_setup();
-          state_next = STREAMOUT;
-        }
       }
       else {
-        this->matrixvec_update_idx();
+          this->streamout_setup();
+          state_next = STREAMOUT;
       }
+
       break;
-      
+
     case NORMQUANT_SHIFT:
       if(this->fsm_traces) {
         this->trace.msg(vp::trace::LEVEL_DEBUG, "State NORMQUANT_SHIFT\n");
@@ -354,7 +371,7 @@ int Ne16::fsm() {
       this->normquant_mult_setup();
       state_next = NORMQUANT_MULT;
       break;
-    
+
     case NORMQUANT_MULT:
       if(this->fsm_traces) {
         this->trace.msg(vp::trace::LEVEL_DEBUG, "State NORMQUANT_MULT\n");
@@ -372,7 +389,7 @@ int Ne16::fsm() {
         this->normquant_mult_update_idx();
       }
       break;
-    
+
     case NORMQUANT_BIAS:
       if(this->fsm_traces) {
         this->trace.msg(vp::trace::LEVEL_DEBUG, "State NORMQUANT_BIAS\n");
@@ -390,7 +407,7 @@ int Ne16::fsm() {
         this->normquant_bias_update_idx();
       }
       break;
-    
+
     case STREAMOUT:
       if(this->fsm_traces) {
         this->trace.msg(vp::trace::LEVEL_DEBUG, "State STREAMOUT\n");
@@ -436,5 +453,6 @@ int Ne16::fsm() {
   }
 
   this->state.set(state_next);
+  delete [] w_buffer;
   return latency;
 }

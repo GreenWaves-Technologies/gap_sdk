@@ -23,6 +23,9 @@ ifeq '$(PMSIS_OS)' 'pulpos'
 ifeq '$(TARGET_CHIP)' 'GAP9_V2'
 export USE_PULPOS=1
 endif
+ifeq '$(TARGET_CHIP)' 'GAP9_5'
+export USE_PULPOS=1
+endif
 endif
 
 # Directory containing built objects

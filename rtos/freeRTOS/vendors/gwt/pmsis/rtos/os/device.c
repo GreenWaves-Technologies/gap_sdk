@@ -22,6 +22,7 @@ void pi_open_from_conf(struct pi_device *device, void *conf)
         pi_cluster_open(device);
         break;
     case PI_DEVICE_CPI_TYPE:
+    case PI_DEVICE_CSI2_TYPE:
     case PI_DEVICE_HYPERBUS_TYPE:
     case PI_DEVICE_I2C_TYPE:
     case PI_DEVICE_SPI_TYPE:

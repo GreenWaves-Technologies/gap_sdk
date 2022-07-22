@@ -29,6 +29,7 @@ nb_decoder_tree = 0
 
 def append_insn_to_isa_tag(isa_tag, insn):
     global insn_isa_tags
+
     if insn_isa_tags.get(isa_tag) is None:
         insn_isa_tags[isa_tag] = []
     insn_isa_tags[isa_tag].append(insn)
@@ -577,6 +578,9 @@ class IsaSubset(object):
             for insn in self.instrs:
                 if len(insn.isa_tags) == 0:
                     append_insn_to_isa_tag(self.name, insn)
+                else:
+                    for isa_tag in insn.isa_tags:
+                        append_insn_to_isa_tag(isa_tag, insn)
 
         return self.instrs
 
@@ -687,11 +691,8 @@ class Isa(object):
         self.dump('};\n')
         self.dump('\n')
 
-
         for tree in self.trees:
             tree.dumpTree(self, isaFile)
-
-
 
         for isa_tag in insn_isa_tags.keys():
             self.dump('static iss_decoder_item_t *__iss_isa_tag_%s[] = {\n' % isa_tag)
@@ -936,9 +937,6 @@ defaultInstrGroup = InstrGroup(defaultIsaGroup, 'INSTR_GROUP_OTHER')
 class Instr(object):
     def __init__(self, label, type, encoding, decode=None, N=None, L=None, mapTo=None, power=None, group=None, fast_handler=False, tags=[], isa_tags=[]):
         global nb_insn
-
-        for isa_tag in isa_tags:
-            append_insn_to_isa_tag(isa_tag, self)
 
         self.insn_number = nb_insn
         self.tags = tags

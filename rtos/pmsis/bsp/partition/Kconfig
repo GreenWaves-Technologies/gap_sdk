@@ -1,0 +1,8 @@
+config BSP_DRIVER_PARTITION
+    bool "Partition"
+    default n
+
+config BSP_DRIVER_FLASH_PARTITION
+    bool "Flash partition"
+    default n
+    
