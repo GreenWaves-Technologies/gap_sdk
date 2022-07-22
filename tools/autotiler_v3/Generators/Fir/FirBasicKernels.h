@@ -10,6 +10,7 @@
 #ifndef __FIRPAR_H__
 #define __FIRPAR_H__
 #include "Gap.h"
+#include "DSP_FloatType.h"
 
 /** @addtogroup groupFIR
 @{ */
@@ -31,6 +32,42 @@ typedef struct {
         unsigned int NCoeffs;	/**< Number of Taps (fir filter coefficients) */
         unsigned int Norm;	/**< Normalization factor for fixed point operations */
 } KerFirParallel_ArgT;
+
+
+typedef struct {
+        short int *In;          /**< Pointer to a 1D tile of fixed point samples */
+        unsigned int NCoeffs;   /**< Number of Taps (fir filter coefficients) */
+} KerFirParallelInit_ArgT;
+
+
+typedef struct {
+        F16_DSP *In;          /**< Pointer to a 1D tile of fixed point samples */
+        F16_DSP *NextIn;      /**< Pointer to a delay line of size NCoeffs-1, it is placed right before In */
+        F16_DSP *Coeffs;      /**< Pointer to NCoeffs fixed point FIR filter coefficients */
+        F16_DSP *Out;         /**< Pointer to filtered In */
+        unsigned int NSamples;  /**< Total number of samples */
+        unsigned int NCoeffs;   /**< Number of Taps (fir filter coefficients) */
+} KerFirNTaps_f16_ArgT;
+
+typedef struct {
+        F16_DSP *In;          /**< Pointer to a 1D tile of fixed point samples */
+        unsigned int NCoeffs;   /**< Number of Taps (fir filter coefficients) */
+} KerFirNTapsInit_f16_ArgT;
+
+typedef struct {
+        float *In;          /**< Pointer to a 1D tile of fixed point samples */
+        float *NextIn;      /**< Pointer to a delay line of size NCoeffs-1, it is placed right before In */
+        float *Coeffs;      /**< Pointer to NCoeffs fixed point FIR filter coefficients */
+        float *Out;         /**< Pointer to filtered In */
+        unsigned int NSamples;  /**< Total number of samples */
+        unsigned int NCoeffs;   /**< Number of Taps (fir filter coefficients) */
+} KerFirNTaps_f32_ArgT;
+
+typedef struct {
+        float *In;          /**< Pointer to a 1D tile of fixed point samples */
+        unsigned int NCoeffs;   /**< Number of Taps (fir filter coefficients) */
+} KerFirNTapsInit_f32_ArgT;
+
 
 /** @brief Generic Parallel vectorial FIR filter, Any number of Taps
 
@@ -56,6 +93,8 @@ Each of the available core is given a bucket. A synchronization barrier is used 
 line management. Delay line copy itself is handled by the core 0 of the cluster, note that the copy could have been parallelized.
 The kernels ends with another synchronization barrier just to be sure we don't return to master core with some cores still evaluating FIR outputs.
 */
+
+void KerFirParallelInit       (KerFirParallelInit_ArgT *Arg);
 void KerFirParallelNTaps      (KerFirParallel_ArgT *Arg);
 
 /** @brief Specialized Parallel vectorial FIR filter, 20 Taps
@@ -94,6 +133,23 @@ A generic Ntaps fixed point FIR filter.
 This is a pure scalar implementatio, it's main goal if to illustrate the gain of the vectorized implementation of KerFirParallelNTaps().
 */
 void KerFirParallelScalarNTaps(KerFirParallel_ArgT *Arg);
+
+/** @brief Generic Parallel Float 16 FIR filter, Any number of Taps
+
+A generic Ntaps floating point 16 bit FIR filter.
+
+*/
+void KerFirNTapsInit_f16(KerFirNTapsInit_f16_ArgT *Arg);
+void KerFirNTaps_f16(KerFirNTaps_f16_ArgT *Arg);
+
+/** @brief Generic Parallel Float 32 FIR filter, Any number of Taps
+
+A generic Ntaps floating point FIR filter.
+
+*/
+void KerFirNTapsInit_f32(KerFirNTapsInit_f32_ArgT *Arg);
+void KerFirNTaps_f32(KerFirNTaps_f32_ArgT *Arg);
+
 
 /** @} */ // End of FIRBasicKernels
 /** @} */

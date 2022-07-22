@@ -3,8 +3,10 @@
 Examples
 ========
 
+Examples for GAP series processors.
+
 .. toctree::
    :maxdepth: 1
 
-   pmsis/README.rst
-   libs/README.rst
+   gap8/README.rst
+   gap9/README.rst

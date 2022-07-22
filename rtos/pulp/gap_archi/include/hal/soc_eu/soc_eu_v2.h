@@ -18,6 +18,7 @@
 #define __HAL_SOC_EU_SOC_EU_V2_H__
 
 #include "archi/pulp.h"
+#include "hal/pulp_io.h"
 #include "archi/soc_eu/soc_eu_v2.h"
 
 static inline unsigned int hal_soc_eu_addr(void)

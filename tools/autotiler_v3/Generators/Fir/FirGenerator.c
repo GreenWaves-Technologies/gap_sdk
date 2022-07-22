@@ -79,13 +79,64 @@ void LoadFIRLibrary()
 		),
 		"KerFirParallel_ArgT",NULL
 	);
+	LibKernel("KerFirNTaps_f16", CALL_PARALLEL,
+		CArgs(6,
+			TCArg("F16_DSP * __restrict__", "In"),
+			TCArg("F16_DSP * __restrict__", "NextIn"),
+			TCArg("F16_DSP * __restrict__", "Coeffs"),
+			TCArg("F16_DSP * __restrict__", "Out"),
+			TCArg("unsigned int", "NSamples"),
+			TCArg("unsigned int", "NCoeffs")
+		),
+		"KerFirNTaps_f16_ArgT",NULL
+	);
+
+	LibKernel("KerFirNTaps_f32", CALL_PARALLEL,
+		CArgs(6,
+			TCArg("float * __restrict__", "In"),
+			TCArg("float * __restrict__", "NextIn"),
+			TCArg("float * __restrict__", "Coeffs"),
+			TCArg("float * __restrict__", "Out"),
+			TCArg("unsigned int", "NSamples"),
+			TCArg("unsigned int", "NCoeffs")
+		),
+		"KerFirNTaps_f32_ArgT",NULL
+	);
+
+	LibKernel("KerFirParallelInit", CALL_PARALLEL,
+		CArgs(2,
+			TCArg("short int * __restrict__", "In"),
+			TCArg("unsigned int", "NCoeffs")
+		),
+		"KerFirParallelInit_ArgT",NULL
+	);	
+
+	LibKernel("KerFirNTapsInit_f16", CALL_PARALLEL,
+		CArgs(2,
+			TCArg("F16_DSP * __restrict__", "In"),
+			TCArg("unsigned int", "NCoeffs")
+		),
+		"KerFirNTapsInit_f16_ArgT",NULL
+	);
+
+	LibKernel("KerFirNTapsInit_f32", CALL_PARALLEL,
+		CArgs(2,
+			TCArg("float * __restrict__", "In"),
+			TCArg("unsigned int", "NCoeffs")
+		),
+		"KerFirNTapsInit_f32_ArgT",NULL
+	);
+
+	
 }
 
 void GeneratorFIR(char *Name, unsigned int NSamples, unsigned int NCoeffs, unsigned int Generic, unsigned int Scalar)
 
 {
 	char *KerFirName;
-
+	char *KerFirInitName = "KerFirParallelInit";
+	Kernel_T *Kernel;
+	
 	if (!Generic) {
 		switch (NCoeffs) {
 /*
@@ -103,7 +154,10 @@ void GeneratorFIR(char *Name, unsigned int NSamples, unsigned int NCoeffs, unsig
 		else KerFirName = "KerFirParallelNTaps";
 	}
 
-	UserKernel(Name,
+	//Try not Tiled solution
+	//This is done to avoid KER_ARG_TILE_NEXTDB to throw an error in case no tiling is needed
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+	Kernel=UserKernel(Name,
 		   //KernelDimensions(0, 1, 1, 0),
 		   //KernelIterationOrder(1, KER_TILE),
 		   KernelIterSpace(1, IterTiledSpace(KER_TILE)),
@@ -132,12 +186,60 @@ we need extra padding before the input hence the NCoeefs, 0 part.
 	The second parameter of the FIR kernel, NextIn, should point to the next double buffer, this is why we use
 the KER_ARG_TILE_NEXTDB property in the call sequence.
 */
-		Calls(1,
+		Calls(2,
+			Call(KerFirInitName,LOC_LOOP_PROLOG,
+				Bindings(2,
+					K_Arg("KerIn", KER_ARG_TILE),
+					Imm(NCoeffs)
+					)
+				),
+			Call(KerFirName, LOC_LOOP,
+				Bindings(7,
+					K_Arg("KerIn", KER_ARG_TILE),
+					Imm(0),
+					K_Arg("KerCoeffs", KER_ARG_TILE),
+					K_Arg("KerOut", KER_ARG_TILE),
+					Imm(NSamples),
+					Imm(NCoeffs),
+					C_Arg("Norm")
+				)
+			)
+		),
+		KerArgs(3,
+			KerArgPad("KerIn",     KerArgSpace(1,KER_TILE),O_IN|O_NTILED,        1, NSamples, NCoeffs, 0, sizeof(short int), 0, 0, 0, "In"),
+			KerArg   ("KerCoeffs", KerArgSpace(1,KER_TILE),O_IN|O_NTILED|O_BUFF, 1, NCoeffs ,             sizeof(short int), 0, 0, 0, "Coeffs"),
+			KerArg   ("KerOut",    KerArgSpace(1,KER_TILE),O_OUT|O_NTILED,       1, NSamples,             sizeof(short int), 0, 0, 0, "Out")
+			)
+	  
+	);
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+
+	//Try tiled solution
+	if (Kernel == 0) {
+
+			Kernel=UserKernel(Name,
+		   //KernelDimensions(0, 1, 1, 0),
+		   //KernelIterationOrder(1, KER_TILE),
+		   KernelIterSpace(1, IterTiledSpace(KER_TILE)),
+                TILE_HOR,
+                CArgs(4,
+                        TCArg("short int *  __restrict__", "In"),
+                        TCArg("short int *  __restrict__", "Coeffs"),
+                        TCArg("short int *  __restrict__", "Out"),
+                        TCArg("unsigned int", "Norm")
+                ),
+		Calls(2,
+			Call(KerFirInitName,LOC_LOOP_PROLOG,
+				Bindings(2,
+					K_Arg("KerIn", KER_ARG_TILE),
+					Imm(NCoeffs)
+					)
+				),
 			Call(KerFirName, LOC_LOOP,
 				Bindings(7,
 					K_Arg("KerIn", KER_ARG_TILE),
 					K_Arg("KerIn", KER_ARG_TILE_NEXTDB),
-					C_Arg("Coeffs"),
+					K_Arg("KerCoeffs", KER_ARG_TILE),
 					K_Arg("KerOut", KER_ARG_TILE),
 					K_Arg("KerIn", KER_ARG_TILE_H),
 					Imm(NCoeffs),
@@ -145,26 +247,189 @@ the KER_ARG_TILE_NEXTDB property in the call sequence.
 				)
 			)
 		),
-		KerArgs(2,
-		   
-			KerArgPad("KerIn",  KerArgSpace(1,KER_TILE),    OBJ_IN_DB,          1, NSamples, NCoeffs, 0, sizeof(short int), 0, 0, 0, "In"),
-
-			KerArg   ("KerOut", KerArgSpace(1,KER_TILE),    OBJ_OUT_DB,         1, NSamples,             sizeof(short int), 0, 0, 0, "Out")
+		KerArgs(3,
+			KerArgPad("KerIn",  KerArgSpace(1,KER_TILE),   OBJ_IN_DB,            1, NSamples, NCoeffs, 0, sizeof(short int), 0, 0, NCoeffs, "In"),
+			KerArg   ("KerCoeffs", KerArgSpace(1,KER_TILE),O_IN|O_NTILED|O_BUFF, 1, NCoeffs ,             sizeof(short int), 0, 0, 0, "Coeffs"),
+			KerArg   ("KerOut", KerArgSpace(1,KER_TILE),   OBJ_OUT_DB,           1, NSamples,             sizeof(short int), 0, 0, 0, "Out")
 			)
 	  
 	);
+
+	}
 }
 
 
-void FIRConfiguration(unsigned int L1Memory)
-
+void GeneratorFIR_fp16(char *Name, unsigned int NSamples, unsigned int NCoeffs)
 {
-        SetInlineMode(ALWAYS_INLINE); // SetInlineMode(NEVER_INLINE);
-		SetSymbolNames("FIR_L1_Memory", "FIR_L2_Memory");
-        SetSymbolDynamics();
+	char *KerFirName;
+	Kernel_T *Kernel;
 
-        SetUsedFilesNames(0, 1, "FirBasicKernels.h");
-        SetGeneratedFilesNames("FirKernels.c", "FirKernels.h");
+	KerFirName = "KerFirNTaps_f16";
 
-        SetL1MemorySize(L1Memory);
+	if(NCoeffs>NSamples)
+		GenTilingError("Error Ncoeffs (%d) can't be bigger that NSamples (%d)\n", NCoeffs,NSamples);
+	//printf("Generating Fir Float 16 NSamples: %d - NCoeffs: %d\n",NSamples,NCoeffs);
+
+	//Try not Tiled solution
+	//This is done to avoid KER_ARG_TILE_NEXTDB to throw an error in case no tiling is needed
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+	Kernel= UserKernel(Name,
+		KernelIterSpace(1, IterTiledSpace(KER_TILE)),
+                TILE_HOR,
+                CArgs(3,
+                        TCArg("F16_DSP *  __restrict__", "In"),
+                        TCArg("F16_DSP *  __restrict__", "Coeffs"),
+                        TCArg("F16_DSP *  __restrict__", "Out")
+                ),
+
+		Calls(2,
+			Call("KerFirNTapsInit_f16",LOC_LOOP_PROLOG,
+				Bindings(2,
+					K_Arg("KerIn", KER_ARG_TILE),
+					Imm(NCoeffs)
+					)
+				),
+			Call(KerFirName, LOC_LOOP,
+				Bindings(6,
+					K_Arg("KerIn", KER_ARG_TILE),
+					Imm(0),
+					K_Arg("KerCoeffs", KER_ARG_TILE),
+					K_Arg("KerOut", KER_ARG_TILE),
+					Imm(NSamples),
+					Imm(NCoeffs)
+				)
+			)
+		),
+		KerArgs(3,
+			KerArgPad("KerIn",     KerArgSpace(1,KER_TILE), O_IN|O_NTILED,          1, NSamples, NCoeffs, 0, sizeof(short int), 0, 0, 0, "In"),
+			KerArg   ("KerCoeffs", KerArgSpace(1,KER_TILE), O_IN|O_NTILED|O_BUFF,   1, NCoeffs ,             sizeof(short int), 0, 0, 0, "Coeffs"),
+			KerArg   ("KerOut",    KerArgSpace(1,KER_TILE), O_OUT|O_NTILED,         1, NSamples,             sizeof(short int), 0, 0, 0, "Out")
+			)	  
+	);
+
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+
+	if (Kernel == 0) {
+		//Try tiled solution
+		UserKernel(Name,
+				KernelIterSpace(1, IterTiledSpace(KER_TILE)),
+                TILE_HOR,
+                CArgs(3,
+                        TCArg("F16_DSP *  __restrict__", "In"),
+                        TCArg("F16_DSP *  __restrict__", "Coeffs"),
+                        TCArg("F16_DSP *  __restrict__", "Out")
+                ),
+
+		Calls(2,
+			Call("KerFirNTapsInit_f16",LOC_LOOP_PROLOG,
+				Bindings(2,
+					K_Arg("KerIn", KER_ARG_TILE),
+					Imm(NCoeffs)
+					)
+				),
+			Call(KerFirName, LOC_LOOP,
+				Bindings(6,
+					K_Arg("KerIn", KER_ARG_TILE),
+					K_Arg("KerIn", KER_ARG_TILE_NEXTDB),
+					K_Arg("KerCoeffs", KER_ARG_TILE),
+					K_Arg("KerOut", KER_ARG_TILE),
+					K_Arg("KerIn", KER_ARG_TILE_H),
+					Imm(NCoeffs)
+				)
+			)
+		),
+		KerArgs(3,/*F16_DSP does not exist on X86 compiler so use sizeof(short int)*/
+			KerArgPad("KerIn",     KerArgSpace(1,KER_TILE),    OBJ_IN_DB,           1, NSamples, NCoeffs, 0, sizeof(short int), 0, 0, NCoeffs, "In"),
+			KerArg   ("KerCoeffs", KerArgSpace(1,KER_TILE), O_IN|O_NTILED|O_BUFF,   1, NCoeffs ,             sizeof(short int), 0, 0, 0, "Coeffs"),
+			KerArg   ("KerOut",    KerArgSpace(1,KER_TILE),    OBJ_OUT_DB,          1, NSamples,             sizeof(short int), 0, 0, 0, "Out")
+			)	  
+		);
+	}
+
+}
+
+
+void GeneratorFIR_fp32(char *Name, unsigned int NSamples, unsigned int NCoeffs)
+{
+	char *KerFirName;
+	Kernel_T *Kernel;
+	KerFirName = "KerFirNTaps_f32";
+	if(NCoeffs>NSamples)
+		GenTilingError("Error Ncoeffs (%d) can't be bigger that NSamples (%d)\n", NCoeffs,NSamples);
+	//Try not Tiled solution
+	//This is done to avoid KER_ARG_TILE_NEXTDB to throw an error in case no tiling is needed
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+	Kernel=UserKernel(Name,
+		 KernelIterSpace(1, IterTiledSpace(KER_TILE)),
+                TILE_HOR,
+                CArgs(3,
+                        TCArg("float *  __restrict__", "In"),
+                        TCArg("float *  __restrict__", "Coeffs"),
+                        TCArg("float *  __restrict__", "Out")
+                ),
+
+		Calls(2,
+			Call("KerFirNTapsInit_f32",LOC_LOOP_PROLOG,
+				Bindings(2,
+					K_Arg("KerIn", KER_ARG_TILE),
+					Imm(NCoeffs)
+					)
+				),
+			Call(KerFirName, LOC_LOOP,
+				Bindings(6,
+					K_Arg("KerIn", KER_ARG_TILE),
+					Imm(0),
+					K_Arg("KerCoeffs", KER_ARG_TILE),
+					K_Arg("KerOut", KER_ARG_TILE),
+					Imm(NSamples),
+					Imm(NCoeffs)
+				)
+			)
+		),
+		KerArgs(3,
+			KerArgPad("KerIn",     KerArgSpace(1,KER_TILE), O_IN|O_NTILED,          1, NSamples, NCoeffs, 0, sizeof(float), 0, 0, 0, "In"),
+			KerArg   ("KerCoeffs", KerArgSpace(1,KER_TILE), O_IN|O_NTILED|O_BUFF,   1, NCoeffs ,             sizeof(float), 0, 0, 0, "Coeffs"),
+			KerArg   ("KerOut",    KerArgSpace(1,KER_TILE), O_OUT|O_NTILED,         1, NSamples,             sizeof(float), 0, 0, 0, "Out")
+			)	  
+	);
+
+	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+
+	if (Kernel == 0) {
+		//Try tiled solution
+		UserKernel(Name,
+		 KernelIterSpace(1, IterTiledSpace(KER_TILE)),
+                TILE_HOR,
+                CArgs(3,
+                        TCArg("float *  __restrict__", "In"),
+                        TCArg("float *  __restrict__", "Coeffs"),
+                        TCArg("float *  __restrict__", "Out")
+                ),
+
+		Calls(2,
+			Call("KerFirNTapsInit_f32",LOC_LOOP_PROLOG,
+				Bindings(2,
+					K_Arg("KerIn", KER_ARG_TILE),
+					Imm(NCoeffs)
+					)
+				),
+			Call(KerFirName, LOC_LOOP,
+				Bindings(6,
+					K_Arg("KerIn", KER_ARG_TILE),
+					K_Arg("KerIn", KER_ARG_TILE_NEXTDB),
+					K_Arg("KerCoeffs", KER_ARG_TILE),
+					K_Arg("KerOut", KER_ARG_TILE),
+					K_Arg("KerIn", KER_ARG_TILE_H),
+					Imm(NCoeffs)
+				)
+			)
+		),
+		KerArgs(3,
+			KerArgPad("KerIn",     KerArgSpace(1,KER_TILE), OBJ_IN_DB,            1, NSamples, NCoeffs, 0, sizeof(float), 0, 0, NCoeffs, "In"),
+			KerArg   ("KerCoeffs", KerArgSpace(1,KER_TILE), O_IN|O_NTILED|O_BUFF, 1, NCoeffs ,             sizeof(float), 0, 0, 0, "Coeffs"),
+			KerArg   ("KerOut",    KerArgSpace(1,KER_TILE), OBJ_OUT_DB,           1, NSamples,             sizeof(float), 0, 0, 0, "Out")
+			)	  
+		);
+	}
+
 }

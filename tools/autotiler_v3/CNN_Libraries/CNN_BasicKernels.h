@@ -1341,12 +1341,18 @@ extern void KerDP_hsigmoid_fp(KerDP_fp_T *Arg);
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Q15, input and output are disjoints
    out is Sigmoid(x) */
 extern void KerDP_sigmoid_fp(KerDP_fp_T *Arg);
+/* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Q15, input and output are disjoints
+   out is tanh(x) */
+extern void KerDP_tanh_fp(KerDP_fp_T *Arg);
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output point to the same location,
    out is Max(0, Min(1, (x+1)/2)) */
 extern void KerDP_IO_hsigmoid_fp(KerDP_fp_T *Arg);
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Q15, input and output point to the same location,
    out is Sigmoid(x) */
 extern void KerDP_IO_sigmoid_fp(KerDP_fp_T *Arg);
+/* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Q15, input and output point to the same location,
+   out is tanh(x) */
+extern void KerDP_IO_tanh_fp(KerDP_fp_T *Arg);
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output are disjoints
    out is clip((x<0)?(x*0.1):x, 15) */
 extern void KerDP_leakyrelu_fp(KerDP_fp_T *Arg);
@@ -1382,12 +1388,18 @@ extern void KerDP_hsigmoid_fps(KerDP_fps_T *Arg);
 /* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Q7, input and output are disjoints
    out is Sigmoid(x) */
 extern void KerDP_sigmoid_fps(KerDP_fps_T *Arg);
+/* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Q7, input and output are disjoints
+   out is tanh(x) */
+extern void KerDP_tanh_fps(KerDP_fps_T *Arg);
 /* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output point to the same location,
    out is Max(0, Min(1, (x+1)/2)) */
 extern void KerDP_IO_hsigmoid_fps(KerDP_fps_T *Arg);
 /* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Q7, input and output point to the same location,
    out is Sigmoid(x) */
 extern void KerDP_IO_sigmoid_fps(KerDP_fps_T *Arg);
+/* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Q7, input and output point to the same location,
+   out is Tanh(x) */
+extern void KerDP_IO_tanh_fps(KerDP_fps_T *Arg);
 
 /* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output are disjoints
    out is clip((x<0)?(x*0.1):x, 7) */

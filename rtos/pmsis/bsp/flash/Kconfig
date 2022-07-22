@@ -1,0 +1,37 @@
+menu "FLASH"
+
+    comment "Choose sources to compile"
+
+    config BSP_DRIVER_FLASH
+    bool "Flash"
+    default n  
+
+    config BSP_DRIVER_FLASH_HYPERFLASH
+        bool "HyperFLASH"
+        default n  
+        select PMSIS_GAP9_IMPLEM_UDMA_HYPERBUS
+        select BSP_DRIVER_FLASH
+
+    config BSP_DRIVER_FLASH_MRAM
+        bool "MRAM"
+        default n
+        select BSP_DRIVER_FLASH
+
+    config BSP_DRIVER_FLASH_SPIFLASH
+        bool "SPIFLASH"
+        default n    
+        select BSP_DRIVER_FLASH
+        select PMSIS_IMPLEM_SPIM
+
+    config BSP_DRIVER_FLASH_ATXP032
+        bool "ATXP032"
+        default n
+        select BSP_DRIVER_FLASH
+        select PMSIS_GAP9_IMPLEM_UDMA_OCTOSPI         
+
+    config BSP_DRIVER_FLASH_MX25U51245
+        bool "MX25U51245"
+        default n     
+        select BSP_DRIVER_FLASH
+        select PMSIS_GAP9_IMPLEM_UDMA_OCTOSPI         
+endmenu

@@ -639,6 +639,7 @@ Kernel_T *CNN_MM_ConvolutionPoolAct_fp16_Internal(
         float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
 	Tile_Orientation_T TileOrientation = TILE_HOR;
 	AT_PadType PadType = PAD_BALANCED_LEFT;
+        int CustomInfos = 0;
 	if (PoolOper==KOP_NONE) {
 		Fpx=1; Dpx=1; Spx=1; Fpy=1; Dpy=1; Spy=1;
 	}
@@ -648,6 +649,9 @@ Kernel_T *CNN_MM_ConvolutionPoolAct_fp16_Internal(
 		if (Ctrl->HWC) HWC = 1;
 		if (Ctrl->ParallelFeatures != -1) ParFeatConv = Ctrl->ParallelFeatures;
                 if (Ctrl->ReluN != -1) UB = Ctrl->ReluN;
+                if (ActOper == KOP_CUSTOM) {
+                        CustomInfos = Ctrl->CustomActivationInfos;
+                }
 	}
         if (ParFeatConv == 2 && HWC && Fcy>1 && (InFeat < 8))
                 ParFeatConv = 0;
@@ -673,7 +677,7 @@ Kernel_T *CNN_MM_ConvolutionPoolAct_fp16_Internal(
 		GenTilingError("CNN_MM_ConvolutionPoolAct_fp16 Kernel: %s, ConvOper, expecting KOP_CONV", Name);
 	if (!(PoolOper == KOP_NONE || PoolOper == KOP_MAXPOOL || PoolOper == KOP_AVGPOOL))
 		GenTilingError("CNN_MM_ConvolutionPoolAct_fp16 Kernel: %s, PoolOper, expecting KOP_NONE, KOP_MAXPOOL or KOP_AVGPOOL", Name);
-	if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+	if (!(ActOper == KOP_NONE  || ActOper == KOP_CUSTOM || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
 		GenTilingError("CNN_MM_ConvolutionPoolAct_fp16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
 
 	CNN_LayerOutputDim(Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad, PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad,
@@ -738,8 +742,13 @@ Kernel_T *CNN_MM_ConvolutionPoolAct_fp16_Internal(
 		if (PoolKerName==0) GenTilingError("CNN_MM_ConvolutionPoolAct_fp16 Kernel: %s, Can't find a matching Pooling %s basic kernel", Name, ActOper?"with linear rectification":"");
 	}
 	if (ActOper && StandAloneAct) {
-		ActKerName = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
-		if (ActKerName==0) GenTilingError("CNN_MM_ConvolutionPoolAct_fp16 Kernel: %s, Can't find a matching Activation basic kernel", Name);
+                if (ActOper == KOP_CUSTOM) {
+                        if (!Ctrl||!Ctrl->CustomActivationName) GenTilingError("CNN_MM_ConvolutionPoolAct_fp16: %s, ActOper is KOP_CUSTOM but no kernel name supplied", Name);
+                        ActKerName = Ctrl->CustomActivationName;
+                } else {
+                        ActKerName = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
+                        if (ActKerName==0) GenTilingError("CNN_MM_ConvolutionPoolAct_fp16 Kernel: %s, Can't find a matching Activation basic kernel", Name);
+                }
 	}
 
 	if (Log) {
@@ -767,11 +776,12 @@ Kernel_T *CNN_MM_ConvolutionPoolAct_fp16_Internal(
 		KernelIterSpace(3, IterTiledSpace(T0), IterParSpace(D1, OutFeat, OutTileCons), IterParSpace(D0|SPACE_PROP_ONE_TILE, InFeat, InFeat)):
 		KernelIterSpace(3, IterParSpace(D1, OutFeat, OutTileCons), IterTiledSpace(T0), IterParSpace(D0|SPACE_PROP_ONE_TILE, InFeat, InFeat)),
                 TileOrientation,
-                CArgs(4,
+                CArgs(5,
                       TCArg(CNN_ArgDataTypeF(2,1,1), "In"),
                       TCArg(CNN_ArgDataTypeF(2,1,1), "Filter"),
                       TCArg(CNN_ArgDataTypeF(2,1,1), "Bias"),
-                      TCArg(CNN_ArgDataTypeF(2,1,1), "Out")
+                      TCArg(CNN_ArgDataTypeF(2,1,1), "Out"),
+                      (CustomInfos)?TCArg(CNN_ArgDataType(1,1,1),  "CustomInfos"):AT_NO_C_ARG
                 ),
 		Calls(3,
 			Call(ConvKerName, LOC_D0,
@@ -842,28 +852,35 @@ Kernel_T *CNN_MM_ConvolutionPoolAct_fp16_Internal(
 					K_ArgPar("Out", KER_ARG_PARTILE_SIZE, D1),				/* Number of Features */
 					K_Arg("Out", KER_ARG_TILE_W),						/* Input tile width */
 					K_Arg("Out", KER_ARG_TILE_H),						/* Input tile height */
-					BindKExpr("UB")								/* ReLUN upper bound */
+                                        (ActOper==KOP_CUSTOM)?
+                                        ((CustomInfos)?
+                                        K_Arg("CustomInfos", KER_ARG_TILE):AT_NO_ARG_BINDING)                   /* Infos */
+                                        :BindKExpr("UB")                                                        /* ReLUN upper bound */
 				)
 			)
 		),
 		(HWC==0)?
-		KerArgs(6,
+		KerArgs(7,
 			KerArg ("KerBuff",KerArgSpace(1,T0),    O_BUFF|O_NTILED, BuffS,      1,                             	 	2,          0, 0,        0, 0),
 			KerArgP("In",     KerArgSpace(2,D0,T0), O_IN|O_DB,       Width, Height, UsedWidth, UsedHeight, PadIncT, PadInc, 2,   OverlapC, 0, TileCons, "In"),
 			KerArg ("Bias",   KerArgSpace(1,D1),    O_IN|O_DB|O_CONST,   1,      1,                                         2,          0, 0,        0, "Bias"),
 			KerArg ("Filter", KerArgSpace(2,D1,D0), O_IN|O_DB|O_CONST,  Fcx,   Fcy,                                         2,          0, 0,        0, "Filter"),
 			KerArg ("Out",    KerArgSpace(2,D1,T0), O_OUT|O_DB,          Wo,    Ho,                                         2,          0, 0,        0, "Out"),
 			(PoolKerName==0)?AT_NO_KER_ARG:
-			KerArgP("ConvOut",KerArgSpace(2,D1,T0), O_BUFF|O_ONETILE,    Wc,    Hc,  UsedWc, UsedHc, PadInp, PadInp,        2,   OverlapP, 0,        0, "")
+			KerArgP("ConvOut",KerArgSpace(2,D1,T0), O_BUFF|O_ONETILE,    Wc,    Hc,  UsedWc, UsedHc, PadInp, PadInp,        2,   OverlapP, 0,        0, ""),
+                        (CustomInfos)?
+                        KerArg ("CustomInfos",KerArgSpace(1,T0),O_IN|O_BUFF|O_NTILED|O_CONST, CustomInfos,   1,  	                1,          0, 0,        0, "CustomInfos"):AT_NO_KER_ARG
 		):
-		KerArgs(6,
+		KerArgs(7,
 			KerArg ("KerBuff",KerArgSpace(1,T0),    O_BUFF|O_NTILED, BuffS,      1,                             	 	2,          0, 0,        0, 0),
 			KerArgP("In",     KerArgSpace(2,T0,D0), O_IN|O_DB,       Width, Height, UsedWidth, UsedHeight, PadIncT, PadInc, 2,   OverlapC, 0, TileCons, "In"),
 			KerArg ("Bias",   KerArgSpace(1,D1),    O_IN|O_DB|O_CONST,   1,      1,                                         2,          0, 0,        0, "Bias"),
 			KerArg ("Filter", KerArgSpace(2,D1,D0), O_IN|O_DB|O_CONST,  Fcx,   Fcy,                                         2,          0, 0,        0, "Filter"),
 			KerArg ("Out",    KerArgSpace(2,T0,D1), O_OUT|O_DB,          Wo,    Ho,                                         2,          0, 0,        0, "Out"),
 			(PoolKerName==0)?AT_NO_KER_ARG:
-			KerArgP("ConvOut",KerArgSpace(2,T0,D1), O_BUFF|O_ONETILE,    Wc,    Hc,  UsedWc, UsedHc, PadInp, PadInp,        2,   OverlapP, 0,        0, "")
+			KerArgP("ConvOut",KerArgSpace(2,T0,D1), O_BUFF|O_ONETILE,    Wc,    Hc,  UsedWc, UsedHc, PadInp, PadInp,        2,   OverlapP, 0,        0, ""),
+                        (CustomInfos)?
+                        KerArg ("CustomInfos",KerArgSpace(1,T0),O_IN|O_BUFF|O_NTILED|O_CONST, CustomInfos,   1,  	                1,          0, 0,        0, "CustomInfos"):AT_NO_KER_ARG
 		)
 	);
 	if (Kernel) {
@@ -873,6 +890,8 @@ Kernel_T *CNN_MM_ConvolutionPoolAct_fp16_Internal(
                 AddKernelFloatArgDim(Name, "Filter", 5, OutFeat, InFeat, Fcx, Fcy, 2);
                 AddKernelFloatArgDim(Name, "Bias", 2, OutFeat, 2);
                 AddKernelFloatArgDim(Name, "Out", 4, Ho, Wo, OutFeat, 2);
+                if (CustomInfos)
+        		AddKernelArgDim(Name, "CustomInfos", 2, CustomInfos, 1);
 
 		if (Ctrl && (Ctrl->Out_L3)) SetKerArgInL3(Name, "Out");
                 AT_PrepareForTest(Name,
@@ -930,6 +949,7 @@ Kernel_T *CNN_HWC_DWConvolutionPoolAct_fp16_Internal(
         float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
 	Tile_Orientation_T TileOrientation = TILE_HOR;
 	AT_PadType PadType = PAD_BALANCED_LEFT;
+        int CustomInfos=0;
 	if (PoolOper==KOP_NONE) {
 		Fpx=1; Dpx=1; Spx=1; Fpy=1; Dpy=1; Spy=1;
 	}
@@ -937,6 +957,9 @@ Kernel_T *CNN_HWC_DWConvolutionPoolAct_fp16_Internal(
 		if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
 		if (Ctrl->PadType != -1) PadType = Ctrl->PadType;
                 if (Ctrl->ReluN != -1) UB = Ctrl->ReluN;
+                if (ActOper == KOP_CUSTOM) {
+                        CustomInfos = Ctrl->CustomActivationInfos;
+                }
 	}
 	unsigned int Bs = 2;
 	KernelOper_T COper = ConvOper;
@@ -958,7 +981,7 @@ Kernel_T *CNN_HWC_DWConvolutionPoolAct_fp16_Internal(
 		GenTilingError("CNN_HWC_DWConvolutionPoolAct_fp16: %s, ConvOper, expecting KOP_CONV", Name);
 	if (!(PoolOper == KOP_NONE || PoolOper == KOP_MAXPOOL || PoolOper == KOP_AVGPOOL))
 		GenTilingError("CNN_HWC_DWConvolutionPoolAct_fp16: %s, PoolOper, expecting KOP_NONE, KOP_MAXPOOL or KOP_AVGPOOL", Name);
-	if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+	if (!(ActOper == KOP_NONE  || ActOper == KOP_CUSTOM || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
 		GenTilingError("CNN_HWC_DWConvolutionPoolAct_fp16: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
         if (InFeat != OutFeat) GenTilingError("CNN_HWC_DWConvolutionPoolAct_fp16: %s, Depth wise convolution requested with InFeat:%d != OutFeat:%d", Name, InFeat, OutFeat);
 
@@ -1021,8 +1044,13 @@ Kernel_T *CNN_HWC_DWConvolutionPoolAct_fp16_Internal(
 		if (PoolKerName==0) GenTilingError("CNN_HWC_DWConvolutionPoolAct_fp16: %s, Can't find a matching Pooling %s basic kernel", Name, ActOper?"with linear rectification":"");
 	}
 	if (ActOper && StandAloneAct) {
-		ActKerName = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
-		if (ActKerName==0) GenTilingError("CNN_HWC_DWConvolutionPoolAct_fp16: %s, Can't find a matching Activation basic kernel", Name);
+                if (ActOper == KOP_CUSTOM) {
+                        if (!Ctrl||!Ctrl->CustomActivationName) GenTilingError("CNN_HWC_DWConvolutionPoolAct_fp16: %s, ActOper is KOP_CUSTOM but no kernel name supplied", Name);
+                        ActKerName = Ctrl->CustomActivationName;
+                } else {
+                        ActKerName = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
+                        if (ActKerName==0) GenTilingError("CNN_HWC_DWConvolutionPoolAct_fp16: %s, Can't find a matching Activation basic kernel", Name);
+                }
 	}
 
 	if (Log) {
@@ -1049,11 +1077,12 @@ Kernel_T *CNN_HWC_DWConvolutionPoolAct_fp16_Internal(
         Kernel_T *Kernel = UserKernel(Name,
 		KernelIterSpace(2, IterTiledSpace(T0), IterParSpace(D0, InFeat, 8)),
                 TileOrientation,
-                CArgs(4,
+                CArgs(5,
                       TCArg(CNN_ArgDataTypeF(2,1,1), "In"),
                       TCArg(CNN_ArgDataTypeF(2,1,1), "Filter"),
                       TCArg(CNN_ArgDataTypeF(2,1,1), "Bias"),
-                      TCArg(CNN_ArgDataTypeF(2,1,1), "Out")
+                      TCArg(CNN_ArgDataTypeF(2,1,1), "Out"),
+                      (CustomInfos)?TCArg(CNN_ArgDataType(1,1,1),  "CustomInfos"):AT_NO_C_ARG
                 ),
 		Calls(5,
 			Call(MatPermInKerName, LOC_D0,
@@ -1116,7 +1145,10 @@ Kernel_T *CNN_HWC_DWConvolutionPoolAct_fp16_Internal(
 					K_ArgPar("Out", KER_ARG_PARTILE_SIZE, D0),				/* Number of Features */
 					K_Arg("Out", KER_ARG_TILE_W),						/* Input tile width */
 					K_Arg("Out", KER_ARG_TILE_H),						/* Input tile height */
-					BindKExpr("UB")								/* ReLUN upper bound */
+                                        (ActOper==KOP_CUSTOM)?
+                                        ((CustomInfos)?
+                                        K_Arg("CustomInfos", KER_ARG_TILE):AT_NO_ARG_BINDING)                   /* Infos */
+                                        :BindKExpr("UB")                                                        /* ReLUN upper bound */
 				)
 			),
                         Call(MatPermOutKerName, LOC_D0,
@@ -1131,13 +1163,15 @@ Kernel_T *CNN_HWC_DWConvolutionPoolAct_fp16_Internal(
                                 )
                         )
 		),
-		KerArgs(6,
+		KerArgs(7,
 			KerArgP("In",     KerArgSpace(2,T0,D0), O_IN|O_DB,       Width, Height, UsedWidth, UsedHeight, PadIncT, PadInc, 2,   OverlapC, 0, TileCons, "In"),
 			KerArgP("PermOut",KerArgSpace(2,D0,T0), O_BUFF|O_ONETILE,Width, Height, UsedWidth, UsedHeight, PadIncT, PadInc, 2,   OverlapC, 0,        0, ""),
 			KerArg ("Bias",   KerArgSpace(1,D0),    O_IN|O_DB|O_CONST,   1,      1,                                         2,          0, 0,        0, "Bias"),
 			KerArg ("Filter", KerArgSpace(1,D0),    O_IN|O_DB|O_CONST,  Fcx,   Fcy,                                         2,          0, 0,        0, "Filter"),
 			KerArg ("Out",    KerArgSpace(2,T0,D0), O_OUT|O_DB,          Wo,    Ho,                                         2,          0, 0,        0, "Out"),
-			KerArgP("ConvOut",KerArgSpace(2,T0,D0), O_BUFF|O_ONETILE,    Wc,    Hc,  UsedWc, UsedHc, PadInp, PadInp,        2,   OverlapP, 0,        0, "")
+			KerArgP("ConvOut",KerArgSpace(2,T0,D0), O_BUFF|O_ONETILE,    Wc,    Hc,  UsedWc, UsedHc, PadInp, PadInp,        2,   OverlapP, 0,        0, ""),
+                        (CustomInfos)?
+                        KerArg ("CustomInfos",KerArgSpace(1,T0),O_IN|O_BUFF|O_NTILED|O_CONST, CustomInfos,   1,  	                1,          0, 0,        0, "CustomInfos"):AT_NO_KER_ARG
 		)
 	);
 	if (Kernel) {
@@ -1147,6 +1181,8 @@ Kernel_T *CNN_HWC_DWConvolutionPoolAct_fp16_Internal(
                 AddKernelFloatArgDim(Name, "Filter", 4, InFeat, Fcx, Fcy, 2);
                 AddKernelFloatArgDim(Name, "Bias", 2, InFeat, 2);
                 AddKernelFloatArgDim(Name, "Out", 4, Ho, Wo, InFeat, 2);
+                if (CustomInfos)
+        		AddKernelArgDim(Name, "CustomInfos", 2, CustomInfos, 1);
 
 		if (Ctrl && (Ctrl->Out_L3)) SetKerArgInL3(Name, "Out");
                 AT_PrepareForTest(Name,
@@ -1235,13 +1271,19 @@ Kernel_T *CNN_ConvolutionPoolAct_fp16_Internal(
         float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
         Tile_Orientation_T TileOrientation = TILE_HOR;
         AT_PadType PadType = PAD_BALANCED_LEFT;
+        int CustomInfos = 0;
+	unsigned char Compressed[4] = {0, 0, 0, 0};
 
         if (Ctrl) {
+		if (Ctrl->CompressedInputBits) *((int *)&Compressed[0]) = Ctrl->CompressedInputBits;
                 if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
                 if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
                 if (Ctrl->PadType != -1) PadType = Ctrl->PadType;
 		if (Ctrl->HWC != -1) HWC = Ctrl->HWC;
                 if (Ctrl->ReluN != -1) UB = Ctrl->ReluN;
+                if (ActOper == KOP_CUSTOM) {
+                        CustomInfos = Ctrl->CustomActivationInfos;
+                }
         }
         if (ConvOper == KOP_CONV && Width  == 1 && Fcy > 1 && Fcx == 1) {
                 // It's a 1D so swap x and y dimensions
@@ -1307,7 +1349,7 @@ Kernel_T *CNN_ConvolutionPoolAct_fp16_Internal(
                 GenTilingError("CNN_ConvolutionPoolAct_fp16 Kernel: %s, ConvOper, expecting KOP_NONE, KOP_CONV or KOP_CONV_DW", Name);
         if (!(PoolOper == KOP_NONE || PoolOper == KOP_MAXPOOL || PoolOper == KOP_AVGPOOL))
                 GenTilingError("CNN_ConvolutionPoolAct_fp16 Kernel: %s, PoolOper, expecting KOP_NONE, KOP_MAXPOOL or KOP_AVGPOOL", Name);
-        if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+        if (!(ActOper == KOP_NONE  || ActOper == KOP_CUSTOM || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
                 GenTilingError("CNN_ConvolutionPoolAct_fp16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
 
         if (DWConv && (InFeat != OutFeat)) GenTilingError("CNN_ConvolutionPoolAct_fp16 Kernel: %s, Depth wise convolution requested with InFeat:%d != OutFeat:%d", Name, InFeat, OutFeat);
@@ -1364,8 +1406,13 @@ Kernel_T *CNN_ConvolutionPoolAct_fp16_Internal(
                 if (PoolKerName==0) GenTilingError("CNN_ConvolutionPoolAct_fp16 Kernel: %s, Can't find a matching Pooling %s basic kernel", Name, ActOper?"with linear rectification":"");
         }
         if (ActOper && StandAloneAct) {
-                ActKerName = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, ParFeat, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
-                if (ActKerName==0) GenTilingError("CNN_ConvolutionPoolAct_fp16 Kernel: %s, Can't find a matching Activation basic kernel", Name);
+                if (ActOper == KOP_CUSTOM) {
+                        if (!Ctrl||!Ctrl->CustomActivationName) GenTilingError("CNN_ConvolutionPoolAct_fp16: %s, ActOper is KOP_CUSTOM but no kernel name supplied", Name);
+                        ActKerName = Ctrl->CustomActivationName;
+                } else {
+                        ActKerName = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, ParFeat, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
+                        if (ActKerName==0) GenTilingError("CNN_ConvolutionPoolAct_fp16 Kernel: %s, Can't find a matching Activation basic kernel", Name);
+                }
         }
         if (Log) {
 		GenTilingDebug("InFeat: %d, OutFeat: %d%s - TileOrientation: %s\n", InFeat, OutFeat, HWC?", HWC":", CHW", TileOrientation==TILE_HOR?"TILE_HOR":"TILE_VER");
@@ -1401,24 +1448,42 @@ Kernel_T *CNN_ConvolutionPoolAct_fp16_Internal(
         }
 
 	/* User kernel C arguments */
-	CKernel_Arg_T **KCArgs = AllocateCArgs(4);
+	CKernel_Arg_T **KCArgs = AllocateCArgs((CustomInfos)?5:4);
 	int Ca=0;
 
 	KCArgs[Ca++] = TCArg(CNN_ArgDataTypeF(2,1,1),     "In");
 	KCArgs[Ca++] = TCArg(CNN_ArgDataTypeF(2,1,1), "Filter");
 	KCArgs[Ca++] = TCArg(CNN_ArgDataTypeF(2,1,1),   "Bias");
        	KCArgs[Ca++] = TCArg(CNN_ArgDataTypeF(2,1,1),    "Out");
+        if (CustomInfos)
+               	KCArgs[Ca++] = TCArg(CNN_ArgDataType(1,1,1),  "CustomInfos");
 
 	/* User kernel kernel arguments */
-	Object_T **KArgs = AllocateKerArgs(4+(PoolOper!=0));
+	Object_T **KArgs = AllocateKerArgs(4+(PoolOper!=0)+(CustomInfos!=0));
 	int Ka=0;
 
 	KArgs[Ka++] = KerArgP("In",     KerArgSpace(2,D0,T0), F|O_IN|O_DB,         Width, Height, UsedWidth, UsedHeight, PadIncT, PadInc, 2, 	   OverlapC, 0, TileCons, "In");
 	KArgs[Ka++] = KerArg ("Bias",   KerArgSpace(1,Os),    F|O_IN|O_DB|O_CONST, 1,     1,                       		 	2,         0,        0,        0, "Bias");
-	if (DWConv) 
+
+	if (DWConv)
+	{
+	if (Compressed[1])
+	KArgs[Ka++] = KerArgC ("Filter", KerArgSpace(1,Os),    F|O_IN|O_DB|O_CONST, 1,     1,                       			Fcx*Fcy*2,
+				LUTInfo(Compressed[1]&0x7f, 1, Compressed[1]&0x80),
+																		   0,        0,        0, "Filter");
+	else
 	KArgs[Ka++] = KerArg ("Filter", KerArgSpace(1,Os),    F|O_IN|O_DB|O_CONST, 1,     1,                       			Fcx*Fcy*2, 0,        0,        0, "Filter");
-	else 
+	}
+	else
+	{
+	if (Compressed[1])
+	KArgs[Ka++] = KerArgC ("Filter", KerArgSpace(2,Os,D0), F|O_IN|O_DB|O_CONST, 1,     1,                       			Fcx*Fcy*2,
+				LUTInfo(Compressed[1]&0x7f, 1, Compressed[1]&0x80),
+																		   0,        0,        0, "Filter");
+	else
 	KArgs[Ka++] = KerArg ("Filter", KerArgSpace(2,Os,D0), F|O_IN|O_DB|O_CONST, 1,     1,                       			Fcx*Fcy*2, 0,        0,        0, "Filter");
+	}
+
        	KArgs[Ka++] = KerArg ("Out",    KerArgSpace(2,Os,T0), F|O_OUT|O_DB,        Wo,    Ho,                      			2,         0,        0,        0, "Out");
 
 	if (PoolOper) {
@@ -1428,6 +1493,8 @@ Kernel_T *CNN_ConvolutionPoolAct_fp16_Internal(
 	KArgs[Ka++] = KerArgP("ConvOut",KerArgSpace(1,T0),    F|O_BUFF|O_ONETILE,  Wc,    Hc,     UsedWc, UsedHc, PadInp, PadInp, 	2,         OverlapP, 0,        0,  "");
 		}
 	}
+        if (CustomInfos)
+                KArgs[Ka++] = KerArg ("CustomInfos",  KerArgSpace(1,T0), O_IN|O_BUFF|O_NTILED|O_CONST,  CustomInfos, 1, 1, 0, 0, 0, "CustomInfos");
 
         UserSymbols(1, US_Float("UB", UB));
         Kernel_T *Kernel = UserKernel(Name,
@@ -1502,7 +1569,10 @@ Kernel_T *CNN_ConvolutionPoolAct_fp16_Internal(
                                         ParFeat?K_ArgPar("Out", KER_ARG_PARTILE_SIZE, Os):Imm(1),         		/* Number of features in this tile */
                                         K_Arg("Out", KER_ARG_TILE_W),                                         		/* Tile width */
                                         K_Arg("Out", KER_ARG_TILE_H),                                          		/* Tile height */
-					BindKExpr("UB")									/* Act = RelUN, upper bound */
+                                        (ActOper==KOP_CUSTOM)?
+                                        ((CustomInfos)?
+                                        K_Arg("CustomInfos", KER_ARG_TILE):AT_NO_ARG_BINDING)                   /* Infos */
+                                        :BindKExpr("UB")                                                        /* ReLUN upper bound */
                                 )
                         )
                      ),
@@ -1516,6 +1586,8 @@ Kernel_T *CNN_ConvolutionPoolAct_fp16_Internal(
 		if (DWConv) AddKernelFloatArgDim(Name, "Filter", 4, InFeat, Fcx, Fcy, 2); else AddKernelFloatArgDim(Name, "Filter", 5, OutFeat, InFeat, Fcx, Fcy, 2);
 		AddKernelFloatArgDim(Name, "Bias", 2, OutFeat, 2);
 		AddKernelFloatArgDim(Name, "Out", 4, OutFeat, Ho, Wo, 2);
+                if (CustomInfos)
+        		AddKernelArgDim(Name, "CustomInfos", 2, CustomInfos, 1);
 
 		AT_PrepareForTest(Name,
 				  (v4s) {2, 2, 2, 2},
@@ -1608,12 +1680,19 @@ int CNN_GroupedConvolutionPoolAct_fp16(
 	KernelGroup_T *UKGroup;
 	int g, Wc, Hc, Wo, Ho;
 	int NGroups = InFeat/GroupIn;
+        int CustomInfos = 0;
+
+        if (Ctrl) {
+                if (ActOper == KOP_CUSTOM) {
+                        CustomInfos = Ctrl->CustomActivationInfos;
+                }
+	}
 
         if (!(ConvOper == KOP_CONV))
                 GenTilingError("CNN_GroupedConvolutionPoolAct_fp16: Kernel: %s, ConvOper, expecting KOP_NONE, KOP_CONV or KOP_CONV_DW", Name);
         if (!(PoolOper == KOP_NONE || PoolOper == KOP_MAXPOOL || PoolOper == KOP_AVGPOOL))
                 GenTilingError("CNN_GroupedConvolutionPoolAct_fp16: Kernel: %s, PoolOper, expecting KOP_NONE, KOP_MAXPOOL or KOP_AVGPOOL", Name);
-        if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+        if (!(ActOper == KOP_NONE  || ActOper == KOP_CUSTOM || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
                 GenTilingError("CNN_GroupedConvolutionPoolAct_fp16: Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
 
 	CNN_LayerOutputDim(Width, Height, ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad,
@@ -1634,19 +1713,27 @@ int CNN_GroupedConvolutionPoolAct_fp16(
 			);
 	CloseKernelGroup();
 
-	CKernel_Arg_T **KCArgs = AllocateCArgs(4);
+	CKernel_Arg_T **KCArgs = AllocateCArgs(4 + (CustomInfos != 0));
 	int Ca=0;
 	KCArgs[Ca++] = TCArg(CNN_ArgDataTypeF(2,1,1),     "In");
 	KCArgs[Ca++] = TCArg(CNN_ArgDataTypeF(2,1,1), "Filter");
 	KCArgs[Ca++] = TCArg(CNN_ArgDataTypeF(2,1,1),   "Bias");
        	KCArgs[Ca++] = TCArg(CNN_ArgDataTypeF(2,1,1),    "Out");
+        if (CustomInfos)
+               	KCArgs[Ca++] = TCArg(CNN_ArgDataType(1,         1,1), "CustomInfos");
 
-	Object_T **KArgs = AllocateKerArgs(4);
+	Object_T **KArgs = AllocateKerArgs(4 + (CustomInfos != 0));
 	int Ka=0;
-	KArgs[Ka++] = KerGroupArg("In",	    O_IN,  NGroups*GroupIn*Width*Height,     2,     "In");
-	KArgs[Ka++] = KerGroupArg("Filter", O_IN,  NGroups*GroupIn*GroupOut*Fcx*Fcy, 2, "Filter");
-	KArgs[Ka++] = KerGroupArg("Bias",   O_IN,  NGroups*GroupOut,                 2,   "Bias");
-	KArgs[Ka++] = KerGroupArg("Out",    O_OUT, NGroups*GroupOut*Wo*Ho,           2,    "Out");
+	KArgs[Ka++] = KerGroupArg("In",	    O_IN,  GroupIn*Width*Height,     2,     "In");
+	KArgs[Ka++] = KerGroupArg("Filter", O_IN,  GroupIn*GroupOut*Fcx*Fcy, 2, "Filter");
+	KArgs[Ka++] = KerGroupArg("Bias",   O_IN,  GroupOut,                 2,   "Bias");
+	KArgs[Ka++] = KerGroupArg("Out",    O_OUT, GroupOut*Wo*Ho,           2,    "Out");
+        if (CustomInfos)
+        	KArgs[Ka++] = KerGroupArg("CustomInfos",  O_IN|O_NTILED,  CustomInfos,        1, "CustomInfos");
+
+	KerDynamicSymbols(8, US_Int("GroupIn", GroupIn), US_Int("GroupOut", GroupOut), US_Int("Width", Width), US_Int("Height", Height),
+                             US_Int("Wo", Wo), US_Int("Ho", Ho),
+                             US_Int("Fcx", Fcx), US_Int("Fcy", Fcy));
 
         UKGroup = UserKernelGroupK(Name,
 		NGroups,
@@ -1654,11 +1741,12 @@ int CNN_GroupedConvolutionPoolAct_fp16(
 		0,
 		Calls(1,
 		      UserKernelCall(BodyName, LOC_GROUP,
-				Bindings(4,
-					KG_ArgOper("In",     '*', GroupIn*Width*Height*2),
-					KG_ArgOper("Filter", '*', GroupIn*GroupOut*Fcx*Fcy*2),
-					KG_ArgOper("Bias",   '*', GroupOut*2),
-					KG_ArgOper("Out",    '*', GroupOut*Wo*Ho*2)
+				Bindings(5,
+					BindKGExpr("KArg(In, Name) + GroupIn*Width*Height * KArg(In, TileIndex)"),
+					BindKGExpr("KArg(Filter, Name) + GroupIn*GroupOut*Fcx*Fcy * KArg(Filter, TileIndex)"),
+					BindKGExpr("KArg(Bias, Name) + GroupOut * KArg(Bias, TileIndex)"),
+					BindKGExpr("KArg(Out, Name) + GroupOut*Wo*Ho * KArg(Out, TileIndex)"),
+					(CustomInfos)?KG_ArgOper("CustomInfos",  '+', 0):AT_NO_ARG_BINDING
 				)
 			)
 		),
@@ -1726,12 +1814,16 @@ Kernel_T *CNN_PoolAct_fp16_Internal(
         int ParFeat = 1, HWC = 0;
         float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
         AT_PadType PadType = PAD_BALANCED_LEFT;
+        int CustomInfos = 0;
         if (Ctrl) {
                 if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
                 if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
                 if (Ctrl->PadType != -1) PadType = Ctrl->PadType;
 		if (Ctrl->HWC) HWC = 1;
                 if (Ctrl->ReluN != -1) UB = Ctrl->ReluN;
+                if (ActOper == KOP_CUSTOM) {
+                        CustomInfos = Ctrl->CustomActivationInfos;
+                }
         }
 	int F = O_FLOAT;
         int TileCons, NeedFpx=0, NeedFpy=0, NeedDpx=0, NeedDpy=0, NeedSpx=0, NeedSpy=0, OverlapP;
@@ -1749,7 +1841,7 @@ Kernel_T *CNN_PoolAct_fp16_Internal(
 
         if (!(PoolOper == KOP_MAXPOOL || PoolOper == KOP_AVGPOOL))
                 GenTilingError("CNN_Pool_fp16 Kernel: %s, PoolOper, expecting KOP_MAXPOOL or KOP_AVGPOOL", Name);
-        if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+        if (!(ActOper == KOP_NONE || ActOper == KOP_CUSTOM || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
                 GenTilingError("CNN_Pool_fp16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
 
         /* Set Kernel characteristics */
@@ -1770,8 +1862,13 @@ Kernel_T *CNN_PoolAct_fp16_Internal(
         if (PoolKerName==0) GenTilingError("CNN_Pool_fp16 Kernel: %s, Can't find a matching Pooling basic kernel", Name);
 
         if (ActOper && StandAloneAct) {
-		ActKerName = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
-                if (ActKerName==0) GenTilingError("CNN_Pool_fp16 Kernel: %s, Can't find a matching Activation basic kernel", Name);
+                if (ActOper == KOP_CUSTOM) {
+                        if (!Ctrl||!Ctrl->CustomActivationName) GenTilingError("CNN_MM_ConvolutionPoolAct_fp16: %s, ActOper is KOP_CUSTOM but no kernel name supplied", Name);
+                        ActKerName = Ctrl->CustomActivationName;
+                } else {
+                        ActKerName = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
+                        if (ActKerName==0) GenTilingError("CNN_Pool_fp16 Kernel: %s, Can't find a matching Activation basic kernel", Name);
+                }
         }
 
         if (PoolOper) LayerOp += InFeat*Wo*Ho*Fpx*Fpy;
@@ -1791,12 +1888,14 @@ Kernel_T *CNN_PoolAct_fp16_Internal(
                 GenTilingDebug("Nb Oper : %lld\n", LayerOp);
         }
 
-	CKernel_Arg_T **KCArgs = AllocateCArgs(2);
+	CKernel_Arg_T **KCArgs = AllocateCArgs(2 + (CustomInfos!=0));
 	int Ca=0;
 	KCArgs[Ca++] = TCArg(CNN_ArgDataTypeF(2,1,1),     "In");
        	KCArgs[Ca++] = TCArg(CNN_ArgDataTypeF(2,1,1),    "Out");
+        if (CustomInfos)
+               	KCArgs[Ca++] = TCArg(CNN_ArgDataType(1,1,1),  "CustomInfos");
 
-	Object_T **KArgs = AllocateKerArgs(2);
+	Object_T **KArgs = AllocateKerArgs(2 + (CustomInfos!=0));
 	int Ka=0;
 	if (HWC==0) {
 		KArgs[Ka++] = KerArgP("In",  KerArgSpace(2,D0,T0), F|OBJ_IN_DB,   Width, Height, UsedWidth, UsedHeight, PadInp,PadInp, 2,  OverlapP, 0, TileCons, "In");
@@ -1805,6 +1904,8 @@ Kernel_T *CNN_PoolAct_fp16_Internal(
 		KArgs[Ka++] = KerArgP("In",  KerArgSpace(2,T0,D0), F|OBJ_IN_DB,   Width, Height, UsedWidth, UsedHeight, PadInp,PadInp, 2,  OverlapP, 0, TileCons, "In");
 		KArgs[Ka++] = KerArg ("Out", KerArgSpace(2,T0,D0), F|OBJ_OUT_DB,     Wo,     Ho,                     		       2,         0, 0,        0, "Out");
 	}
+        if (CustomInfos)
+                KArgs[Ka++] = KerArg ("CustomInfos",  KerArgSpace(1,T0),    O_IN|O_BUFF|O_NTILED|O_CONST,  CustomInfos,   1,  	                1,        0, 0,        0, "CustomInfos");
 
         UserSymbols(1, US_Float("UB", UB));
         Kernel_T *Kernel = UserKernel(Name,
@@ -1858,7 +1959,10 @@ Kernel_T *CNN_PoolAct_fp16_Internal(
                                         ParFeat?K_ArgPar("Out", KER_ARG_PARTILE_SIZE, D0):Imm(1),       /* Number of features in this tile */
                                         K_Arg("Out", KER_ARG_TILE_W),                                   /* Tile width */
                                         K_Arg("Out", KER_ARG_TILE_H),                                   /* Tile height */
-					BindKExpr("UB")							/* Activation upper bound, if ReLUN */
+                                        (ActOper==KOP_CUSTOM)?
+                                        ((CustomInfos)?
+                                        K_Arg("CustomInfos", KER_ARG_TILE):AT_NO_ARG_BINDING)                   /* Infos */
+                                        :BindKExpr("UB")                                                        /* ReLUN upper bound */
                                 )
 		        )
                      ),
@@ -1870,6 +1974,8 @@ Kernel_T *CNN_PoolAct_fp16_Internal(
 
 		AddKernelFloatArgDim(Name, "In", 4, InFeat, Height, Width, 2);
 		AddKernelFloatArgDim(Name, "Out", 4, OutFeat, Ho, Wo, 2);
+                if (CustomInfos)
+        		AddKernelArgDim(Name, "CustomInfos", 2, CustomInfos, 1);
 
 		AT_PrepareForTest(Name,
 				  (v4s) {2, 0, 0, 2},
@@ -1932,26 +2038,35 @@ static Kernel_T *CNN_GlobalPoolAct_fp16_Internal(
 	unsigned long long int LayerOp = 0;
 	unsigned long long int LayerBandwidth = 0;
 	int Log=1;
+        int CustomInfos = 0;
 
         if (Ctrl) {
 		if (Ctrl->HWC) HWC = 1;
                 if (Ctrl->ReluN != -1) UB = Ctrl->ReluN;
+                if (ActOper == KOP_CUSTOM) {
+                        CustomInfos = Ctrl->CustomActivationInfos;
+                }
         }
 	int KerLayout = CALL_FLOAT_KER|(HWC?CALL_HWC_KER:0);
 
 	if (!(PoolOper == KOP_GLOBAL_MAXPOOL || PoolOper == KOP_GLOBAL_AVGPOOL))
-		GenTilingError("CNN_GlobalPool Kernel: %s, PoolOper should be KOP_GLOBAL_MAXPOOL or KOP_GLOBAL_AVGPOOL", Name);
+		GenTilingError("CNN_GlobalPoolAct_fp16 Kernel: %s, PoolOper should be KOP_GLOBAL_MAXPOOL or KOP_GLOBAL_AVGPOOL", Name);
 	if (InFeat != OutFeat) GenTilingError("CNN_GlobalPool Kernel: %s, InFeat:%d != OutFeat:%d", Name, InFeat, OutFeat);
 	PoolKerName = CNN_FindMatchingKernelAttr(PoolOper, ActOper, ParFeat, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         if (PoolKerName) StandAloneAct = 0;
         else if (StandAloneAct) PoolKerName = CNN_FindMatchingKernelAttr(PoolOper, KOP_NONE, ParFeat, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         if (PoolKerName==0) GenTilingError("CNN_GlobalPoolAct_fp16 Kernel: %s, Can't find a matching Pooling basic kernel", Name);
 
-        if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+        if (!(ActOper == KOP_NONE || ActOper == KOP_CUSTOM || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
                 GenTilingError("CNN_GlobalPoolAct_fp16 Kernel: %s, ActOper, expecting KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
         if (StandAloneAct) {
-                ActKerName = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-                if (ActKerName==0) GenTilingError("CNN_GlobalPoolAct_fp16 Kernel: %s, Can't find a matching Activation basic kernel", Name);
+                if (ActOper == KOP_CUSTOM) {
+                        if (!Ctrl||!Ctrl->CustomActivationName) GenTilingError("CNN_GlobalPoolAct_fp16: %s, ActOper is KOP_CUSTOM but no kernel name supplied", Name);
+                        ActKerName = Ctrl->CustomActivationName;
+                } else {
+                        ActKerName = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+                        if (ActKerName==0) GenTilingError("CNN_GlobalPoolAct_fp16 Kernel: %s, Can't find a matching Activation basic kernel", Name);
+                }
         }
 
         Wo = 1; Ho = 1;
@@ -1974,9 +2089,10 @@ static Kernel_T *CNN_GlobalPoolAct_fp16_Internal(
       	UserKernel(Name,
 		KernelIterSpace(2, IterParSpace(D0, InFeat, 8), IterTiledSpace(T0)),
                	TileOrientation,
-               	CArgs(2,
+               	CArgs(3,
 			TCArg(CNN_ArgDataTypeF(2,1,1), "In"),
-			TCArg(CNN_ArgDataTypeF(2,1,1), "Out")
+			TCArg(CNN_ArgDataTypeF(2,1,1), "Out"),
+                        (CustomInfos)?TCArg(CNN_ArgDataType(1,1,1),  "CustomInfos"):AT_NO_C_ARG
                 ),
 		Calls(2,
 			Call(PoolKerName, LOC_LOOP,
@@ -1997,13 +2113,18 @@ static Kernel_T *CNN_GlobalPoolAct_fp16_Internal(
                                         K_ArgPar("Out", KER_ARG_PARTILE_SIZE, D0),                      /* Number of features in this tile */
                                         Imm(1),                                                         /* Tile width */
                                         Imm(1),                                                         /* Tile height */
-					BindKExpr("UB")							/* Activation upper bound, if ReLUN */
+                                        (ActOper==KOP_CUSTOM)?
+                                        ((CustomInfos)?
+                                        K_Arg("CustomInfos", KER_ARG_TILE):AT_NO_ARG_BINDING)                   /* Infos */
+                                        :BindKExpr("UB")                                                        /* ReLUN upper bound */
                                 )
 		        )
                 ),
-                KerArgs(2,
+                KerArgs(3,
 			KerArg("In",     KerArgSpace(2,D0,T0), F|OBJ_IN_DB,   Width, Height, 2,  0, 0, 0, "In"),
-                        KerArg("Out",    KerArgSpace(1,D0),    F|OBJ_OUT_DB,      1,      1, 2,  0, 0, 0, "Out")
+                        KerArg("Out",    KerArgSpace(1,D0),    F|OBJ_OUT_DB,      1,      1, 2,  0, 0, 0, "Out"),
+                        (CustomInfos)?
+                        KerArg ("CustomInfos",KerArgSpace(1,T0),O_IN|O_BUFF|O_NTILED|O_CONST, CustomInfos,   1, 1, 0, 0, 0, "CustomInfos"):AT_NO_KER_ARG
 		)
 	);
 	if (Kernel) {
@@ -2012,6 +2133,8 @@ static Kernel_T *CNN_GlobalPoolAct_fp16_Internal(
 
 		AddKernelFloatArgDim(Name, "In", 4, InFeat, Height, Width, 2);
 		AddKernelFloatArgDim(Name, "Out", 4, OutFeat, 1, 1, 2);
+                if (CustomInfos)
+        		AddKernelArgDim(Name, "CustomInfos", 2, CustomInfos, 1);
 
 		AT_PrepareForTest(Name,
 				  (v4s) {2, 0, 0, 2},
@@ -2177,10 +2300,14 @@ Kernel_T *CNN_LinearAct_fp16_Internal(
 	Tile_Orientation_T TileOrientation = TILE_HOR;
 	int ParFeat = 1;
 	float UB = (ActOper==KOP_HSIGMOID)?3.0:6.0; // In Case of HSIGMOID, UB is the Offset (default: 3.0)
+        int CustomInfos = 0;
 	if (Ctrl) {
 		if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
 		if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
 		if (Ctrl->ReluN != -1) UB = Ctrl->ReluN;
+                if (ActOper == KOP_CUSTOM) {
+                        CustomInfos = Ctrl->CustomActivationInfos;
+                }
 	}
 	int F = O_FLOAT;
 	KernelOper_T KernelOper = CNN_CompositeKernel(LinearOper, ActOper, KOP_NONE);
@@ -2190,9 +2317,15 @@ Kernel_T *CNN_LinearAct_fp16_Internal(
 	if (LinearOper != KOP_LINEAR) GenTilingError("CNN_LinearAct_fp16 Kernel: %s, only KOP_LINEAR should be used as LinearOper argument", Name);
 
 	char *ActKerName = 0;
-	char *LinearKerName = CNN_FindMatchingKernelAttr(LinearOper, ActOper, ParFeat, CALL_FLOAT_KER, 2, 2, 2, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
+	char *LinearKerName = CNN_FindMatchingKernelAttr(LinearOper, (ActOper==KOP_CUSTOM)?KOP_NONE:ActOper, ParFeat, CALL_FLOAT_KER, 2, 2, 2, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
+
 
 	if (LinearKerName==0) GenTilingError("CNN_LinearAct_fp16 Kernel: %s, Can't find a matching %s basic kernel", Name, ActOper?"with activation":"");
+
+        if (ActOper == KOP_CUSTOM) {
+                if (!Ctrl||!Ctrl->CustomActivationName) GenTilingError("CNN_LinearAct_fp16: %s, ActOper is KOP_CUSTOM but no kernel name supplied", Name);
+                ActKerName = Ctrl->CustomActivationName;
+        }
 
 	LayerOp += InDim*OutDim;
 	if (ActOper) LayerOp += OutDim;
@@ -2207,21 +2340,25 @@ Kernel_T *CNN_LinearAct_fp16_Internal(
 	}
 	Kernel_T *Kernel;
 
-	CKernel_Arg_T **KCArgs = AllocateCArgs(4);
+	CKernel_Arg_T **KCArgs = AllocateCArgs(4 + (CustomInfos!=0));
 	int Ca=0;
 	KCArgs[Ca++] = TCArg(CNN_ArgDataTypeF(2,1,1),     "In");
 	KCArgs[Ca++] = TCArg(CNN_ArgDataTypeF(2,1,1), "Filter");
 	KCArgs[Ca++] = TCArg(CNN_ArgDataTypeF(2,1,1),   "Bias");
        	KCArgs[Ca++] = TCArg(CNN_ArgDataTypeF(2,1,1),    "Out");
+        if (CustomInfos)
+               	KCArgs[Ca++] = TCArg(CNN_ArgDataType(1,1,1),  "CustomInfos");
 
 	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
 
-	Object_T **KArgs = AllocateKerArgs(4);
+	Object_T **KArgs = AllocateKerArgs(4 + (CustomInfos!=0));
 	int Ka=0;
 	KArgs[Ka++] = KerArg("In",      KerArgSpace(1,T0), F|O_IN|O_BUFF|O_NTILED,  1, 1,      InDim*2, 0, 0, 0, "In");
 	KArgs[Ka++] = KerArg("Filter",  KerArgSpace(1,D0), F|OBJ_IN_DB|O_CONST,     1, 1,      InDim*2, 0, 0, 0, "Filter");
 	KArgs[Ka++] = KerArg("Bias",    KerArgSpace(1,D0), F|OBJ_IN_DB|O_CONST,     1, 1,      2,       0, 0, 0, "Bias");
 	KArgs[Ka++] = KerArg("Out",     KerArgSpace(1,D0), F|OBJ_OUT_DB,            1, 1,      2,       0, 0, 0, "Out");
+        if (CustomInfos)
+                KArgs[Ka++] = KerArg ("CustomInfos",  KerArgSpace(1,T0), O_IN|O_BUFF|O_NTILED|O_CONST,  CustomInfos, 1, 1, 0, 0, 0, "CustomInfos");
 
         UserSymbols(1, US_Float("UB", UB));
         Kernel = UserKernel(Name,
@@ -2245,12 +2382,15 @@ Kernel_T *CNN_LinearAct_fp16_Internal(
 			(ActKerName==0)?AT_NO_CALL:
 			Call(ActKerName, LOC_LOOP,
                                 Bindings(6,
-                                        K_Arg("Out", KER_ARG_TILE),                                     /* Input tile */
-                                        K_Arg("Out", KER_ARG_TILE),                                     /* Output tile */
-                                        ParFeat?K_ArgPar("Out", KER_ARG_PARTILE_SIZE, D0):Imm(1),       /* Number of features in this tile */
-                                        K_Arg("Out", KER_ARG_TILE_W),                                   /* Tile width */
-                                        K_Arg("Out", KER_ARG_TILE_H),                                   /* Tile height */
-					BindKExpr("UB")					                /* Activation upper bound, if ReLUN */
+                                        K_Arg("Out", KER_ARG_TILE),                             /* Input tile */
+                                        K_Arg("Out", KER_ARG_TILE),                             /* Output tile */
+                                        K_ArgPar("Out", KER_ARG_PARTILE_SIZE, D0),              /* Number of features in this tile */
+                                        Imm(1),                                                 /* Tile width */
+                                        Imm(1),                                                 /* Tile height */
+                                        (ActOper==KOP_CUSTOM)?
+                                        ((CustomInfos)?
+                                        K_Arg("CustomInfos", KER_ARG_TILE):AT_NO_ARG_BINDING)   /* Infos */
+                                        :BindKExpr("UB")                                        /* ReLUN upper bound */
                                 )
 		        )
 		),
@@ -2264,18 +2404,20 @@ Kernel_T *CNN_LinearAct_fp16_Internal(
 			if (ActKerName)    GenTilingDebug("Act Kernel: %s\n", ActKerName);
 		}
 		/* First try with Input as a buffer in */
-		Object_T **KArgs = AllocateKerArgs(4);
+		Object_T **KArgs = AllocateKerArgs(4 + (CustomInfos!=0));
 		int Ka=0;
 		KArgs[Ka++] = KerArg("In",      KerArgSpace(1,T0), 	F|OBJ_BUFFER_IN,          1, InDim,  2, 0, 0, 0, "In");
 		KArgs[Ka++] = KerArg("Filter",  KerArgSpace(2,D0,T0), 	F|OBJ_IN_DB|O_CONST, 	1, InDim,  2, 0, 0, 0, "Filter");
 		KArgs[Ka++] = KerArg("Bias",    KerArgSpace(1,D0), 	F|OBJ_BUFFER_IN|O_CONST,  1, 1,      2, 0, 0, 0, "Bias");
 		KArgs[Ka++] = KerArg("Out",     KerArgSpace(1,D0), 	F|OBJ_BUFFER_OUT,         1, 1,      2, 0, 0, 0, "Out");
+                if (CustomInfos)
+                        KArgs[Ka++] = KerArg ("CustomInfos",  KerArgSpace(1,T0), O_IN|O_BUFF|O_NTILED|O_CONST,  CustomInfos, 1, 1, 0, 0, 0, "CustomInfos");
 
 	        Kernel = UserKernel(Name,
 			KernelIterSpace(2, IterFixedSpace(D0, OutDim), IterTiledSpace(T0)),
 	                TileOrientation,
                 	KCArgs,
-	                Calls(1,
+	                Calls(2,
 				Call(LinearKerName, LOC_LOOP,
 					Bindings(9,
 						K_Arg("In", KER_ARG_TILE),				/* Input tile */
@@ -2287,7 +2429,21 @@ Kernel_T *CNN_LinearAct_fp16_Internal(
 						BindKExpr("UB"),					/* Activation upper bound, if ReLUN */
 						Ker_IteratorIndex(T0)					/* Which tile index */
 					)
-				)
+				),
+                                (ActKerName==0)?AT_NO_CALL:
+                                Call(ActKerName, LOC_LOOP,
+                                        Bindings(6,
+                                                K_Arg("Out", KER_ARG_TILE),                                     /* Input tile */
+                                                K_Arg("Out", KER_ARG_TILE),                                     /* Output tile */
+                                                Imm(1),                                                         /* Number of features in this tile */
+                                                K_Arg("Out", KER_ARG_TILE_W),                                   /* Tile width */
+                                                K_Arg("Out", KER_ARG_TILE_H),                                   /* Tile height */
+                                                (ActOper==KOP_CUSTOM)?
+                                                ((CustomInfos)?
+                                                K_Arg("CustomInfos", KER_ARG_TILE):AT_NO_ARG_BINDING)                   /* Infos */
+                                                :BindKExpr("UB")                                                        /* ReLUN upper bound */
+                                        )
+                                )
 			),
 	                KArgs
 		);
@@ -2296,8 +2452,10 @@ Kernel_T *CNN_LinearAct_fp16_Internal(
 		if (Kernel==0) {
 			LinearKerName = CNN_FindMatchingKernelAttr(LinearOper, KOP_NONE, ParFeat, CALL_FLOAT_KER, 2, 2, 2, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
 			if (LinearKerName==0) GenTilingError("CNN_LinearAct_fp16 Kernel: %s, Can't find a Linear matching basic kernel", Name);
-			ActKerName    = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 2, 2, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
-			if (ActKerName==0) GenTilingError("CNN_LinearAct_fp16 Kernel: %s, Can't find an Activation matching basic kernel", Name);
+                        if (ActOper!=KOP_CUSTOM) {
+                                ActKerName    = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 2, 2, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
+                                if (ActKerName==0) GenTilingError("CNN_LinearAct_fp16 Kernel: %s, Can't find an Activation matching basic kernel", Name);
+                        }
 
 			if (Log) {
 				GenTilingDebug("Linear Layer %s, %s: InDim: %d, OutDim: %d, Activation: %s, Feature parallel with in buffered failed, switching to non buffered in form\n",
@@ -2306,12 +2464,14 @@ Kernel_T *CNN_LinearAct_fp16_Internal(
 				if (ActKerName)    GenTilingDebug("Act Kernel: %s\n", ActKerName);
 			}
 
-			Object_T **KArgs = AllocateKerArgs(4);
+			Object_T **KArgs = AllocateKerArgs(4 + (CustomInfos!=0));
 			int Ka=0;
 			KArgs[Ka++] = KerArg("In",      KerArgSpace(1,T0), F|OBJ_IN_DB,             1, InDim,  2,  0, 0, 0, "In");
 			KArgs[Ka++] = KerArg("Filter",  KerArgSpace(2,D0,T0), F|OBJ_IN_DB|O_CONST,  1, InDim,  2,  0, 0, 0, "Filter");
 			KArgs[Ka++] = KerArg("Bias",    KerArgSpace(1,D0), F|OBJ_BUFFER_IN|O_CONST, 1, 1,      2,  0, 0, 0, "Bias");
 			KArgs[Ka++] = KerArg("Out",     KerArgSpace(1,D0), F|OBJ_BUFFER_OUT,        1, 1,      2,  0, 0, 0, "Out");
+                        if (CustomInfos)
+                                KArgs[Ka++] = KerArg ("CustomInfos",  KerArgSpace(1,T0), O_IN|O_BUFF|O_NTILED|O_CONST,  CustomInfos, 1, 1, 0, 0, 0, "CustomInfos");
 
 		        Kernel = UserKernel(Name,
 				KernelIterSpace(2, IterFixedSpace(D0, OutDim), IterTiledSpace(T0)),
@@ -2334,10 +2494,13 @@ Kernel_T *CNN_LinearAct_fp16_Internal(
                                 		Bindings(6,
                                        	 		K_Arg("Out", KER_ARG_TILE),                                     /* Input tile */
                                         		K_Arg("Out", KER_ARG_TILE),                                     /* Output tile */
-                                        		ParFeat?K_ArgPar("Out", KER_ARG_PARTILE_SIZE, D0):Imm(1),       /* Number of features in this tile */
+                                        		Imm(1),                                                         /* Number of features in this tile */
                                         		K_Arg("Out", KER_ARG_TILE_W),                                   /* Tile width */
                                         		K_Arg("Out", KER_ARG_TILE_H),                                   /* Tile height */
-							BindKExpr("UB")							/* Activation upper bound, if ReLUN */
+                                                        (ActOper==KOP_CUSTOM)?
+                                                        ((CustomInfos)?
+                                                        K_Arg("CustomInfos", KER_ARG_TILE):AT_NO_ARG_BINDING)                   /* Infos */
+                                                        :BindKExpr("UB")                                                        /* ReLUN upper bound */
                                 		)
 		        		)
 				),
@@ -2354,6 +2517,8 @@ Kernel_T *CNN_LinearAct_fp16_Internal(
 		AddKernelFloatArgDim(Name, "Filter", 3, OutDim, InDim, 2);
 		AddKernelFloatArgDim(Name, "Bias", 2, OutDim, 2);
 		AddKernelFloatArgDim(Name, "Out", 2, OutDim, 2);
+                if (CustomInfos)
+        		AddKernelArgDim(Name, "CustomInfos", 2, CustomInfos, 1);
 
 		AT_PrepareForTest(Name,
 				  (v4s) {2, 2, 2, 2},
@@ -2389,91 +2554,19 @@ Kernel_T *CNN_LinearAct_fp16_Internal(
 	
 *********************************************************************************************************************************************************************/
 
-static Kernel_T *CNN_SoftMax_fp16_Internal(
-	char *Name,
-
-	CNN_GenControl_T *Ctrl,
-
-	int Dim,
-	KernelOper_T SoftMaxOper
-	)
-
-{
-	Tile_Orientation_T TileOrientation = TILE_HOR;
-	int ParFeat = 0;
-	if (Ctrl) {
-		if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
-		if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
-	}
-	int F = O_FLOAT;
-	KernelOper_T KernelOper = CNN_CompositeKernel(SoftMaxOper, KOP_NONE, KOP_NONE);
-	unsigned long long int LayerOp = 0;
-	unsigned long long int LayerBandwidth = 0;
-	char *SoftMaxKerName = CNN_FindMatchingKernelAttr(SoftMaxOper, KOP_NONE, ParFeat, CALL_FLOAT_KER, 2, 0, 0, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
-
-	if (SoftMaxKerName==0) GenTilingError("CNN_SoftMax_fp16 Kernel: %s, Can't find a matching basic kernel, warning 16 bits output only, Q15 output", Name);
-
-	LayerOp += Dim;
-	LayerBandwidth += Dim*2 + Dim*2;
-        Kernel_T *Kernel = UserKernel(Name,
-		KernelIterSpace(1, IterTiledSpace(T0)),
-                TileOrientation,
-                CArgs(2,
-                      TCArg(CNN_ArgDataTypeF(2,1,1), "In"),
-                      TCArg(CNN_ArgDataTypeF(2,1,1), "Out")
-                     ),
-                Calls(1,
-			Call(SoftMaxKerName, LOC_LOOP,
-				Bindings(4,
-					K_Arg("In", KER_ARG_TILE),	/* Input tile */
-					Imm(1),
-					K_Arg("In", KER_ARG_TILE_H),	/* Number of inputs */
-					K_Arg("Out", KER_ARG_TILE)	/* Output tile */
-				)
-			)
-		),
-                KerArgs(2,
-                        KerArg("In",  KerArgSpace(1,T0), F|OBJ_BUFFER_IN,  1, Dim, 2, 0, 0, 8, "In"),
-                        KerArg("Out", KerArgSpace(1,T0), F|OBJ_BUFFER_OUT, 1, Dim, 2, 0, 0, 0, "Out")
-		)
-	);
-	if (Kernel) {
-		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
-		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
-
-		AddKernelFloatArgDim(Name, "In", 2, Dim, 2);
-		AddKernelFloatArgDim(Name, "Out", 2, Dim, 2);
-
-		AT_PrepareForTest(Name,
-				  (v4s) {2, 0, 0, 2},
-				  (v4s) {0,0,0,0},
-				  1, 1, 1, Dim,
-				  0,0, 0,0, 0,0, (v4s) 0,
-				  0,0, 0,0, 0,0, (v4s) 0,
-				  KernelOper,
-				  0, 0);
-	}
-	return Kernel;
-}
-
 static Kernel_T *CNN_SoftMax2D_fp16_Internal(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
 
+	int Feat,
 	int Dim,
-	int N,
 
 	KernelOper_T SoftMaxOper
 	)
 
 {
-	Tile_Orientation_T TileOrientation = TILE_HOR;
 	int ParFeat = 0;
-	if (Ctrl) {
-		if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
-		if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
-	}
 	int F = O_FLOAT;
 	KernelOper_T KernelOper = CNN_CompositeKernel(SoftMaxOper, KOP_NONE, KOP_NONE);
 	unsigned long long int LayerOp = 0;
@@ -2482,11 +2575,11 @@ static Kernel_T *CNN_SoftMax2D_fp16_Internal(
 
 	if (SoftMaxKerName==0) GenTilingError("CNN_SoftMax_fp16 Kernel: %s, Can't find a matching basic kernel, warning 16 bits output only, Q15 output", Name);
 
-	LayerOp += N*Dim;
-	LayerBandwidth += (int64_t) N*(Dim*1 + Dim*2);
+	LayerOp += Feat*Dim;
+	LayerBandwidth += (int64_t) Feat*(Dim*1 + Dim*2);
         Kernel_T *Kernel = UserKernel(Name,
-		KernelIterSpace(2, IterParSpace(D0, N, 1), IterTiledSpace(T0)),
-                TileOrientation,
+		KernelIterSpace(1, IterTiledSpace(T0)),
+                TILE_HOR,
                 CArgs(2,
                       TCArg(CNN_ArgDataTypeF(2,1,1), "In"),
                       TCArg(CNN_ArgDataTypeF(2,1,1), "Out")
@@ -2495,32 +2588,23 @@ static Kernel_T *CNN_SoftMax2D_fp16_Internal(
 			Call(SoftMaxKerName, LOC_LOOP,
 				Bindings(4,
 					K_Arg("In", KER_ARG_TILE),	/* Input tile */
-					K_ArgPar("In", KER_ARG_PARTILE_SIZE, D0), /* Number of features in this tile */
-					K_Arg("In", KER_ARG_TILE_H),	/* Number of inputs */
+					K_Arg("In", KER_ARG_TILE_H), /* Number of features in this tile */
+					K_Arg("In", KER_ARG_TILE_W),	/* Number of inputs */
 					K_Arg("Out", KER_ARG_TILE)	/* Output tile */
 				)
 			)
 		),
                 KerArgs(2,
-                        KerArg("In",  KerArgSpace(2,D0,T0), F|OBJ_BUFFER_IN,  1, Dim, 2, 0, 0, 8, "In"),
-                        KerArg("Out", KerArgSpace(2,D0,T0), F|OBJ_BUFFER_OUT, 1, Dim, 2, 0, 0, 0, "Out")
+                        KerArg("In",  KerArgSpace(1,T0), F|OBJ_IN_DB,  Dim, Feat, 2, 0, 0, 8, "In"),
+                        KerArg("Out", KerArgSpace(1,T0), F|OBJ_OUT_DB, Dim, Feat, 2, 0, 0, 0, "Out")
 		)
 	);
 	if (Kernel) {
 		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
 		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
 
-		AddKernelFloatArgDim(Name, "In", 3, N, Dim, 2);
-		AddKernelFloatArgDim(Name, "Out", 3, N, Dim, 2);
-
-		AT_PrepareForTest(Name,
-				  (v4s) {2, 0, 0, 2},
-				  (v4s) {0,0,0,0},
-				  1, 1, 1, Dim,
-				  0,0, 0,0, 0,0, (v4s) 0,
-				  0,0, 0,0, 0,0, (v4s) 0,
-				  KernelOper,
-				  0, 0);
+		AddKernelFloatArgDim(Name, "In",  3, Feat, Dim, 2);
+		AddKernelFloatArgDim(Name, "Out", 3, Feat, Dim, 2);
 	}
 	return Kernel;
 }
@@ -2566,9 +2650,11 @@ static Kernel_T *CNN_MatAddAct_fp16_Internal(
 {
 	Tile_Orientation_T TileOrientation = TILE_HOR;
 	int ParFeat = 1;
+	unsigned char Compressed[4] = {0, 0, 0, 0};
 	if (Ctrl) {
 		if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
 		if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
+		if (Ctrl->CompressedInputBits) *((int *)&Compressed[0]) = Ctrl->CompressedInputBits;
 	}
 	int F = O_FLOAT;
 	unsigned long long int LayerOp = 0;
@@ -2591,6 +2677,17 @@ static Kernel_T *CNN_MatAddAct_fp16_Internal(
 	LayerBandwidth += Width*Height*2*InFeat;
 	LayerBandwidth += Width*Height*2*InFeat;
 	LayerBandwidth += Width*Height*2*OutFeat;
+
+	Object_T **KA = AllocateKerArgs(3);
+	int KAIdx=0;
+	KA[KAIdx++] = Compressed[0]?
+	       KerArgC("In1",  KerArgSpace(2,D0,T0), F|O_IN|O_DB,  Width, Height,  2, LUTInfo(Compressed[0]&0x7f, 2, Compressed[0]&0x80), 0, 0, 0, "In1"):
+	       KerArg("In1",  KerArgSpace(2,D0,T0), F|O_IN|O_DB,  Width, Height,  2, 0, 0, 0, "In1");
+	KA[KAIdx++] = Compressed[1]?
+		KerArgC("In2",  KerArgSpace(2,D0,T0), F|O_IN|O_DB,  Width, Height,  2, LUTInfo(Compressed[1]&0x7f, 2, Compressed[1]&0x80), 0, 0, 0, "In2"):
+		KerArg("In2",  KerArgSpace(2,D0,T0), F|O_IN|O_DB,  Width, Height,  2, 0, 0, 0, "In2");
+	KA[KAIdx++] = KerArg("Out",  KerArgSpace(2,D0,T0), F|O_OUT|O_DB, Width, Height,  2, 0, 0, 0, "Out");
+
 
         UserSymbols(1, US_Float("UB", UB));
         Kernel_T *Kernel = UserKernel(Name,
@@ -2624,11 +2721,7 @@ static Kernel_T *CNN_MatAddAct_fp16_Internal(
                                 	)
 		        	)
 		),
-                KerArgs(3,
-                        KerArg("In1",  KerArgSpace(2,D0,T0), F|O_IN|O_DB,  Width, Height,  2, 0, 0, 0, "In1"),
-                        KerArg("In2",  KerArgSpace(2,D0,T0), F|O_IN|O_DB,  Width, Height,  2, 0, 0, 0, "In2"),
-                        KerArg("Out",  KerArgSpace(2,D0,T0), F|O_OUT|O_DB, Width, Height,  2, 0, 0, 0, "Out")
-		)
+		KA
 	);
 	if (Kernel) {
 		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
@@ -2840,13 +2933,17 @@ Kernel_T *CNN_MatMulAct_fp16_Internal(
 	int Transposed = (MatMulOper == KOP_MATMUL_TRANSPOSED);
         int TA = (MatMulOper == KOP_MATMUL)?T0:T1;
         int TB = (MatMulOper == KOP_MATMUL)?T1:T0;
+        int CustomInfos = 0;
 
 	if (Ctrl) {
 		if (Ctrl->ReluN != -1) UB = Ctrl->ReluN;
+                if (ActOper == KOP_CUSTOM) {
+                        CustomInfos = Ctrl->CustomActivationInfos;
+                }
 	}
 	if (!(MatMulOper == KOP_MATMUL) && !(MatMulOper == KOP_MATMUL_TRANSPOSED) && !(MatMulOper == KOP_MATMUL_NOBIAS) && !(MatMulOper == KOP_MATMUL_NOBIAS_TRANSPOSED)) GenTilingError("CNN_MatMulAct_fp16 Kernel: %s, MatMulOper should be KOP_MATMUL or KOP_MATMUL_TRANSPOSED or KOP_MATMUL_NOBIAS or KOP_MATMUL_NOBIAS_TRANSPOSED", Name);
 
-	if (!(ActOper == KOP_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+	if (!(ActOper == KOP_NONE  || ActOper == KOP_CUSTOM || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_SIGMOID || ActOper == KOP_TANH || ActOper == KOP_SWISH || ActOper == KOP_HSIGMOID || ActOper == KOP_HTANH || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
 		GenTilingError("CNN_MatMulAct_fp16 Kernel: %s, ActOper should be KOP_NONE, KOP_RELU, KOP_RELUN, KOP_SIGMOID, KOP_TANH, KOP_SWISH, KOP_HSIGMOID, KOP_HTANH, KOP_HSWISH or KOP_LEAKYRELU", Name);
 
 	KernelOper_T KernelOper = CNN_CompositeKernel(MatMulOper, ActOper, KOP_NONE);
@@ -2860,8 +2957,13 @@ Kernel_T *CNN_MatMulAct_fp16_Internal(
 	char *ActKerName = 0;
 	if (ActOper != KOP_NONE && MatMulKerName == 0) {
 		MatMulKerName = CNN_FindMatchingKernelAttr(MatMulOper, KOP_NONE, 1, CALL_FLOAT_KER, 2, 2, 2, 0, 2, 0,0,0,0,Scx,Scy, 0,0,0,0, &NeedScx, &NeedScy, 0);
-		CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 2, 0, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
-		if (ActKerName==0) GenTilingError("CNN_MatAdd Kernel: %s, Can't find a matching activation basic kernel", Name);
+                if (ActOper == KOP_CUSTOM) {
+                        if (!Ctrl||!Ctrl->CustomActivationName) GenTilingError("CNN_MatAdd: %s, ActOper is KOP_CUSTOM but no kernel name supplied", Name);
+                        ActKerName = Ctrl->CustomActivationName;
+                } else {
+                        ActKerName = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 2, 0, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
+                        if (ActKerName==0) GenTilingError("CNN_MatAdd Kernel: %s, Can't find a matching activation basic kernel", Name);
+                }
 	} 
 	if (MatMulKerName==0) GenTilingError("CNN_MatMulAct_fp16 Kernel: %s, Can't find a matching basic kernel", Name);
 
@@ -2896,11 +2998,12 @@ Kernel_T *CNN_MatMulAct_fp16_Internal(
 	Kernel_T *Kernel = UserKernel(Name,
 		KernelIterSpace(2, IterTiledSpace(T1), IterTiledSpace(T0)),
                 TILE_HOR,
-                CArgs(4,
+                CArgs(5,
                       TCArg(CNN_ArgDataTypeF(2,1,1),  InvertInputs?"In2":"In1"),
                       TCArg(CNN_ArgDataTypeF(2,1,1),  InvertInputs?"In1":"In2"),
                       !NoBias?TCArg(CNN_ArgDataTypeF(2,1,1), "Bias"):AT_NO_C_ARG,
-                      TCArg(CNN_ArgDataTypeF(2,1,1),  "Out")
+                      TCArg(CNN_ArgDataTypeF(2,1,1),  "Out"),
+                      (CustomInfos)?TCArg(CNN_ArgDataType(1,1,1),  "CustomInfos"):AT_NO_C_ARG
                 ),
 		Calls(2,
 			Call(MatMulKerName, LOC_LOOP,
@@ -2927,24 +3030,31 @@ Kernel_T *CNN_MatMulAct_fp16_Internal(
                                        	K_Arg("Out", KER_ARG_TILE_H),                 	/* Number of features */
                                        	K_Arg("Out", KER_ARG_TILE_W),                  	/* Tile width */
 					Imm(1),						/* Tile height */
-					BindKExpr("UB")					/* Activation upper bound, if ReLUN */
+                                        (ActOper==KOP_CUSTOM)?
+                                        ((CustomInfos)?
+                                        K_Arg("CustomInfos", KER_ARG_TILE):AT_NO_ARG_BINDING)                   /* Infos */
+                                        :BindKExpr("UB")                                                        /* ReLUN upper bound */
                                 	)
 		        	)
 		),
 		ColFirst?
-		KerArgs(5,
+		KerArgs(6,
 	    !Transposed?KerArg("KerBuff",KerArgSpace(1, T1), F|O_BUFF|O_NTILED,    Nbuff*ColM1,1,  2,  0, 0,                                                0, 0):AT_NO_KER_ARG,
 			KerArg("In1",    KerArgSpace(1, T0), F|O_IN|O_DB|O_CONST,  ColM1,  LineM1, 2,  0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
 			KerArg("In2",    KerArgSpace(1, T1), F|O_IN|O_DB,          ColM2,  LineM2, 2,  0, ObjCons|OBJ_CONSTRAINTS_PAD_REM,		    ConsT0, "In2"),
 		!NoBias?KerArg("Bias",   KerArgSpace(1, TA), F|O_IN|O_DB|O_CONST,      1,  SAxis,  2,  0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
-			KerArg("Out",    KerArgSpace(1, T1), F|O_OUT|O_DB,          ColO,  LineO,  2,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, 0, "Out")
+			KerArg("Out",    KerArgSpace(1, T1), F|O_OUT|O_DB,          ColO,  LineO,  2,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, 0, "Out"),
+                        (CustomInfos)?
+                        KerArg ("CustomInfos",KerArgSpace(1,T0),O_IN|O_BUFF|O_NTILED|O_CONST, CustomInfos, 1, 1, 0, 0, 0, "CustomInfos"):AT_NO_KER_ARG
 		):
-		KerArgs(5,
+		KerArgs(6,
 	    !Transposed?KerArg("KerBuff",KerArgSpace(1, T0), F|O_BUFF|O_NTILED,    Nbuff*ColM1,1,  2,  0, 0,                                                0, 0):AT_NO_KER_ARG,
 			KerArg("In1",    KerArgSpace(1, T1), F|O_IN|O_DB|O_CONST,  ColM1,  LineM1, 2,  0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
 			KerArg("In2",    KerArgSpace(1, T0), F|O_IN|O_DB,          ColM2,  LineM2, 2,  0, ObjCons|OBJ_CONSTRAINTS_PAD_REM, 	            ConsT0, "In2"),
 		!NoBias?KerArg("Bias",   KerArgSpace(1, TB), F|O_IN|O_DB|O_CONST,      1,  SAxis,  2,  0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
-			KerArg("Out",    KerArgSpace(1, T1), F|O_OUT|O_DB,          ColO,  LineO,  2,  0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Out")
+			KerArg("Out",    KerArgSpace(1, T1), F|O_OUT|O_DB,          ColO,  LineO,  2,  0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Out"),
+                        (CustomInfos)?
+                        KerArg ("CustomInfos",KerArgSpace(1,T0),O_IN|O_BUFF|O_NTILED|O_CONST, CustomInfos, 1, 1, 0, 0, 0, "CustomInfos"):AT_NO_KER_ARG
 		)
 	);
 	if (Kernel) {
@@ -2955,6 +3065,8 @@ Kernel_T *CNN_MatMulAct_fp16_Internal(
 		AddKernelFloatArgDim(Name, "In2", 4, LineM2, Height, Width, 2);
 		if (!NoBias) AddKernelFloatArgDim(Name, "Bias", 2, SAxis, 2);
 		AddKernelFloatArgDim(Name, "Out", 3, LineO, ColO, 2);
+                if (CustomInfos)
+        		AddKernelArgDim(Name, "CustomInfos", 2, CustomInfos, 1);
 
 		AT_PrepareForTest(Name,
 			  	(v4s) {2, 2, 2, 2},
@@ -3031,9 +3143,13 @@ Kernel_T *CNN_MatMulSmallM1Act_fp16_Internal(
 	int ConsT0 = Scx;
 	int TileCons = 8;
 	int F = O_FLOAT;
+        int CustomInfos = 0;
 
 	if (Ctrl) {
 		if (Ctrl->ReluN != -1) UB = Ctrl->ReluN;
+                if (ActOper == KOP_CUSTOM) {
+                        CustomInfos = Ctrl->CustomActivationInfos;
+                }
 	}
 	if (!(MatMulOper == KOP_MATMUL_SM1)) GenTilingError("CNN_MatMulSmallM1Act_fp16 Kernel: %s, MatMulOper should be KOP_MATMUL_SM1_fp16", Name);
 
@@ -3051,8 +3167,13 @@ Kernel_T *CNN_MatMulSmallM1Act_fp16_Internal(
 	char *ActKerName = 0;
 	if (ActOper != KOP_NONE && MatMulKerName == 0) {
 		MatMulKerName = CNN_FindMatchingKernelAttr(MatMulOper, KOP_NONE, 1, CALL_FLOAT_KER, 2, 2, 2, 0, 2, 0,0,0,0,Scx,Scy, 0,0,0,0, &NeedScx, &NeedScy, 0);
-		CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 2, 0, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
-		if (ActKerName==0) GenTilingError("CNN_MatMulSmallM1Act_fp16 Kernel: %s, Can't find a matching activation basic kernel", Name);
+                if (ActOper == KOP_CUSTOM) {
+                        if (!Ctrl||!Ctrl->CustomActivationName) GenTilingError("CNN_MatAdd: %s, ActOper is KOP_CUSTOM but no kernel name supplied", Name);
+                        ActKerName = Ctrl->CustomActivationName;
+                } else {
+                        ActKerName = CNN_FindMatchingKernelAttr(ActOper, KOP_NONE, 0, CALL_FLOAT_KER, 2, 2, 0, 0, 2, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
+                        if (ActKerName==0) GenTilingError("CNN_MatMulSmallM1Act_fp16 Kernel: %s, Can't find a matching activation basic kernel", Name);
+                }
 	} 
 	if (MatMulKerName==0) GenTilingError("CNN_MatMulSmallM1Act_fp16 Kernel: %s, Can't find a matrix multiplication matching basic kernel", Name);
 
@@ -3080,11 +3201,12 @@ Kernel_T *CNN_MatMulSmallM1Act_fp16_Internal(
 	Kernel_T *Kernel = UserKernel(Name,
 		KernelIterSpace(1, IterTiledSpace(T0)),
                 TILE_VER,
-                CArgs(4,
+                CArgs(5,
                       TCArg(CNN_ArgDataTypeF(2,1,1),  "In2"),
                       TCArg(CNN_ArgDataTypeF(2,1,1),  "In1"),
                       TCArg(CNN_ArgDataTypeF(2,1,1), "Bias"),
-                      TCArg(CNN_ArgDataTypeF(2,1,1),  "Out")
+                      TCArg(CNN_ArgDataTypeF(2,1,1),  "Out"),
+                      (CustomInfos)?TCArg(CNN_ArgDataType(1,1,1),  "CustomInfos"):AT_NO_C_ARG
                 ),
 		Calls(3,
 			Call(MatTransKerName, LOC_LOOP,
@@ -3122,16 +3244,20 @@ Kernel_T *CNN_MatMulSmallM1Act_fp16_Internal(
                                        	K_Arg("Bias", KER_ARG_TILE_H),                 	/* Number of features */
                                        	K_Arg("Out", KER_ARG_TILE_W),                  	/* Tile width */
 					Imm(1),						/* Tile height */
-					BindKExpr("UB")					/* Activation upper bound, if ReLUN */
-                                	)
+                                        (ActOper==KOP_CUSTOM)?
+                                        ((CustomInfos)?
+                                        K_Arg("CustomInfos", KER_ARG_TILE):AT_NO_ARG_BINDING)                   /* Infos */
+                                        :BindKExpr("UB")                                                        /* ReLUN upper bound */                                	)
 		        	)
 		),
-		KerArgs(5,
+		KerArgs(6,
 			KerArg("In1",      KerArgSpace(1, T0), F|O_IN|O_BUFF|O_NTILED|O_CONST,  ColM1, LineM1, 2,  0, 0, 0, "In1"),
 			KerArg("In2",      KerArgSpace(1, T0), F|O_IN|O_DB,                     ColM2, LineM2, 2,  0, 0, TileCons, "In2"),
 			KerArg("TransIn2", KerArgSpace(1, T0), F|O_BUFF|O_ONETILE,               ColO, LineM2, 2,  0, 0, 0,  ""),
 			KerArg("Bias",     KerArgSpace(1, T0), F|O_BUFF|O_IN|O_NTILED|O_CONST,      1, LineM1, 2,  0, 0, 0, "Bias"),
-			KerArg("Out",      KerArgSpace(1, T0), F|O_OUT|O_DB,                     ColO, LineM1, 2,  0, 0, 0, "Out")
+			KerArg("Out",      KerArgSpace(1, T0), F|O_OUT|O_DB,                     ColO, LineM1, 2,  0, 0, 0, "Out"),
+                        (CustomInfos)?
+                        KerArg ("CustomInfos",KerArgSpace(1,T0),O_IN|O_BUFF|O_NTILED|O_CONST, CustomInfos, 1, 1, 0, 0, 0, "CustomInfos"):AT_NO_KER_ARG
 		)
 	);
 	if (Kernel) {
@@ -3142,6 +3268,8 @@ Kernel_T *CNN_MatMulSmallM1Act_fp16_Internal(
 		AddKernelFloatArgDim(Name, "In2", 4, LineM2, Height, Width, 2);
 		AddKernelFloatArgDim(Name, "Bias", 2, LineO, 2);
 		AddKernelFloatArgDim(Name, "Out", 3, LineO, ColO, 2);
+                if (CustomInfos)
+        		AddKernelArgDim(Name, "CustomInfos", 2, CustomInfos, 1);
 
 		AT_PrepareForTest(Name,
 			  	(v4s) {2, 2, 2, 2},
@@ -3417,11 +3545,11 @@ int CNN_LinearAct_fp16(char *Name, CNN_GenControl_T *Ctrl, int InDim, int OutDim
 }
 
 int CNN_SoftMax_fp16(char *Name, CNN_GenControl_T *Ctrl, int Dim, KernelOper_T SoftMaxOper) {
-	return (CNN_SoftMax_fp16_Internal(Name, Ctrl, Dim, SoftMaxOper)!=0);
+	return (CNN_SoftMax2D_fp16_Internal(Name, Ctrl, 1, Dim, SoftMaxOper)!=0);
 }
 
-int CNN_SoftMax2D_fp16(char *Name, CNN_GenControl_T *Ctrl, int Dim, int N, KernelOper_T SoftMaxOper) {
-	return (CNN_SoftMax2D_fp16_Internal(Name, Ctrl, Dim, N, SoftMaxOper)!=0);
+int CNN_SoftMax2D_fp16(char *Name, CNN_GenControl_T *Ctrl, int Feat, int Dim, KernelOper_T SoftMaxOper) {
+	return (CNN_SoftMax2D_fp16_Internal(Name, Ctrl, Feat, Dim, SoftMaxOper)!=0);
 }
 
 int CNN_MatAddAct_fp16(char *Name, CNN_GenControl_T *Ctrl, int InFeat, int OutFeat, int Width, int Height, KernelOper_T AddMatOper, KernelOper_T ActOper) {

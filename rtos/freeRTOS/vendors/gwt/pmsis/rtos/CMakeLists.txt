@@ -13,27 +13,28 @@ else()
   # message("GAP RISCV GCC=" ${GAP_RISCV_CC})
 endif()
 
-# Driver sources
-FILE(GLOB SRCS
-    event_kernel/event_kernel.c
-    malloc/cl_l1_malloc.c
-    malloc/fc_l1_malloc.c
-    malloc/l2_malloc.c
-    malloc/malloc_external.c
-    malloc/malloc_internal.c
-    malloc/pi_malloc.c
-    mem_slab/mem_slab.c
-    os/device.c
-    os/pmsis_task.c
-    pi_log.c
-    )
+LIST(APPEND PMSIS_RTOS_REQUIRED_SRCS    malloc/fc_l1_malloc.c
+                                        malloc/l2_malloc.c
+                                        malloc/malloc_internal.c
+                                        malloc/pi_malloc.c
+                                        os/device.c
+                                        os/pmsis_task.c	
+                                        event_kernel/event_kernel.c
+                                        pi_log.c)   
 
+if( DEFINED CONFIG_PMSIS_RTOS_CL_L1_MALLOC)
+    LIST(APPEND PMSIS_RTOS_OPTIONAL_SRCS malloc/cl_l1_malloc.c)
+endif()
 
-FILE(GLOB ASM_SRCS
-    )
+if( DEFINED CONFIG_PMSIS_RTOS_MALLOC_EXTERNAL)
+    LIST(APPEND PMSIS_RTOS_OPTIONAL_SRCS malloc/malloc_external.c)
+endif()
 
-add_library(pmsis_rtos STATIC ${ASM_SRCS} ${SRCS})
+if( DEFINED CONFIG_PMSIS_RTOS_MEM_SLAB)
+    LIST(APPEND PMSIS_RTOS_OPTIONAL_SRCS mem_slab/mem_slab.c )
+endif()
 
+add_library(pmsis_rtos STATIC ${PMSIS_RTOS_REQUIRED_SRCS} ${PMSIS_RTOS_OPTIONAL_SRCS})
 
 target_link_libraries(pmsis_rtos PRIVATE pmsis_freertos)
 target_link_libraries(pmsis_rtos PRIVATE freertos)

@@ -72,6 +72,11 @@ extern CKernel_Arg_T *CNNGraphNodeArgAliasOfLookup(
 	GraphNode_T *Node,
 	NameT *Name);
 
+extern uint64_t GetCompressedSizeOf(Kernel_Arg_T *Arg, uint64_t Size, unsigned int ChunkSize, int FullSpace);
+extern uint64_t GetCompressedSizeOfObj(Object_T *Arg, uint64_t Size, unsigned int ChunkSize, int FullSpace);
+
+extern uint64_t MaybeCompressedKerArgSize(Kernel_Arg_T *Arg, uint64_t Size);
+extern uint64_t MaybeCompressedKerArgSpaceSize(Kernel_Arg_T *Arg);
 
 extern int IsKerArgRelated(
 	KernelArgSelect_T Sel);
@@ -157,7 +162,11 @@ extern StackedTensors_T *GetStackedInTensorOffset(
 	int *Offset,
 	int MustExist);
 
-int VaArgPointerArraySize(int Dim, va_list Va);
+extern int VaArgPointerArraySize(int Dim, va_list Va);
 
+extern Kernel_Arg_T *ArgInGroup(Kernel_T *Ker, Kernel_Arg_T *Arg, int *IsGroupRep);
+extern int ArgPosInGroup(Kernel_T *Ker, Kernel_Arg_T *Arg);
+
+extern int LUTLen(KerArgLUT_T *LUT);
 
 #endif

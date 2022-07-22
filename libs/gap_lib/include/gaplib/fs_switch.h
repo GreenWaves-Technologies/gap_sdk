@@ -19,12 +19,6 @@
 
 #define PPM_HEADER 40
 
-#ifndef SILENT
-    #define PRINTF printf
-#else
-    #define PRINTF(...) ((void) 0)
-#endif
-
 #ifdef __EMUL__
 #include <unistd.h>
     #include <fcntl.h>

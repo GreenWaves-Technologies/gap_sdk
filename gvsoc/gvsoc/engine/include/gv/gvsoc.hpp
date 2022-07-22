@@ -200,7 +200,7 @@ namespace gv {
          * @param id ID of the VCD event.
          * @param value The new value.
          */
-        virtual void event_update_logical(int64_t timestamp, int id, uint64_t value) = 0;
+        virtual void event_update_logical(int64_t timestamp, int id, uint64_t value, int flags) = 0;
 
         /**
          * Called by GVSOC to update the value of a bitfield VCD event.
@@ -334,6 +334,14 @@ namespace gv {
          *
          */
         virtual void close() = 0;
+
+        /**
+         * Start the simulated system
+         *
+         * This executes all the required steps so that the simulated system is ready to execute.
+         *
+         */
+        virtual void start() = 0;
 
         /**
          * Run execution

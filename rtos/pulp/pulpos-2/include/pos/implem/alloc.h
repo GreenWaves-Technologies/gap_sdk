@@ -39,7 +39,7 @@ static inline void *pi_cl_l2_malloc_wait(pi_cl_alloc_req_t *req)
 {
   while((*(volatile char *)&req->done) == 0)
   {
-    eu_evt_maskWaitAndClr(1<<POS_EVENT_CLUSTER_CALL_EVT);
+    eu_evt_maskWaitAndClr(1<<PI_CL_WAIT_TASK_EVT);
   }
   return req->result;
 }
@@ -48,7 +48,7 @@ static inline void pi_cl_l2_free_wait(pi_cl_free_req_t *req)
 {
   while((*(volatile char *)&req->done) == 0)
   {
-    eu_evt_maskWaitAndClr(1<<POS_EVENT_CLUSTER_CALL_EVT);
+    eu_evt_maskWaitAndClr(1<<PI_CL_WAIT_TASK_EVT);
   }
 }
 

@@ -9,6 +9,11 @@
 #include "gaplib/ImgIO.h"
 #include "stdint.h"
 
+#ifndef SILENT
+    #define PRINTF printf
+#else
+    #define PRINTF(...) ((void) 0)
+#endif
 
 #define Max(a, b)               (((a)>(b))?(a):(b))
 #define Min(a, b)               (((a)<(b))?(a):(b))

@@ -524,8 +524,10 @@ void Radix4FFT_DIF_Seq_f16(F16_DSP *__restrict__ Data, F16_DSP *__restrict__ Twi
                 iA =  iA + 4 * iM;
         }
         if (Inverse) {
+                float invN = 1.0 / (float) N_fft;
                 for (iCnt1=0; iCnt1<N_fft; iCnt1++){
-                        DataV[iCnt1][1] = -DataV[iCnt1][1];
+                        DataV[iCnt1][0] =  DataV[iCnt1][0] * invN;
+                        DataV[iCnt1][1] = -DataV[iCnt1][1] * invN;
                 }
         }
 }
@@ -574,8 +576,10 @@ void Radix4FFT_DIF_Seq_f32(float *__restrict__ Data, float *__restrict__ Twiddle
                 iA =  iA + 4 * iM;
         }
         if (Inverse) {
+                float invN = 1.0 / (float) N_fft;
                 for (iCnt1=0; iCnt1<N_fft; iCnt1++){
-                        Data[2*iCnt1+1] = -Data[2*iCnt1+1];
+                        Data[2*iCnt1  ] =  Data[2*iCnt1  ] * invN;
+                        Data[2*iCnt1+1] = -Data[2*iCnt1+1] * invN;
                 }
         }
 }
@@ -1174,7 +1178,7 @@ void Radix2FFT_DIF_Seq_f32(float *__restrict__ Data, float *__restrict__ Twiddle
         if (Inverse) {
                 float invN = 1.0 / (float) N_fft;
                 for (iCnt1=0; iCnt1<N_fft; iCnt1++){
-                        Data[2*iCnt1  ] = -Data[2*iCnt1  ] * invN;
+                        Data[2*iCnt1  ] =  Data[2*iCnt1  ] * invN;
                         Data[2*iCnt1+1] = -Data[2*iCnt1+1] * invN;
                 }
         }
@@ -2046,7 +2050,7 @@ void RFFT_DIF_Seq_f32(float *Data, float *RFFT_Out, float *Twiddles, float *RTwi
         pA += 2;
         RTwiddles += 2;
         RFFT_Out += 2;
-        for (int i=0; i<N_fft; i++)
+        for (int i=0; i<k; i++)
         {
                 /*
                     function X = my_split_rfft(X, ifftFlag)
@@ -2878,9 +2882,9 @@ void SwapSamples_Seq_Fix16(short int *Data, short int *SwapTable, int Ni)
 {
         v2s *__restrict__ DataV = (v2s *) Data;
         for (int i = 0; i < Ni; i++) {
-                v2s S = DataV[i];
                 int SwapIndex = SwapTable[i];
                 if (i < SwapIndex) {
+                        v2s S = DataV[i];
                        DataV[i] = DataV[SwapIndex]; DataV[SwapIndex] = S;
                 }
         }
@@ -2891,9 +2895,9 @@ void SwapSamples_Seq_f16(F16_DSP *Data, short int *SwapTable, int Ni)
 {
         F16V_DSP *__restrict__ DataV = (F16V_DSP *) Data;
         for (int i = 0; i < Ni; i++) {
-                F16V_DSP S = DataV[i];
                 int SwapIndex = SwapTable[i];
                 if (i < SwapIndex) {
+                F16V_DSP S = DataV[i];
                        DataV[i] = DataV[SwapIndex]; DataV[SwapIndex] = S;
                 }
         }
@@ -2903,9 +2907,9 @@ void SwapSamples_Seq_f32(float *Data, short int *SwapTable, int Ni)
 
 {
         for (int i = 0; i < Ni; i++) {
-                float R = Data[2*i], I = Data[2*i+1];
                 int SwapIndex = SwapTable[i];
                 if (i < SwapIndex) {
+                        float R = Data[2*i], I = Data[2*i+1];
                         Data[2*i  ] = Data[2*SwapIndex];   Data[2*SwapIndex] = R;
                         Data[2*i+1] = Data[2*SwapIndex+1]; Data[2*SwapIndex+1] = I;
                 }

@@ -1,0 +1,20 @@
+menu "Transport"
+
+    config BSP_DRIVER_TRANSPORT_NINA_W10
+        bool "Nina W10"
+        default n 
+        select PMSIS_GAP9_IMPLEM_GPIO
+        select PMSIS_IMPLEM_SPIM
+
+    config BSP_DRIVER_TRANSPORT_DA16200
+        bool "DA16200"
+        default n
+        select PMSIS_GAP9_IMPLEM_GPIO
+        select PMSIS_IMPLEM_SPIM
+
+    config DEBUG_WIFI_DA16200
+        bool "Debug mode"
+        default n
+        depends on BSP_DRIVER_TRANSPORT_DA16200
+
+endmenu

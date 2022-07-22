@@ -50,7 +50,7 @@ unsigned int rt_time_get_us()
   return ((unsigned long long)count) * 1000000 / ARCHI_REF_CLOCK;
 }
 
-unsigned long long pi_time_get_us()
+unsigned int pi_time_get_us()
 {
   return rt_time_get_us();
 }
@@ -64,7 +64,7 @@ void rt_event_push_delayed(rt_event_t *event, int us)
   rt_event_t *current = first_delayed, *prev=NULL;
   unsigned int ticks, ticks_from_now;
   uint32_t current_time = timer_count_get(timer_base_fc(0, 1));
-  
+
   if (us < 0)
     us = 0;
 
@@ -120,6 +120,58 @@ void rt_event_push_delayed(rt_event_t *event, int us)
   rt_irq_restore(irq);
 }
 
+void rt_event_cancel_delayed(rt_event_t *event)
+{
+  int irq = rt_irq_disable();
+
+  rt_event_t *current = first_delayed, *prev=NULL;
+
+  /* look for the task in the list and remove it */
+  rt_event_t* current_event = first_delayed;
+  rt_event_t* previous_event = NULL;
+
+  /* we don't care if the task is not found, nothing to remove anyway */
+  while(current_event != NULL)
+  {
+      if (current_event == event)
+      {
+          if (previous_event != NULL)
+          {
+              previous_event->implem.next = current_event->implem.next;
+          }
+          else
+          {
+              /* previous task is NULL meaning that there is no task before */
+              /* the only possible case is that it's the head of the fifo */
+              first_delayed = current_event->implem.next;
+          }
+      }
+      previous_event = current_event;
+      current_event = current_event->implem.next;
+  }
+
+  // And finally update the timer trigger time in case we removed the event
+  // from the head of the wait list.
+  if (NULL == first_delayed)
+  {
+    // Set back default state where timer is only counting with
+    // no interrupt
+    timer_conf_set(timer_base_fc(0, 1),
+      TIMER_CFG_LO_ENABLE(1) |
+      TIMER_CFG_LO_CCFG(1)
+    );
+
+    // Also clear timer interrupt as we might have a spurious one after
+    // we entered the handler
+#ifdef ARCHI_HAS_FC
+    rt_irq_clr(1 << ARCHI_FC_EVT_TIMER0_HI);
+#else
+    rt_irq_clr(1 << ARCHI_EVT_TIMER0_HI);
+#endif
+  }
+
+  rt_irq_restore(irq);
+}
 
 void rt_time_wait_us(int time_us)
 {
@@ -138,7 +190,7 @@ RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_time_init()
   int err = 0;
 
   first_delayed = NULL;
- 
+
   // Configure the FC timer in 64 bits mode as it will be used as a common
   // timer for all virtual timers.
   // We also use the ref clock to make the frequency stable.

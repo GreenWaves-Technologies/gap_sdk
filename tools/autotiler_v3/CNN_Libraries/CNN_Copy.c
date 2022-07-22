@@ -62,7 +62,7 @@ static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
 }
 
 #define B_CLR(x, bits)  ((x)&(~((1<<(bits))-1)))
-static inline void ParCopy(char *__restrict__ To, char *__restrict__ From, unsigned int Size, unsigned int CoreId)
+static inline void __attribute__((always_inline)) ParCopy(char *__restrict__ To, char *__restrict__ From, unsigned int Size, unsigned int CoreId)
 
 {
         unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
@@ -78,7 +78,7 @@ static inline void ParCopy(char *__restrict__ To, char *__restrict__ From, unsig
 	if (Iter & 0x1) *((signed char *) (To + First + Iter - 1)) = *((signed char *) (From + First + Iter - 1));
 }
 
-static inline void Copy(char *__restrict__ To, char *__restrict__ From, unsigned int Size)
+static inline void __attribute__((always_inline)) Copy(char *__restrict__ To, char *__restrict__ From, unsigned int Size)
 
 {
 	int *pFrom = (int *) (From), *pTo = (int *) (To);
@@ -98,9 +98,20 @@ void CNN_Copy_void(KerCopy_void_T *Arg)
         gap_waitbarrier(0);
 }
 
-void CNN_Concat_Width(CNN_Concat_Width_Arg_T *Arg)
+void CNN_Repeat_void(KerRepeat_void_T *Arg)
 
 {
+	char * __restrict__ In = (char * __restrict__) Arg->In;
+	char * __restrict__ Out = (char * __restrict__) Arg->Out;
+	int NRepeat = (int) Arg->NRepeat;
+	int NTile   = (int) Arg->NTile;
+	for (int i=0; i<NRepeat; i++) {
+		ParCopy(Out + i*NTile, In, NTile, gap_coreid());
+	}
+        gap_waitbarrier(0);
+}
+
+void CNN_Concat_Width(CNN_Concat_Width_Arg_T *Arg) {
 	char * __restrict__ In1 = (char * __restrict__) Arg->In1;
 	char * __restrict__ In2 = (char * __restrict__) Arg->In2;
 	char * __restrict__ In3 = (char * __restrict__) Arg->In3;
@@ -124,6 +135,86 @@ void CNN_Concat_Width(CNN_Concat_Width_Arg_T *Arg)
         	Copy(Out+h*Wo+W1+W2   , In3+h*W3, W3);
         	if (W4)
         	Copy(Out+h*Wo+W1+W2+W3, In4+h*W4, W4);
+	}
+        gap_waitbarrier(0);
+}
+
+void CNN_Split_Width(CNN_Split_Width_Arg_T *Arg) {
+	char * __restrict__ In = (char * __restrict__) Arg->In;
+	char * __restrict__ Out1 = (char * __restrict__) Arg->Out1;
+	char * __restrict__ Out2 = (char * __restrict__) Arg->Out2;
+	char * __restrict__ Out3 = (char * __restrict__) Arg->Out3;
+	char * __restrict__ Out4 = (char * __restrict__) Arg->Out4;
+	int DataSize = (int) Arg->DataSize;
+	int H = (int) Arg->H;
+	int W1 = (int) Arg->W1 * DataSize;
+	int W2 = (int) Arg->W2 * DataSize;
+	int W3 = (int) Arg->W3 * DataSize;
+	int W4 = (int) Arg->W4 * DataSize;
+	int Wi = W1 + W2 + W3 + W4;
+
+	unsigned int CoreId = gap_coreid();
+        unsigned int Chunk = ChunkSize(H), First = Chunk*CoreId, Last = Min(First+Chunk, H);
+
+        for (int h=First; h<Last; h++) {
+        	Copy(Out1+h*W1, In+h*Wi, W1);
+        	Copy(Out2+h*W2, In+h*Wi+W1, W2);
+        	if (W3)
+        	Copy(Out3+h*W3, In+h*Wi+W1+W2, W3);
+        	if (W4)
+        	Copy(Out4+h*W4, In+h*Wi+W1+W2+W3, W4);
+	}
+        gap_waitbarrier(0);
+}
+
+void CNN_ParConcat_Width(CNN_Concat_Width_Arg_T *Arg) {
+	char * __restrict__ In1 = (char * __restrict__) Arg->In1;
+	char * __restrict__ In2 = (char * __restrict__) Arg->In2;
+	char * __restrict__ In3 = (char * __restrict__) Arg->In3;
+	char * __restrict__ In4 = (char * __restrict__) Arg->In4;
+	char * __restrict__ Out = (char * __restrict__) Arg->Out;
+	int DataSize = (int) Arg->DataSize;
+	int H = (int) Arg->H;
+	int W1 = (int) Arg->W1 * DataSize;
+	int W2 = (int) Arg->W2 * DataSize;
+	int W3 = (int) Arg->W3 * DataSize;
+	int W4 = (int) Arg->W4 * DataSize;
+	int Wo = W1 + W2 + W3 + W4;
+	unsigned int CoreId = gap_coreid();
+
+        for (int h=0; h<H; h++) {
+        	ParCopy(Out+h*Wo         , In1+h*W1, W1, CoreId);
+        	ParCopy(Out+h*Wo+W1      , In2+h*W2, W2, CoreId);
+        	if (W3)
+        	ParCopy(Out+h*Wo+W1+W2   , In3+h*W3, W3, CoreId);
+        	if (W4)
+        	ParCopy(Out+h*Wo+W1+W2+W3, In4+h*W4, W4, CoreId);
+	}
+        gap_waitbarrier(0);
+}
+
+void CNN_ParSplit_Width(CNN_Split_Width_Arg_T *Arg) {
+	char * __restrict__ In = (char * __restrict__) Arg->In;
+	char * __restrict__ Out1 = (char * __restrict__) Arg->Out1;
+	char * __restrict__ Out2 = (char * __restrict__) Arg->Out2;
+	char * __restrict__ Out3 = (char * __restrict__) Arg->Out3;
+	char * __restrict__ Out4 = (char * __restrict__) Arg->Out4;
+	int DataSize = (int) Arg->DataSize;
+	int H = (int) Arg->H;
+	int W1 = (int) Arg->W1 * DataSize;
+	int W2 = (int) Arg->W2 * DataSize;
+	int W3 = (int) Arg->W3 * DataSize;
+	int W4 = (int) Arg->W4 * DataSize;
+	int Wi = W1 + W2 + W3 + W4;
+	unsigned int CoreId = gap_coreid();
+
+        for (int h=0; h<H; h++) {
+        	ParCopy(Out1+h*W1, In+h*Wi         , W1, CoreId);
+        	ParCopy(Out2+h*W2, In+h*Wi+W1      , W2, CoreId);
+        	if (W3)
+        	ParCopy(Out3+h*W3, In+h*Wi+W1+W2   , W3, CoreId);
+        	if (W4)
+        	ParCopy(Out4+h*W4, In+h*Wi+W1+W2+W3, W4, CoreId);
 	}
         gap_waitbarrier(0);
 }

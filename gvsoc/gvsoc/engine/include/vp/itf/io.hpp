@@ -23,6 +23,7 @@
 #define __VP_ITF_IO_HPP__
 
 #include "vp/vp.hpp"
+#include "vp/queue.hpp"
 
 namespace vp {
 
@@ -51,7 +52,7 @@ namespace vp {
   typedef void (io_resp_meth_t)(void *, io_req *);
   typedef void (io_grant_meth_t)(void *, io_req *);
 
-  class io_req
+  class io_req : public vp::queue_elem
   {
     friend class io_master;
     friend class io_slave;
@@ -68,6 +69,9 @@ namespace vp {
     io_slave *get_resp_port() { return resp_port;}
     void set_next(io_req *req) { next = req; }
     io_req *get_next() { return next; }
+
+    inline void save();
+    inline void restore();
 
     uint64_t get_addr() { return addr; }
     void set_addr(uint64_t value) { addr = value; }
@@ -693,6 +697,22 @@ namespace vp {
         ((io_master *)this->remote_port)->slave_port->set_freq_stub();
       }
     }
+  }
+
+  inline void io_req::save()
+  {
+    arg_push((void *)(long)this->addr);
+    arg_push((void *)(long)this->size);
+    arg_push((void *)this->data);
+    arg_push((void *)(long)this->is_write);
+  }
+
+  inline void io_req::restore()
+  {
+    this->is_write = (long)arg_pop();
+    this->data = (uint8_t *)arg_pop();
+    this->size = (long)arg_pop();
+    this->addr = (long)arg_pop();
   }
 
 };

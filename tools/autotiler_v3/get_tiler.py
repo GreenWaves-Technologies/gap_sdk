@@ -261,18 +261,24 @@ def download_file(url):
 ri = vars(__builtins__).get('raw_input',input)
 print("Registration is required to load the GAP8 AutoTiler library\n")
 
-print("In case you have already registered, you can directly enter the link")
-print("to the AutoTiler library that you received from an email.")
-print("Otherwise just press Enter.")
+print("IF AND ONLY IF you have already registered, you can directly enter the link")
+print("to the AutoTiler library that you received by email.")
+print("OTHERWISE just press Enter.")
 url = ri("Enter URL from email: ")
 
 if url == '':
     print("You will be prompted for your name, company and email address and the")
     print("link for the AutoTiler libray will be sent to your email address.")
     print("This information is used uniquely to keep track of AutoTiler users.")
-    forename = ri("Enter your first name: ")
-    surname = ri("Enter your last name: ")
+    forename = None
+    while not forename:
+        forename = ri("Enter your first name: ")
+    surname = None
+    while not surname:
+        surname = ri("Enter your last name: ")
     company = ri("Enter your company name: ")
+    if not company:
+        company = "None"
 
     while True:
         country = ri("Enter your country: ")
@@ -294,8 +300,6 @@ if url == '':
             print()
         else:
             print("I don't know that country. Please enter a valid country name or ISO code.")
-
-    print("Country ", country)
 
     while True:
         email = ri("Enter your email address: ")
@@ -325,6 +329,7 @@ try:
         if re.match(r"^https://.*/$", url):
             break
         else:
+            print("If you just entered an email address read the message above again!")
             print("Please enter a valid URL, it must start with https:// and")
             print("end with /.")
             url = ri("Enter URL from email: ")

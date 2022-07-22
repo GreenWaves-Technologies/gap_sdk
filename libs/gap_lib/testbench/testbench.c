@@ -125,14 +125,42 @@ static void pi_testbench_uart_setup_pads(int uart_id)
 {
     if (uart_id == 0)
     {
+    #if defined(__GAP9_5__)
+        pi_pad_set_function(PI_PAD_064, PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_065, PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_066, PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_067, PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_068, PI_PAD_FUNC0);
+    #else
         pi_pad_set_function(PI_PAD_060, PI_PAD_FUNC0);
         pi_pad_set_function(PI_PAD_061, PI_PAD_FUNC0);
         pi_pad_set_function(PI_PAD_062, PI_PAD_FUNC0);
         pi_pad_set_function(PI_PAD_063, PI_PAD_FUNC0);
         pi_pad_set_function(PI_PAD_064, PI_PAD_FUNC0);
+    #endif
     }
     else if (uart_id == 1)
     {
+    #if defined(__GAP9_5__)
+        pi_pad_set_function(PI_PAD_069, PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_070, PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_071, PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_072, PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_073, PI_PAD_FUNC0);
+
+        pi_pad_set_mux_group(PI_PAD_071, PI_PAD_MUX_GROUP_UART1_CTS);
+        pi_pad_set_mux_group(PI_PAD_072, PI_PAD_MUX_GROUP_UART1_RTS);
+
+        // In case we go to deep sleep, keep uart TX to 1 to not trigger some random communication
+        pi_pad_set_sleep_cfg(PI_PAD_070, PI_PAD_SLEEP_CFG_OUTPUT_ENABLED | PI_PAD_SLEEP_CFG_OUTPUT_VALUE_1);
+    
+        // TODO temporary fix until we have the right netlist
+        // Keep JTAG tck as input 0, tdo as output and trst as input 0 during deep sleep to not
+        // Get X on netlist sim
+        pi_pad_set_sleep_cfg(PI_PAD_085, PI_PAD_SLEEP_CFG_OUTPUT_DISABLED | PI_PAD_SLEEP_CFG_PULL_DOWN);
+        pi_pad_set_sleep_cfg(PI_PAD_087, PI_PAD_SLEEP_CFG_OUTPUT_ENABLED);
+        pi_pad_set_sleep_cfg(PI_PAD_089, PI_PAD_SLEEP_CFG_OUTPUT_DISABLED | PI_PAD_SLEEP_CFG_PULL_DOWN);
+    #else
         pi_pad_set_function(PI_PAD_065, PI_PAD_FUNC0);
         pi_pad_set_function(PI_PAD_066, PI_PAD_FUNC0);
         pi_pad_set_function(PI_PAD_067, PI_PAD_FUNC0);
@@ -151,7 +179,7 @@ static void pi_testbench_uart_setup_pads(int uart_id)
         pi_pad_set_sleep_cfg(PI_PAD_081, PI_PAD_SLEEP_CFG_OUTPUT_DISABLED | PI_PAD_SLEEP_CFG_PULL_DOWN);
         pi_pad_set_sleep_cfg(PI_PAD_083, PI_PAD_SLEEP_CFG_OUTPUT_ENABLED);
         pi_pad_set_sleep_cfg(PI_PAD_085, PI_PAD_SLEEP_CFG_OUTPUT_DISABLED | PI_PAD_SLEEP_CFG_PULL_DOWN);
-
+    #endif
     }
     else if (uart_id == 2)
     {
@@ -181,16 +209,30 @@ static void pi_testbench_uart_setup_pads(int uart_id)
     }
     else if (uart_id == 4)
     {
-        pi_pad_set_function(PI_PAD_081, PI_PAD_FUNC2);
-        pi_pad_set_function(PI_PAD_082, PI_PAD_FUNC0);
-        pi_pad_set_function(PI_PAD_083, PI_PAD_FUNC0);
-        pi_pad_set_function(PI_PAD_084, PI_PAD_FUNC0);
-        pi_pad_set_function(PI_PAD_085, PI_PAD_FUNC0);
+    #if defined(__GAP9_5__)
+        pi_pad_set_function(PI_PAD_085, PI_PAD_FUNC2);
+        pi_pad_set_function(PI_PAD_086, PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_087, PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_088, PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_089, PI_PAD_FUNC0);
 
-        pi_pad_set_function(PI_PAD_082, PI_PAD_082_UART4_RX_FUNC2);
-        pi_pad_set_function(PI_PAD_083, PI_PAD_083_UART4_TX_FUNC2);
-        pi_pad_set_function(PI_PAD_084, PI_PAD_084_UART4_CTS_FUNC2);
-        pi_pad_set_function(PI_PAD_085, PI_PAD_085_UART4_RTS_FUNC2);
+        pi_pad_set_function(PI_PAD_086, PI_PAD_086_UART4_RX_FUNC2);
+        pi_pad_set_function(PI_PAD_087, PI_PAD_087_UART4_TX_FUNC2);
+        pi_pad_set_function(PI_PAD_088, PI_PAD_088_UART4_CTS_FUNC2);
+        pi_pad_set_function(PI_PAD_089,PI_PAD_089_UART4_RTS_FUNC2);
+    #else
+        pi_pad_set_function(PI_PAD_081,PI_PAD_FUNC2);
+        pi_pad_set_function(PI_PAD_082,PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_083,PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_084,PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_085,PI_PAD_FUNC0);
+
+        pi_pad_set_function(PI_PAD_082,PI_PAD_082_UART4_RX_FUNC2);
+        pi_pad_set_function(PI_PAD_083,PI_PAD_083_UART4_TX_FUNC2);
+        pi_pad_set_function(PI_PAD_084,PI_PAD_084_UART4_CTS_FUNC2);
+        pi_pad_set_function(PI_PAD_085,PI_PAD_085_UART4_RTS_FUNC2);
+
+    #endif
     }
 }
 

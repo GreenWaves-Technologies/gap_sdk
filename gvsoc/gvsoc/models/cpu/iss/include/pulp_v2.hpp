@@ -598,16 +598,31 @@ static inline void hwloop_set_start(iss_t *iss, iss_insn_t *insn, int index, iss
   iss->cpu.state.hwloop_start_insn[index] = insn_cache_get(iss, start);
 }
 
+static inline void hwloop_set_insn_end(iss_t *iss, iss_insn_t *insn)
+{
+  if (insn->fetched)
+  {
+    if (insn->hwloop_handler == NULL)
+    {
+      insn->hwloop_handler = insn->handler;
+      insn->handler = hwloop_check_exec;
+      insn->fast_handler = hwloop_check_exec;
+    }
+  }
+  else
+  {
+    insn->hwloop_handler = hwloop_check_exec;
+  }
+}
+
+
 static inline void hwloop_set_end(iss_t *iss, iss_insn_t *insn, int index, iss_reg_t end)
 {
-  iss_insn_t *end_insn = insn_cache_get_decoded(iss, end);
+  iss_insn_t *end_insn = insn_cache_get(iss, end);
 
-  if (end_insn->hwloop_handler == NULL)
-  {
-    end_insn->hwloop_handler = end_insn->handler;
-    end_insn->handler = hwloop_check_exec;
-    end_insn->fast_handler = hwloop_check_exec;
-  }
+  iss->cpu.state.hwloop_end_insn[index] = end_insn;
+
+  hwloop_set_insn_end(iss, end_insn);
 
   iss->cpu.pulpv2.hwloop_regs[PULPV2_HWLOOP_LPEND(index)] = end;
 }
@@ -757,9 +772,13 @@ static inline iss_insn_t *p_elw_exec(iss_t *iss, iss_insn_t *insn)
   // Init this flag so that we can check afterwards that theelw has been replayed
   iss->cpu.state.elw_interrupted = 0;
   iss_lsu_elw_perf(iss, insn, REG_GET(0) + SIM_GET(0), 4, REG_OUT(0));
-  if (iss->cpu.state.insn_cycles != -1)
+  if (!iss->stalled.get())
   {
     iss->cpu.state.elw_insn = NULL;
+  }
+  else
+  {
+    iss->cpu.state.elw_stalled = true;
   }
   return insn->next;
 }
@@ -1219,8 +1238,6 @@ static inline iss_insn_t *p_bneimm_exec_common(iss_t *iss, iss_insn_t *insn, int
       iss_pccr_account_event(iss, CSR_PCER_TAKEN_BRANCH, 1);
     }
     iss_perf_account_taken_branch(iss);
-    // We model here the fact that the core will always fetch the next instruction (which can lead to fetching the next cache line)
-    prefetcher_fetch(iss, insn->addr + insn->size);
     return insn->branch;
   }
   else
@@ -1255,8 +1272,6 @@ static inline iss_insn_t *p_beqimm_exec_common(iss_t *iss, iss_insn_t *insn, int
       iss_pccr_account_event(iss, CSR_PCER_TAKEN_BRANCH, 1);
     }
     iss_perf_account_taken_branch(iss);
-    // We model here the fact that the core will always fetch the next instruction (which can lead to fetching the next cache line)
-    prefetcher_fetch(iss, insn->addr + insn->size);
     return insn->branch;
   }
   else

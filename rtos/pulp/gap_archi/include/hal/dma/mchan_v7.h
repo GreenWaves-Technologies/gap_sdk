@@ -19,6 +19,11 @@
 
 #include <archi/dma/mchan_v7.h>
 #include "hal/pulp.h"
+#if defined(CLUSTER_EU_HAS_TASK_DISPATCH)
+#include "archi/chips/gap9_5/event_unit/event_unit.h"
+#else
+#include "archi/chips/gap9_v2/event_unit/event_unit.h"
+#endif
 
 #define PLP_DMA_LOC2EXT 0
 #define PLP_DMA_EXT2LOC 1

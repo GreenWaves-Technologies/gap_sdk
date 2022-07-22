@@ -31,14 +31,6 @@
 #include <assert.h>
 #include <string>
 #include <bitset>
-#include "xtensor/xarray.hpp"
-#include "xtensor/xio.hpp"
-#include "xtensor/xview.hpp"
-#include "xtensor/xindex_view.hpp"
-#include "xtensor/xrandom.hpp"
-#include "xtensor/xadapt.hpp"
-#include "xtensor/xvectorize.hpp"
-#include "xtensor/xpad.hpp"
 
 #define NE16_REG_WEIGHTS_PTR       0
 #define NE16_REG_INFEAT_PTR        1
@@ -159,7 +151,7 @@ class Ne16VectorLoad : public Ne16StreamAccess {
       bool debug
     );
     Ne16VectorLoad();
-    xt::xarray<T> ex(int width, int64_t& cycles);
+    void ex(int width, T* x, int64_t& cycles);
     void foo();
 };
 
@@ -178,7 +170,7 @@ class Ne16VectorStore : public Ne16StreamAccess {
       bool debug
     );
     Ne16VectorStore();
-    xt::xarray<T> ex(xt::xarray<T> data, int width, int64_t& cycles, int32_t enable);
+    T* ex(T* data, int width, int64_t& cycles, int32_t enable);
 };
 
 class Ne16 : public vp::component
@@ -189,6 +181,7 @@ public:
     Ne16(js::config *config);
 
     int build();
+
     void reset(bool active);
 
     // were private before, but did not work with stream.hpp
@@ -334,14 +327,16 @@ private:
     int w_in;
 
     // STATEFUL BUFFERS
-    xt::xarray<int64_t> psum_block;  // partial sums at the output of a BinConv Block  (no actual storage in NE16)
-    xt::xarray<int64_t> psum_column; // partial sums at the output of a BinConv Column (no actual storage in NE16)
-    xt::xarray<int64_t> accum;       // accumulators (*actual storage* in NE16)
-    xt::xarray<int64_t> accum_save;
-    xt::xarray<uint8_t> x_buffer;    // feature buffer (*actual storage* in NE16)
-    xt::xarray<uint8_t> x_buffer_linear; // feature buffer (*actual storage* in NE16 -- representation for linear case)
-    xt::xarray<uint8_t> x_array;     // reordered feature array (no actual storage in NE16)
-    xt::xarray<uint8_t> weight;      // input weight stream
+
+    int64_t psum_block[9*9];
+    int64_t psum_column[9];
+    int64_t accum[32*9];
+    int64_t accum_buffer[9*256];
+    int64_t accum_save[32*9];
+    uint8_t x_buffer[5*5*16];
+    uint8_t x_buffer_linear[32*16];
+    uint8_t x_array[9*9*16];
+    uint8_t weight[9*2];
 
     // CLEAR
     void clear_all();
@@ -370,15 +365,18 @@ private:
     void depthwise_update_idx();
     void weightoffs();
     void matrixvec_setup();
-    int  matrixvec_cycle();
+    int  matrixvec_cycle(uint8_t *, uint32_t, int, int, uint32_t);
+    void acc_reduction(uint32_t, uint32_t);
+    int  fill_weight_buffer(uint8_t *, uint32_t);
     bool matrixvec_exit_idx();
     void matrixvec_update_idx();
     bool matrixvec_to_load_idx();
     bool matrixvec_to_matrixvec_idx();
     // internal functions
-    void __BinConvArray(xt::xarray<uint8_t>&, int, int, xt::xarray<int32_t>, xt::xarray<int32_t>, xt::xarray<int32_t>, bool=false, bool=false, bool=false, bool=false, bool=false);
-    void __weightoffs(int, xt::xarray<int32_t>, xt::xarray<int32_t>);
-    
+
+    void __BinConvArray(uint8_t, uint8_t*, int, int, int32_t*, int32_t*, int32_t*, bool=false, bool=false, bool=false, bool=false, bool=false, int=0, int=0, bool=false, uint32_t=0);
+    void __weightoffs(int, int*, int*);
+
     // NORMQUANT
     void normquant_shift_setup();
     int  normquant_shift_cycle();
@@ -390,7 +388,7 @@ private:
     int  normquant_bias_cycle();
     bool normquant_bias_exit_idx();
     void normquant_bias_update_idx();
-    
+
     // STREAMOUT
     void streamout_setup();
     int  streamout_cycle();
@@ -439,7 +437,7 @@ private:
     int load_i_fbuf;
     int load_j_fbuf;
     Ne16VectorLoad<uint8_t> vld_x;
-    xt::xarray<int32_t> row_enable;
+    int32_t row_enable[9];
 
     // MATRIXVEC state
     int base_addr_W_dw;
@@ -454,13 +452,13 @@ private:
     int mv_k_out_lim;
     int mv_qw_iter; // was simply qw
     int mv_qw_lim; // was simply qw
-    xt::xarray<int32_t> mac_enable;
+    int32_t mac_enable[16]; // TP_IN elements
 
     // NORMQUANT state
     Ne16VectorLoad<uint8_t> vld_nqs;
     Ne16VectorLoad<uint8_t> vld_nq;
     Ne16VectorLoad<uint8_t> vld_nqb;
-    xt::xarray<uint8_t> nqs;
+    uint8_t nqs[32];
     int nq_iter;
     int nq_lim;
     int nqb_iter;
@@ -474,7 +472,7 @@ private:
     int streamout_k_out_iter;
     int streamout_k_out_lim;
     Ne16VectorStore<uint8_t> vst_y;
-    xt::xarray<int32_t> col_enable;
+    int32_t col_enable[3*3];
 
     vp::io_slave in;
     vp::wire_master<bool> irq;
@@ -485,5 +483,4 @@ private:
 };
 
 #endif /* __NE16_HPP__ */
-
 

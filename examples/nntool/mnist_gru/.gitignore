@@ -1,9 +1,0 @@
-BUILD*/
-GenTile
-mnist_emul
-mnist
-*.dat
-AT_*
-.value_cache
-version.log
-junit-reports

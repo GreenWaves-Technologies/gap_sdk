@@ -1,0 +1,841 @@
+# SimVision Command Script (za jan 02 16:01:53 CET 2021)
+#
+# Version 19.09.s016
+#
+# You can restore this configuration with:
+#
+#     simvision -input /home/haugoug/src/gap_sdk/gap_sdk_dev/tests/pmsis_tests/quick/pm/deep_sleep/retentive_gpio_wakeup_with_callbacks/gpio5.svcf
+#  or simvision -input /home/haugoug/src/gap_sdk/gap_sdk_dev/tests/pmsis_tests/quick/pm/deep_sleep/retentive_gpio_wakeup_with_callbacks/gpio5.svcf database1 database2 ...
+#
+
+
+#
+# Preferences
+#
+preferences set toolbar-Standard-WatchWindow {
+  usual
+  shown 0
+}
+preferences set toolbar-SimControl-WatchList {
+  usual
+  hide step_in
+  hide step_over
+  hide step_adjacent
+  hide set_break
+  position -row 0
+}
+preferences set toolbar-SimControl-SrcBrowser {
+  usual
+  show step_out
+  hide set_break
+  position -row 0 -pos 0
+}
+preferences set toolbar-CursorControl-SrcBrowser {
+  usual
+  hide usage
+  hide previous_edge
+  hide next_edge
+  shown 0
+  position -pos 1
+}
+preferences set script-input-warning 0
+preferences set toolbar-Uvm-WaveWindow {
+  usual
+  shown 1
+  position -row 0 -pos 1
+}
+preferences set txe-locate-add-fibers 1
+preferences set signal-type-colors {assertion #FF0000 output #FFA500 group #0099FF inout #00FFFF input #FFFF00 fiber #00EEEE errorsignal #FF0000 unknown #FFFFFF overlay #0099FF internal #00FF00 reference #FFFFFF}
+preferences set txe-view-hold 0
+preferences set txe-navigate-search-locate 0
+preferences set toolbar-CursorControl-WatchList {
+  usual
+  hide lock
+  hide usage
+  hide cursors
+  hide equal
+  hide time
+  hide units
+  hide previous_edge
+  hide next_edge
+  shown 0
+}
+preferences set toolbar-TimeSearch-SrcBrowser {
+  usual
+  shown 0
+  position -pos 3 -anchor e
+}
+preferences set plugin-enable-svdatabrowser-new 1
+preferences set toolbar-Standard-WatchList {
+  usual
+  hide open
+  hide opensim
+  shown 0
+}
+preferences set cursorctl-dont-show-sync-warning 1
+preferences set toolbar-Windows-WatchWindow {
+  usual
+  shown 0
+}
+preferences set toolbar-SvDataBrowser-SrcBrowser {
+  usual
+  position -pos 3
+  name SvDataBrowser
+}
+preferences set verilog-colors {Su #ff0099 0 {} 1 {} HiZ #ff9900 We #00ffff Pu #9900ff Sm #00ff99 X #ff0000 StrX #ff0000 other #ffff00 Z #ff9900 Me #0000ff La #ff00ff St {}}
+preferences set user-toolbar-list {WatchList {}}
+preferences set toolbar-Uvm-WatchList {
+  usual
+  shown 0
+  position -row 0 -anchor w
+}
+preferences set toolbar-sendToIndago-WaveWindow {
+  usual
+  position -pos 2
+}
+preferences set txe-navigate-waveform-locate 1
+preferences set txe-view-hidden 0
+preferences set toolbar-Edit-WatchList {
+  usual
+  hide cut
+  hide delete
+  hide clear
+  position -pos 2
+}
+preferences set toolbar-Standard-Console {
+  usual
+  position -pos 1
+}
+preferences set toolbar-Standard-SrcBrowser {
+  usual
+  hide opensrc
+  hide opensim
+  hide copy
+  hide edit
+  position -pos 4
+}
+preferences set toolbar-SignalTrace-SrcBrowser {
+  usual
+  hide previous
+  hide next
+  hide history-prev
+  hide history-next
+  position -row 0 -pos 2 -anchor w
+}
+preferences set txe-search-show-linenumbers 1
+preferences set toolbar-Search-Console {
+  usual
+  position -pos 2
+}
+preferences set toolbar-txe_waveform_toggle-WaveWindow {
+  usual
+  position -pos 4
+}
+preferences set toolbar-Windows-SrcBrowser {
+  usual
+  hide tools
+  position -pos 10
+}
+preferences set plugin-enable-groupscope 0
+preferences set standard-methodology-filtering 1
+preferences set toolbar-SrcCallstack-SrcBrowser {
+  usual
+  hide callstackmove
+  position -row 0 -pos 5 -anchor w
+}
+preferences set key-bindings {PageUp PageUp Edit>Undo Ctrl+z View>Zoom>Next {Alt+Right arrow} View>Zoom>In Alt+i PageDown PageDown ScrollDown {Down arrow} Edit>Copy Ctrl+c View>Zoom>FullY_widget y Edit>Create>Group Ctrl+g Simulation>NextInScope F7 Edit>Select>All Ctrl+a Format>Radix>Decimal Ctrl+Shift+D Edit>Ungroup Ctrl+Shift+G TopOfPage Home Edit>Create>Condition Ctrl+e {command -console SimVision {%w sidebar access designbrowser selectall}} Alt+a View>Zoom>FullX_widget = ScrollLeft {Left arrow} Edit>SelectAllText Alt+a Edit>TextSearchConsole Alt+s Windows>SendTo>Waveform Ctrl+w Simulation>Return Shift+F5 View>CallstackDown {Ctrl+Down arrow} Select>All Ctrl+a Edit>Delete Del Format>Radix>Octal Ctrl+Shift+O Edit>Cut Ctrl+x Simulation>Run F2 Edit>Create>Marker Ctrl+m View>Center Alt+c View>CallstackInWindow Ctrl+k Edit>SelectAll Ctrl+a File>OpenDatabase Ctrl+o Edit>Redo Ctrl+y Format>Radix>Binary Ctrl+Shift+B View>ExpandSequenceTime>AtCursor Alt+x ScrollUp {Up arrow} File>CloseWindow Ctrl+Shift+w ScrollRight {Right arrow} Simulation>ReinvokeSimulator Ctrl+r View>Zoom>FullX Alt+= Edit>Create>Bus Ctrl+b Explore>NextEdge Ctrl+\] View>Zoom>Cursor-Baseline Alt+z View>Zoom>OutX Alt+o Edit>GoToLine Ctrl+g View>Zoom>Fit Alt+= View>Zoom>OutX_widget o View>CallstackUp {Ctrl+Up arrow} View>Bookmarks>Add Ctrl+b Format>Radix>Hexadecimal Ctrl+Shift+H Edit>Search Ctrl+f Simulation>Next F6 View>ShowValues Ctrl+s View>Zoom>InX Alt+i Edit>Create>MarkerAtCursor Ctrl+Shift+M View>Zoom>Out Alt+o Edit>TextSearch Ctrl+f Format>Signed Ctrl+Shift+S Edit>Paste Ctrl+v View>Zoom>Previous {Alt+Left arrow} View>CollapseSequenceTime>AtCursor Alt+s Format>Radix>ASCII Ctrl+Shift+A View>Zoom>InX_widget i Explore>PreviousEdge {Ctrl+[} Simulation>Step F5 BottomOfPage End}
+preferences set sb-display-values 1
+preferences set plugin-enable-interleaveandcompare 0
+preferences set plugin-enable-waveformfrequencyplot 0
+preferences set toolbar-SimControl-WatchWindow {
+  usual
+  shown 0
+}
+preferences set toolbar-Windows-WaveWindow {
+  usual
+  position -anchor w
+}
+preferences set txe-navigate-waveform-next-child 1
+preferences set toolbar-Windows-WatchList {
+  usual
+  hide tools
+  hide selectdeep
+  hide add
+  position -pos 10
+}
+preferences set toolbar-WaveZoom-WaveWindow {
+  usual
+  position -row 1 -anchor w
+}
+preferences set toolbar-TimeSearch-WatchList {
+  usual
+  shown 0
+  position -row 0 -pos 4
+}
+preferences set vhdl-colors {X #ff0000 0 {} L #00ffff H #00ffff U #9900ff 1 {} - {} Z #ff9900 W #ff0000}
+preferences set txe-locate-scroll-x 1
+preferences set txe-locate-scroll-y 1
+preferences set txe-locate-pop-waveform 1
+preferences set use-signal-type-colors 1
+preferences set toolbar-TimeSearch-WatchWindow {
+  usual
+  shown 0
+}
+preferences set toolbar-Uvm-SrcBrowser {
+  usual
+  shown 0
+  position -row 1
+}
+preferences set key-bindings {Edit>Undo Ctrl+z PageUp PageUp View>Zoom>In Alt+i View>Zoom>Next {Alt+Right arrow} PageDown PageDown Edit>Copy Ctrl+c ScrollDown {Down arrow} Edit>Select>All Ctrl+a Simulation>NextInScope F7 Edit>Create>Group Ctrl+g View>Zoom>FullY_widget y Format>Radix>Decimal Ctrl+Shift+D Edit>Ungroup Ctrl+Shift+G TopOfPage Home Edit>Create>Condition Ctrl+e {command -console SimVision {%w sidebar access designbrowser selectall}} Alt+a View>Zoom>FullX_widget = ScrollLeft {Left arrow} Edit>SelectAllText Alt+a Edit>TextSearchConsole Alt+s Windows>SendTo>Waveform Ctrl+w Simulation>Return Shift+F5 View>CallstackDown {Ctrl+Down arrow} Select>All Ctrl+a Edit>Delete Del Format>Radix>Octal Ctrl+Shift+O Edit>Cut Ctrl+x Simulation>Run F2 Edit>Create>Marker Ctrl+m View>Center Alt+c View>CallstackInWindow Ctrl+k Edit>SelectAll Ctrl+a File>OpenDatabase Ctrl+o Edit>Redo Ctrl+y Format>Radix>Binary Ctrl+Shift+B View>ExpandSequenceTime>AtCursor Alt+x ScrollUp {Up arrow} File>CloseWindow Ctrl+Shift+w ScrollRight {Right arrow} Simulation>ReinvokeSimulator Ctrl+r View>Zoom>FullX Alt+= Edit>Create>Bus Ctrl+b Explore>NextEdge Ctrl+\] View>Zoom>Cursor-Baseline Alt+z View>Zoom>OutX Alt+o Edit>GoToLine Ctrl+g View>Zoom>Fit Alt+= View>Zoom>OutX_widget o View>CallstackUp {Ctrl+Up arrow} View>Bookmarks>Add Ctrl+b View>ShowValues Ctrl+s Simulation>Next F6 Edit>Search Ctrl+f Format>Radix>Hexadecimal Ctrl+Shift+H Edit>Create>MarkerAtCursor Ctrl+Shift+M View>Zoom>InX Alt+i View>Zoom>Out Alt+o Edit>TextSearch Ctrl+f View>Zoom>Previous {Alt+Left arrow} Edit>Paste Ctrl+v Format>Signed Ctrl+Shift+S View>CollapseSequenceTime>AtCursor Alt+s View>Zoom>InX_widget i Format>Radix>ASCII Ctrl+Shift+A BottomOfPage End Simulation>Step F5 Explore>PreviousEdge {Ctrl+[}}
+
+#
+# PPE data
+#
+array set dbNames ""
+set dbNames(realName1) [database require waves -hints {
+	file ./waves.shm/waves-8.trn
+	file /home/haugoug/src/gap_sdk/gap_sdk_dev/tests/pmsis_tests/quick/pm/deep_sleep/retentive_gpio_wakeup_with_callbacks/BUILD/GAP9_V2/GCC_RISCV/waves.shm/waves-8.trn
+}]
+#
+# Groups
+#
+catch {group new -name pads -overlay 0}
+catch {group new -name {Group 2} -overlay 0}
+catch {group new -name {Group 1} -overlay 0}
+catch {group new -name itc -overlay 0}
+catch {group new -name rtc -overlay 0}
+group using pads
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+
+group insert \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_i.pad_i2c1_sda}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_i.pad_uart1_tx}]} ]
+group using {Group 2}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+
+group insert \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.L2_mem_intlvd_wake_ack_periph_n_i[11:0]}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.CVP_ADDR_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.CVP_DATA_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.DFT_JTAG_REG_BIT_COUNT}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.DFT_JTAG_REG_TEST_MODE_IDX}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.DFT_JTAG_REG_UNLOCKED_IDX}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.FLL_RST}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.L2_mem_intlvd_deepsleep_o[11:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.L2_mem_intlvd_iso_array_o[11:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.L2_mem_intlvd_powergate_o[11:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.L2_mem_intlvd_pwdn_array_o[11:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.L2_mem_intlvd_pwdn_periph_o[11:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.L2_mem_intlvd_wake_ack_array_n_i[11:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.L2_mem_pri_deepsleep_o[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.L2_mem_pri_powergate_o[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.L2_mem_pri_pwdn_array_o[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.L2_mem_pri_wake_ack_array_n_i[1:0]}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.NB_IO_DOMAINS}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.NUM_OF_AO_DOMAIN_IO_PADS}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.RWM_L2_intlvd_o[5:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.RWM_L2_pri_o[5:0]}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.RWM_WIDTH_PRI}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.RWM_WIDTH_SH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.VT}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.ao_pads_cfg_o[24:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.ao_pads_oen_o[24:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.ao_pads_out_o[24:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.ao_pads_soc_sel_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.axireg_sel_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.axireg_tdi_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.axireg_tdo_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.bor_enable_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.bor_vsel_o[4:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.cfg_force_ao_pads}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.cfg_wakeup_mux_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.cfg_wakeup_sw_done_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.cluster_trc_isolate_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.dft_cg_enable_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.dft_jtag_reg_in[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.dft_jtag_reg_out[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.dft_jtag_reg_test_mode}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.dft_jtag_tdo}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.dft_jtag_unlocked}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.dummy_pmu_anc_trc_ext_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.dummy_pmu_anc_trc_pok_ext_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.dummy_pmu_anc_trc_pok_ret_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.dummy_pmu_anc_trc_ret_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.fast_osc_enable_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.feature_disable_crypto_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.feature_disable_efuse_program_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.feature_disable_mram_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.fifo_sel_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.fifo_tdi_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.fifo_tdo_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.gpio_wake_i[7:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_cluster_abb_ok}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_cluster_abb_pfd_counter_n_status[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_cluster_abb_prog_busy}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_cluster_abb_sns_error}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_cluster_abb_status_refresh}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_cluster_abb_timeout}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_if_maestro_dlc__pd_ao}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_soc_abb_ok}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_soc_abb_pfd_counter_n_status[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_soc_abb_prog_busy}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_soc_abb_sns_error}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_soc_abb_status_refresh}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_soc_abb_timeout}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.jtag_capture_dr_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.jtag_shift_dr_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.jtag_tap_dftreg_sel}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.jtag_tap_dftreg_tdo}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.jtag_update_dr_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.logic_reg_bootupb_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.logic_reg_en_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.logic_reg_hiz_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.logic_reg_rok_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.logic_reg_unlock_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.logic_reg_vsel_o[4:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.logic_reg_vsel_reg_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.logic_reg_vsel_strobe_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.mode_select_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_cluster_abb_ana_cfg[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_cluster_abb_autogain_cfg[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_cluster_abb_cfg[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_cluster_abb_dtm_a_path_cr[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_cluster_abb_dtm_b_path_cr[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_cluster_abb_dtm_c_path_cr[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_cluster_abb_dtm_cr[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_cluster_abb_dtm_d_path_cr[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_cluster_abb_en}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_cluster_abb_hiz}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_cluster_abb_hold}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_cluster_abb_prog_req}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_cluster_abb_ref_div_cfg[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_cluster_abb_vbbco_div_cfg[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_cluster_abb_vbbco_only_en}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_if_maestro_dlc__ao_pd}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_soc_abb_ana_cfg[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_soc_abb_autogain_cfg[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_soc_abb_cfg[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_soc_abb_dtm_a_path_cr[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_soc_abb_dtm_b_path_cr[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_soc_abb_dtm_c_path_cr[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_soc_abb_dtm_cr[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_soc_abb_dtm_d_path_cr[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_soc_abb_en}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_soc_abb_hiz}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_soc_abb_hold}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_soc_abb_prog_req}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_soc_abb_ref_div_cfg[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_soc_abb_vbbco_div_cfg[15:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.o_soc_abb_vbbco_only_en}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tck_cfg_o[6:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tck_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tck_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tck_oen_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tdi_cfg_o[6:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tdi_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tdi_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tdi_oen_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tdo_cfg_o[6:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tdo_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tdo_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tdo_oen_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tms_cfg_o[6:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tms_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tms_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_tms_oen_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_trstn_cfg_o[6:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_trstn_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_trstn_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pad_jtag_trstn_oen_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_asrc_isl_ao_pd}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_asrc_isl_pd_ao}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_asrc_trc_clk_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_asrc_trc_curset_ext_o[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_asrc_trc_curset_ret_o[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_asrc_trc_ext_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_asrc_trc_pok_ext_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_asrc_trc_pok_ret_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_asrc_trc_prog_delay_ext_o[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_asrc_trc_prog_delay_ret_o[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_asrc_trc_ret_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_asrc_trc_retain_en_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_asrc_trc_rst_n_int}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_asrc_trc_rst_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_cluster_isl_ao_pd}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_cluster_isl_pd_ao}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_cluster_trc_clk_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_cluster_trc_curset_ext_o[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_cluster_trc_curset_ret_o[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_cluster_trc_ext_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_cluster_trc_pok_ext_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_cluster_trc_pok_ret_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_cluster_trc_prog_delay_ext_o[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_cluster_trc_prog_delay_ret_o[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_cluster_trc_ret_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_cluster_trc_retain_en_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_cluster_trc_rst_n_int}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_cluster_trc_rst_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_csi2_isl_ao_pd}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_csi2_isl_pd_ao}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_csi2_trc_clk_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_csi2_trc_curset_ext_o[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_csi2_trc_curset_ret_o[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_csi2_trc_ext_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_csi2_trc_pok_ext_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_csi2_trc_pok_ret_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_csi2_trc_prog_delay_ext_o[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_csi2_trc_prog_delay_ret_o[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_csi2_trc_ret_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_csi2_trc_retain_en_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_csi2_trc_rst_n_int}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_csi2_trc_rst_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_core_isl_ao_pd}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_core_isl_pd_ao}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_core_trc_clk_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_core_trc_curset_ext_o[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_core_trc_curset_ret_o[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_core_trc_ext_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_core_trc_pok_ext_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_core_trc_pok_ret_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_core_trc_prog_delay_ext_o[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_core_trc_prog_delay_ret_o[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_core_trc_ret_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_core_trc_retain_en_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_core_trc_rst_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_io_isl_ao_pd}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_io_isl_pd_ao}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_io_neva_avd_ok_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_io_neva_pok_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_emram_io_neva_shutdown_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_io_hs_isl_ao_pd}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_io_hs_isl_pd_ao}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_io_hs_neva_avd_ok_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_io_hs_neva_pok_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_io_hs_neva_shutdown_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_io_hs_neva_tsel_o[4:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_io_ls_isl_ao_pd}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_io_ls_isl_pd_ao}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_io_ls_neva_avd_ok_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_io_ls_neva_pok_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_io_ls_neva_shutdown_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_io_ls_neva_tsel_o[4:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_pok_io_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_sleep_control_o[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_fll_pwd_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_fll_ret_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_fll_rstn_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_isl_ao_pd}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_isl_pd_ao}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_trc_clk_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_trc_curset_ext_o[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_trc_curset_ret_o[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_trc_ext_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_trc_pok_ext_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_trc_pok_ret_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_trc_prog_delay_ext_o[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_trc_prog_delay_ret_o[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_trc_ret_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_trc_retain_en_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.pmu_soc_trc_rst_n_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.por_n_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.r_cnt_wake[19:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.r_counter_pow2[6:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.r_wakeevent_cnt}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.r_wakeevent_gpio[7:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.r_wakeevent_rtc}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.rar_dcdc_mode_o[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.ref_clk_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.ref_clk_ok_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.ref_fast_clk_div_pow2_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.ref_fast_clk_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.reg_if_ack_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.reg_if_add_i[5:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.reg_if_rdata_o[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.reg_if_req_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.reg_if_wdata_i[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.reg_if_wrn_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.rst_ni}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.rst_no}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.rtc_access_ack_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.rtc_access_enable_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.rtc_access_mode_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.rtc_address_i[5:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.rtc_interrupt_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.rtc_read_data_o[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.rtc_write_data_i[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_MA_SAWL[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_MA_WRAS[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_MA_WRASD}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_mem_deepsleep[11:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_mem_deepsleep_when_active[11:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_mem_intlvd_deepsleep_int[11:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_mem_intlvd_iso_array_int[11:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_mem_intlvd_powergate_int[11:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_mem_powergate[13:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_mem_powergate_when_active[11:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_mem_pri_deepsleep_int[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_mem_pri_powergate_int[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_mem_pwdn[11:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_mem_pwdn_int[11:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_mem_ret[13:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_L2_mem_ret_int[13:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_RWM_L2_intlvd[5:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_RWM_L2_pri[5:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_cfg_wake_seq[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_clk_div_ref_fast_pow2_data[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_clk_div_ref_fast_pow2_en}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_cntwake_en}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_cntwake_en_sync}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_cntwake_value[19:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_ctrl_fll_pwd_int[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_ctrl_fll_rstn_int[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_feature_disable_jtag}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_func_tck}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_func_tck_or_zero}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_func_tdi}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_func_tdo}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_func_tms}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_func_tms_or_zero}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_func_trstn}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_gpio_wake_type[7:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_io_ls_valid}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_is_reboot}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_jtag_rstn}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_jtag_tck}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_manual_set_L2_RWM}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pad_sleep_cfg[24:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_clk}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_emram_io_trc_clk}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_emram_io_trc_curset_ext[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_emram_io_trc_curset_ret[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_emram_io_trc_ext_n}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_emram_io_trc_pok_ext}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_emram_io_trc_pok_ret}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_emram_io_trc_prog_delay_ext[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_emram_io_trc_prog_delay_ret[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_emram_io_trc_ret_n}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_emram_io_trc_retain_en}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_emram_io_trc_rst_n}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_hs_trc_clk}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_hs_trc_curset_ext[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_hs_trc_curset_ret[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_hs_trc_ext_n}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_hs_trc_pok_ext}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_hs_trc_pok_ret}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_hs_trc_prog_delay_ext[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_hs_trc_prog_delay_ret[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_hs_trc_ret_n}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_hs_trc_retain_en}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_hs_trc_rst_n}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_ls_trc_clk}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_ls_trc_curset_ext[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_ls_trc_curset_ret[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_ls_trc_ext_n}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_ls_trc_pok_ext}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_ls_trc_pok_ret}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_ls_trc_prog_delay_ext[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_ls_trc_prog_delay_ret[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_ls_trc_ret_n}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_ls_trc_retain_en}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_io_ls_trc_rst_n}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_porn_sync_fast}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_ref_clk}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_ref_fast_clk}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_ref_fast_clk_div}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_rstn}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_rstn_sync_fast}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_rstn_sync_fast_div}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_rtc_int}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_spis_sck}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_test_clk}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_trc_asrc_currset[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_trc_asrc_progdelay[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_trc_cluster_currset[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_trc_cluster_progdelay[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_trc_csi2_currset[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_trc_csi2_progdelay[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_trc_mram_currset[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_trc_mram_progdelay[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_trc_soc_currset[2:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_trc_soc_progdelay[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_wake_clock}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_wakeup_spis_mode[1:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_wakeup_spis_rstn}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.slow_osc_enable_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_reg_i[7:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_reg_o[7:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tap_tdo_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tck_cfg_i[6:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tck_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tck_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tck_oen_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tdi_cfg_i[6:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tdi_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tdi_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tdi_oen_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tdo_cfg_i[6:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tdo_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tdo_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tdo_oen_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tms_cfg_i[6:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tms_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tms_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_tms_oen_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_trstn_cfg_i[6:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_trstn_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_trstn_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_jtag_trstn_oen_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_trc_isolate_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.soc_trc_retain_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.spis_cs_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.spis_exit_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.spis_sck_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.spis_sdi_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.spis_sdo_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.spis_sdo_oen_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.spis_wake_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.test_clk_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.test_mode_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.vref_06_en_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.vref_06_ok_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.wd_reset_i}]} ]
+group using {Group 1}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+
+group insert \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTC_COUNTDOWN_NB}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.APB_ADDR_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.APB_DATA_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.CCR_VAL_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.CD1_VAL_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.CD2_VAL_WIDTH}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.CKIN}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.CKIN_DIV_WIDTH}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.CKOUT}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.CKREF}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.DIV1_COMP_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.FF_RESYNC_NB}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.NRST}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTC_ADDR_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTC_ALARM_NB}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTC_CKIN_DIV_NB}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTC_DATA_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTC_IFR_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTR_SLOT1_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTR_SLOT_NB_WIDTH}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.SCAN_CLK}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.SCAN_EN}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.SCAN_MODE}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.SCAN_NRST}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.rtc_access_ack_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.rtc_access_enable_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.rtc_access_mode_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.rtc_address_i[5:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.rtc_read_data_o[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.rtc_write_data_i[31:0]}]} ]
+group using itc
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+
+group insert \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.core_irq_id_o[4:0]}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.ENA_SEC_IRQ}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.EVT_ID_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.PER_ID_WIDTH}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.clk_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.core_clock_en_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.core_irq_ack_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.core_irq_id_i[4:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.core_irq_req_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.core_irq_sec_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.core_secure_mode_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.event_fifo_data_i[7:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.event_fifo_fulln_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.event_fifo_valid_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.events_i[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.fetch_en_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.r_ack[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.r_fifo_event[7:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.r_int[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.r_mask[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.rst_ni}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_ack_next[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_apb_addr[3:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_event_fifo_data[7:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_event_fifo_ready}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_event_fifo_valid}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_events[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_int_next[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_is_ack}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_is_ack_clr}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_is_ack_set}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_is_apb_read}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_is_apb_write}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_is_event}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_is_fifo}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_is_int}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_is_int_clr}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_is_int_clr_fifo}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_is_int_fifo}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_is_int_set}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_is_mask}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_is_mask_clr}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_is_mask_set}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.s_mask_next[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.fc_eu_i.test_mode_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.s_apb_eu_bus.Slave.paddr[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.s_apb_eu_bus.Slave.penable}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.s_apb_eu_bus.Slave.prdata[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.s_apb_eu_bus.Slave.pready}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.s_apb_eu_bus.Slave.psel}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.s_apb_eu_bus.Slave.pslverr}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.s_apb_eu_bus.Slave.pwdata[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.s_apb_eu_bus.Slave.pwrite}]} ]
+group using rtc
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+
+group insert \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTC_CKIN_DIV_NB}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.APB_ADDR_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.APB_DATA_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.CCR_VAL_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.CD1_VAL_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.CD2_VAL_WIDTH}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.CKIN}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.CKIN_DIV_WIDTH}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.CKOUT}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.CKREF}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.DIV1_COMP_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.FF_RESYNC_NB}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.INT_RTC}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.NRST}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTC_ADDR_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTC_ALARM_NB}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTC_COUNTDOWN_NB}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTC_DATA_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTC_IFR_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTR_SLOT1_WIDTH}]} ] \
+    [subst  {simulator::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.RTR_SLOT_NB_WIDTH}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.SCAN_CLK}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.SCAN_EN}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.SCAN_MODE}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.SCAN_NRST}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.rtc_access_ack_o}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.rtc_access_enable_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.rtc_access_mode_i}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.rtc_address_i[5:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.rtc_read_data_o[31:0]}]} ] \
+    [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.rtc_write_data_i[31:0]}]} ]
+
+#
+# Mnemonic Maps
+#
+mmap new  -reuse -name {Boolean as Logic} -radix %b -contents {{%c=FALSE -edgepriority 1 -shape low}
+{%c=TRUE -edgepriority 1 -shape high}}
+mmap new  -reuse -name {Example Map} -radix %x -contents {{%b=11???? -bgcolor orange -label REG:%x -linecolor yellow -shape bus}
+{%x=1F -bgcolor red -label ERROR -linecolor white -shape EVENT}
+{%x=2C -bgcolor red -label ERROR -linecolor white -shape EVENT}
+{%x=* -label %x -linecolor gray -shape bus}}
+
+#
+# Design Browser windows
+#
+if {[catch {window new WatchList -name "Design Browser 1" -geometry 1853x1023+67+27}] != ""} {
+    window geometry "Design Browser 1" 1853x1023+67+27
+}
+window target "Design Browser 1" on
+browser using {Design Browser 1}
+browser set -scope [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc}]} ]
+browser set \
+    -signalsort name
+browser yview see [subst  {$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc}]} ]
+browser timecontrol set -lock 0
+
+#
+# Waveform windows
+#
+if {[catch {window new WaveWindow -name "Waveform 1" -geometry 2493x1412+1987+0}] != ""} {
+    window geometry "Waveform 1" 2493x1412+1987+0
+}
+window target "Waveform 1" on
+waveform using {Waveform 1}
+waveform sidebar visibility partial
+waveform set \
+    -primarycursor TimeA \
+    -signalnames name \
+    -signalwidth 235 \
+    -units fs \
+    -valuewidth 75
+waveform baseline set -time 18,660,693,519,684fs
+
+
+set groupId0 [waveform add -groups pads]
+
+set id [waveform add -signals [subst  {
+	{$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_wakeevent_rtc}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_wakeevent_gpio[7:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_wake_event}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_rtcwake_en}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_extwake_en}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_rstn_pmu_sync}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.r_wakeevent_gpio[7:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.s_pmu_clk}]}
+	} ]]
+
+set groupId0 [waveform add -groups {{Group 2}}]
+waveform hierarchy collapse $groupId0
+
+set id [waveform add -signals [subst  {
+	{$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.soc_domain_i.ulpsoc_i.fc_subsystem_i.FC_CORE.pc_id[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{$dbNames(realName1)::[format {tb.pulp_chip_iface_wrap_i.i_dut.safe_domain_i.i_rtc.INT_RTC}]}
+	} ]]
+
+set groupId0 [waveform add -groups itc]
+waveform hierarchy collapse $groupId0
+
+
+set groupId0 [waveform add -groups rtc]
+waveform hierarchy collapse $groupId0
+
+
+waveform xview limits 18653824522781fs 18669669731502fs
+
+#
+# Waveform Window Links
+#
+
+#
+# Console windows
+#
+console set -windowname Console
+window geometry Console 2493x1410+1987+0
+
+#
+# Layout selection
+#
+

@@ -17,10 +17,14 @@ extern void ExtractGraphStatistics(CNNGraph_T *Graph, int *TotalSize, int *Total
 extern void MarkKernelsUsedInGraph(CNNGraph_T *Graph);
 
 
+extern unsigned int DynamicL2_Base;
+
 extern GraphControl_T GraphControl;
 extern void AT_DefaultSetGraphCtrl();
 extern void GenerateGraphNodeTypeTemplate(CNNGraph_T *Graph, FILE *Fi);
-extern void GenerateOneNodeArgInit(char *FunArgName, NodeTypeTemplate_T *NodeType, FILE *Fi);
+extern void GenerateOneNodeArgInit(Kernel_T *Ker, KernelGroup_T *Group, char *FunArgName, NodeTypeTemplate_T *NodeType, FILE *Fi);
+
+extern void CollectConstructorLoadEvents(CNNGraph_T *Graph, char *LoadEvents);
 
 extern char *GraphNodeArgImage(GraphNode_T *Node, CKernel_Arg_T *Arg, char *Str);
 

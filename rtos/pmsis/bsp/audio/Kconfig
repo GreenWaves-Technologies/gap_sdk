@@ -1,0 +1,13 @@
+menu "Audio"
+    config BSP_DRIVER_AUDIO_ADC_TLV320
+        bool "TLV320"
+        default n
+        depends on BOARD_GAP9_EVK_AUDIO_ADDON
+        select PMSIS_IMPLEM_I2C
+        select BSP_DRIVER_GPIO_FXL6408
+
+    config BSP_DRIVER_AUDIO_DAC_AK4332
+        bool "AK4332"
+        default n
+        select PMSIS_IMPLEM_I2C
+endmenu

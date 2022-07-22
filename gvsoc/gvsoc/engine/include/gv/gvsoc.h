@@ -46,6 +46,8 @@ void *gv_create(const char *config_path, struct gv_conf *conf);
 
 void gv_start(void *instance);
 
+void gv_reset(void *instance, bool active);
+
 void gv_step(void *instance, int64_t timestamp);
 
 int64_t gv_time(void *instance);

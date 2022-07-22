@@ -26,8 +26,7 @@ add_subdirectory(tools/audio-framework)
 add_custom_target(
     mini_checkout
     COMMENT "Checkouting minimal common sdk components"
-    COMMAND git submodule update --init ${CONFIG_GAP_SDK_HOME}/rtos/pmsis/pmsis_bsp
-    COMMAND git submodule update --init ${CONFIG_GAP_SDK_HOME}/rtos/pmsis/pmsis_api
+    COMMAND git submodule update --init ${CONFIG_GAP_SDK_HOME}/rtos/pmsis
     COMMAND git submodule update --recursive --init ${CONFIG_GAP_SDK_HOME}/examples
     COMMAND git submodule update --init ${CONFIG_GAP_SDK_HOME}/utils/gapy
     COMMAND git submodule update --recursive --init ${CONFIG_GAP_SDK_HOME}/rtos/freeRTOS
@@ -48,7 +47,7 @@ add_custom_target(
 add_custom_target(
     legacy_makefile_sdk ALL
     COMMENT "Building modules using legacy build systems"
-    DEPENDS autotiler nntool
+    DEPENDS autotiler
     )
 
 add_custom_target(
@@ -73,8 +72,3 @@ add_custom_target(
     COMMAND pip install --user -r ${CONFIG_GAP_SDK_HOME}/utils/gapy/requirements.txt
     )
 
-add_custom_target(
-    nntool DEPENDS pip_install
-    COMMENT "Building nntool"
-    COMMAND make -C ${CONFIG_GAP_SDK_HOME}/tools/nntool all
-    )

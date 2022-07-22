@@ -1,0 +1,41 @@
+name: spim_full_duplex
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    sync_cs_auto:
+        name: sync_cs_auto
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: TEST_CFLAGS=-DSYNC_CS_AUTO=1
+        compile_only: true
+    async_cs_auto:
+        name: async_cs_auto
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: TEST_CFLAGS=-DASYNC_CS_AUTO=1
+        compile_only: true
+    sync_cs_keep:
+        name: sync_cs_keep
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: TEST_CFLAGS=-DSYNC_CS_KEEP=1
+        compile_only: true
+    async_cs_keep:
+        name: async_cs_keep
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: TEST_CFLAGS=-DASYNC_CS_KEEP=1
+        compile_only: true

@@ -105,7 +105,7 @@ void pos_alloc_cluster_req(void *_req)
     req->result = pi_l2_malloc(req->size);
   hal_compiler_barrier();
   req->done = 1;
-  pos_cluster_notif_req_done(req->cid);
+  pi_cluster_notif_req_done(req->cid);
 }
 
 void pos_free_cluster_req(void *_req)
@@ -115,7 +115,7 @@ void pos_free_cluster_req(void *_req)
     pi_l2_free(req->chunk, req->size);
   hal_compiler_barrier();
   req->done = 1;
-  pos_cluster_notif_req_done(req->cid);
+  pi_cluster_notif_req_done(req->cid);
 }
 
 
@@ -127,7 +127,7 @@ void pos_alloc_cluster(int is_l2, int size, pi_cl_alloc_req_t *req)
   req->done = 0;
   pos_task_init_from_cluster(&req->task);
   pi_task_callback(&req->task, pos_alloc_cluster_req, (void* )req);
-  pos_cluster_push_fc_event(&req->task);
+  pi_cl_send_task_to_fc(&req->task);
 }
 
 void pos_free_cluster(int is_l2, void *chunk, int size, pi_cl_free_req_t *req)
@@ -139,7 +139,7 @@ void pos_free_cluster(int is_l2, void *chunk, int size, pi_cl_free_req_t *req)
   req->done = 0;
   pos_task_init_from_cluster(&req->task);
   pi_task_callback(&req->task, pos_free_cluster_req, (void* )req);
-  pos_cluster_push_fc_event(&req->task);
+  pi_cl_send_task_to_fc(&req->task);
 }
 
 void pi_cl_l2_malloc(int size, pi_cl_alloc_req_t *req)
@@ -158,7 +158,7 @@ void *pi_cl_l1_malloc(struct pi_device *device, uint32_t size)
   int cid = 0;
   if (device)
   {
-    pos_cluster_t *data = (pos_cluster_t *)device->data;
+    pi_cluster_t *data = (pi_cluster_t *)device->data;
     cid = data->cid;
   }
   return pos_alloc(&pos_alloc_l1[cid], size);
@@ -169,7 +169,7 @@ void pi_cl_l1_free(struct pi_device *device, void *_chunk, int size)
   int cid = 0;
   if (device)
   {
-    pos_cluster_t *data = (pos_cluster_t *)device->data;
+    pi_cluster_t *data = (pi_cluster_t *)device->data;
     cid = data->cid;
   }
   return pos_free(&pos_alloc_l1[cid], _chunk, size);

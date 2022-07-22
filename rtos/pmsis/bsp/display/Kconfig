@@ -1,0 +1,9 @@
+menu "Displays"
+
+    config BSP_DRIVER_DISPLAY_ILI9341
+        bool "ili9341"
+        default n
+        select PMSIS_GAP9_IMPLEM_GPIO
+        select PMSIS_IMPLEM_SPIM
+
+endmenu

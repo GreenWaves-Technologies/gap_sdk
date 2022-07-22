@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import json
 import numpy as np
 import math
@@ -33,6 +32,8 @@ def create_parser():
 	parser.add_argument('--name_suffix', default="", type=str)
 	parser.add_argument('--frame_size', required="--params_json" not in sys.argv, type=int,
 						help="size in number of samples of one frame")
+	parser.add_argument('--window_size', default=None, type=int,
+						help="size in number of samples of each window (center padded if less than frame_size)")
 	parser.add_argument('--frame_step', type=int, default=0,
 						help="step in number of samples between two consecutive frames")
 	parser.add_argument('--win_func', default="hanning", type=str,
@@ -89,7 +90,10 @@ def main():
 	sample_rate      = args.sample_rate      if not "sample_rate"	   in models_params else models_params["sample_rate"]
 	frame_size       = args.frame_size       if not "frame_size"	   in models_params else models_params["frame_size"]
 	frame_step       = args.frame_step       if not "frame_step"	   in models_params else models_params["frame_step"]
+
 	window_fn        = args.win_func         if not "win_func"		   in models_params else models_params["win_func"]
+	window_size      = args.window_size      if not "window_size"	   in models_params else models_params["window_size"]
+	window_size 	 = window_size if window_size is not None else frame_size
 	gen_inv		     = args.gen_inv     	 if not "gen_inv"	 	   in models_params else models_params["gen_inv"]
 	name_suffix 	 = args.name_suffix      if not "name_suffix"	   in models_params else models_params["name_suffix"]
 
@@ -124,7 +128,11 @@ def main():
 
 	print(lut_dtype, name_suffix, n_fft_int)
 	win_func = getattr(np, window_fn)
-	win_lut = win_func(frame_size)
+	win_lut = win_func(window_size)
+	if window_size < frame_size:
+		pad_before = int((frame_size - window_size) // 2)
+		pad_after = int((frame_size - window_size) - pad_before)
+		win_lut = np.pad(win_lut, (pad_before, pad_after))
 	if lut_dtype == "int":
 		Window = (win_lut * 2**(15)).astype(np.int16)
 	else:

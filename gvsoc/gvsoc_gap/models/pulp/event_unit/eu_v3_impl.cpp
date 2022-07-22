@@ -939,6 +939,7 @@ void Core_event_unit::irq_wakeup_handler()
   this->top->trace.msg("IRQ wakeup\n");
   this->is_active.set(1);
   this->clock_itf.sync(1);
+  this->cancel_pending_req();
   this->check_state();
 }
 

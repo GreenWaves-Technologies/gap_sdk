@@ -173,12 +173,13 @@ void Hyperflash::handle_access(int reg_access, int address, int read, uint8_t da
         this->pending_cmd >>= 8;
         if (this->pending_bytes == 0)
           this->state = HYPERFLASH_STATE_WAIT_CMD0;
+        this->trace.msg(vp::trace::LEVEL_TRACE, "Sending data byte (value: 0x%x)\n", data);
       }
       else
       {
         data = this->data[address];
+        this->trace.msg(vp::trace::LEVEL_TRACE, "Sending data byte (address: 0x%x, value: 0x%x)\n", address, data);
       }
-      this->trace.msg(vp::trace::LEVEL_TRACE, "Sending data byte (value: 0x%x)\n", data);
       this->in_itf.sync_cycle(data);
     }
     else

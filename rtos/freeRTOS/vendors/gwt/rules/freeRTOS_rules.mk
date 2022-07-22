@@ -27,8 +27,12 @@ TARGET_CHIP_VERSION=3
 else ifeq ($(TARGET_CHIP), GAP9)
 TARGET_CHIP_VERSION=1
 chip=VEGA
-else
+else ifeq ($(TARGET_CHIP), GAP9_V2)
 TARGET_CHIP_VERSION=2
+else ifeq ($(TARGET_CHIP), GAP9_5)
+TARGET_CHIP_VERSION=5
+else
+$(error "Unknown TARGET_CHIP: $(TARGET_CHIP)")
 endif
 chip_lowercase = $(shell echo $(chip) | tr A-Z a-z)
 
@@ -46,8 +50,9 @@ GWT_DEVICE_INC      = $(GWT_TARGET)/$(chip_lowercase)/include
 GWT_DRIVER_INC      = $(GWT_TARGET)/$(chip_lowercase)/include/driver
 GWT_PMSIS_BACKEND   = $(GWT_PMSIS)/backend
 GWT_PMSIS_IMPLEM    = $(GWT_TARGET)/$(chip_lowercase)/pmsis
-GWT_PMSIS_SHARED_IMPLEM = $(PMSIS_HOME)/pmsis_implem
-GWT_PMSIS_API       = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api
+GWT_PMSIS_SHARED_IMPLEM = $(PMSIS_HOME)/implem
+GWT_PMSIS_API       = $(GAP_SDK_HOME)/rtos/pmsis/api
+GWT_PMSIS_ARCHI     = $(GAP_SDK_HOME)/rtos/pmsis/archi
 
 
 ifeq ($(chip), GAP8)
@@ -234,7 +239,7 @@ SIZE_OPT            = -B -x --common
 
 # The linker options.
 # The options used in linking as well as in any direct use of ld.
-LIBS                = -lgcc
+LIBS                += -lgcc
 STRIP               = -Wl,--gc-sections,-Map=$@.map,-static
 #,-s
 ifeq ($(LINK_SCRIPT),)
@@ -244,7 +249,15 @@ else
 LINK_SCRIPT         = $(GWT_DEVICE)/ld/$(chip).ld
 endif
 endif				# LINK_SCRIPT
-LDFLAGS             = -T$(LINK_SCRIPT) -nostartfiles -nostdlib $(STRIP) $(LIBS)
+LDFLAGS             += -T$(LINK_SCRIPT) -nostartfiles -nostdlib $(STRIP) $(LIBS)
+
+ifeq '$(CONFIG_XIP)' '1'
+CONFIG_XIP_SIZE ?= 512*16
+CFLAGS += -DCONFIG_XIP_SIZE=$(CONFIG_XIP_SIZE)
+ifeq '$(CONFIG_BOOT_DEVICE)' 'mram'
+CFLAGS += -DCONFIG_XIP_MRAM=1
+endif
+endif
 
 # App sources
 APP_SRC            +=
@@ -294,7 +307,7 @@ PMSIS_SRC           = $(PMSIS_IMPLEM_CHIP_SRCS)
 PMSIS_SRC          += $(PMSIS_BSP_SRCS)
 PMSIS_SRC          += $(PMSIS_RTOS_SRCS)
 
-PMSIS_INC_PATH      = $(GWT_PMSIS)/include/ $(GWT_PMSIS_API)/include/
+PMSIS_INC_PATH      = $(GWT_PMSIS)/include/ $(GWT_PMSIS_API)/include/ $(GWT_PMSIS_ARCHI)/include/
 PMSIS_INC_PATH     += $(GWT_PMSIS_BACKEND)/include
 PMSIS_INC_PATH     += $(PMSIS_IMPLEM_DIR) $(PMSIS_IMPLEM_CHIP_INC)
 PMSIS_INC_PATH     += $(PMSIS_BSP_INC)

@@ -8,6 +8,7 @@ use 5.010;
 use threads;
 use Thread::Queue;
 
+use Carp;
 use File::Find;
 use File::Basename qw(dirname);
 use Cwd  qw(abs_path);
@@ -28,6 +29,15 @@ my %durations = (
     long => 2,
     stress => 3,
 );
+
+my $DOT = q{.};
+my $SPACE = q{ };
+my $EMPTY = q{};
+my $SLASH = q{/};
+my $COLON = q{:};
+my $MINUS = q{-};
+my $LETTER_T = q{T};
+my $DOUBLE_QUOTE = q{"};
 
 my @test_files_list = ();
 my @test_list = ();
@@ -59,125 +69,218 @@ sub push_test_result {
     $test_time{$testname} = $seconds;
     if(!$passed)
     {
-        push(@test_failed, $testname);
+        push @test_failed, $testname;
         if($stop_first_fail)
         {
-            die "Test: ".$testname." failed, and first fail stop activated";
+            die 'Test: '.$testname." failed, and first fail stop activated\n";
         }
     }
     else
     {
-        push(@test_passed, $testname);
+        push @test_passed, $testname;
     }
+
+    return;
 }
 
+sub execute_command {
+    my ($command) = @_;
 
-## Exec the run command
-sub exc_cmd_make {
-    my $os = shift;
-    my $platform = shift;
-    my $flags = shift;
-    my $compile_only = shift;
-    my $tags = shift;
-    my $pre = shift;
-    my $post = shift;
-    my $timeout = shift;
-    my $target_name = shift;
-    my $exec_dir = shift;
-    my $res = 0;
-    my $make_path = $basedir."/".$exec_dir;
-    system ("make -C ".$make_path." ".$flags." PMSIS_OS=".$os." build_dir_ext=".$target_name." clean");
-    if($pre == 1)
-    {
-        `make prepare`;
-    }
-
-    my $targets = "all";
-    if (not $compile_only)
-    {
-        $targets = "${targets} run";
-    }
-
-    chdir $exec_dir;
-    my ($seconds_before, $seconds_after);
-    timeout $timeout =>  sub {
-        $seconds_before = time();
-        say "make  -C ".$make_path." ".$flags." PMSIS_OS=".$os." platform=".$platform." build_dir_ext=".$target_name." $targets";
-        $res = system ("make  -C ".$make_path." ".$flags." PMSIS_OS=".$os." platform=".$platform." build_dir_ext=".$target_name." $targets");
-        $seconds_after = time();
-        $res = $res >>=8;
-        say $target_name." : Result is: ".$res;
-        if($post == 1)
-        {
-            $res = `make postrun`;
-        }
-    };
-    my $seconds = $seconds_after - $seconds_before;
-    if ($@){
-        # operation timed-out
-        my $cwd = cwd;
-        say "Test ".cwd." variant: ".$target_name." failed with timeout";
-    }
-    push_test_result(!$res, $target_name,$seconds);
+    say $command;
+    my $res = system($command);
+    $res = $res >>=8;
+    say 'Result is: '.$res;
 
     return $res;
 }
 
 
 ## Exec the run command
-sub exc_cmd_cmake {
-    my $os = shift;
-    my $platform = shift;
-    my $flags = shift;
-    my $compile_only = shift;
-    my $tags = shift;
-    my $pre = shift;
-    my $post = shift;
-    my $timeout = shift;
-    my $target_name = shift;
-    my $exec_dir = shift;
-    my $chip = shift;
-    my $chip_version = shift;
-    my $sdk_root_path = shift;
-    my $res = 0;
-    my $make_path = $basedir."/".$exec_dir;
+sub exc_cmd_make {
+    my ($option_ref, undef) = @_;
+    my  %options = %{$option_ref};
 
-    $chip =~ tr/a-z/A-Z/;
-    my @split_flags = split / /, $flags;
-    my $cmake_flags = '';
-    for(sort @split_flags)
+    my $os =  $options{os} or croak "Missing required \"os\"";
+    my $platform =  $options{platform} or croak "Missing required \"platform\"";
+    my $flags =  $options{flags} or croak "Missing required \"flags\"";
+    my $compile_only =  $options{compile_only} // 0;
+    my $tags =  $options{tags} // "";
+    my $prepare =  $options{prepare} // 0;
+    my $postrun =  $options{postrun} // 0;
+    my $timeout =  $options{timeout} or croak "Missing required \"timeout\"";
+    my $target_name =  $options{target_name} or croak "Missing required \"target_name\"";
+    my $exec_dir =  $options{exec_dir} or croak "Missing required \"exec_dir\"";
+
+    my $make_path = $basedir.$SLASH.$exec_dir;
+    my $make_flags = join $SPACE, '-C',
+                                     $make_path,
+                                     $flags,
+                                     'PMSIS_OS='.$os,
+                                     'platform='.$platform,
+                                     'build_dir_ext='.$target_name;
+
+    # Create the list of commands
+    my @commands = ();
+    # clean command
+    my $command = join $SPACE, 'make',
+                                 $make_flags,
+                                 'clean';
+    push @commands, $command;
+
+    # prepare command
+    if($prepare == 1)
     {
-        $cmake_flags = $cmake_flags." -D".$_;
+        $command = join $SPACE, 'make',
+                                  $make_flags,
+                                  'prepare';
+        push @commands, $command;
     }
+
+    # all run command
+    my $targets = 'all';
+    if (not $compile_only)
+    {
+        $targets = "${targets} run";
+    }
+    $command = join $SPACE, 'make',
+                               $make_flags,
+                               $targets;
+    push @commands, $command;
+
+    # postrun command
+    if($postrun == 1 and not $compile_only)
+    {
+        $command = join $SPACE, 'make',
+                                   $make_flags,
+                                   'postrun';
+        push @commands, $command;
+    }
+
+    # Execute commands
+    my $res = 0;
 
     chdir $exec_dir;
     my ($seconds_before, $seconds_after);
     timeout $timeout =>  sub {
         $seconds_before = time();
-
-        say "CMAKE_GENERATOR=Ninja cmake -S $make_path -B $make_path/build".-$target_name."  -DCONFIG_GAP_SDK_HOME=$sdk_root_path -DCMAKE_MODULE_PATH=$sdk_root_path/utils/cmake -DCONFIG_CHIP=$chip -DCONFIG_CHIP_VERSION=$chip_version -DBOARD=$ENV{'BOARD_NAME'} $cmake_flags";
-        $res = system ("CMAKE_GENERATOR=Ninja cmake -S $make_path -B $make_path/build".-$target_name."  -DCONFIG_GAP_SDK_HOME=$sdk_root_path -DCMAKE_MODULE_PATH=$sdk_root_path/utils/cmake -DCONFIG_CHIP=$chip -DCONFIG_CHIP_VERSION=$chip_version -DBOARD=$ENV{'BOARD_NAME'} $cmake_flags");
-        say "cmake --build $make_path/build";
-
-        if (not $compile_only)
-        {
-            $res = system("cmake --build $make_path/build".-$target_name);
-            say "cmake --build $make_path/build --target run";
-            $res = system("cmake --build $make_path/build".-$target_name."  --target run");
-            $seconds_after = time();
-            $res = $res >>=8;
-            say $target_name." : Result is: ".$res;
-            if($post == 1)
-            {
-                $res = system("cmake --build build --target postrun");
+        foreach my $command (@commands) {
+            $res = execute_command($command);
+            if ($res != 0) {
+                last;
             }
         }
+        $seconds_after = time();
+    };
+
+    my $seconds = $seconds_after - $seconds_before;
+    if ($@){
+        # operation timed-out
+        my $cwd = cwd;
+        say 'Test '.cwd.' variant: '.$target_name.' failed with timeout';
+    }
+    push_test_result(!$res, $target_name,$seconds);
+    return $res;
+}
+
+
+## Exec the run command
+sub exc_cmd_cmake {
+    my ($option_ref, undef) = @_;
+    my  %options = %{$option_ref};
+
+    my $os =  $options{os} or croak "Missing required \"os\"";
+    my $platform =  $options{platform} or croak "Missing required \"platform\"";
+    my $flags =  $options{flags} or croak "Missing required \"flags\"";
+    my $compile_only =  $options{compile_only} // 0;
+    my $tags =  $options{tags} // "";
+    my $prepare =  $options{prepare} // 0;
+    my $postrun =  $options{postrun} // 0;
+    my $timeout =  $options{timeout} or croak "Missing required \"timeout\"";
+    my $target_name =  $options{target_name} or croak "Missing required \"target_name\"";
+    my $exec_dir =  $options{exec_dir} or croak "Missing required \"exec_dir\"";
+    my $chip =  $options{chip} or croak "Missing required \"chip\"";
+    my $chip_version =  $options{chip_version} or croak "Missing required \"chip_version\"";
+    my $sdk_root_path =  $options{sdk_root_path} or croak "Missing required \"sdk_root_path\"";
+
+    my $res = 0;
+    my $make_path = $basedir.$SLASH.$exec_dir;
+    my $build_dir = "$make_path/BUILD/CMAKE_$target_name";
+
+    $chip =~ tr/a-z/A-Z/;
+    my @split_flags = split / /, $flags;
+    my $cmake_flags = $EMPTY;
+    for(sort @split_flags)
+    {
+        $cmake_flags = $cmake_flags.' -D'.$_;
+    }
+
+    # Set platform (board by default)
+    my $platform_flag = "-DCONFIG_PLATFORM_BOARD=1";
+    if ($platform == 'gvsoc')
+    {
+        $platform_flag = "-DCONFIG_PLATFORM_GVSOC=1";
+    }
+
+    # Create commands
+    my @commands = ();
+
+    # generate cmake command
+    my $command = join $SPACE, 'CMAKE_GENERATOR=Ninja',
+                                  'cmake',
+                                  "-S $make_path",
+                                  "-B $build_dir",
+                                  "-DCONFIG_GAP_SDK_HOME=$sdk_root_path",
+                                  "-DCMAKE_MODULE_PATH=$sdk_root_path/utils/cmake",
+                                  "-DCONFIG_CHIP=$chip",
+                                  "-DCONFIG_CHIP_VERSION=$chip_version",
+                                  "-DBOARD=$ENV{'BOARD_NAME'}",
+                                  "$platform_flag",
+                                  "$cmake_flags";
+    push @commands, $command;
+
+    # build command
+    $command = join $SPACE, 'cmake',
+                               "--build $build_dir";
+    push @commands, $command;
+
+    if (not $compile_only)
+    {
+        # run command
+        $command = join $SPACE, 'cmake',
+                                   "--build $build_dir",
+                                   '--target run';
+        push @commands, $command;
+
+        # postrun command
+        if($postrun == 1)
+        {
+            $command = join $SPACE, 'cmake',
+                                      "--build $build_dir",
+                                      '--target postrun';
+            push @commands, $command;
+        }
+    }
+
+    # Execute commands
+    chdir $exec_dir;
+    my ($seconds_before, $seconds_after);
+    timeout $timeout =>  sub {
+        $seconds_before = time();
+
+        foreach my $command (@commands) {
+            $res = execute_command($command);
+            if ($res != 0) {
+                last;
+            }
+        }
+
+        $seconds_after = time();
     };
     my $seconds = $seconds_after - $seconds_before;
     if ($@){
         # operation timed-out
         my $cwd = cwd;
-        say "Test ".cwd." variant: ".$target_name." failed with timeout";
+        say 'Test '.cwd.' variant: '.$target_name.' failed with timeout';
     }
     push_test_result(!$res, $target_name,$seconds);
 
@@ -185,17 +288,24 @@ sub exc_cmd_cmake {
 }
 
 sub cmd_runner {
+    my (undef) = @_;
     while (defined(my @args = $test_queue->dequeue())) {
-        my $_args = pop(@args);
-        @_ = @$_args;
-        my $builder = pop(@_);
+        my (%options) = %{pop(@args)};
+
+        my $builder = $options{builder} // "no builder";
+
         if ($builder eq 'make'){
-            exc_cmd_make(@_);
+            exc_cmd_make(\%options);
         }
-        if ($builder eq 'cmake'){
-            exc_cmd_cmake(@_);
+        elsif ($builder eq 'cmake'){
+            exc_cmd_cmake(\%options);
+        }
+        else {
+            croak "Unknown builder:".$options{builder};
         }
     }
+
+    return;
 }
 
 sub check_len {
@@ -220,18 +330,22 @@ sub check_len {
 }
 
 sub process_yml {
-    my $exec_dir = shift;
-    my $config_platform = shift;
-    my $config_chip = shift;
-    my $config_board = shift;
-    my $config_os = shift;
-    my $config_len = shift;
-    my $config_tag = shift;
-    my $job_index = shift;
-    my $job_total = shift;
-    my $chip_version = shift;
-    my $builder = shift;
-    my $sdk_root_path = shift;
+    my ($option_ref, undef) = @_;
+    my %options = %{$option_ref};
+
+    my $exec_dir = $options{exec_dir} or croak "Missing required \"exec_dir\"";
+    my $config_platform = $options{config_platform} or croak "Missing required \"config_platform\"";
+    my $config_chip = $options{config_chip} or croak "Missing required \"config_chip\"";
+    my $config_os = $options{config_os} or croak "Missing required \"config_os\"";
+    my $config_len = $options{config_len} or croak "Missing required \"config_len\"";
+    my $config_tag = $options{config_tag} or croak "Missing required \"config_tag\"";
+    my $job_index = $options{job_index} or croak "Missing required \"job_index\"";
+    my $job_total = $options{job_total} or croak "Missing required \"job_total\"";
+    my $builder = $options{builder} or croak "Missing required \"builder\"";
+
+    my $config_board = $options{config_board} // "";
+    my $chip_version = $options{chip_version} // 0;
+    my $sdk_root_path = $options{sdk_root_path} // "";
 
     # enter the test dir
     chdir $exec_dir;
@@ -242,12 +356,12 @@ sub process_yml {
     foreach my $test_variant (@test_variants)
     {
         if(check_len($config_len, $test_variant->{duration})
-            && (grep( /^$config_tag$/, @{$test_variant->{tags}}))
-            && (grep( /^$config_os$/, @{$test_variant->{os}}))
-            && (grep( /^$config_chip$/, @{$test_variant->{chips}}))
-            && (grep( /^$config_platform$/, @{$test_variant->{platforms}}))
-            && ((grep( /^$config_board$/, @{$test_variant->{boards}}))
-                || ($config_board eq '') || (scalar(@{$test_variant->{boards}}) == 0 ))
+            && (grep { /^$config_tag$/ } @{$test_variant->{tags}})
+            && (grep { /^$config_os$/ } @{$test_variant->{os}})
+            && (grep { /^$config_chip$/ } @{$test_variant->{chips}})
+            && (grep { /^$config_platform$/ } @{$test_variant->{platforms}})
+            && ((grep { /^$config_board$/ } @{$test_variant->{boards}})
+                || ($config_board eq $EMPTY) || (scalar(@{$test_variant->{boards}}) == 0 ))
             )
         {
             # Only launch the test if it is belong to the job
@@ -261,31 +375,35 @@ sub process_yml {
             if ($list_select_tests)
             {
                 # list selected test without executing it
-                push(@test_list, $test_variant->{name});
+                push @test_list, $test_variant->{name};
                 next;
             }
 
-            $test_variant->{flags} = "DURATION=".$config_len." ".$test_variant->{flags};
+            $test_variant->{flags} = "DURATION=".$config_len.$SPACE.$test_variant->{flags};
 
             # push in workqueue
-            my @arg = ($config_os,
-                $config_platform,
-                $test_variant->{flags},
-                $test_variant->{compile_only},
-                '',
-                0,
-                0,
-                $test_variant->{timeout},
-                $test_variant->{name},
-                $exec_dir,
-                $config_chip,
-                $chip_version,
-                $sdk_root_path,
-                $builder);
-            $test_queue->enqueue(\@arg);
+            my %arg = (
+                    os => $config_os,
+                    platform => $config_platform,
+                    flags => $test_variant->{flags},
+                    compile_only => $test_variant->{compile_only},
+                    tags => $EMPTY,
+                    prepare => 0,
+                    postrun => 0,
+                    timeout => $test_variant->{timeout},
+                    target_name => $test_variant->{name},
+                    exec_dir => $exec_dir,
+                    chip => $config_chip,
+                    chip_version => $chip_version,
+                    sdk_root_path => $sdk_root_path,
+                    builder => $builder
+            );
+            $test_queue->enqueue(\%arg);
             $tests_nb++;
         }
     }
+
+    return;
 }
 
 sub create_default_gaptest {
@@ -293,39 +411,47 @@ sub create_default_gaptest {
     # verify no gaptest.yml
     if (not -e $filename)
     {
+        # create file content
+        my $content = "name: TEST_NAME_TO_CHANGE\n";
+        $content .= "platforms:\n";
+        $content .= "    - gvsoc\n";
+        $content .= "os:\n";
+        $content .= "    - freertos\n";
+        $content .= "    - pulpos\n";
+        $content .= "chips:\n";
+        $content .= "    - gap8\n";
+        $content .= "    - gap9\n";
+        $content .= "variants:\n";
+        $content .= "    std:\n";
+        $content .= "        name: standard\n";
+        $content .= "        tags:\n";
+        $content .= "            - integration\n";
+        $content .= "            - release\n";
+        $content .= "        duration: standard\n";
+        $content .= "        flags: ~\n";
+
         # create file
-        open(my $FH,'>',$filename) or die "Could not create gaptest.yml";
-
+        open(my $FH,'>',$filename) or die "Could not create gaptest.yml\n";
         # dump gaptest.yml
-        print $FH "name: TEST_NAME_TO_CHANGE\n";
-        print $FH "platforms:\n";
-        print $FH "    - gvsoc\n";
-        print $FH "os:\n";
-        print $FH "    - freertos\n";
-        print $FH "    - pulpos\n";
-        print $FH "chips:\n";
-        print $FH "    - gap8\n";
-        print $FH "    - gap9\n";
-        print $FH "variants:\n";
-        print $FH "    std:\n";
-        print $FH "        name: standard\n";
-        print $FH "        tags:\n";
-        print $FH "            - integration\n";
-        print $FH "            - release\n";
-        print $FH "        duration: standard\n";
-        print $FH "        flags: ~\n";
-
+        print $FH $content;
         # close file
-        close($FH);
+        close($FH) or die "Could not close gaptest.yml\n";
     }
     else
     {
         print "A file named \"gaptest.yml\" already exists\n";
     }
+
+    return;
 }
 
 sub gaptest_find_cb {
-    push @test_files_list, $File::Find::dir if /gaptest.yml$/;
+    if (/gaptest.yml$/)
+    {
+        push @test_files_list, $File::Find::dir;
+    }
+
+    return;
 }
 
 sub print_help{
@@ -358,10 +484,13 @@ sub print_help{
     print("    --help                : display help and exit\n");
     print("\n");
     print("For more information, please refer to the documentation\n");
+
+    return;
 }
 
 sub usage {
     print_help();
+    return;
 }
 
 sub nb_test_run {
@@ -372,7 +501,7 @@ sub nb_test_run {
 
 sub dump_junit_report_testcase {
     my $name = shift;
-    my $testcase = "<testcase name=\"".$name."\""." time=\"".$test_time{$name}."\" >\n";
+    my $testcase = "<testcase name=\"".$name.$DOUBLE_QUOTE." time=\"".$test_time{$name}."\" >\n";
     return $testcase;
 }
 
@@ -387,32 +516,40 @@ sub dump_junit_report {
     my $timestamp = shift;
     lock(@test_failed);
     lock(@test_passed);
-    say "Dumping report at: ".cwd."/".$filename;
-    open(REPORT,'>',$filename) or die $!;
+    say "Dumping report at: ".cwd.$SLASH.$filename;
+
+    my $content = $EMPTY;
+
     my $nb_test_failed = scalar(@test_failed);
     my $nb_test_passed = scalar(@test_passed);
     my $total = $nb_test_failed + $nb_test_passed;
-    my $header_failed = "failures=\"".$nb_test_failed."\"";
-    my $header_tests = "tests=\"".$total."\"";
+    my $header_failed = "failures=\"".$nb_test_failed.$DOUBLE_QUOTE;
+    my $header_tests = "tests=\"".$total.$DOUBLE_QUOTE;
     # next two are unsuported and set at 0
     my $header_errors =  "errors=\"0\"";
     my $header_skipped = "skipped=\"0\"";
     my $header_timestamp = "timestamp=\".$timestamp.\"";
-    my $header_name = "testsuite name=\"testsuite\""." ".$header_timestamp;
-    my $header =  "<".$header_name." ".$header_failed." ".$header_tests." ".$header_errors." ".$header_skipped.">\n";
-    print REPORT $header;
+    my $header_name = "testsuite name=\"testsuite\"".$SPACE.$header_timestamp;
+    my $header =  "<".$header_name.$SPACE.$header_failed.$SPACE.$header_tests.$SPACE.$header_errors.$SPACE.$header_skipped.">\n";
+
+    $content .= $header;
     for(@test_failed) {
-        print REPORT dump_junit_report_testcase($_);
-        print REPORT dump_junit_report_failure($_);
-        print REPORT "</testcase>\n";
+        $content .= dump_junit_report_testcase($_);
+        $content .= dump_junit_report_failure($_);
+        $content .= "</testcase>\n";
     }
     for(@test_passed) {
-        print REPORT dump_junit_report_testcase($_);
-        print REPORT "</testcase>\n";
+        $content .= dump_junit_report_testcase($_);
+        $content .= "</testcase>\n";
     }
-    print REPORT "</testsuite>\n";
-    close(REPORT);
-    say "Report dumped";
+
+    $content .= "</testsuite>\n";
+
+    open(my $REPORT,'>',$filename) or die "$!\n";
+    print $REPORT $content;
+    close($REPORT) or die "Could not close test report file\n";
+    say 'Report dumped';
+    return;
 }
 
 ### ENTRY
@@ -428,15 +565,15 @@ sub dump_junit_report {
 # --dry-run: prepare all comands, and dump them, without executing
 
 my $builder = 'make';
-my $sdk_root_path = '';
-my $chip_version = '';
-my $chip = '';
+my $sdk_root_path = $EMPTY;
+my $chip_version = $EMPTY;
+my $chip = $EMPTY;
 my $tag = 'integration';
-my $board = '';
+my $board = $EMPTY;
 my $platform = 'gvsoc';
 my $os = 'freertos';
 my $len = 'standard';
-my $threads = '';
+my $threads = $EMPTY;
 my $nb_proc = 1;
 my $jobs = '1/1'; # contains "X/N" where X = job index, N = total number of jobs
 my $test_init = 0;
@@ -464,7 +601,7 @@ while (@ARGV) {
     ($arg eq '-t') && do { $tag = shift(@ARGV); next};
     ($arg eq '-b') && do { $board = shift(@ARGV); next};
     # unrecognized
-    ($arg =~ m/^-.+/) && do { print "Unknown option: $arg\n"; &usage(); die};
+    ($arg =~ m/^-.+/) && do { print "Unknown option: $arg\n"; &usage(); die "\n"};
 }
 
 if ($test_init)
@@ -474,10 +611,10 @@ if ($test_init)
     exit 0;
 }
 
-if($chip eq '')
+if($chip eq $EMPTY)
 {
     usage();
-    die "Chip not specified, aborting."
+    die "Chip not specified, aborting.\n"
 }
 
 
@@ -489,7 +626,11 @@ for(my $i = 0; $i < $nb_proc; $i++)
 
 #$test_queue->limit = $nb_proc;
 
-find(\&gaptest_find_cb, '.');
+find({
+        wanted => \&gaptest_find_cb,
+        follow => 1,
+        follow_skip => 2 # ignore cycles
+    }, $DOT);
 my $cwd = cwd;
 $basedir = cwd;
 
@@ -511,12 +652,27 @@ else {
 
 
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
-my $timestamp = (1900+$year)."-".(1+$mon)."-".$mday."T".$hour.":".$min.":".($sec%60);
+my $timestamp = (1900+$year).$MINUS.(1+$mon).$MINUS.$mday.$LETTER_T.$hour.$COLON.$min.$COLON.($sec%60);
 
 for (sort @test_files_list)
 {
     chdir $cwd;
-    process_yml($_,$platform,$chip,$board,$os,$len,$tag,$job_index,$job_total,$chip_version,$builder,$sdk_root_path);
+    process_yml(
+        {
+            exec_dir => $_,
+            config_platform => $platform,
+            config_chip => $chip,
+            config_board => $board,
+            config_os => $os,
+            config_len => $len,
+            config_tag => $tag,
+            job_index => $job_index,
+            job_total => $job_total,
+            chip_version => $chip_version,
+            builder => $builder,
+            sdk_root_path => $sdk_root_path
+        }
+    );
 }
 
 while(nb_test_run() < $tests_nb)
@@ -530,31 +686,31 @@ chdir $basedir;
 if($list_select_tests)
 {
     my $nb_test_total = scalar(@test_list);
-    say "---------------------------------------------------------------------------";
-    say "Tests:";
-    say "---------------------------------------------------------------------------";
+    say '---------------------------------------------------------------------------';
+    say 'Tests:';
+    say '---------------------------------------------------------------------------';
     for (@test_list)
     {
         say "- $_";
     }
-    say "---------------------------------------------------------------------------";
+    say '---------------------------------------------------------------------------';
     say "Total: ${nb_test_total}";
-    say "---------------------------------------------------------------------------";
+    say '---------------------------------------------------------------------------';
 
     exit 0;
 }
 else
 {
-    my $STATUS_KO = color("bold bright_red")."KO".color("reset");
-    my $STATUS_OK = color("bold green")."OK".color("reset");
+    my $STATUS_KO = color('bold bright_red')."KO".color('reset');
+    my $STATUS_OK = color('bold green')."OK".color('reset');
 
     my $nb_test_failed = scalar(@test_failed);
     my $nb_test_passed = scalar(@test_passed);
     my $nb_test_total = $tests_nb;
 
-    say "---------------------------------------------------------------------------";
-    say "Test results:";
-    say "---------------------------------------------------------------------------";
+    say '---------------------------------------------------------------------------';
+    say 'Test results:';
+    say '---------------------------------------------------------------------------';
 
     for (@test_failed)
     {
@@ -565,7 +721,7 @@ else
         say "[${STATUS_OK}] ".$_;
     }
 
-    say "---------------------------------------------------------------------------";
+    say '---------------------------------------------------------------------------';
     if ($nb_test_failed)
     {
         say "Testsuite failed (failures: ${nb_test_failed}/${nb_test_total})";
@@ -574,8 +730,8 @@ else
     {
         say "Testsuite succeeded (passed: ${nb_test_passed}/${nb_test_total})";
     }
-    say "---------------------------------------------------------------------------";
+    say '---------------------------------------------------------------------------';
 
-    dump_junit_report("./report.xml",$timestamp);
+    dump_junit_report('./report.xml',$timestamp);
     exit scalar(@test_failed);
 }

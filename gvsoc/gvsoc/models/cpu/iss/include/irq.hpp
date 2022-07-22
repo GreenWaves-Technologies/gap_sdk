@@ -22,7 +22,7 @@
 #ifndef __CPU_ISS_IRQ_HPP
 #define __CPU_ISS_IRQ_HPP
 
-static inline void iss_irq_check(iss_t *iss)
+static inline int iss_irq_check(iss_t *iss)
 {
   if (iss->cpu.irq.req_debug && !iss->cpu.state.debug_mode)
   {
@@ -58,10 +58,18 @@ static inline void iss_irq_check(iss_t *iss)
       iss->cpu.csr.mcause = (1<<31) | (unsigned int)req_irq;
 
       iss_irq_ack(iss, req_irq);
+
+      iss->cpu.state.elw_insn = NULL;
+
+      prefetcher_fetch(iss, iss->cpu.current_insn);
+
+      return iss->stalled.get() ? -1 : 0;
     }
 
     iss->cpu.state.elw_insn = NULL;
   }
+
+  return 0;
 }
 
 
@@ -100,9 +108,10 @@ static inline void iss_irq_req(iss_t *iss, int irq)
 {
   iss->cpu.irq.req_irq = irq;
 
-  if (iss->cpu.state.elw_insn != NULL)
+  if (iss->cpu.state.elw_insn != NULL && iss->cpu.state.elw_stalled)
   {
     iss_msg(iss, "Unstalling core due to IRQ\n");
+    iss->cpu.state.elw_stalled = false;
     iss_unstall(iss);
   }
 }

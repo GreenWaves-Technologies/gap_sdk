@@ -148,6 +148,8 @@ int interleaver::build()
     new_slave_port("ts_in_" + std::to_string(i), masters_ts_in[i]);
   }
 
+  this->ts_req.init();
+
   return 0;
 }
 

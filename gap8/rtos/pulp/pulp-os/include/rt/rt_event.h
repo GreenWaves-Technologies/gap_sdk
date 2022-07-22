@@ -33,17 +33,17 @@
 #ifndef __RT_RT_EVENT_H__
 #define __RT_RT_EVENT_H__
 
-/**        
- * @ingroup groupKernel        
+/**
+ * @ingroup groupKernel
  */
 
-/**        
+/**
  * @defgroup Event Event scheduler
  *
  * The asynchronous interactions between the fabric controller, the cluster and the peripherals are managed
  * with events on the fabric controller side.
  *
- * An event is a function callback which can be pushed to an event scheduler, for a deferred execution. 
+ * An event is a function callback which can be pushed to an event scheduler, for a deferred execution.
  * All events in the same scheduler are executed in-order, in a FIFO manner.
  *
  * In order to manage several levels of event priorities, there may be several event schedulers at the same
@@ -71,9 +71,9 @@
  * as waiting for an event.
  */
 
-/**        
+/**
  * @addtogroup Event
- * @{        
+ * @{
  */
 
 /**@{*/
@@ -259,12 +259,20 @@ void rt_event_wait(rt_event_t *event);
  */
 void rt_event_push_delayed(rt_event_t *event, int time_us);
 
+/** \brief Cancel a scheduled event
+ *
+ * If the event has already been executed, it does nothing.
+ *
+ * \param event   The event to be pushed.
+ */
+void rt_event_cancel_delayed(rt_event_t *event);
+
 
 
 //!@}
 
-/**        
- * @} end of Event group        
+/**
+ * @} end of Event group
  */
 
 
@@ -286,7 +294,7 @@ static inline rt_event_sched_t *__rt_event_get_current_sched()
 static inline void __rt_event_release(rt_event_t *event)
 {
   event->next = __rt_first_free;
-  __rt_first_free = event;  
+  __rt_first_free = event;
 }
 
 static inline rt_event_t *rt_event_irq_get(void (*callback)(void *), void *arg)
@@ -308,12 +316,12 @@ void __rt_event_init(rt_event_t *event, rt_event_sched_t *sched);
 
 static inline void __rt_event_set_pending(rt_event_t *event)
 {
-  event->implem.pending = 1;  
+  event->implem.pending = 1;
 }
 
 static inline void __rt_event_set_keep(rt_event_t *event)
 {
-  event->implem.keep = 1;  
+  event->implem.keep = 1;
 }
 
 void __rt_event_execute(rt_event_sched_t *sched, int wait);

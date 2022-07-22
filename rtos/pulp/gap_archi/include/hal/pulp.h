@@ -23,10 +23,10 @@
 #define  _CHIP_INC(x) __CHIP_INC(hal/chips/x/pulp.h)
 #define  CHIP_INC(x) _CHIP_INC(x)
 
-#if defined(PULP_CHIP_FAMILY)
-#include CHIP_INC(PULP_CHIP_FAMILY_STR)
-#else
+// #if defined(PULP_CHIP_FAMILY)
+// #include CHIP_INC(PULP_CHIP_FAMILY_STR)
+// #else
 #include CHIP_INC(PULP_CHIP_STR)
-#endif
+// #endif
 
 #endif

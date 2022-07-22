@@ -1,0 +1,65 @@
+APP = test
+APP_SRCS += test.c
+PULP_ASM_SRCS += test_asm.S
+APP_CFLAGS += -Os -g
+APP_LDFLAGS += -Os -g
+
+RAM_TYPE ?= HYPERRAM
+
+ifeq '$(RAM_TYPE)' 'HYPERRAM'
+APP_CFLAGS += -DUSE_HYPERRAM
+CONFIG_HYPERRAM = 1
+else
+APP_CFLAGS += -DUSE_SPIRAM
+CONFIG_SPIRAM = 1
+endif
+
+TEST_TYPE ?= quick
+
+ifeq '$(TEST_TYPE)' 'fast'
+TEST_DURATION_US = 1000
+APP_CFLAGS += -DTEST_TYPE_FAST
+endif
+
+ifeq '$(TEST_TYPE)' 'quick'
+TEST_DURATION_US = 5000
+APP_CFLAGS += -DTEST_TYPE_QUICK
+endif
+
+ifeq '$(TEST_TYPE)' 'long'
+TEST_DURATION_US = 10000
+APP_CFLAGS += -DTEST_TYPE_LONG
+endif
+
+ifeq '$(TEST_TYPE)' 'longlong'
+TEST_DURATION_US = 20000
+APP_CFLAGS += -DTEST_TYPE_LONGLONG
+endif
+
+APP_CFLAGS += -DTEST_DURATION_US=$(TEST_DURATION_US)
+
+ifdef SOC_IDLE
+APP_CFLAGS += -DSOC_IDLE=1
+endif
+
+FLASH_TYPE ?= HYPER_FLASH
+
+ifeq '$(FLASH_TYPE)' 'HYPER_FLASH'
+APP_CFLAGS += -DUSE_HYPERFLASH
+
+else
+
+ifeq '$(FLASH_TYPE)' 'MRAM'
+APP_CFLAGS += -DUSE_MRAM
+
+else
+
+APP_CFLAGS += -DUSE_SPIFLASH
+CONFIG_ATXP032 = 1
+
+endif
+endif
+
+override PMSIS_OS=pulpos
+
+include $(RULES_DIR)/pmsis_rules.mk

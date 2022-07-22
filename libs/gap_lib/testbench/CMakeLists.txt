@@ -25,7 +25,7 @@ target_include_directories(testbench PUBLIC .)
 
 target_compile_options(testbench PUBLIC $<$<COMPILE_LANGUAGE:C>:${testbench_flags}>)
 
-set(GWT_PMSIS_BSP ${CONFIG_GAP_SDK_HOME}/rtos/pmsis/pmsis_bsp)
+set(GWT_PMSIS_BSP ${CONFIG_GAP_SDK_HOME}/rtos/pmsis/bsp)
 target_include_directories(testbench PRIVATE ${GWT_PMSIS_BSP}/include)
 
 #===================================================================================================

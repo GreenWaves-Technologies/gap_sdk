@@ -1,0 +1,22 @@
+name: fs_write
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap8
+    - gap9
+variants:
+    host:
+        name: 'host'
+        tags:
+            - integration
+            - release
+        duration: standard
+        boards:
+            - gap9_v2
+        platforms:
+            - rtl
+        flags: 'FS_TYPE=HOST'
+        compile_only: true

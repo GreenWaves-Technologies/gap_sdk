@@ -109,6 +109,14 @@ extern int CNN_Copy(
 	int FeatureSize
 );
 
+extern int CNN_Repeat(
+        char *Name,
+        CNN_GenControl_T *Ctrl,
+        int Sz,
+        int FeatureSize,
+        int NRepeat
+);
+
 int CNN_Norm(
 	char *Name,
 
@@ -126,7 +134,7 @@ int CNN_Convert(
 	KernelOper_T kop
 );
 
-int CNN_Concatenate_Width(
+int CNN_ConcatLastAxis_Generator(
         char *Name,
 
         CNN_GenControl_T *Ctrl,
@@ -140,6 +148,22 @@ int CNN_Concatenate_Width(
         int In4Width,
 
         KernelOper_T ConcatOper
+);
+
+int CNN_SplitLastAxis_Generator(
+        char *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int Size,
+        int Height,
+
+        int Out1Width,
+        int Out2Width,
+        int Out3Width,
+        int Out4Width,
+
+        KernelOper_T SplitOper
 );
 
 #endif

@@ -83,6 +83,7 @@ public:
   vp::io_req *waiting_reqs[32];
   vp::trace     trace_value;
   vp::trace     trace_waiting_cores;
+  vp::trace     trace;
 
   void set_value(uint32_t value);
 };
@@ -99,7 +100,6 @@ public:
 private:
   vp::io_req_status_e enqueue_sleep(Semaphore *mutex, vp::io_req *req, int core_id) ;
   Event_unit *top;
-  vp::trace     trace;
   int nb_semaphores;
   int semaphore_event;
   int width;
@@ -110,6 +110,7 @@ public:
   void reset();
 
   uint32_t value;
+  vp::trace     trace;
 };
 
 class Bitfield_unit {
@@ -123,7 +124,6 @@ public:
 
 private:
   Event_unit *top;
-  vp::trace     trace;
   int nb_bitfields;
 };
 
@@ -137,6 +137,7 @@ public:
   uint32_t waiting_mask;
   uint32_t value;
   vp::io_req *waiting_reqs[32];
+  vp::trace     trace;
   //void sleepCancel(int coreId);
   //function<void (int)> sleepCancelCallback;
 };
@@ -155,7 +156,6 @@ public:
 private:
   vp::io_req_status_e enqueue_sleep(Mutex *mutex, vp::io_req *req, int core_id) ;
   Event_unit *top;
-  vp::trace     trace;
   int nb_mutexes;
   int mutex_event;
 };
@@ -171,6 +171,8 @@ public:
   vp::reg_32 config_mask;     // Cores that will get a valid value
   vp::reg_32 waiting_mask;
   vp::io_req *waiting_reqs[32];
+
+  vp::trace     trace;
 //
 //  //gv::ioSlave_ioReq stallRetryCallbackPtr;
 //  //function<void (int)> sleepCancelCallback;
@@ -212,6 +214,7 @@ private:
   Dispatch *dispatches;
   int size;
   int fifo_head;
+  vp::trace     trace;
 };
 
 
@@ -790,6 +793,7 @@ void Core_event_unit::check_pending_req()
 {
     if (this->pending_req)
     {
+        this->top->trace.msg("Sending pending request reply\n");
         this->pending_req->get_resp_port()->resp(pending_req);
         this->pending_req = NULL;
     }
@@ -814,6 +818,7 @@ void Core_event_unit::check_wait_mask()
 
 vp::io_req_status_e Core_event_unit::put_to_sleep(vp::io_req *req, Event_unit_core_state_e wait_state)
 {
+  top->trace.msg("Put to sleep (core: %d)\n", core_id);
   state.set(wait_state);
   this->is_active.set(0);
   this->clock_itf.sync(0);
@@ -823,7 +828,7 @@ vp::io_req_status_e Core_event_unit::put_to_sleep(vp::io_req *req, Event_unit_co
 
 vp::io_req_status_e Core_event_unit::wait_event(vp::io_req *req, Event_unit_core_state_e wait_state)
 {
-  top->trace.msg("Wait request (status: 0x%x, evt_mask: 0x%x)\n", status, evt_mask);
+  top->trace.msg("Wait request (status: 0x%x, evt_mask: 0x%x)\n", status.get(), evt_mask.get());
 
   // This takes 2 cycles for the event unit to clock-gate the core with replying
   // so this is seen as a latency of 2 cycles from the core point of view.
@@ -1022,6 +1027,7 @@ void Core_event_unit::irq_wakeup_handler()
   this->top->trace.msg("IRQ wakeup\n");
   this->is_active.set(1);
   this->clock_itf.sync(1);
+  this->cancel_pending_req();
   this->check_state();
 }
 
@@ -1106,7 +1112,6 @@ void Core_event_unit::check_state()
 Semaphore_unit::Semaphore_unit(Event_unit *top)
 : top(top)
 {
-    top->traces.new_trace("sem/trace", &trace, vp::DEBUG);
     nb_semaphores = top->get_config_int("**/properties/semaphores/nb_semaphores");
     this->width = top->get_config_int("**/properties/semaphores/width");
     semaphore_event = top->get_config_int("**/properties/events/semaphore");
@@ -1116,6 +1121,7 @@ Semaphore_unit::Semaphore_unit(Event_unit *top)
     {
         Semaphore *sem = &this->semaphores[i];
         sem->width = width;
+        this->top->traces.new_trace("sem_" + std::to_string(i) + "/trace", &sem->trace, vp::DEBUG);
         this->top->traces.new_trace_event("sem" + std::to_string(i) + "/value", &sem->trace_value, 8);
         this->top->traces.new_trace_event("sem" + std::to_string(i) + "/waiting_cores", &sem->trace_waiting_cores, 32);
     }
@@ -1175,7 +1181,7 @@ vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool i
 
   Semaphore *semaphore = &semaphores[id];
   Core_event_unit *evtUnit = &top->core_eu[core];
-  this->trace.msg("Received semaphore IO access (offset: 0x%x, mutex: %d, is_write: %d)\n", offset, id, is_write);
+  semaphore->trace.msg("Received semaphore IO access (offset: 0x%x, mutex: %d, is_write: %d)\n", offset, id, is_write);
   
   if (offset == EU_HW_SEM_VALUE)
   {
@@ -1185,7 +1191,7 @@ vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool i
     }
     else
     {
-      this->trace.msg("Setting semaphore value (semaphore: %d, value: 0x%x)\n", id, *data);
+      semaphore->trace.msg("Setting semaphore value (semaphore: %d, value: 0x%x)\n", id, *data);
       semaphore->set_value(*data);
     }
   }
@@ -1199,11 +1205,11 @@ vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool i
         semaphore->set_value(semaphore->value - 1);
         semaphore->trace_value.event((uint8_t *)&semaphore->value);
         req->inc_latency(EU_WAKEUP_LATENCY);
-        this->trace.msg("Decrementing semaphore (semaphore: %d, coreId: %d, new_value: %d)\n", id, core);
+        semaphore->trace.msg("Decrementing semaphore (semaphore: %d, coreId: %d, new_value: %d)\n", id, core);
       }
       else
       {
-        this->trace.msg("Blocking semaphore, waiting (semaphore: %d, coreId: %d)\n", id, core);
+        semaphore->trace.msg("Blocking semaphore, waiting (semaphore: %d, coreId: %d)\n", id, core);
         return enqueue_sleep(semaphore, req, core);
       }
     }
@@ -1211,7 +1217,7 @@ vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool i
     {
       semaphore->set_value(semaphore->value +  *(uint32_t *)req->get_data());
       semaphore->trace_value.event((uint8_t *)&semaphore->value);
-      this->trace.msg("Incrementing semaphore (semaphore: %d, core: %d, inc: %d, value: %d)\n", id, core, *(uint32_t *)req->get_data(), semaphore->value);
+      semaphore->trace.msg("Incrementing semaphore (semaphore: %d, core: %d, inc: %d, value: %d)\n", id, core, *(uint32_t *)req->get_data(), semaphore->value);
     }
   }
   else if (offset == EU_HW_SEM_LOAD_INC)
@@ -1220,7 +1226,7 @@ vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool i
     {
       *data = semaphore->value;
       semaphore->set_value(semaphore->value + 1);
-      this->trace.msg("Incrementing semaphore (semaphore: %d, core: %d, value: %d)\n", id, core, semaphore->value);
+      semaphore->trace.msg("Incrementing semaphore (semaphore: %d, core: %d, value: %d)\n", id, core, semaphore->value);
       semaphore->trace_value.event((uint8_t *)&semaphore->value);
       req->inc_latency(EU_WAKEUP_LATENCY);
     }
@@ -1232,7 +1238,7 @@ vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool i
     if (semaphore->waiting_mask & (1<<semaphore->elected_core))
     {
       // Clear the mask and wake-up the core.
-      this->trace.msg("Waking-up core waiting for semaphore (coreId: %d)\n", semaphore->elected_core);
+      semaphore->trace.msg("Waking-up core waiting for semaphore (coreId: %d)\n", semaphore->elected_core);
       vp::io_req *waiting_req = semaphore->waiting_reqs[semaphore->elected_core];
 
       semaphore->waiting_mask &= ~(1<<semaphore->elected_core);
@@ -1277,9 +1283,14 @@ vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool i
 Bitfield_unit::Bitfield_unit(Event_unit *top)
 : top(top)
 {
-  top->traces.new_trace("bitfield/trace", &trace, vp::DEBUG);
   nb_bitfields = top->get_config_int("**/properties/bitfields/nb_bitfields");
   bitfields = new Bitfield[nb_bitfields];
+
+  for (int i=0; i<nb_bitfields; i++)
+  {
+      Bitfield *bitfield = &this->bitfields[i];
+      this->top->traces.new_trace("bitfield_" + std::to_string(i) + "/trace", &bitfield->trace, vp::DEBUG);
+  }
 }
 
 
@@ -1310,17 +1321,17 @@ vp::io_req_status_e Bitfield_unit::req(vp::io_req *req, uint64_t offset, bool is
     if (offset == EU_HW_BITFIELD_VALUE)
     {
       bitfield->value = *data;
-      this->trace.msg("Setting value (bitfield: %d, value: 0x%x)\n", id, bitfield->value);
+      bitfield->trace.msg("Setting value (bitfield: %d, value: 0x%x)\n", id, bitfield->value);
     }
     else if (offset == EU_HW_BITFIELD_SET)
     {
       bitfield->value |= *data;
-      this->trace.msg("Bitfield set (bitfield: %d, mask: 0x%x, value: 0x%x)\n", id, *data, bitfield->value);
+      bitfield->trace.msg("Bitfield set (bitfield: %d, mask: 0x%x, value: 0x%x)\n", id, *data, bitfield->value);
     }
     else if (offset == EU_HW_BITFIELD_CLEAR)
     {
       bitfield->value &= ~(*data);
-      this->trace.msg("Bitfield clear (bitfield: %d, mask: 0x%x, value: 0x%x)\n", id, *data, bitfield->value);
+      bitfield->trace.msg("Bitfield clear (bitfield: %d, mask: 0x%x, value: 0x%x)\n", id, *data, bitfield->value);
     }
   }
   else
@@ -1335,14 +1346,14 @@ vp::io_req_status_e Bitfield_unit::req(vp::io_req *req, uint64_t offset, bool is
       if (bit == 0)
       {
         *data = 32;
-        this->trace.msg("No more bit to allocate (bitfield: %d)\n", id);
+        bitfield->trace.msg("No more bit to allocate (bitfield: %d)\n", id);
       }
       else
       {
         bit = bit - 1;
         bitfield->value &= ~(1<<bit);
         *data = bit;
-        this->trace.msg("Bitfield alloc (bitfield: %d, bit: 0x%d, value: %x)\n", id, bit, bitfield->value);
+        bitfield->trace.msg("Bitfield alloc (bitfield: %d, bit: 0x%d, value: %x)\n", id, bit, bitfield->value);
       }
     }
   }
@@ -1359,10 +1370,14 @@ vp::io_req_status_e Bitfield_unit::req(vp::io_req *req, uint64_t offset, bool is
 Mutex_unit::Mutex_unit(Event_unit *top)
 : top(top)
 {
-  top->traces.new_trace("mutex/trace", &trace, vp::DEBUG);
   nb_mutexes = top->get_config_int("**/properties/mutex/nb_mutexes");
   mutex_event = top->get_config_int("**/properties/events/mutex");
   mutexes = new Mutex[nb_mutexes];
+
+  for (int i=0; i<nb_mutexes; i++)
+  {
+    top->traces.new_trace("mutex_" + std::to_string(i) + "/trace", &this->mutexes[i].trace, vp::DEBUG);
+  }
 }
 
 
@@ -1414,7 +1429,7 @@ vp::io_req_status_e Mutex_unit::req(vp::io_req *req, uint64_t offset, bool is_wr
 
   Mutex *mutex = &mutexes[id];
   Core_event_unit *evtUnit = &top->core_eu[core];
-  top->trace.msg("Received mutex IO access (offset: 0x%x, mutex: %d, is_write: %d)\n", offset, id, is_write);
+  mutex->trace.msg("Received mutex IO access (offset: 0x%x, mutex: %d, is_write: %d)\n", offset, id, is_write);
   
     if (this->top->check_interrupted_elw(core, data))
     {
@@ -1428,7 +1443,7 @@ vp::io_req_status_e Mutex_unit::req(vp::io_req *req, uint64_t offset, bool is_wr
       req->inc_latency(EU_WAKEUP_LATENCY);
   
       // The mutex is free, just lock it
-      top->trace.msg("Locking mutex (mutex: %d, coreId: %d)\n", id, core);
+      mutex->trace.msg("Locking mutex (mutex: %d, coreId: %d)\n", id, core);
       mutex->locked = 1;
 
       *(uint32_t *)req->get_data() = mutex->value;
@@ -1436,7 +1451,7 @@ vp::io_req_status_e Mutex_unit::req(vp::io_req *req, uint64_t offset, bool is_wr
     else
     {
       // The mutex is locked, put the core to sleep
-      top->trace.msg("Mutex already locked, waiting (mutex: %d, coreId: %d)\n", id, core);
+      mutex->trace.msg("Mutex already locked, waiting (mutex: %d, coreId: %d)\n", id, core);
       return enqueue_sleep(mutex, req, core);
     }
   }
@@ -1453,10 +1468,10 @@ vp::io_req_status_e Mutex_unit::req(vp::io_req *req, uint64_t offset, bool is_wr
       {
         if (waiting_mask & (1<<i))
         {
-          top->trace.msg("Transfering mutex lock (mutex: %d, fromCore: %d, toCore: %d)\n", id, core, i);
+          mutex->trace.msg("Transfering mutex lock (mutex: %d, fromCore: %d, toCore: %d)\n", id, core, i);
           // Clear the mask and wake-up the elected core. Don't unlock the mutex, as it is
           // taken by the new core
-          top->trace.msg("Waking-up core waiting for dispatch value (coreId: %d)\n", i);
+          mutex->trace.msg("Waking-up core waiting for dispatch value (coreId: %d)\n", i);
           vp::io_req *waiting_req = mutex->waiting_reqs[i];
 
           mutex->waiting_mask &= ~(1<<i);
@@ -1483,7 +1498,7 @@ vp::io_req_status_e Mutex_unit::req(vp::io_req *req, uint64_t offset, bool is_wr
     else
     {
       // No one waiting, just unlock the mutex
-      top->trace.msg("Unlocking mutex (mutex: %d, coreId: %d)\n", id, core);
+      mutex->trace.msg("Unlocking mutex (mutex: %d, coreId: %d)\n", id, core);
       mutex->locked = 0;
     }
   }
@@ -1523,6 +1538,13 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
   size = top->get_config_int("**/properties/dispatch/size");
   core = new Dispatch_core[top->nb_core];
   dispatches = new Dispatch[size];
+
+  for (int i=0; i<size; i++)
+  {
+    top->traces.new_trace("dispatch_" + std::to_string(i) + "/trace", &this->dispatches[i].trace, vp::DEBUG);
+  }
+
+  top->traces.new_trace("dispatch", &this->trace, vp::DEBUG);
 }
 
   void Dispatch_unit::consume_dispatch()
@@ -1540,7 +1562,7 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
         if (core[core_id].tail == size) core[core_id].tail = 0;
         id = core[core_id].tail;
         dispatch = &dispatches[id];
-        top->trace.msg("Incrementing core counter to bypass entry (coreId: %d, newIndex: %d)\n", core_id, id);
+        dispatch->trace.msg("Incrementing core counter to bypass entry (coreId: %d, newIndex: %d)\n", core_id, id);
       }
     }
   }
@@ -1555,10 +1577,10 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
     }
     for (int i=0; i<size; i++)
     {
-      this->top->new_reg("dispatcher" + std::to_string(i) + "/value", &dispatches[i].value, 32);
-      this->top->new_reg("dispatcher" + std::to_string(i) + "/status_mask", &dispatches[i].status_mask, 32);
-      this->top->new_reg("dispatcher" + std::to_string(i) + "/config_mask", &dispatches[i].config_mask, 32);
-      this->top->new_reg("dispatcher" + std::to_string(i) + "/waiting_mask", &dispatches[i].waiting_mask, 32);
+      this->top->new_reg("dispatch_" + std::to_string(i) + "/value", &dispatches[i].value, 32);
+      this->top->new_reg("dispatch_" + std::to_string(i) + "/status_mask", &dispatches[i].status_mask, 32);
+      this->top->new_reg("dispatch_" + std::to_string(i) + "/config_mask", &dispatches[i].config_mask, 32);
+      this->top->new_reg("dispatch_" + std::to_string(i) + "/waiting_mask", &dispatches[i].waiting_mask, 32);
       dispatches[i].value.set(0);
       dispatches[i].status_mask.set(0);
       dispatches[i].config_mask.set(0);
@@ -1585,7 +1607,7 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
         // When pushing to the FIFO, the global config is pushed to the elected dispatcher
         dispatch->config_mask.set(config);     // Cores that will get a valid value
 
-        top->trace.msg("Pushing dispatch value (dispatch: %d, value: 0x%x, coreMask: 0x%x)\n", id, *data, dispatch->config_mask.get());
+        dispatch->trace.msg("Pushing dispatch value (dispatch: %d, value: 0x%x, coreMask: 0x%x)\n", id, *data, dispatch->config_mask.get());
 
         // Case where the master push a value
         dispatch->value.set(*data);
@@ -1601,7 +1623,7 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
             // Only wake-up the core if he's actually involved in the team
             if (dispatch->config_mask.get() & (1<<i))
             {
-              top->trace.msg("Waking-up core waiting for dispatch value (coreId: %d)\n", i);
+              dispatch->trace.msg("Waking-up core waiting for dispatch value (coreId: %d)\n", i);
               vp::io_req *waiting_req = dispatch->waiting_reqs[i];
 
               // Clear the status bit as the waking core takes the data
@@ -1613,12 +1635,12 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
               // to introduce some delays
               if (!this->top->core_eu[i].interrupted_elw.get())
               {
-                top->trace.msg("Storing to pending (coreId: %d)\n", i);
+                dispatch->trace.msg("Storing to pending (coreId: %d)\n", i);
                 *(uint32_t *)waiting_req->get_data() = dispatch->value.get();
               }
               else
               {
-                top->trace.msg("Storing to interrupted_elw (coreId: %d)\n", i);
+                dispatch->trace.msg("Storing to interrupted_elw (coreId: %d)\n", i);
                 this->top->core_eu[i].interrupt_elw_value.set(dispatch->value.get());
               }
 
@@ -1647,7 +1669,7 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
               // And reenqueue to the next entry
               id = core[i].tail;
               enqueue_sleep(&dispatches[id], pending_req, i, false);
-              top->trace.msg("Incrementing core counter to bypass entry (coreId: %d, newIndex: %d)\n", i, id);
+              dispatch->trace.msg("Incrementing core counter to bypass entry (coreId: %d, newIndex: %d)\n", i, id);
             }
           }
         }
@@ -1661,7 +1683,7 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
         int id = core[core_id].tail;
         Dispatch *dispatch = &dispatches[id];
 
-        top->trace.msg("Trying to get dispatch value (dispatch: %d)\n", id);
+        dispatch->trace.msg("Trying to get dispatch value (dispatch: %d)\n", id);
 
         // In case we found ready elements where this core is not involved, bypass them all
         while ((dispatch->status_mask.get() & (1<<core_id)) && !(dispatch->config_mask.get() & (1<<core_id))) {
@@ -1670,7 +1692,7 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
           if (core[core_id].tail == size) core[core_id].tail = 0;
           id = core[core_id].tail;
           dispatch = &dispatches[id];
-          top->trace.msg("Incrementing core counter to bypass entry (coreId: %d, newIndex: %d)\n", core_id, id);
+          dispatch->trace.msg("Incrementing core counter to bypass entry (coreId: %d, newIndex: %d)\n", core_id, id);
         }
 
         // Case where a slave tries to get a value
@@ -1681,14 +1703,14 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
           if (dispatch->config_mask.get() & (1<<core_id)) *data = dispatch->value.get();
           else *data = 0;
           dispatch->status_mask.set(dispatch->status_mask.get() & (~(1<<core_id)));
-          top->trace.msg("Getting ready dispatch value (dispatch: %d, value: %x, dispatchStatus: 0x%x)\n", id, dispatch->value.get(), dispatch->status_mask.get());
+          dispatch->trace.msg("Getting ready dispatch value (dispatch: %d, value: %x, dispatchStatus: 0x%x)\n", id, dispatch->value.get(), dispatch->status_mask.get());
           core[core_id].tail++;
           if (core[core_id].tail == size) core[core_id].tail = 0;
         }
         else
         {
           // Nothing is ready, go to sleep
-          top->trace.msg("No ready dispatch value, going to sleep (dispatch: %d, value: %x, dispatchStatus: 0x%x)\n", id, dispatch->value, dispatch->status_mask.get());
+          dispatch->trace.msg("No ready dispatch value, going to sleep (dispatch: %d, value: %x, dispatchStatus: 0x%x)\n", id, dispatch->value, dispatch->status_mask.get());
           return enqueue_sleep(dispatch, req, core_id);
         }
 
@@ -1700,7 +1722,7 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
     else if (offset == EU_DISPATCH_TEAM_CONFIG)
     {
       config = *data;
-      top->trace.msg("Setting dispatch config (config: 0x%x)\n", config);
+      this->trace.msg("Setting dispatch config (config: 0x%x)\n", config);
       return vp::IO_REQ_OK;
     }
     else

@@ -1,0 +1,36 @@
+comment "PMSIS menu"
+config PMSIS_IMPLEM_FFC
+    bool "FFC"
+    default n
+
+config PMSIS_IMPLEM_I2C
+    bool "I2C"
+    default n
+
+config PMSIS_IMPLEM_I3C
+    bool "I3C"
+    default n
+
+config PMSIS_IMPLEM_I2S
+    bool "I2S"
+    default n
+
+config PMSIS_IMPLEM_SPIM
+    bool "SPIM"
+    default n
+
+menu "UDMA"
+    config PMSIS_IMPLEM_UDMA_DATAMOVE
+        bool "Micro DMA data movement"
+        default n
+        help
+            UDMA DATAMOVE driver provides an interface to use UDMA DATAMOVE channel
+    
+    config PMSIS_IMPLEM_UDMA_TIMEOUT
+        bool "Micro DMA timeout"
+        default n
+
+    config PMSIS_IMPLEM_UDMA_TIMESTAMP
+        bool "Micro DMA timestamp"
+        default n
+endmenu

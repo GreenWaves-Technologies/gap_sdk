@@ -30,7 +30,10 @@ static int vcd_id = 0;
 vp::Event_trace::Event_trace(string trace_name, Event_file *file, int width, bool is_real, bool(is_string)) : trace_name(trace_name), is_real(is_real), is_string(is_string), is_enqueued(false), file(file)
 {
   id = vcd_id++;
-  file->add_trace(trace_name, id, width, is_real, is_string);
+  if (file)
+  {
+    file->add_trace(trace_name, id, width, is_real, is_string);
+  }
   this->width = width;
   this->bytes = (width+7)/8;
   if (width)
@@ -73,31 +76,37 @@ void vp::Event_trace::reg(int64_t timestamp, uint8_t *event, int width, uint8_t 
 vp::Event_trace *vp::Event_dumper::get_trace(string trace_name, string file_name, int width, bool is_real, bool is_string)
 {
   vp::Event_trace *trace = event_traces[trace_name];
+
   if (trace == NULL)
   {
-    vp::Event_file *event_file = event_files[file_name];
+    vp::Event_file *event_file = NULL;
 
-    if (event_file == NULL)
+    if (!this->user_vcd)
     {
-      std::string format = this->comp->get_js_config()->get_child_str("**/events/format");
+      event_file = event_files[file_name];
 
-      if (format == "vcd")
+      if (event_file == NULL)
       {
-        event_file = new Vcd_file(this, file_name);
+        std::string format = this->comp->get_js_config()->get_child_str("**/events/format");
+
+        if (format == "vcd")
+        {
+          event_file = new Vcd_file(this, file_name);
+        }
+        else if (format == "fst")
+        {
+          event_file = new Fst_file(this, file_name);
+        }
+        else if (format == "raw")
+        {
+          event_file = new Raw_file(this, file_name);
+        }
+        else
+        {
+          this->comp->get_trace()->fatal("Unknown trace format (name: %s)\n", format.c_str());
+        }
+        event_files[file_name] = event_file;
       }
-      else if (format == "fst")
-      {
-        event_file = new Fst_file(this, file_name);
-      }
-      else if (format == "raw")
-      {
-        event_file = new Raw_file(this, file_name);
-      }
-      else
-      {
-        this->comp->get_trace()->fatal("Unknown trace format (name: %s)\n", format.c_str());
-      }
-      event_files[file_name] = event_file;
     }
 
     trace = new Event_trace(trace_name, event_file, width, is_real, is_string);

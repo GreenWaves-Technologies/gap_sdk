@@ -3449,6 +3449,18 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
             }
         #endif /* configUSE_PREEMPTION */
 
+        #if ( configUSE_IDLE_HOOK == 1 )
+            {
+                extern void vApplicationIdleHook( void );
+
+                /* Call the user defined function from within the idle task.  This
+                 * allows the application designer to add background functionality
+                 * without the overhead of a separate task.
+                 * NOTE: vApplicationIdleHook() MUST NOT, UNDER ANY CIRCUMSTANCES,
+                 * CALL A FUNCTION THAT MIGHT BLOCK. */
+                vApplicationIdleHook();
+            }
+
         #if ( ( configUSE_PREEMPTION == 1 ) && ( configIDLE_SHOULD_YIELD == 1 ) )
             {
                 /* When using preemption tasks of equal priority will be
@@ -3471,17 +3483,6 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
             }
         #endif /* ( ( configUSE_PREEMPTION == 1 ) && ( configIDLE_SHOULD_YIELD == 1 ) ) */
 
-        #if ( configUSE_IDLE_HOOK == 1 )
-            {
-                extern void vApplicationIdleHook( void );
-
-                /* Call the user defined function from within the idle task.  This
-                 * allows the application designer to add background functionality
-                 * without the overhead of a separate task.
-                 * NOTE: vApplicationIdleHook() MUST NOT, UNDER ANY CIRCUMSTANCES,
-                 * CALL A FUNCTION THAT MIGHT BLOCK. */
-                vApplicationIdleHook();
-            }
         #endif /* configUSE_IDLE_HOOK */
 
         /* This conditional compilation should use inequality to 0, not equality
@@ -3537,7 +3538,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 }
 /*-----------------------------------------------------------*/
 
-#if ( configUSE_TICKLESS_IDLE != 0 )
+#if ( 1 )
 
     eSleepModeStatus eTaskConfirmSleepModeStatus( void )
     {

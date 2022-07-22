@@ -1,0 +1,12 @@
+comment "PMSIS_RTOS Menu"
+    config PMSIS_RTOS_CL_L1_MALLOC
+        bool "L1 CLuster Malloc driver"
+        default n
+
+    config PMSIS_RTOS_MALLOC_EXTERNAL
+        bool "External Malloc driver"
+        default n    
+
+    config PMSIS_RTOS_MEM_SLAB
+        bool "Mem Slab driver"
+        default n    

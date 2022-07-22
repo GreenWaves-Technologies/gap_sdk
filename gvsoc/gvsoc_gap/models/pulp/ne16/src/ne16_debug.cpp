@@ -14,50 +14,65 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Francesco Conti, University of Bologna & GreenWaves Technologies (f.conti@unibo.it)
  */
 
 #include <ne16.hpp>
 
 void Ne16::debug_x_buffer() {
-  if(this->mode_linear) {
-    std::ostringstream stringStream;
-    stringStream << "x_buffer[32,16] = \n" << (this->trace_format?std::hex:std::dec) << this->x_buffer_linear << std::dec << "\n";
-    std::string copyOfStr = stringStream.str();
-    this->trace.msg(vp::trace::LEVEL_DEBUG, copyOfStr.c_str());
-  }
-  else {
-    std::ostringstream stringStream;
-    stringStream << "x_buffer[5,5,16] = \n" << (this->trace_format?std::hex:std::dec) << this->x_buffer << std::dec << "\n";
-    std::string copyOfStr = stringStream.str();
-    this->trace.msg(vp::trace::LEVEL_DEBUG, copyOfStr.c_str());
-  }
+    if(this->mode_linear) {
+        printf ("================ X_BUFFER LINEAR MODE TRACES ================\n");
+        for (auto i=0; i<32; i++) {
+            printf ("{");
+            for (auto k=0; k<16; k++) {
+                printf (" %3x ", x_buffer_linear[i+k*32]);
+            }
+            printf ("}\n");
+        }
+    }
+    else {
+        printf ("================ X_BUFFER TRACES ================\n");
+        printf ("X_buffer [5][5][16]: \n");
+        for (auto k=0; k<this->F_BUFFER_SIZE; k++) {
+            for (auto j=0; j<this->F_BUFFER_SIZE; j++) {
+                printf ("{");
+                for (auto i=0; i<this->TP_IN; i++) {
+                    printf (" %3x ", x_buffer[i+j*this->TP_IN+k*this->F_BUFFER_SIZE*this->TP_IN]);
+                }
+                printf ("} \n");
+            }
+            printf ("\n");
+        }
+    }
 }
 
 void Ne16::debug_x_array() {
-  // if(this->mode_linear) {
-  //   this->trace.msg(vp::trace::LEVEL_DEBUG, "x_buffer_linear[32,16] = \n");
-  //   for (auto i=0; i<32; i++) {
-  //     for (auto k=0; k<16; k++) {
-  //       this->trace.msg(vp::trace::LEVEL_DEBUG, "  %02x", xt::view(this->x_buffer, i, k));
-  //     }
-  //     this->trace.msg(vp::trace::LEVEL_DEBUG, "\n");
-  //   }
-  // }
-  // else {
-    std::ostringstream stringStream;
-    stringStream << "x_array[9,9,16] = \n" << xt::print_options::threshold(10000) << (this->trace_format?std::hex:std::dec) << this->x_array << std::dec << "\n";
-    std::string copyOfStr = stringStream.str();
-    this->trace.msg(vp::trace::LEVEL_DEBUG, copyOfStr.c_str());
-  // }
+    printf ("================ X_ARRAY TRACES ================\n");
+    printf ("X_array [9][9][16]: \n");
+    for (auto k=0; k<this->NR_COLUMN; k++) {
+        for (auto j=0; j<this->COLUMN_SIZE; j++) {
+            printf ("{");
+            for (auto i=0; i<this->TP_IN; i++) {
+                printf (" %3x ", x_array[i+j*this->TP_IN+k*this->COLUMN_SIZE*this->TP_IN]);
+            }
+            printf ("} \n");
+        }
+        printf ("\n");
+    }
 }
 
 void Ne16::debug_accum(){
-  std::ostringstream stringStream;
-  stringStream << "accum[9,32] = \n" << (this->trace_format?std::hex:std::dec) << xt::cast<int32_t>(this->accum) << std::dec << "\n";
-  std::string copyOfStr = stringStream.str();
-  this->trace.msg(vp::trace::LEVEL_DEBUG, copyOfStr.c_str());
+    printf ("================ ACCUMULATORS DEBUG TRACES ================\n");
+    printf ("accum[9][32]: \n");
+    for (auto j=0; j<this->TP_OUT; j++) {
+        printf ("{");
+        for (auto i=0; i<this->COLUMN_SIZE; i++) {
+            printf (" %8lx ", accum[i+j*this->COLUMN_SIZE]);
+        }
+        printf ("} \n");
+    }
+    printf ("} \n");
 }
 
 // void Ne16::debug_psum_column(){
@@ -68,8 +83,14 @@ void Ne16::debug_accum(){
 // }
 
 void Ne16::debug_psum_block(){
-  std::ostringstream stringStream;
-  stringStream << "psum_block[9,9] = \n" << (this->trace_format?std::hex:std::dec) << xt::cast<int32_t>(this->psum_block) << std::dec << "\n";
-  std::string copyOfStr = stringStream.str();
-  this->trace.msg(vp::trace::LEVEL_DEBUG, copyOfStr.c_str());
+    printf ("================ PSUM BLOCK DEBUG TRACES ================\n");
+    printf ("psum_block[9][9]: \n");
+    for (auto j=0; j<this->COLUMN_SIZE; j++) {
+        printf ("{");
+        for (auto i=0; i<this->NR_COLUMN; i++) {
+            printf (" %5lx,", psum_block[i+this->NR_COLUMN*j]);
+        }
+        printf ("} \n");
+    }
+    printf ("} \n");
 }

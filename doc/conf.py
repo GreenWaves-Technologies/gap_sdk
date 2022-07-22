@@ -10,52 +10,55 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
 
 import sphinx_rtd_theme
 import subprocess
 import sys
 
-def configure_doxyfile(file_in, file_out, replace_dict):
-    with open(file_in, 'r') as file :
-        filedata = file.read()
+import os
+# Add gvsoc_control python module
+sys.path.insert(0, os.path.abspath('../gvsoc/gvsoc/engine/python/gv/'))
 
-    for key, value in replace_dict.items():
-        print(key, value)
-        filedata = filedata.replace(key, value)
+def generate_doxygen_documentation(project_name, exclude_dirs, include_dirs):
+    def configure_doxyfile(file_in, file_out, replace_dict):
+        with open(file_in, 'r') as file :
+            filedata = file.read()
 
-    with open(file_out, 'w') as file:
-        file.write(filedata)
+        for key, value in replace_dict.items():
+            print(key, value)
+            filedata = filedata.replace(key, value)
 
-reference_input_dirs = [
-        "../rtos/pmsis/pmsis_api/include/pmsis/chips/gap8/",
-        "../rtos/pmsis/pmsis_api/include/pmsis/drivers/",
-        "../rtos/pmsis/pmsis_api/include/pmsis/rtos/",
-        "../rtos/pmsis/pmsis_api/include/pmsis/cluster/",
-        "../rtos/pmsis/pmsis_api/include/pmsis/platforms/",
-        "../rtos/pmsis/pmsis_api/include/pmsis/",
-        "../rtos/pmsis/pmsis_bsp/include/",
-        "source/reference/builtins/headers/",
-    ]
+        with open(file_out, 'w') as file:
+            file.write("###################################\n")
+            file.write("### GENERATED FILE, DO NOT EDIT ###\n")
+            file.write("###################################\n\n")
+            file.write(filedata)
 
-replaces = {}
-replaces["@DOXYGEN_OUTPUT_DIR@"] = "_build"
-replaces["@DOXYGEN_INPUT_DIRS@"] = " \ \n".join(reference_input_dirs)
+    # Configure the doxyfile
+    replaces = {}
+    replaces["@DOXYGEN_PROJECT_NAME@"] = project_name
+    replaces["@DOXYGEN_OUTPUT_DIR@"] = "_build"
+    replaces["@DOXYGEN_XML_DIR@"] = "xml_{}".format(project_name)
+    replaces["@DOXYGEN_INPUT_DIRS@"] = " \ \n".join(include_dirs)
+    replaces["@DOXYGEN_EXCLUDE_DIRS@"] = " \ \n".join(exclude_dirs)
 
-configure_doxyfile("gap_sdk.doxyfile.in", "gap_sdk.doxyfile", replaces)
+    generated_doxyfile = "{}.doxyfile".format(project_name)
+    configure_doxyfile("template.doxyfile.in",
+                       generated_doxyfile,
+                       replaces)
+    # Run doxygen
+    try:
+        subprocess.run("doxygen {}".format(generated_doxyfile), shell=True, check=True)
+    except subprocess.CalledProcessError as e:
+        print("Doxygen execution failed: ", e)
+        sys.exit(1)
 
-try:
-    subprocess.run("doxygen gap_sdk.doxyfile", shell=True, check=True)
-except subprocess.CalledProcessError as e:
-    print("Doxygen execution failed: ", e)
-    sys.exit(1)
+    return "{}/{}".format(replaces["@DOXYGEN_OUTPUT_DIR@"], replaces["@DOXYGEN_XML_DIR@"])
 
 # -- Project information -----------------------------------------------------
 
 project = 'GAP SDK'
-copyright = '2021, GreenWaves Technologies'
+copyright = '2022, GreenWaves Technologies'
 author = 'GreenWaves Technologies'
 
 
@@ -68,6 +71,7 @@ extensions = [
         "sphinx_rtd_theme",
         "breathe",
         "sphinx.ext.autodoc",
+        "sphinx_tabs.tabs",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -103,9 +107,55 @@ html_show_sphinx = False
 # using the given strftime format.
 html_last_updated_fmt = '%b %d, %Y'
 
-# Breathe configuration
+#########################
+# Breathe configuration #
+#########################
+
+gap_sdk_reference_input_dirs = [
+        "../rtos/pmsis/api/include/pmsis/drivers/",
+        "../rtos/pmsis/api/include/pmsis/rtos/",
+        "../rtos/pmsis/api/include/pmsis/cluster/",
+        "../rtos/pmsis/api/include/pmsis/platforms/",
+        "../rtos/pmsis/api/include/pmsis/",
+        "../rtos/pmsis/bsp/include/",
+        "../rtos/sfu/include/",
+        "source/reference/builtins/headers/",
+        "../tools/audio-framework/runtime/include/",
+    ]
+
+gap_sdk_exclude_dirs = [
+        "*/vega/*",
+        "*/gap8/*",
+        "*/gap9/*",
+    ]
+
+gap8_reference_input_dirs = [
+        "../rtos/pmsis/api/include/pmsis/chips/gap8/",
+        "../rtos/pmsis/api/include/pmsis/drivers/",
+    ]
+
+gap8_exclude_dirs = [
+        "*/vega/*",
+        "*/gap9/*",
+    ]
+
+gap9_reference_input_dirs = [
+        "../rtos/pmsis/api/include/pmsis/chips/gap9/",
+    ]
+
+gap9_exclude_dirs = [
+        "*/vega/*",
+        "*/gap8/*",
+    ]
+
+gap_sdk_xml_dir = generate_doxygen_documentation("gap_sdk", gap_sdk_exclude_dirs, gap_sdk_reference_input_dirs)
+gap8_xml_dir    = generate_doxygen_documentation("gap8"   , gap8_exclude_dirs   , gap8_reference_input_dirs)
+gap9_xml_dir    = generate_doxygen_documentation("gap9"   , gap9_exclude_dirs   , gap9_reference_input_dirs)
+
 breathe_projects = {
-            "gap_sdk": "_build/xml",
+            "gap_sdk": gap_sdk_xml_dir,
+            "gap8": gap8_xml_dir,
+            "gap9": gap9_xml_dir,
         }
 
 breathe_default_project = "gap_sdk"
@@ -122,7 +172,14 @@ c_id_attributes = [
     'PI_INLINE_HYPER_LVL_0',
     'PI_INLINE_OCTOSPI_LVL_0',
     'PI_INLINE_CL_TEAM_0',
+    'PI_INLINE_I2S_LVL_0',
+    'PI_WATCHDOG_INLINE0',
 ]
+
+#############################
+# Sphinx tabs configuration #
+#############################
+sphinx_tabs_disable_tab_closing = True
 
 def setup(app):
     app.add_css_file("gap_sdk-custom.css")

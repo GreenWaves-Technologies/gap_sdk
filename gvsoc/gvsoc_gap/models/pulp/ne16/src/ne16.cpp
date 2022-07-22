@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Francesco Conti, University of Bologna & GreenWaves Technologies (f.conti@unibo.it)
  *          Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
@@ -47,18 +47,52 @@ void Ne16::reset(bool active)
 {
     // All registers should be initialized here, so that cluster reset is properly working
     // This will be called first with active=1 and then with active=0
-    this->psum_block      = xt::zeros<int64_t>({this->NR_COLUMN, this->COLUMN_SIZE});
-    this->psum_column     = xt::zeros<int64_t>({this->NR_COLUMN});
-    this->accum           = xt::zeros<int64_t>({this->TP_OUT, this->NR_COLUMN});
-    this->x_buffer        = xt::zeros<uint8_t>({this->F_BUFFER_SIZE, this->F_BUFFER_SIZE, this->TP_IN});
-    this->x_buffer_linear = xt::zeros<uint8_t>({32, this->TP_IN});
-    this->x_array         = xt::zeros<uint8_t>({this->NR_COLUMN, this->COLUMN_SIZE, this->TP_IN}); 
-    this->weight          = xt::zeros<uint8_t>({this->FILTER_SIZE*this->FILTER_SIZE, 2});
-    this->nqs             = xt::zeros<uint8_t>({this->TP_OUT});
-    this->job_id          = 0;
-    this->cxt_job_id[0] = this->cxt_job_id[1] = -1;
-    this->running_job_id  = 0;
-    this->job_running     = 0;
+
+    for (int32_t j=0; j<this->COLUMN_SIZE; j++) {
+        for (int32_t i=0; i<this->NR_COLUMN; i++) {
+            this->psum_block[i+j*this->NR_COLUMN] = 0;
+        }
+    }
+    for (int32_t i=0; i<this->NR_COLUMN; i++) {
+        this->psum_column[i] = 0;
+    }
+    for (int32_t j=0; j<this->NR_COLUMN; j++) {
+        for (int32_t i=0; i<this->TP_OUT; i++) {
+            this->accum[i+j*this->TP_OUT] = 0;
+        }
+    }
+    for (int32_t k=0; k<this->TP_IN; k++) {
+        for (int32_t j=0; j<this->F_BUFFER_SIZE; j++) {
+            for (int32_t i=0; i<this->F_BUFFER_SIZE; i++) {
+                this->x_buffer[i+j*this->F_BUFFER_SIZE+k*this->F_BUFFER_SIZE*this->F_BUFFER_SIZE] = 0;
+            }
+        }
+    }
+    for (int32_t j=0; j<this->TP_IN; j++) {
+        for (int32_t i=0; i<32; i++) {
+            this->x_buffer_linear[i+j*32] = 0;
+        }
+    }
+    for (int32_t k=0; k<this->TP_IN; k++) {
+        for (int32_t j=0; j<this->COLUMN_SIZE; j++) {
+            for (int32_t i=0; i<this->NR_COLUMN; i++) {
+                this->x_array[i+j*this->NR_COLUMN+k*this->NR_COLUMN*this->COLUMN_SIZE] = 0;
+            }
+        }
+    }
+    for (int32_t j=0; j<2; j++) {
+        for (int32_t i=0; i<(this->FILTER_SIZE * this->FILTER_SIZE); i++) {
+            this->weight[i+j*this->FILTER_SIZE*this->FILTER_SIZE] = 0;
+        }
+    }
+    for (int i=0; i<this->TP_OUT; i++) {
+        this->nqs[i] = 0;
+    }
+
+    this->job_id            = 0;
+    this->cxt_job_id[0]     = this->cxt_job_id[1] = -1;
+    this->running_job_id    = 0;
+    this->job_running       = 0;
     this->busy.set(0);
 }
 

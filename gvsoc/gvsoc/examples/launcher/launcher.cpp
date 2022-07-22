@@ -32,6 +32,8 @@ int main(int argc, char **argv)
     void *gvsoc = gv_create(argv[1], &gv_conf);
 
     gv_start(gvsoc);
+    gv_reset(gvsoc, true);
+    gv_reset(gvsoc, false);
 
     int64_t timestamp = gv_time(gvsoc);
 

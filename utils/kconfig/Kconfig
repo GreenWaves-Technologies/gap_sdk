@@ -1,0 +1,187 @@
+# Copyright (c) 2022 GreenWaves Technologies SAS
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+#    this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. Neither the name of GreenWaves Technologies SAS nor the names of its
+#    contributors may be used to endorse or promote products derived from
+#    this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+# This file is the main kconfig menu for the sdk
+
+menu "GAP SDK Menu"
+
+    menu "General options"
+
+        choice PLATFORM
+            prompt "Platform selection"
+
+            config PLATFORM_BOARD
+                bool "Board"
+                help 
+                    Execute the program on physical board
+
+            config PLATFORM_GVSOC
+                bool "GVSOC"
+                help
+                    Execute the program on simulator
+        endchoice
+
+        choice CHIP_FAMILY
+            prompt "Chip family selection"
+            
+            config CHIP_FAMILY_GAP9
+                bool "GAP9"
+                help
+                    Select GAP9 chip family    
+            
+            config CHIP_FAMILY_GAP8
+                bool "GAP8"
+                help
+                    Select GAP8 chip family   
+        endchoice
+
+        choice CHIP_VERSION
+            prompt "Chip family selection"
+            
+            config CHIP_VERSION_GAP9_V2
+                bool "GAP9 V2"
+                depends on CHIP_FAMILY_GAP9   
+
+            config CHIP_VERSION_GAP9_5
+                bool "GAP9_5"
+                depends on CHIP_FAMILY_GAP9
+
+            config CHIP_VERSION_GAP8_V1
+                bool "GAP8_V1"
+                depends on CHIP_FAMILY_GAP8    
+            
+            config CHIP_VERSION_GAP8_V2
+                bool "GAP8_V2"
+                depends on CHIP_FAMILY_GAP8  
+
+            config CHIP_VERSION_GAP8_V3
+                bool "GAP8_V3"
+                depends on CHIP_FAMILY_GAP8  
+        endchoice
+
+        choice BOARD 
+            prompt "Board selection"
+
+            config BOARD_GAP9_V2
+                depends on CHIP_VERSION_GAP9_V2 
+                bool "GAP9 V2"
+                
+            config BOARD_GAP9_EVK
+                depends on CHIP_VERSION_GAP9_V2 
+                bool "GAP9 EVK"
+
+            config BOARD_GAP9_EVK_AUDIO_ADDON
+                depends on BOARD_GAP9_EVK
+                bool "Audio Addon"
+
+            config BOARD_GAP9_5
+                depends on CHIP_VERSION_GAP9_5 
+                bool "GAP9_5"
+
+            config BOARD_GAPOC_A
+                depends on CHIP_VERSION_GAP8_V1
+                bool "GAPOC A"
+
+            config BOARD_GAPOC_A_V2
+                depends on CHIP_VERSION_GAP8_V2
+                bool "GAPOC A V2"
+            
+            config BOARD_GAPOC_A_SPI_V2
+                depends on CHIP_VERSION_GAP8_V2
+                bool "GAPOC A SPI V2"
+
+            config BOARD_GAPOC_B
+                depends on CHIP_VERSION_GAP8_V1
+                bool "GAPOC B"
+
+            config BOARD_GAPOC_B_V2
+                depends on CHIP_VERSION_GAP8_V2
+                bool "GAPOC B V2"
+            
+            config BOARD_GAPOC_B_SPI_V2
+                depends on CHIP_VERSION_GAP8_V2
+                bool "GAPOC B SPI V2"
+            
+            config BOARD_GAPUINO
+                depends on CHIP_VERSION_GAP8_V1
+                bool "GAPUINO"
+
+            config BOARD_GAPUINO_V2
+                depends on CHIP_VERSION_GAP8_V2
+                bool "GAPUINO V2"
+
+            config BOARD_GAPUINO_V2_SPI
+                depends on CHIP_VERSION_GAP8_V2
+                bool "GAPUINO V2 SPI"
+
+            config BOARD_GAPUINO_V3
+                depends on CHIP_VERSION_GAP8_V3
+                bool "GAPUINO V3"
+            
+            config BOARD_GAPUINO_V3_SPI
+                depends on CHIP_VERSION_GAP8_V3
+                bool "GAPUINO V3 SPI"
+        endchoice
+
+        menu "Clock configuration"
+            config FAST_OSC_FREQUENCY
+                int "Fast oscillator frequency"
+                default 24576063
+
+            config FLL_MAXDCO_FREQ
+                int "FLL MAXDCO frequency"
+                default 900000000  
+
+            config FREQUENCY_PERIPH
+                int "Peripherals frequency"
+                default 160000000  
+
+            config FREQUENCY_FC
+                int "Fabric controller frequency"
+                default 50000000 
+
+            config FREQUENCY_CLUSTER
+                int "Cluster frequency"
+                default 50000000  
+
+            config FREQUENCY_SFU
+                int "SFU frequency"
+                default 50000000  
+
+            config FREQUENCY_FPGA
+                int "FPGA frequency"
+                default 50000000    
+        endmenu
+    endmenu
+
+    # Loading RTOS menu
+    source "$(GAP_SDK_HOME)/rtos/Kconfig"
+
+    # Loading Librairies menu
+    source "$(GAP_SDK_HOME)/libs/Kconfig"
+
+endmenu

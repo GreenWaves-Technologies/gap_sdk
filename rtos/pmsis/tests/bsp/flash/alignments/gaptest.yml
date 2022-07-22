@@ -1,0 +1,60 @@
+name: flash_alignments
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap8
+    - gap9
+variants:
+    mram_read_sync_2d:
+        name: 'mram_read_sync_2d'
+        chips:
+            - gap9
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: 'FLASH_TYPE=MRAM QUICK=1 READ=1 SYNC_2D=1'
+    mram_read_sync:
+        name: 'mram_read_sync'
+        chips:
+            - gap9
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: 'FLASH_TYPE=MRAM QUICK=1 READ=1 SYNC=1'
+    mram_read_async_2d:
+        name: 'mram_read_async_2d'
+        chips:
+            - gap9
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: 'FLASH_TYPE=MRAM QUICK=1 READ=1 ASYNC_2D=1'
+    mram_read_async:
+        name: 'mram_read_async'
+        chips:
+            - gap9
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: 'FLASH_TYPE=MRAM QUICK=1 READ=1 ASYNC=1'
+        #    octospi:
+        #name: 'octospi_flash'
+        #chips:
+        #    - gap9
+        #tags:
+        #    - integration
+        #    - release
+        #duration: standard
+        #boards:
+        #    - gap9_evk
+        #platforms:
+        #    - rtl
+        #    - board
+        #flags: 'FLASH_TYPE=SPI_FLASH'

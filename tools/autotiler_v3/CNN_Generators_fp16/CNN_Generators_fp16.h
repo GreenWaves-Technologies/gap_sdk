@@ -490,8 +490,8 @@ extern int CNN_SoftMax2D_fp16(
 
         CNN_GenControl_T *Ctrl,
 
+        int Feat,
         int Dim,
-        int N,
         KernelOper_T SoftMaxOper
         );
 

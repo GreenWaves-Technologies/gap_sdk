@@ -73,10 +73,12 @@ static inline float fastreciprocal(float x)
   return x * x;
 }
 
+#define RDIV_F32(x, y) ((x)*fastreciprocal(y))
+
 #ifdef REAL_DIV
 #define DIV_F32(x, y) ((x) / (y))
 #else
-#define DIV_F32(x, y) ((x)*fastreciprocal(y))
+#define DIV_F32(x, y) RDIV_F32((x), (y))
 #endif
 
 static inline  float
@@ -99,10 +101,34 @@ fasterpow2 (float p)
   return v.f;
 }
 
+#define F32_SHIFT (1 << 23) // 2^23
+#define F32_SHIFT_DIV2 (1 << 22) // 2^23
+#define F32_LN2 (0.6931472f)
+#define F32_EXPBIAS 127
+#define F32_FACA (float)(F32_SHIFT / F32_LN2)
+#define F32_FACA_DIV2 (float)(F32_SHIFT_DIV2 / F32_LN2)
+#define F32_FACB (float)(F32_SHIFT * F32_EXPBIAS)
+
 static inline float
-fastexp (float p)
+fastexp(float x)
 {
-  return fastpow2 (1.442695040f * p);
+	union {
+		float bf;
+		signed int bf_i;
+	} res;
+	res.bf_i = x * F32_FACA + F32_FACB;
+	return res.bf;
+}
+
+static inline float
+fastexp_div2(float x)
+{
+	union {
+		float bf;
+		signed int bf_i;
+	} res;
+	res.bf_i = x * F32_FACA_DIV2 + F32_FACB;
+	return res.bf;
 }
 
 static inline float
@@ -155,14 +181,14 @@ static inline  float
 fastpow (float x,
          float p)
 {
-  return fastpow2 (p * fastlog2 (x));
+  return ((x<0)&&(((int) p) & 0x1)?-1.0:1.0) * fastpow2 (p * fastlog2 (Absf32(x)));
 }
 
 static inline  float
 fasterpow (float x,
 				   float p)
 {
-  return fasterpow2 (p * fasterlog2 (x));
+  return ((x<0)&&(((int) p) & 0x1)?-1.0:1.0) * fasterpow2 (p * fasterlog2 (Absf32(x)));
 }
 
 static inline float
@@ -190,9 +216,11 @@ fastercosh (float p)
 }
 
 static inline float
-fasttanh (float p)
+fasttanh(float x)
 {
-  return -1.0f + DIV_F32(2.0f, (1.0f + fastexp (-2.0f * p)));
+	f16 a = fastexp(x);
+	f16 b = fastexp(-x);
+	return (a - b)/(a + b);
 }
 
 static inline float
@@ -204,7 +232,9 @@ fastertanh (float p)
 static inline float
 fastsigmoid (float x)
 {
-  return DIV_F32(1.0f, (1.0f + fastexp (-x)));
+	f16 a = fastexp_div2(x);
+	f16 b = fastexp_div2(-x);
+	return a/(a + b);
 }
 
 static inline float

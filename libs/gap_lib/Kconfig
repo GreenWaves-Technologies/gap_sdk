@@ -1,0 +1,95 @@
+# Copyright (c) 2022 GreenWaves Technologies SAS
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+#    this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. Neither the name of GreenWaves Technologies SAS nor the names of its
+#    contributors may be used to endorse or promote products derived from
+#    this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+comment "GAP LIB Menu"
+
+    # G722 Encoder Decoder ----------------------
+    config GAP_LIB_G722_ENC_DEC
+        bool "G722 encoder decoder"
+        default n
+
+    config GAP_LIB_G722_ENC_DEC_RUN_ON_FC
+        bool "Run on FC"
+        default n
+        depends on GAP_LIB_G722_ENC_DEC
+
+    # imgIO -------------------------------------
+    config GAP_LIB_IMG_IO
+        bool "IMG IO"
+        default n
+
+    config GAP_LIB_IMG_IO_EMUL
+        bool "EMUL"
+        default n
+        depends on GAP_LIB_IMG_IO
+
+    # jpeg --------------------------------------
+    config GAP_LIB_JPEG
+        bool "JPEG"
+        default n
+        select PMSIS_RTOS_CL_L1_MALLOC
+
+    choice GAP_LIB_JPEG_QUALITY
+        prompt "JPEG quality"
+        depends on GAP_LIB_JPEG
+
+        config QUALITY_50
+            bool "Quality 50"
+
+        config QUALITY_100
+            bool "Quality 100"
+
+        config QUALITY_95
+            bool "Quality 95"
+
+        config QUALITY_90
+            bool "Quality 90"
+
+        config QUALITY_20
+            bool "Quality 20"
+
+        config QUALITY_10
+            bool "Quality 10"
+
+        config QUALITY_0
+            bool "Quality 0"
+    endchoice
+
+    # testbench ---------------------------------
+    config GAP_LIB_TESTBENCH
+        bool "Testbench"
+        default n
+
+    # wavIO -------------------------------------
+    config GAP_LIB_WAV_IO
+        bool "WAV IO"
+        default n
+
+    config GAP_LIB_WAV_IO_EMUL
+        bool "EMUL"
+        default n
+        depends on GAP_LIB_WAV_IO

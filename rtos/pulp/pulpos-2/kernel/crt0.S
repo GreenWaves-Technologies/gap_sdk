@@ -25,10 +25,6 @@
     .global pos_init_entry
 pos_init_entry:
 
-    # Performance counters are active after reset, deactivate them to let the
-    # user control when they should start counting
-    csrw    0x7A1, x0
-
 #ifdef ARCHI_HAS_CLUSTER
 
     # Cluster PEs will also starts here to avoid aligning another entry point
@@ -143,6 +139,11 @@ pi_cl_entry_stub:
     j POS_IRQ_HANDLER29
     j POS_IRQ_HANDLER30
     j POS_IRQ_HANDLER31
+
+    .org 0x90
+    .global __rt_debug_struct_ptr
+    __rt_debug_struct_ptr:
+    .word 0xdeadbeef
 
 
     .global _start

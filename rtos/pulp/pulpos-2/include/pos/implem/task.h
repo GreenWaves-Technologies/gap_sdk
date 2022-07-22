@@ -22,14 +22,17 @@
 #define __POS_IMPLEM_TASK_H__
 
 #include <hal/pulp.h>
+#include "archi/chips/gap9_v2/itc/itc.h"
 
 
 void pos_init_stop();
 void pos_sched_init();
 void pos_task_handle_blocking(void *arg);
+void pos_task_handle_blocking_fast(void *arg);
 void pos_task_handle();
-void pos_task_remote_enqueue();
+void pos_task_wait(pi_task_t *waiting_task);
 void pos_task_cancel(pi_task_t *task);
+void __pi_task_enqueue_wait(pi_task_t *task);
 
 
 void pos_time_task_cancel(pi_task_t *task);
@@ -51,17 +54,42 @@ static inline void pi_task_status_set(pi_task_t *task, int32_t status)
 }
 
 
+
+#if defined(CONFIG_MULTI_THREADING)
 static inline void pi_task_wait_on(struct pi_task *task)
 {
     int irq = hal_irq_disable();
+    int ongoing = task->arg[0];
+    uint32_t thread_ready = __pi_thread_ready;
 
-    while(likely(task->arg[0]))
+    while(likely(ongoing))
     {
-        pos_task_handle();
+        if (!thread_ready)
+        {
+            pos_task_handle();
+        }
+        else
+        {
+            __pi_task_enqueue_wait(task);
+            break;
+        }
+        ongoing = *(volatile int *)&task->arg[0];
+        thread_ready = *(volatile uint32_t *)&__pi_thread_ready;
     }
 
     hal_irq_restore(irq);
 }
+
+#else
+
+static inline void pi_task_wait_on(struct pi_task *task)
+{
+    int irq = hal_irq_disable();
+    pos_task_wait(task);
+    hal_irq_restore(irq);
+}
+
+#endif
 
 
 POS_TEXT_L2 static inline void pi_task_wait_on_xip(struct pi_task *task)
@@ -96,13 +124,6 @@ __attribute__((always_inline)) static inline void pos_task_block_done(struct pi_
     pos_task_handle_blocking(task);
 }
 
-
-static inline struct pi_task *pi_task_block(struct pi_task *task)
-{
-    task->arg[0] = (uint32_t)pos_task_handle_blocking;
-    task->arg[1] = (uint32_t)task;
-    return task;
-}
 
 
 static inline void __attribute__((always_inline)) pos_task_push_locked_no_irq(pi_task_t *task)
@@ -148,6 +169,17 @@ static inline void __attribute__((always_inline)) pi_task_push(pi_task_t *task)
 }
 
 
+static inline struct pi_task *pi_task_block(struct pi_task *task)
+{
+    task->arg[0] = (uint32_t)pos_task_handle_blocking;
+    task->arg[1] = (uint32_t)task;
+    task->arg[2] = 1;
+#if defined(CONFIG_MULTI_THREADING)
+    task->implem.waiting = NULL;
+#endif
+    return task;
+}
+
 static inline struct pi_task *pi_task_callback(struct pi_task *task, void (*callback)(void*), void *arg)
 {
     task->arg[0] = (uint32_t)callback;
@@ -160,6 +192,17 @@ static inline struct pi_task *pi_task_irq_callback(struct pi_task *task, void (*
 {
     task->arg[0] = (uint32_t)callback | 1;
     task->arg[1] = (uint32_t)arg;
+    task->arg[2] = 0;
+    return task;
+}
+
+// Fast callback are called from IRQ handler without saving context with light-weight ABI
+// This shoudl be used to call asm irq callback
+static inline struct pi_task *pi_task_irq_fast_callback(struct pi_task *task, void (*callback)(void*), void *arg)
+{
+    task->arg[0] = (uint32_t)callback | 1;
+    task->arg[1] = (uint32_t)arg;
+    task->arg[2] = (uint32_t)callback;
     return task;
 }
 
@@ -178,17 +221,6 @@ static inline pi_callback_t *pi_callback(pi_callback_t *callback,
   return callback;
 }
 
-
-static inline void pos_task_cluster_notif_req_done(int cid)
-{
-  eu_evt_trig(eu_evt_trig_cluster_addr(cid, POS_CL_WAIT_TASK_EVT), 0);
-}
-
-static inline void cl_notify_task_done(uint8_t *done, uint8_t cluster_id)
-{
-    *done = 1;
-    pos_task_cluster_notif_req_done(cluster_id);
-}
 
 
 

@@ -1,0 +1,41 @@
+name: rom_oscillator_wait_stable
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    fast_osc_keep_on:
+        name: fast_osc_keep_on
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ~
+        compile_only: true
+    fast_osc_down:
+        name: fast_osc_down
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: SHUTDOWN_OSCILLATOR=1
+        compile_only: true
+    fixed_wait_fast_osc_keep_on:
+        name: fixed_wait_fast_osc_keep_on
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: FIXED_WAIT=1
+        compile_only: true
+    fixed_wait_fast_osc_down:
+        name: fixed_wait_fast_osc_down
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: FIXED_WAIT=1 SHUTDOWN_OSCILLATOR=1
+        compile_only: true

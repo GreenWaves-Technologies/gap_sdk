@@ -18,11 +18,9 @@
 #
 
 
-
 import argparse
 import os
 import logging
-import pulp_config as plpconf
 try:
   import psutil
 except:
@@ -124,6 +122,7 @@ parser.add_argument("--config", dest="config_name", default=None, help="specify 
 parser.add_argument("--config-def", dest="configDef", action="append", default=None, help="Specifies json files containing configurations definition")
 parser.add_argument("--property", dest="properties", action="append", default=[], help="Specifies property")
 parser.add_argument("--tag", dest="tags", action="append", default=[], help="Specifies tag")
+parser.add_argument("--flags", dest="flags", action="append", default=[], help="Specifies flags")
 parser.add_argument("--testset", dest="testset", action="append", default=None, metavar="PATH", help="Path to the testset. Default: %(default)s")
 parser.add_argument("--cmd", dest="commands", action="append", default=None, metavar="PATH", help="Add command to be executed. Default: %(default)s")
 parser.add_argument("--cmd-exclude", dest="commands_exclude", action="append", default=None, metavar="PATH", help="Add command to be excluded. Default: %(default)s")
@@ -136,12 +135,15 @@ parser.add_argument("--stdout", dest="stdout", action="store_true", help="Dumps 
 parser.add_argument("--safe-stdout", dest="safe_stdout", action="store_true", help="Dumps test output to stdout once the test is done")
 parser.add_argument("--max-output-len", dest="maxOutputLen", type=int, default=-1, help="Maximum length of a test output. Default: %(default)s bytes")
 parser.add_argument("--test", dest="testList", default=None, action="append", help="Specify a test to be run")
+parser.add_argument("--skip", dest="testSkipList", default=None, action="append", help="Specify a test to be skipped")
 parser.add_argument("--test-re", dest="testList_re", default=None, action="append", help="Specify a test (based on a regular expression) to be run")
 parser.add_argument("--max-timeout", dest="maxTimeout", default="3600", help="Sets maximum timeout allowed for a test")
 parser.add_argument("--db", dest="db", action='store_true', default=False, help="Activate Pulp database access")
 parser.add_argument("--worker-pool", dest="worker_pool", default=None, help="Specify worker pool")
 parser.add_argument("--score-csv-file", dest="score_csv_file", default=None, help="Specify CSV file for scores")
 parser.add_argument("--bench-csv-file", dest="bench_csv_file", default=None, help="Specify CSV file for benchmark results")
+parser.add_argument("--job-id", dest="job_id", default=0, type=int, help="Give the job ID when the testset is split into several jobs")
+parser.add_argument("--nb-jobs", dest="nb_jobs", default=1, type=int, help="Give the number of jobs when the testset is split into several jobs")
 parser.add_argument("--bench-regexp", dest="bench_regexp", default='.*@BENCH@(.*)@DESC@(.*)@', help="Specify regexp for extracting benchmark results")
 
 
@@ -194,27 +196,24 @@ if os.environ.get('PLPTEST_DEFAULT_PROPERTIES') is not None:
 
   args.properties = properties + args.properties
 
-if os.environ.get('PMSIS_OS') is not None:
-  args.properties.append('os=%s' % os.environ.get('PMSIS_OS'))
-
-if os.environ.get('PMSIS_PLATFORM') is not None:
-  args.properties.append('platform=%s' % os.environ.get('PMSIS_PLATFORM'))
-
 runner = TestRunner(
     nbThreads=args.threads, stdout=args.stdout, safe_stdout=args.safe_stdout, maxOutputLen=args.maxOutputLen,
     maxTimeout=args.maxTimeout, worker_pool=args.worker_pool, db=args.db, average_load=args.load_average,
     bench_csv_file=bench_csv_file, bench_regexp=args.bench_regexp, commands=args.commands, exclude_commands=args.commands_exclude, dry_run=args.dry_run,
-    server=args.gui, properties=args.properties, tags=args.tags
+    server=args.gui, properties=args.properties, tags=args.tags, job_id=args.job_id % args.nb_jobs, nb_jobs=args.nb_jobs, flags=args.flags, skip_tests=args.testSkipList
 )
 for testset in args.testset:
   runner.addTestset(testset)
 
-if args.config_name is None:
-  for config in plpconf.get_configs_from_env():
-    runner.addConfig(config)
-else:
-  config = plpconf.get_config_from_tag(args.config_name)
-  runner.addConfig(config)
+
+runner.addConfig("default")
+# if args.config_name is None:
+#   for config in plpconf.get_configs_from_env():
+#     print (config)
+#     runner.addConfig(config)
+# else:
+#   config = plpconf.get_config_from_tag(args.config_name)
+#   runner.addConfig(config)
 
 
 

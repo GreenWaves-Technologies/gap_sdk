@@ -37,7 +37,7 @@ typedef void (*add_kernel_arg_func_t) (char *Name, char *ArgName, int Dim, ...);
 typedef char *(*cnn_kernel_arg_datatype_func_t) (int DataSize, int Pointer, int Restrict);
 
 static int copy_library_loaded = 0;
-
+/*
 // Returns floor of square root of x
 int floorSqrt(int x)
 {
@@ -104,7 +104,7 @@ int largest_factor(int sz)
     }
 	return 1;
 }
-
+*/
 void LoadCNN_Copy_Library()
 
 {
@@ -445,6 +445,21 @@ void LoadCNN_Copy_Library()
                         TCArg("unsigned char", "DataSize")
                         )
         );
+        LibKernelTemplate("CNN_Split_Width_Arg_T",
+                        CArgs(11,
+                        TCArg("char *__restrict__", "In"),
+                        TCArg("char *__restrict__", "Out1"),
+                        TCArg("char *__restrict__", "Out2"),
+                        TCArg("char *__restrict__", "Out3"),
+                        TCArg("char *__restrict__", "Out4"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("unsigned short int", "W1"),
+                        TCArg("unsigned short int", "W2"),
+                        TCArg("unsigned short int", "W3"),
+                        TCArg("unsigned short int", "W4"),
+                        TCArg("unsigned char", "DataSize")
+                        )
+        );
 
 
 	/****************************************************************************************************************/
@@ -459,6 +474,15 @@ void LoadCNN_Copy_Library()
 		       ),
 		  "KerCopy_void_T", NULL
 	);
+        LibKernel("CNN_Repeat_void", CALL_PARALLEL,
+                  CArgs(4,
+                        TCArg("void *__restrict__", "In"),
+                        TCArg("void *__restrict__", "Out"),
+                        TCArg("unsigned int", "NRepeat"),
+                        TCArg("unsigned int", "NTile")
+                       ),
+                  "KerRepeat_void_T", NULL
+        );
 	LibKernel("CNN_NormRGB565_offset_fps", CALL_PARALLEL,
 		CArgs(6,
 			TCArg("unsigned short *__restrict__", "In"),
@@ -659,7 +683,10 @@ void LoadCNN_Copy_Library()
         /****************************************************************************************************************/
         /* Kernels matrix Concatenations over axis 1 (width)  */
         /****************************************************************************************************************/
-        LibKernel("CNN_Concat_Width",  CALL_PARALLEL, 0, "CNN_Concat_Width_Arg_T", CNN_Match(CNN_OperList(1, KOP_CONCAT), 0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));;
+        LibKernel("CNN_Concat_Width",    CALL_PARALLEL, 0, "CNN_Concat_Width_Arg_T", CNN_Match(CNN_OperList(1, KOP_CONCAT), 0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
+        LibKernel("CNN_Split_Width",     CALL_PARALLEL, 0, "CNN_Split_Width_Arg_T" , CNN_Match(CNN_OperList(1, KOP_SPLIT),  0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
+        LibKernel("CNN_ParConcat_Width", CALL_PARALLEL, 0, "CNN_Concat_Width_Arg_T", CNN_Match(CNN_OperList(1, KOP_CONCAT), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
+        LibKernel("CNN_ParSplit_Width",  CALL_PARALLEL, 0, "CNN_Split_Width_Arg_T" , CNN_Match(CNN_OperList(1, KOP_SPLIT),  0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
 
 }
 
@@ -671,25 +698,24 @@ int CNN_Copy(
 )
 
 {
-	int Log = 1;
-
 	unsigned long long int LayerOp = 0;
 	unsigned long long int LayerBandwidth = 0;
 
 	add_kernel_arg_func_t AddKArgDimFunc = AddKernelArgDim;
+        cnn_kernel_arg_datatype_func_t CNN_ArgDtype = (FeatureSize<0)?CNN_ArgDataTypeUns:CNN_ArgDataType;
 
         if (Ctrl) {
 		if (Ctrl->FloatDump != -1&&Ctrl->FloatDump) AddKArgDimFunc = AddKernelFloatArgDim;
+                if (Ctrl->FloatDump != -1&&Ctrl->FloatDump) CNN_ArgDtype = CNN_ArgDataTypeF;
         }
 
+        LayerOp = Sz;
 	LayerBandwidth += Sz*2;
 
-	if (Log) {
-		GenTilingDebug("CNN_Copy: %s\n", Name);
-		GenTilingDebug("In  => Feat: 1  Sz: %4d, FeatureSize: %4d\n", Sz, Abs(FeatureSize));
-		GenTilingDebug("Out => Feat: 1, Sz: %4d\n", Sz);
-		GenTilingDebug("Nb Oper : %lld\n", LayerOp);
-	}
+	GenTilingDebug("CNN_Copy: %s\n", Name);
+	GenTilingDebug("In  => Feat: 1  Sz: %4d, FeatureSize: %4d\n", Sz, Abs(FeatureSize));
+	GenTilingDebug("Out => Feat: 1, Sz: %4d\n", Sz);
+	GenTilingDebug("Nb Oper : %lld\n", LayerOp);
 	Kernel_T *Kernel = 0;
 	Object_T **PKerArgs = AllocateKerArgs(2);
 	PKerArgs[0] = KerArg("In",   KerArgSpace(1,D0), O_IN|O_DB,  1, 1, 1,  0, 0, 0, "In");
@@ -698,7 +724,10 @@ int CNN_Copy(
                 Name,
                 KernelIterSpace(1, IterParSpace(D0, Sz * Abs(FeatureSize), 4)),
                 TILE_HOR,
-                CArgs(2, TCArg(CNN_ArgDataType(1,1,1),  "In"), TCArg(CNN_ArgDataType(1,1,1), "Out")),
+                CArgs(2,
+                        TCArg(CNN_ArgDtype(Abs(FeatureSize),1,1),  "In"),
+                        TCArg(CNN_ArgDtype(Abs(FeatureSize),1,1), "Out")
+                ),
                 Calls(1,
                         Call("CNN_Copy_void", LOC_D0,
                                 Bindings(3,
@@ -719,7 +748,66 @@ int CNN_Copy(
 	return (Kernel!=0);
 }
 
-int CNN_Concatenate_Width(
+int CNN_Repeat(
+        char *Name,
+        CNN_GenControl_T *Ctrl,
+        int Sz,
+        int FeatureSize,
+        int NRepeat
+)
+
+{
+        unsigned long long int LayerOp = 0;
+        unsigned long long int LayerBandwidth = 0;
+
+        add_kernel_arg_func_t AddKArgDimFunc = AddKernelArgDim;
+        cnn_kernel_arg_datatype_func_t CNN_ArgDtype = CNN_ArgDataType;
+
+        if (Ctrl) {
+                if (Ctrl->FloatDump != -1&&Ctrl->FloatDump) AddKArgDimFunc = AddKernelFloatArgDim;
+                if (Ctrl->FloatDump != -1&&Ctrl->FloatDump) CNN_ArgDtype = CNN_ArgDataTypeF;
+        }
+
+        LayerOp = Sz*NRepeat;
+        LayerBandwidth += (Sz + Sz*NRepeat)*FeatureSize;
+
+        GenTilingDebug("CNN_Repeat: %s\n", Name);
+        GenTilingDebug("In  => Feat: 1  Sz: %4d, FeatureSize: %4d\n", Sz, Abs(FeatureSize));
+        GenTilingDebug("Out => Feat: 1, Sz: %4d\n", Sz*NRepeat);
+        GenTilingDebug("Nb Oper : %lld\n", LayerOp);
+        Kernel_T *Kernel = UserKernel(
+                Name,
+                KernelIterSpace(2, IterParSpace(D0, NRepeat, 1), IterTiledSpace(T0)),
+                TILE_VER,
+                CArgs(2,
+                        TCArg(CNN_ArgDtype(Abs(FeatureSize),1,1),  "In"),
+                        TCArg(CNN_ArgDtype(Abs(FeatureSize),1,1), "Out")
+                ),
+                Calls(1,
+                        Call("CNN_Repeat_void", LOC_LOOP,
+                                Bindings(4,
+                                        K_Arg("In", KER_ARG_TILE),      /* Input tile */
+                                        K_Arg("Out", KER_ARG_TILE),     /* Output tile */
+                                        K_ArgPar("Out", KER_ARG_PARTILE_SIZE, D0), /* Number of repetitions */
+                                        K_Arg("In", KER_ARG_TILE_W)     /* Number of elements in this tile */
+                                )
+                        )
+                ),
+                KerArgs(2,
+                        KerArg("In",   KerArgSpace(1,T0)   , O_IN|O_DB,  Sz*Abs(FeatureSize), 1, 1,  0, 0, 8, "In"),
+                        KerArg("Out",  KerArgSpace(2,D0,T0), O_OUT|O_DB, Sz*Abs(FeatureSize), 1, 1,  0, 0, 0, "Out")
+                )
+        );
+        if (Kernel) {
+                AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+                AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+                AddKArgDimFunc(Name, "In", 2, Sz, Abs(FeatureSize));
+                AddKArgDimFunc(Name, "Out", 3, NRepeat, Sz, Abs(FeatureSize));
+        }
+        return (Kernel!=0);
+}
+
+int CNN_ConcatLastAxis_Generator(
         char *Name,
 
         CNN_GenControl_T *Ctrl,
@@ -737,27 +825,27 @@ int CNN_Concatenate_Width(
 
 {
         add_kernel_arg_func_t AddKArgDimFunc = AddKernelArgDim;
-        cnn_kernel_arg_datatype_func_t CNN_ArgDtype = CNN_ArgDataType;
-
-        if (Size < 0) CNN_ArgDtype = CNN_ArgDataTypeUns;
+        cnn_kernel_arg_datatype_func_t CNN_ArgDtype = (Size<0)?CNN_ArgDataTypeUns:CNN_ArgDataType;
+        int ParFeat = 0;
 
         if (Ctrl) {
                 if (Ctrl->FloatDump != -1&&Ctrl->FloatDump) AddKArgDimFunc = AddKernelFloatArgDim;
                 if (Ctrl->FloatDump != -1&&Ctrl->FloatDump) CNN_ArgDtype = CNN_ArgDataTypeF;
+                if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
         }
         if (Size < 0) Size = -Size;
 
-        if (!(ConcatOper == KOP_CONCAT)) GenTilingError("CNN_Concatenate_Width Kernel: %s, ConcatOper should be KOP_CONCAT", Name);
+        if (!(ConcatOper == KOP_CONCAT)) GenTilingError("CNN_ConcatLastAxis_Generator Kernel: %s, ConcatOper should be KOP_CONCAT", Name);
 
-        char *ConcatKerName = CNN_FindMatchingKernel(ConcatOper, KOP_NONE, 0, 1, 0, 0, 0, 1, 0,0,0,0,0,0, 0,0,0,0, 0, 0, 0);
-        if (ConcatKerName==0) GenTilingError("CNN_Concatenate_Width Kernel: %s, Can't find a matching basic kernel for Concatenate layer", Name);
+        char *ConcatKerName = CNN_FindMatchingKernel(ConcatOper, KOP_NONE, ParFeat, 1, 0, 0, 0, 1, 0,0,0,0,0,0, 0,0,0,0, 0, 0, 0);
+        if (ConcatKerName==0) GenTilingError("CNN_ConcatLastAxis_Generator Kernel: %s, Can't find a matching basic kernel for Concatenate layer", Name);
 
         int OutWidth = In1Width + In2Width + In3Width + In4Width;
         int NInputs = 2 + (In3Width?1:0) + (In4Width?1:0);
-        unsigned long long int LayerOp = Height*OutWidth*Size;
+        unsigned long long int LayerOp = (int64_t) Height * OutWidth;
         unsigned long long int LayerBandwidth = (int64_t) 2*Height*OutWidth*Size;
 
-        GenTilingDebug("CNN_Concatenate_Width: %s Size: %d\n", Name, Size);
+        GenTilingDebug("CNN_ConcatLastAxis_Generator: %s Size: %d\n", Name, Size);
         GenTilingDebug("In1 => H: %4d, W: %4d\n", Height, In1Width);
         GenTilingDebug("In2 => H: %4d, W: %4d\n", Height, In2Width);
         if (In3Width)
@@ -802,7 +890,7 @@ int CNN_Concatenate_Width(
                                 )
                         ),
                         KerArgs(5,
-                                KerArg("In1", KerArgSpace(1,T0), O_IN|O_DB,  In1Width, Height, Size, 0, 0, 0, "In1"),
+                                KerArg("In1", KerArgSpace(1,T0), O_IN|O_DB,  In1Width, Height, Size, 0, 0, 8, "In1"),
                                 KerArg("In2", KerArgSpace(1,T0), O_IN|O_DB,  In2Width, Height, Size, 0, 0, 0, "In2"),
                                 In3Width?
                                 KerArg("In3", KerArgSpace(1,T0), O_IN|O_DB,  In3Width, Height, Size, 0, 0, 0, "In3"):AT_NO_KER_ARG,
@@ -822,6 +910,116 @@ int CNN_Concatenate_Width(
                 if (In4Width)
                 AddKArgDimFunc(Name, "In4", 3, Height, In4Width, Size);
                 AddKArgDimFunc(Name, "Out", 3, Height, OutWidth, Size);
+        }
+        return (Kernel!=0);
+
+}
+
+int CNN_SplitLastAxis_Generator(
+        char *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int Size,
+        int Height,
+
+        int Out1Width,
+        int Out2Width,
+        int Out3Width,
+        int Out4Width,
+
+        KernelOper_T SplitOper
+)
+
+{
+        add_kernel_arg_func_t AddKArgDimFunc = AddKernelArgDim;
+        cnn_kernel_arg_datatype_func_t CNN_ArgDtype = CNN_ArgDataType;
+        int ParFeat = 0;
+
+        if (Size < 0) CNN_ArgDtype = CNN_ArgDataTypeUns;
+
+        if (Ctrl) {
+                if (Ctrl->FloatDump != -1&&Ctrl->FloatDump) AddKArgDimFunc = AddKernelFloatArgDim;
+                if (Ctrl->FloatDump != -1&&Ctrl->FloatDump) CNN_ArgDtype = CNN_ArgDataTypeF;
+                if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
+        }
+        if (Size < 0) Size = -Size;
+
+        if (!(SplitOper == KOP_SPLIT)) GenTilingError("CNN_SplitLastAxis_Generator Kernel: %s, SplitOper should be KOP_SPLIT", Name);
+
+        char *SplitKerName = CNN_FindMatchingKernel(SplitOper, KOP_NONE, ParFeat, 1, 0, 0, 0, 1, 0,0,0,0,0,0, 0,0,0,0, 0, 0, 0);
+        if (SplitKerName==0) GenTilingError("CNN_SplitLastAxis_Generator Kernel: %s, Can't find a matching basic kernel for Concatenate layer", Name);
+
+        int InWidth = Out1Width + Out2Width + Out3Width + Out4Width;
+        int NInputs = 2 + (Out3Width?1:0) + (Out4Width?1:0);
+        unsigned long long int LayerOp = (int64_t) Height * InWidth;
+        unsigned long long int LayerBandwidth = (int64_t) 2*Height*InWidth*Size;
+
+        GenTilingDebug("CNN_SplitLastAxis_Generator: %s Size: %d\n", Name, Size);
+        GenTilingDebug("In   => H: %4d, W: %4d\n", Height, InWidth);
+        GenTilingDebug("Out1 => H: %4d, W: %4d\n", Height, Out1Width);
+        GenTilingDebug("Out2 => H: %4d, W: %4d\n", Height, Out2Width);
+        if (Out3Width)
+        GenTilingDebug("Out3 => H: %4d, W: %4d\n", Height, Out3Width);
+        if (Out4Width)
+        GenTilingDebug("Out4 => H: %4d, W: %4d\n", Height, Out4Width);
+        if (SplitKerName)
+        GenTilingDebug("%20s: %s\n", "SplitKerName", SplitKerName);
+        GenTilingDebug("Nb Oper : %lld\n", LayerOp);
+
+        Kernel_T *Kernel =
+                UserKernel(Name,
+                        KernelIterSpace(1, IterTiledSpace(T0)),
+                        TILE_HOR,
+                        CArgs(5,
+                                TCArg(CNN_ArgDtype(Size,1,1), "In"),
+                                TCArg(CNN_ArgDtype(Size,1,1), "Out1"),
+                                TCArg(CNN_ArgDtype(Size,1,1), "Out2"),
+                                Out3Width?TCArg(CNN_ArgDtype(Size,1,1), "Out3"):AT_NO_C_ARG,
+                                Out4Width?TCArg(CNN_ArgDtype(Size,1,1), "Out4"):AT_NO_C_ARG
+                        ),
+                        Calls(1,
+                                Call(SplitKerName, LOC_LOOP,
+                                        Bindings(11,
+                                                K_Arg("In", KER_ARG_TILE),                         /* Input tile */
+                                                K_Arg("Out1", KER_ARG_TILE),                       /* Input tile */
+                                                K_Arg("Out2", KER_ARG_TILE),                       /* Input tile */
+                                                Out3Width?
+                                                K_Arg("Out3", KER_ARG_TILE):AT_IGNORE_ARG_BINDING, /* Input tile */
+                                                Out4Width?
+                                                K_Arg("Out4", KER_ARG_TILE):AT_IGNORE_ARG_BINDING, /* Input tile */
+                                                K_Arg("In", KER_ARG_TILE_H),                       /* Input tile height */
+                                                K_Arg("Out1", KER_ARG_TILE_W),                     /* Input tile width */
+                                                K_Arg("Out2", KER_ARG_TILE_W),                     /* Input tile width */
+                                                Out3Width?
+                                                K_Arg("Out3", KER_ARG_TILE_W):Imm(0),              /* Input tile width */
+                                                Out4Width?
+                                                K_Arg("Out4", KER_ARG_TILE_W):Imm(0),              /* Input tile width */
+                                                Imm(Size)                                          /* DataSize */
+                                        )
+                                )
+                        ),
+                        KerArgs(5,
+                                KerArg("In",   KerArgSpace(1,T0), O_IN|O_DB,     InWidth, Height, Size, 0, 0, 8, "In"),
+                                KerArg("Out1", KerArgSpace(1,T0), O_OUT|O_DB,  Out1Width, Height, Size, 0, 0, 0, "Out1"),
+                                KerArg("Out2", KerArgSpace(1,T0), O_OUT|O_DB,  Out2Width, Height, Size, 0, 0, 0, "Out2"),
+                                Out3Width?
+                                KerArg("Out3", KerArgSpace(1,T0), O_OUT|O_DB,  Out3Width, Height, Size, 0, 0, 0, "Out3"):AT_NO_KER_ARG,
+                                Out4Width?
+                                KerArg("Out4", KerArgSpace(1,T0), O_OUT|O_DB,  Out4Width, Height, Size, 0, 0, 0, "Out4"):AT_NO_KER_ARG
+                        )
+                );
+        if (Kernel) {
+                AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+                AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+                AddKArgDimFunc(Name, "In",   3, Height, InWidth,   Size);
+                AddKArgDimFunc(Name, "Out1", 3, Height, Out1Width, Size);
+                AddKArgDimFunc(Name, "Out2", 3, Height, Out2Width, Size);
+                if (Out3Width)
+                AddKArgDimFunc(Name, "Out3", 3, Height, Out3Width, Size);
+                if (Out4Width)
+                AddKArgDimFunc(Name, "Out4", 3, Height, Out4Width, Size);
         }
         return (Kernel!=0);
 
@@ -880,7 +1078,7 @@ static int CNN_MatTranspose_Internal(
                 if (MatTransKerName) GenTilingDebug("%20s: %s\n", "MatTransKerName", MatTransKerName);
                 GenTilingDebug("Nb Oper : %lld\n", LayerOp);
         }
-
+        AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
         Kernel_T *Kernel =
                 UserKernel(Name,
                         (ParFeat)?
@@ -911,23 +1109,24 @@ static int CNN_MatTranspose_Internal(
                                 KerArg("Out",  KerArgSpace(2,D0,T0), O_OUT|O_DB, Height, Width, Size, 0, OutTileOrientation, 0, "Out")
                         )
                 );
-        if (Kernel) {
-                AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
-                AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
-
-                AddKArgDimFunc(Name, "In",  4, Feat, Height, Width, Size);
-                AddKArgDimFunc(Name, "Out", 4, Feat, Width, Height, Size);
-		AT_PrepareForTest(Name,
-                                  (v4s) {Size, 0, 0, Size},
-                                  (v4s) {0,0,0,0},
-                                  Feat, Feat, Width, Height,
-                                  0,0, 0,0, 0,0, (v4s) 0,
-                                  0,0, 0,0, 0,0, (v4s) 0,
-                                  MatTransOper,
-                                  0, 0);
+        AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+        if (!Kernel) {
+                return CNN_3DTensorPermute(Name, Ctrl, Size, Feat, Width, Height, KOP_MATPERM_CHW2CWH);
         }
-        return (Kernel!=0);
+        AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+        AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
 
+        AddKArgDimFunc(Name, "In",  4, Feat, Height, Width, Size);
+        AddKArgDimFunc(Name, "Out", 4, Feat, Width, Height, Size);
+        AT_PrepareForTest(Name,
+                                (v4s) {Size, 0, 0, Size},
+                                (v4s) {0,0,0,0},
+                                Feat, Feat, Width, Height,
+                                0,0, 0,0, 0,0, (v4s) 0,
+                                0,0, 0,0, 0,0, (v4s) 0,
+                                MatTransOper,
+                                0, 0);
+        return 1;
 }
 
 /*********************************************************************************************************************************************************************

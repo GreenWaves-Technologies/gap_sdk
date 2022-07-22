@@ -1,0 +1,106 @@
+name: fs_2d
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap8
+    - gap9
+variants:
+    mram:
+        name: 'mram'
+        chips:
+            - gap9
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: 'FLASH_TYPE=MRAM'
+    mram_cluster:
+        name: 'mram_cluster'
+        chips:
+            - gap9
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: 'FLASH_TYPE=MRAM USE_CLUSTER=1'
+    octospi_cluster:
+        name: 'octospi_flash_cluster'
+        chips:
+            - gap9
+        tags:
+            - integration
+            - release
+        duration: standard
+        boards:
+            - gap9_evk
+        platforms:
+            - rtl
+            - board
+        flags: 'FLASH_TYPE=SPIFLASH USE_CLUSTER=1'
+    octospi:
+        name: 'octospi_flash'
+        chips:
+            - gap9
+        tags:
+            - integration
+            - release
+        duration: standard
+        boards:
+            - gap9_evk
+        platforms:
+            - rtl
+            - board
+        flags: 'FLASH_TYPE=SPIFLASH'
+    hyperflash_cluster:
+        name: 'hyperflash_cluster'
+        tags:
+            - integration
+            - release
+        duration: standard
+        boards:
+            - gap9_v2
+        platforms:
+            - gvsoc
+            - rtl
+        flags: 'FLASH_TYPE=HYPER_FLASH USE_CLUSTER=1'
+    hyperflash:
+        name: 'hyperflash'
+        tags:
+            - integration
+            - release
+        duration: standard
+        boards:
+            - gap9_v2
+        platforms:
+            - gvsoc
+            - rtl
+        flags: 'FLASH_TYPE=HYPER_FLASH'
+    host:
+        name: 'host'
+        tags:
+            - integration
+            - release
+        duration: standard
+        boards:
+            - gap9_v2
+        platforms:
+            - gvsoc
+            - rtl
+        flags: 'FLASH_TYPE=HOST FS_TYPE=HOST'
+        compile_only: true
+    host_cluster:
+        name: 'host_cluster'
+        tags:
+            - integration
+            - release
+        duration: standard
+        boards:
+            - gap9_v2
+        platforms:
+            - gvsoc
+            - rtl
+        flags: 'FLASH_TYPE=HOST FS_TYPE=HOST USE_CLUSTER=1'
+        compile_only: true

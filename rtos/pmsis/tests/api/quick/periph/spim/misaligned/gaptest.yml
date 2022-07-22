@@ -1,0 +1,17 @@
+name: spim_misaligned
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    std:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: TEST_CFLAGS=-DSYNC_CS_AUTO=1
+        compile_only: true

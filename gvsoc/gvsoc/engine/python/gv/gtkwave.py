@@ -24,7 +24,6 @@ from os.path import isfile, join, isdir
 import os.path
 
 import json_tools as js
-import pulp_config
 
 import gtkw_new
 

@@ -1,0 +1,30 @@
+name: hello
+boards: []
+platforms: 
+    - rtl
+    - board
+    - gvsoc
+os: 
+    - freertos
+    - pulpos
+chips: 
+    - gap8
+    - gap9
+    - vega
+variants:
+    fc:
+        name: fc
+        tags:
+            - cmake-integration
+            - integration
+            - release
+        duration: fast
+        flags: ~
+    cluster:
+        name: cluster
+        tags:
+            - cmake-integration
+            - integration
+            - release
+        duration: standard
+        flags: CONFIG_HELLOWORLD_CLUSTER=1 CONFIG_PMSIS_RTOS_CL_L1_MALLOC=1

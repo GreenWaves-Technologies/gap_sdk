@@ -454,6 +454,33 @@ ConstInit_T *ConstInfo(
 	);
 
 /**
+@brief Creates a descriptor for an initialized, compressed constant vector
+
+Creates a descriptor for an initialized, compressed constant vector
+*/
+ConstInit_T *CompressedConstInfo(
+	char *FileName,			/**< Name of the file containing the list of compressed codes for this constant vector in unsigned short format only */
+	int Format,			/**< Format of the list of LUT values, 0: floating point, 1: fixed point */
+	int Binary,			/**< If 1 LUT file content is binary, if 0 file content is text */
+	int Size,			/**< Size of the LUT fixed point container */
+	int Fract,			/**< Fractional part size, Qx.Fract, note that x+Fract < Size */
+	char *LUTFileName,		/**< File containing LUT values. If sparse the sparse value is the last one in this table */
+	int LUTBits,			/**< Number of bits used to index the LUT table (without the sparse bit if any) */
+	int LUTSparse			/**< LUT has sparse value at end */
+);
+
+/**
+@brief Creates a descriptor for an LUT table
+
+Creates a descriptor for an initialized, LUT table that can be assigned to KerArgC compressed arguments.
+*/
+KerArgLUT_T *LUTInfo(
+	int Bits,			/**< Number of bits in LUT index **/
+	int ElemBytes,			/**< Number of bytes in LUT table element **/
+	int Sparse			/**< 0 if data is not sparse. 1 otherwise. **/
+);
+
+/**
 @brief Creates a typed C argument with location info
 
 Creates a typed C argument with location info
@@ -864,7 +891,6 @@ ArgBindingDescr_T *K_TileOper(
 Functions in this group should be used to capture user kernel arguments
 @{ */
 
-
 /**
 @brief Creates a list of user kernel arguments.
 
@@ -911,6 +937,20 @@ Object_T *KerArg(
 	unsigned int W,				/**< Kernel argument Data plane width */
 	unsigned int H,				/**< Kernel argument Data plane height */
 	unsigned int ItemSize,			/**< Data plane basic data type size in bytes */
+	int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles, applies to tiled 2D space if present, if not to most inner dim of this argument */
+	KernelArgConstraints_T Constraint, 	/**< Kernel argument constraints */
+	unsigned int PreferedTileSize,  	/**< Tile variable dimension must be a multiple of PreferedTileSize if not 0 */
+	char *CArgName				/**< To which user kernel C argument this kernel argument is related to */
+	);
+
+Object_T *KerArgC(
+	char 	     *KerArgName,		/**< Kernel argument name */
+	KernelArgDimDescrT *KerArgSpace,	/**< Kernel argument space descriptor */
+	Object_Type_T ObjType,			/**< Kernel argument type: logical OR of types (O_xxx) or pre defined types */
+	unsigned int W,				/**< Kernel argument Data plane width */
+	unsigned int H,				/**< Kernel argument Data plane height */
+	unsigned int ItemSize,			/**< Data plane basic data type size in bytes */
+	KerArgLUT_T * LUTInfo,			/**< LUT Info structure. Address of LUT Info is used to identify common LUTs for parameters */
 	int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles, applies to tiled 2D space if present, if not to most inner dim of this argument */
 	KernelArgConstraints_T Constraint, 	/**< Kernel argument constraints */
 	unsigned int PreferedTileSize,  	/**< Tile variable dimension must be a multiple of PreferedTileSize if not 0 */
@@ -1095,6 +1135,7 @@ Kernel_T *UserKernel(
 Remove last created user kernel from stack
 */
 void PopUserKernel();
+void PopUserKernelGroup();
 
 /**
 @brief Copy then Remove last created user kernel from stack. Return the copy
@@ -1105,6 +1146,10 @@ Copy then Remove last created user kernel from stack. Return the copy
 Kernel_T *CopyAndPopUserKernel(
 	Kernel_T *Kernel
 	);
+KernelGroup_T *CopyAndPopUserKernelGroup(
+	KernelGroup_T *KernelG,
+	Kernel_T **KernelsInGroup
+	);
 
 /**
 @brief Push back to top of stack a user kernel obtained by CopyAndPopUserKernel().
@@ -1114,6 +1159,10 @@ Push back to top of stack a user kernel obtained by CopyAndPopUserKernel().
 void PushBackUserKernel(
 	Kernel_T *Kernel
 	);
+void PushBackUserKernelGroup(
+	KernelGroup_T *KernelG,
+	Kernel_T **KernelsInGroup
+	);
 
 /**
 @brief Free a user kernel obtained by CopyAndPopUserKernel
@@ -1122,6 +1171,9 @@ Free a user kernel obtained by CopyAndPopUserKernel
 */
 void ReleaseUserKerne(
 	Kernel_T *Kernel
+	);
+void ReleaseUserKernelGroup(
+	KernelGroup_T *KernelG
 	);
 
 /**
@@ -1279,6 +1331,17 @@ ArgBindingDescr_T *KG_ArgOper(
 	char Oper,			/**< Operation, see ArgBindingOper. Valid: + - * / %  */
 	int Value			/**< A signed immediate value */
 	);
+
+/**
+@brief Used to indicate that a stack member is not used
+
+Can only be used in a stack where the out tensor is the input to the stack
+*/
+StackedTensorMember_T *AT_UnusedStackMember(
+	char *DummyTensorName,
+	int Size
+	);
+
 
 /**
 @brief Creates a stacked tensor, resulting object is OutTensorName, Count in tensors passed as names are stacked according to list order
@@ -1584,6 +1647,15 @@ void CNN_SetGenCtrlList(
 	);
 
 
+/**
+@brief Greate a compressed input bits mask
+
+Create compressed inputs mask.
+*/
+int CNN_CompressedInputBits(
+	CNN_GenControl_T *Ctrl,
+	int NArgs, /**< Number of inputs indicated **/
+	...); /**< Two ints per arg. First the number of bits or 0 if not compressed and next 1 if sparse 0 if not **/
 
 /**
 @brief Create a CNN type size vector(5), ints
@@ -1847,6 +1919,14 @@ extern void *AT_Calloc(
 	size_t Nmemb,
 	size_t Size
 	);
+
+/**
+@brief realloc with return status check.
+*/
+extern void *AT_ReAlloc(
+	void * Pt,
+	size_t Nmemb,
+	size_t Size);
 
 /** @} */ // End of BookKeeping group
 

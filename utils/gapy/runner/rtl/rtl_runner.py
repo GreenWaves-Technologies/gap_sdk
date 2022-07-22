@@ -118,7 +118,7 @@ class Runner(runner.default_runner.Runner):
                 self.set_cmd_arg('+DPI_CONFIG_FILE=%s' % gvsoc_config_path)
 
         else:
-            if os.environ.get('TARGET_CHIP') == 'GAP9_V2':
+            if os.environ.get('TARGET_CHIP_FAMILY') == 'GAP9':
                 dpi_path = os.path.join(self.__get_platform_path(), 'ips_inputs/dpi/libchipwrapper')
 
                 if self.platform_tool == 'vsim':

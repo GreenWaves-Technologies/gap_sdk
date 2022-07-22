@@ -111,7 +111,7 @@ def gen_config(args, config):
         if args.binary is not None:
             debug_binaries.append(args.binary)
 
-        rom_binary = full_config.get_str('**/soc/rom/binary')
+        rom_binary = full_config.get_str('**/soc/rom/config/binary')
 
         if rom_binary is not None:
             
@@ -210,7 +210,7 @@ class Runner(runner.default_runner.Runner):
 
         os.environ['PULP_CONFIG_FILE'] = self.gvsoc_config_path
 
-        if gvsoc_config.get("debug-mode"):
+        if gvsoc_config.get_bool("debug-mode"):
             launcher = gvsoc_config.get_str('launchers/debug')
         else:
             launcher = gvsoc_config.get_str('launchers/default')

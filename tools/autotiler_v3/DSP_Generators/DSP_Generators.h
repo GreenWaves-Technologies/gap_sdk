@@ -109,3 +109,13 @@ void STFT_Generator(
 	int use_power,			 /* If 1, the MelFilterBank will be applied to |STFT|^2, otherwise |STFT| */
 	int DataType			 /* If 1, uses fake floatng point arithmetic for FFT and MFCC */
 	);
+
+int DSP_MatAdd_Generator(
+	char *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+	int W,
+	int H,
+	int DataType
+);

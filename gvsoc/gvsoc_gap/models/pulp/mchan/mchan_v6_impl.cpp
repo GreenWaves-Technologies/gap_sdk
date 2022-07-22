@@ -464,7 +464,7 @@ vp::io_req_status_e Mchan_channel::handle_status_req(vp::io_req *req, bool is_wr
 {
   if (is_write)
   {
-    top->trace.msg("Freeing counters (mask: 0x%x, free_counters: 0%x)\n", *value, top->free_counter_mask);
+    top->trace.msg("Freeing counters (mask: 0x%x, free_counters: 0x%x)\n", *value, top->free_counter_mask);
     top->free_counters(*value);
   }
   else

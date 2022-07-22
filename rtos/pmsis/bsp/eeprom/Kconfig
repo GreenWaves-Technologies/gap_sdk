@@ -1,0 +1,17 @@
+menu "EEPROM"
+    config BSP_DRIVER_EEPROM_24XX1025
+        bool "24XX1025"
+        default n
+        select PMSIS_IMPLEM_I2C
+
+    config BSP_DRIVER_EEPROM_M24C02
+        bool "M24C02"
+        default n
+        select PMSIS_IMPLEM_I2C
+
+
+    config BSP_DRIVER_EEPROM_VIRTUAL
+        bool "Virtual EEPROM"
+        default n
+        select PMSIS_IMPLEM_I2C
+endmenu

@@ -17,12 +17,11 @@ vp_model(NAME ne16
     SOURCES ${NE16_SRCS}
     )
 
-vp_model_link_libraries(
-    NAME ne16
-    LIBRARY xtensor
-    )
+vp_model_link_options(NAME ne16 OPTIONS -fopenmp)
 
 vp_model_include_directories(
     NAME ne16
     DIRECTORY "include"
     )
+
+vp_model_compile_options(NAME ne16 OPTIONS -fopenmp)

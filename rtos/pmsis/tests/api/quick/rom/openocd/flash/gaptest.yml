@@ -1,0 +1,33 @@
+name: rom_openocd_flash
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    hyperflash:
+        name: hyperflash
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: io=host FLASH_TYPE=HYPERFLASH CONFIG_BOOT_DEVICE=hyperflash
+        compile_only: true
+    #spiflash:
+    #    name: spiflash
+    #    tags:
+    #        - integration
+    #        - release
+    #    duration: standard
+    #    flags: io=host FLASH_TYPE=SPIFLASH CONFIG_BOOT_DEVICE=spiflash
+    #    compile_only: true
+    mram:
+        name: mram
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: io=host FLASH_TYPE=MRAM CONFIG_BOOT_DEVICE=mram
+        compile_only: true

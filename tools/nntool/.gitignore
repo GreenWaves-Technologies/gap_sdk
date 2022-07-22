@@ -1,5 +1,4 @@
 build/
-flatbuffers/
 *.xlsx
 *.xls
 __pycache__
@@ -19,3 +18,5 @@ tempdir/
 notebooks/
 utils_nocheckin/
 graphs_nocheckin/
+schema_ui/
+bash_util.sh

@@ -1,0 +1,8 @@
+menu "GPIO"
+
+    config BSP_DRIVER_GPIO_FXL6408
+        bool "FXL6408"
+        default n
+        select PMSIS_GAP9_IMPLEM_GPIO
+        select PMSIS_IMPLEM_I2C
+endmenu

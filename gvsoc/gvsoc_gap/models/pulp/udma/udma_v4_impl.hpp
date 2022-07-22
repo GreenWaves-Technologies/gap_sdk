@@ -57,6 +57,8 @@ class Io_Periph;
 
 class Udma_channel;
 
+class Sfu_periph;
+
 
 class Udma_addrgen
 {
@@ -588,6 +590,7 @@ public:
     void trigger_event(int event);
 
     vp::trace *get_trace() { return &this->trace; }
+    vp::clock_engine *get_sfu_clock() { return this->sfu_clock; }
     vp::clock_engine *get_periph_clock() { return this->periph_clock; }
     vp::clock_engine *get_periph_clock_dual_edges() { return this->periph_clock_dual_edges; }
     vp::clock_engine *get_fast_clock() { return this->fast_clock; }
@@ -623,12 +626,15 @@ private:
     static void l2_grant(void *__this, vp::io_req *req);
     static void l2_response(void *__this, vp::io_req *req);
     static void clk_reg(component *_this, component *clock);
+    static void sfu_clk_reg(component *_this, component *clock);
     static void dual_edges_clk_reg(component *_this, component *clock);
     static void fast_clk_reg(component *_this, component *clock);
 
     vp::io_slave in;
     vp::clk_slave periph_clock_itf;
+    vp::clk_slave sfu_clock_itf;
     vp::clock_engine *periph_clock;
+    vp::clock_engine *sfu_clock;
     vp::clk_slave periph_clock_dual_edges_itf;
     vp::clock_engine *periph_clock_dual_edges;
     vp::clk_slave fast_clock_itf;
@@ -642,6 +648,7 @@ private:
     int l2_write_fifo_size;
     int nb_channels;
     std::vector<Udma_periph *> periphs;
+    Sfu_periph *sfu_periph;
     uint32_t clock_gating;
     uint32_t ctrl_reset;
 

@@ -2077,7 +2077,7 @@ void KerLinear_8a_NE16(KerLinear_NE16_T *Arg)
 	SetNE16_InPointer     (In);
 	SetNE16_Strides       (16, 0, 0, 	                                // In_D0, In_D1 - unused, In_D2 - unused
 			       Out_Stride0, 0, 0,				// Out_D0, Out_D1 - unused, Out_D2 - unused
-			       UsedKI*2/16, Arg->Qw*UsedKI*2/16, Arg->Qw*UsedKI*2);	// Weights_D0, Weights_D1, Weights_D2
+			       UsedKI*2/16, Arg->Qw*UsedKI*2/16, Arg->Qw*2*UsedKI*2);	// Weights_D0, Weights_D1, Weights_D2
 	SetNE16_Dim           (Nb_KI, Nb_KO, 1, 1);
 	SetNE16_WOffset       (Arg->W_Offset);
 	SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
@@ -2134,39 +2134,6 @@ void KerLinear_16a_NE16(KerLinear_NE16_T *Arg)
 	}
  	volatile int job_id;
         NE16_SETPRIORITY_NE16(); // priority to NE16 w.r.t. cores, DMA
-
- //        int Offset = 0;
- //        for (int subtile_ki=0; subtile_ki<Nb_KI; subtile_ki++) {
- //        	int IsLastKI = subtile_ki == (Nb_KI-1);
- //        	int InFeatSubTile = IsLastKI?(UsedKI%256):256;
-	//         for (int subtile_ko=0; subtile_ko<Nb_KO; subtile_ko++) {
-	// 		// acquire job
-	// 		NE16_BARRIER_ACQUIRE(job_id);
-	// 		int IsLastKO = subtile_ko == (Nb_KO-1);
-	// 		// load configuration for the layer
-	// 		SetNE16_OutPointer    (Out+subtile_ko*32*OutBytes);
-	// 		SetNE16_WeightsPointer(Filter+subtile_ko*32*UsedKI+subtile_ki*256*Tile_OutFeat);
-	// 		SetNE16_BiasPointer   (Bias+subtile_ko*32);
-	// 		SetNE16_ScalePointer  (Scale+subtile_ko*32);
-	// 		SetNE16_ScaleNPointer (ScaleN+subtile_ko*32);
-	// 		SetNE16_Reminders     (0, 0, IsLastKI?Rem_KI:0, IsLastKO?Rem_KO:32, 0, 0);
-	// 		if (subtile_ko<2){
-	// 			SetNE16_InPointer     (In+256*subtile_ki*2);
-	// 			SetNE16_Strides       (16, 0, 0, 	                                // In_D0, In_D1 - unused, In_D2 - unused
-	// 					       Out_Stride0, 0, 0,				// Out_D0, Out_D1 - unused, Out_D2 - unused
-	// 					       InFeatSubTile*2/16, Arg->Qw*InFeatSubTile*2/16, Arg->Qw*InFeatSubTile*2);	// Weights_D0, Weights_D1, Weights_D2
-	// 					       //Tile_InFeat/Arg->Qw, Tile_InFeat, Tile_InFeat);	// Weights_D0, Weights_D1, Weights_D2
-	// 			SetNE16_Dim           (1, 1, 1, 1);
-	// 			SetNE16_WOffset       (Arg->W_Offset);
-	// 			SetNE16_ConfigPad     ((v4s) {0, 0, 0, 0}, 0);
-	// 			SetNE16_ConfigFMask   ((v4s) {0, 0, 0, 0});
-	// 			SetNE16_GenConfig     (Gen_Cfg);
-	// 		}
-
-	// 		// commit and trigger NE16 computation
-	// 		NE16_WRITE_CMD(NE16_COMMIT_AND_TRIGGER, NE16_TRIGGER_CMD);
-	// 	}
-	// }
 
         int Offset = 0;
         for (int subtile_ki=0; subtile_ki<Nb_KI; subtile_ki++) {

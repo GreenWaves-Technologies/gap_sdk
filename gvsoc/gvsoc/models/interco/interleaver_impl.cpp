@@ -101,7 +101,20 @@ vp::io_req_status_e interleaver::req(void *__this, vp::io_req *req)
     req->set_size(loop_size);
     req->set_data(data);
 
-    if (_this->out[output_id]->req_forward(req)) return vp::IO_REQ_INVALID;
+    vp::io_req_status_e err = _this->out[output_id]->req_forward(req);
+    if (err != vp::IO_REQ_OK)
+    {
+      // Temporary hack, until this component supports asynchronous requests.
+      // If we get an asynchronous reply and we are done, just return
+      if (err == vp::IO_REQ_PENDING && size == loop_size)
+      {
+        return vp::IO_REQ_PENDING;
+      }
+      else
+      {
+        return vp::IO_REQ_INVALID;
+      }
+    }
     
     size -= loop_size;
     offset += loop_size;

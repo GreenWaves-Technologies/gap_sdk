@@ -1,0 +1,21 @@
+menu "Test RAM - Simple"
+
+    config RAM_SIMPLE_REQUIREMENTS
+        bool "Examples requirements"
+        default y
+        select BSP_DRIVER_RAM_SPIRAM_APS25XXXN
+        select PMSIS_GAP9_IMPLEM_UDMA_AES
+        select BSP_DRIVER_RAM_HYPERRAM
+        select PMSIS_GAP9_IMPLEM_QUIDDIKEY
+        select BSP_DRIVER_RAM_SPIRAM
+        help   
+            This example requires modules from the BSP such as : 
+                - APS25XXXN driver
+                - UDMA AES Driver
+                - HYPERRAM Driver
+                - QUIDDIKEY Driver
+                - SPIRAM
+            Disabling this option will make the compilation fail.
+endmenu
+
+source "$(GAP_SDK_HOME)/utils/kconfig/Kconfig"

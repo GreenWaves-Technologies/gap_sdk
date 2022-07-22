@@ -94,6 +94,10 @@ do { \
   { \
     _this->pc_trace_event.event((uint8_t *)&_this->cpu.current_insn->addr); \
   } \
+  if (_this->active_pc_trace_event.get_event_active()) \
+  { \
+    _this->active_pc_trace_event.event((uint8_t *)&_this->cpu.current_insn->addr); \
+  } \
   if (_this->func_trace_event.get_event_active() || _this->inline_trace_event.get_event_active() || _this->file_trace_event.get_event_active() || _this->line_trace_event.get_event_active()) \
   { \
     _this->dump_debug_traces(); \
@@ -107,10 +111,10 @@ do { \
   int cycles = func(_this); \
   if (_this->power.get_power_trace()->get_active()) \
   { \
-  _this->insn_groups_power[_this->cpu.prev_insn->decoder_item->u.insn.power_group].account_energy_quantum(); \
+  _this->insn_groups_power[insn->decoder_item->u.insn.power_group].account_energy_quantum(); \
  } \
   trdb_record_instruction(_this, insn); \
-  if (cycles >= 0) \
+  if (!_this->stalled.get()) \
   { \
     _this->enqueue_next_instr(cycles); \
   } \
@@ -123,7 +127,6 @@ do { \
     else \
     { \
       _this->is_active_reg.set(false); \
-      _this->stalled.set(true);     \
     } \
   } \
 } while(0)
@@ -178,6 +181,7 @@ void iss_wrapper::exec_instr_check_all(void *__this, vp::clock_event *event)
     }
     _this->check_state();
   }
+
 }
 
 void iss_wrapper::exec_first_instr(vp::clock_event *event)
@@ -200,7 +204,7 @@ void iss_wrapper::data_grant(void *__this, vp::io_req *req)
 void iss_wrapper::data_response(void *__this, vp::io_req *req)
 {
   iss_t *_this = (iss_t *)__this;
-  _this->stalled.set(false);
+  _this->stalled.dec(1);
   _this->wakeup_latency = req->get_latency();
   if (_this->misaligned_access.get())
   {
@@ -210,7 +214,6 @@ void iss_wrapper::data_response(void *__this, vp::io_req *req)
   {
     // First call the ISS to finish the instruction
     _this->cpu.state.stall_callback(_this);
-    iss_exec_insn_resume(_this);
     iss_exec_insn_terminate(_this);
   }
   _this->check_state();
@@ -221,9 +224,16 @@ void iss_wrapper::fetch_grant(void *_this, vp::io_req *req)
 
 }
 
-void iss_wrapper::fetch_response(void *_this, vp::io_req *req)
+void iss_wrapper::fetch_response(void *__this, vp::io_req *req)
 {
-    printf("FETCH RESPONSE\n");
+  iss_t *_this = (iss_t *)__this;
+
+  _this->stalled.dec(1);
+  if (_this->cpu.state.fetch_stall_callback)
+  {
+    _this->cpu.state.fetch_stall_callback(_this);
+  }
+  _this->check_state();
 }
 
 void iss_wrapper::bootaddr_sync(void *__this, uint32_t value)
@@ -296,9 +306,17 @@ void iss_wrapper::clock_sync(void *__this, bool active)
   // account in the core state machine
   uint8_t value = active && _this->is_active_reg.get();
   if (value)
+  {
     _this->state_event.event((uint8_t *)&value);
+    _this->busy.set(1);
+  }
   else
+  {
     _this->state_event.event(NULL);
+    _this->busy.release();
+    if (_this->active_pc_trace_event.get_event_active())
+      _this->active_pc_trace_event.event(NULL);
+  }
 
   if (_this->ipc_stat_event.get_event_active())
   {
@@ -338,7 +356,7 @@ void iss_wrapper::flush_cache_sync(void *__this, bool active)
 void iss_wrapper::flush_cache_ack_sync(void *__this, bool active)
 {
     iss_t *_this = (iss_t *)__this;
-    iss_exec_insn_resume(_this);
+    //iss_exec_insn_resume(_this);
     iss_exec_insn_terminate(_this);
     _this->check_state();
 }
@@ -408,12 +426,33 @@ void iss_wrapper::check_state()
 
   if (!is_active_reg.get())
   {
+
+    this->trace.msg(vp::trace::LEVEL_TRACE, "Checking state (active: %d, halted: %d, fetch_enable: %d, stalled: %d, wfi: %d, irq_req: %d, debug_mode: %d)\n",
+      is_active_reg.get(), halted.get(), fetch_enable_reg.get(), stalled.get(), wfi.get(), irq_req, this->cpu.state.debug_mode);
+
     if (!halted.get() && fetch_enable_reg.get() && !stalled.get() && (!wfi.get() || irq_req != -1 || this->cpu.state.debug_mode))
     {
+      // Check if we can directly reenqueue next instruction because it has already
+      // been fetched or we need to fetch it
+      if (this->cpu.state.do_fetch)
+      {
+        // In case we need to fetch it, first trigger the fetch
+        prefetcher_fetch(this, this->cpu.current_insn);
+
+        // Then enqueue the instruction only if the fetch ws completed synchronously.
+        // Otherwise, the next instruction will be enqueued when we receive the fetch
+        // response
+        if (this->stalled.get())
+        {
+          return;
+        }
+      }
+
       wfi.set(false);
       is_active_reg.set(true);
       uint8_t one = 1;
       this->state_event.event(&one);
+      this->busy.set(1);
       if (this->ipc_stat_event.get_event_active())
         this->trigger_ipc_stat();
 
@@ -421,12 +460,13 @@ void iss_wrapper::check_state()
       {
         do_step.set(true);
       }
-      enqueue_next_instr(1 + this->wakeup_latency);
 
       if (this->cpu.csr.pcmr & CSR_PCMR_ACTIVE && this->cpu.csr.pcer & (1<<CSR_PCER_CYCLES))
       {
         this->cpu.csr.pccr[CSR_PCER_CYCLES] += 1 + this->wakeup_latency;
       }
+
+      enqueue_next_instr(1 + this->wakeup_latency);
 
       this->wakeup_latency = 0;
     }
@@ -435,6 +475,8 @@ void iss_wrapper::check_state()
   {
     if (halted.get() && !do_step.get())
     {
+      if (this->active_pc_trace_event.get_event_active())
+        this->active_pc_trace_event.event(NULL);
       is_active_reg.set(false);
       this->state_event.event(NULL);
       if (this->ipc_stat_event.get_event_active())
@@ -445,8 +487,11 @@ void iss_wrapper::check_state()
     {
       if (irq_req == -1)
       {
+        if (this->active_pc_trace_event.get_event_active())
+          this->active_pc_trace_event.event(NULL);
         is_active_reg.set(false);
         this->state_event.event(NULL);
+        this->busy.release();
         if (this->ipc_stat_event.get_event_active())
           this->stop_ipc_stat();
       }
@@ -697,6 +742,8 @@ void iss_wrapper::handle_riscv_ebreak()
         if (write(args[0], (void *)(long)buffer, iter_size) != iter_size)
           break;
 
+        fflush(NULL);
+
         size -= iter_size;
         addr += iter_size;
       }
@@ -769,10 +816,10 @@ void iss_wrapper::handle_riscv_ebreak()
 
     case 0x18:
     {
-      if (this->cpu.regfile.regs[11] == 0x20026)
-        exit(0);
-      else
-        exit(1);
+      int status = this->cpu.regfile.regs[11] == 0x20026 ? 0 : 1;
+
+      this->clock->stop_retain(-1);
+      this->clock->stop_engine(status & 0x7fffffff);
 
       break;
     }
@@ -1299,7 +1346,9 @@ int iss_wrapper::build()
   traces.new_trace("perf", &perf_counter_trace, vp::TRACE);
 
   traces.new_trace_event("state", &state_event, 8);
+  this->new_reg("busy", &this->busy, 1);
   traces.new_trace_event("pc", &pc_trace_event, 32);
+  traces.new_trace_event("active_pc", &active_pc_trace_event, 32);
   this->pc_trace_event.register_callback(std::bind(&iss_wrapper::insn_trace_callback, this));
   traces.new_trace_event_string("asm", &insn_trace_event);
   traces.new_trace_event_string("func", &func_trace_event);
@@ -1474,6 +1523,19 @@ void iss_wrapper::reset(bool active)
     this->ipc_stat_delay = 10;
     this->clock_active = false;
 
+    this->active_pc_trace_event.event(NULL);
+
+    if (this->get_js_config()->get("**/binaries") != NULL)
+    {
+      std::string binaries = "static enable";
+      for (auto x:this->get_js_config()->get("**/binaries")->get_elems())
+      {
+        binaries += " " +  x->get_str();
+      }
+
+      this->binaries_trace_event.event_string(binaries);
+    }
+
     iss_reset(this, 1);
   }
   else
@@ -1492,14 +1554,6 @@ void iss_wrapper::reset(bool active)
     if (this->gdbserver)
     {
       this->halted.set(true);
-    }
-
-    if (this->get_js_config()->get("**/binaries") != NULL)
-    {
-      for (auto x:this->get_js_config()->get("**/binaries")->get_elems())
-      {
-        this->binaries_trace_event.event_string("static enable " + x->get_str());
-      }
     }
 
     check_state();

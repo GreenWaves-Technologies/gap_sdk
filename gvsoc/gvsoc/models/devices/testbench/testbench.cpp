@@ -1179,7 +1179,7 @@ std::string Testbench::handle_command(Gv_proxy *proxy, FILE *req_file, FILE *rep
 
                 *config = {};
 
-                std::vector<std::string> params = {args.begin() + 3, args.end()};
+                std::vector<std::string> params = {args.begin() + 2, args.end()};
 
                 for (std::string x: params)
                 {
@@ -1243,6 +1243,10 @@ std::string Testbench::handle_command(Gv_proxy *proxy, FILE *req_file, FILE *rep
                     else if (name == "ws_delay")
                     {
                         config->ws_delay = value;
+                    }
+                    else
+                    {
+                        this->trace.fatal("Received invalid property (name: %s)\n", name.c_str());
                     }
                 }
 

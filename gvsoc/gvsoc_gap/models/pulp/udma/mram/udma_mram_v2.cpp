@@ -61,6 +61,18 @@ Mram_periph::Mram_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
     this->rx_event = config->get("rx")->get_elem(itf_id)->get_int();
 
     this->read_event = this->top->event_new(this, Mram_periph::handle_read_req);
+
+    this->refill_itf.set_sync_meth(&Mram_periph::refill_req);
+    top->new_slave_port(this, "refill_" + itf_name, &this->refill_itf);
+  
+}
+
+
+void Mram_periph::refill_req(void *__this, udma_refill_req_t *req)
+{
+    Mram_periph *_this = (Mram_periph *)__this;
+    _this->pending_refill_req = req;
+    _this->check_state();
 }
 
 
@@ -196,19 +208,26 @@ void Mram_periph::rx_dest_req(uint64_t reg_offset, int size, uint8_t *value, boo
 // Called to setut a new transfer (1d or 2d line) to be handled
 void Mram_periph::enqueue_read_req()
 {
-    mram_req_t req = { .operation=(mram_op_e)this->regmap.mode.operation_get() };
-
-    if (this->regmap.enable_2d.enable_get())
+    if (this->is_refill_req)
     {
-        this->read_pending_length = this->regmap.line_2d.get();
-        if (this->read_pending_length > this->pending_transfer_size)
-        {
-            this->read_pending_length = this->pending_transfer_size;
-        }
+        this->read_pending_length = this->pending_transfer_size;
     }
     else
     {
-        this->read_pending_length = this->regmap.trans_size.get();
+        mram_req_t req = { .operation=(mram_op_e)this->regmap.mode.operation_get() };
+
+        if (this->regmap.enable_2d.enable_get())
+        {
+            this->read_pending_length = this->regmap.line_2d.get();
+            if (this->read_pending_length > this->pending_transfer_size)
+            {
+                this->read_pending_length = this->pending_transfer_size;
+            }
+        }
+        else
+        {
+            this->read_pending_length = this->regmap.trans_size.get();
+        }
     }
 
     this->pending_trans_size = this->read_pending_length;
@@ -266,7 +285,17 @@ void Mram_periph::handle_dc_fifo_unstall(void *__this, vp::clock_event *event)
 void Mram_periph::handle_read_end(void *__this, vp::clock_event *event)
 {
     Mram_periph *_this = (Mram_periph *)__this;
-    _this->top->trigger_event(_this->rx_event);
+    if (_this->is_refill_req)
+    {
+        udma_refill_req_t *req = _this->pending_refill_req;
+        _this->pending_refill_req = NULL;
+        _this->is_refill_req = false;
+        _this->refill_itf.sync(req);
+    }
+    else
+    {
+        _this->top->trigger_event(_this->rx_event);
+    }
     _this->state = MRAM_STATE_IDLE;
     _this->check_state();
 }
@@ -290,6 +319,23 @@ void Mram_periph::handle_pending_operation(void *__this, vp::clock_event *event)
 
     switch (_this->state)
     {
+        case MRAM_STATE_IDLE:
+        {
+            if (_this->pending_refill_req)
+            {
+                // Read operation
+                // Initialize the transfer and enqueue an event to delay the start of the mram operation
+                _this->pending_trans_addr = _this->pending_refill_req->l2_addr;
+                _this->pending_addr = _this->pending_refill_req->ext_addr;
+                _this->pending_transfer_size = _this->pending_refill_req->size;
+                _this->state = MRAM_STATE_PENDING_OP;
+                _this->top->event_enqueue(_this->read_event, 1);
+
+                _this->is_refill_req = true;
+            }
+            break;
+        }
+
         case MRAM_STATE_HANDLE_OPERATION:
         {
             // A new operation has been pushed and needs to be handled
@@ -486,7 +532,8 @@ void Mram_periph::check_state()
             this->state != MRAM_STATE_HANDLE_TRIM_ONGOING && 
             this->state != MRAM_STATE_HANDLE_PROGRAM_ONGOING && 
             this->state != MRAM_STATE_IDLE || 
-            (this->read_pending_size > 0 && this->rx_channel->is_ready()))
+            (this->read_pending_size > 0 && this->rx_channel->is_ready()) ||
+            (this->pending_refill_req && this->state == MRAM_STATE_IDLE))
         {
             this->top->event_enqueue(this->event, 1);
         }
@@ -519,6 +566,8 @@ void Mram_periph::reset(bool active)
         this->stalled = false;
         this->write_pending_size = 0;
         this->read_pending_size = 0;
+        this->pending_refill_req = NULL;
+        this->is_refill_req = false;
     }
 }
 

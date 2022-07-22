@@ -1,0 +1,78 @@
+menu "Camera"
+    config BSP_DRIVER_CAMERA_EPEAS_CIS001
+        bool "EPEAS CIS001"
+        depends on CHIP_FAMILY_GAP8
+        default n
+
+    config BSP_DRIVER_CAMERA_GC0308
+        bool "GC0308"
+        default n
+        select PMSIS_GAP9_IMPLEM_UDMA_CPI
+        select PMSIS_IMPLEM_I2C
+        select PMSIS_GAP9_IMPLEM_GPIO
+
+    config BSP_DRIVER_CAMERA_HIMAX
+        bool "HIMAX"
+        default n
+        select PMSIS_GAP9_IMPLEM_UDMA_CPI
+        select PMSIS_IMPLEM_I2C
+
+    config BSP_DRIVER_CAMERA_HM0360
+        bool "HM0360"
+        default n
+        select PMSIS_GAP9_IMPLEM_UDMA_CPI
+        select PMSIS_IMPLEM_I2C
+        select PMSIS_GAP9_IMPLEM_GPIO
+    
+    config BSP_DRIVER_CAMERA_MT9V034
+        bool "MT9V034"
+        default n
+        select PMSIS_GAP9_IMPLEM_UDMA_CPI
+        select PMSIS_IMPLEM_I2C
+        select PMSIS_GAP9_IMPLEM_GPIO
+
+    config BSP_DRIVER_CAMERA_OV5640
+        bool "OV5640"
+        default n
+        select PMSIS_GAP9_IMPLEM_UDMA_CPI
+        select PMSIS_IMPLEM_I2C
+        select PMSIS_GAP9_IMPLEM_GPIO
+
+    config BSP_DRIVER_CAMERA_OV5647
+        bool "OV5647"
+        default n
+        select PMSIS_GAP9_IMPLEM_UDMA_CPI
+        select PMSIS_IMPLEM_I2C
+        select PMSIS_GAP9_IMPLEM_GPIO
+
+    config BSP_DRIVER_CAMERA_OV7670
+        bool "OV7670"
+        default n
+        select PMSIS_GAP9_IMPLEM_UDMA_CPI
+        select PMSIS_IMPLEM_I2C
+        select PMSIS_GAP9_IMPLEM_GPIO
+
+    config BSP_DRIVER_CAMERA_OV9281
+        bool "OV9281"
+        default n
+        select PMSIS_GAP9_IMPLEM_UDMA_CPI
+        select PMSIS_IMPLEM_I2C
+        select PMSIS_GAP9_IMPLEM_GPIO
+
+    config BSP_DRIVER_CAMERA_PIXART
+        bool "PIXART"
+        default n
+        select PMSIS_GAP9_IMPLEM_UDMA_CPI
+        select PMSIS_IMPLEM_SPIM
+        select PMSIS_GAP9_IMPLEM_GPIO
+        select PMSIS_GAP9_IMPLEM_PWM
+
+    config BSP_DRIVER_CAMERA_THERMEYE
+        bool "THERMEYE"
+        default n
+        select PMSIS_GAP9_IMPLEM_UDMA_CPI
+        select PMSIS_IMPLEM_I2C
+        select PMSIS_GAP9_IMPLEM_GPIO
+        select PMSIS_GAP9_IMPLEM_PWM
+        
+endmenu

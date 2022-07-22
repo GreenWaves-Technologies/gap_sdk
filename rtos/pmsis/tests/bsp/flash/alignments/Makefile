@@ -1,0 +1,70 @@
+
+ifeq '$(FLASH_TYPE)' 'HYPERFLASH'
+CONFIG_HYPERFLASH = 1
+endif
+
+ifdef USE_CLUSTER
+APP_CFLAGS += -DUSE_CLUSTER
+endif
+
+ifdef READ
+APP_CFLAGS += -DTEST_READ
+endif
+
+ifdef WRITE
+APP_CFLAGS += -DTEST_WRITE
+endif
+
+ifdef QUICK
+APP_CFLAGS += -DTEST_QUICK
+endif
+
+ifdef BASIC
+APP_CFLAGS += -DTEST_BASIC
+endif
+
+ifdef ROBUST
+APP_CFLAGS += -DTEST_ROBUST
+endif
+
+ifdef ASYNC
+APP_CFLAGS += -DTEST_ASYNC
+endif
+
+ifdef SYNC
+APP_CFLAGS += -DTEST_SYNC
+endif
+
+ifdef ASYNC_2D
+APP_CFLAGS += -DTEST_ASYNC_2D
+endif
+
+ifdef SYNC_2D
+APP_CFLAGS += -DTEST_SYNC_2D
+endif
+
+APP = test
+APP_SRCS = test.c
+APP_CFLAGS += -O3 -g
+
+ifeq '$(FLASH_TYPE)' 'HYPERFLASH'
+APP_CFLAGS += -DUSE_HYPERFLASH
+endif
+
+ifeq '$(FLASH_TYPE)' 'SPIFLASH'
+APP_CFLAGS += -DUSE_SPIFLASH
+endif
+
+ifeq '$(FLASH_TYPE)' 'MRAM'
+APP_CFLAGS += -DUSE_MRAM
+endif
+
+ifdef FLASH_TYPE
+APP_CFLAGS += -DFLASH_TYPE=$(FLASH_TYPE)
+endif
+
+ifdef VERBOSE
+APP_CFLAGS += -DVERBOSE
+endif
+
+include $(RULES_DIR)/pmsis_rules.mk

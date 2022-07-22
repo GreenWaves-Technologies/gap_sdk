@@ -1,0 +1,654 @@
+/*
+ * Copyright (C) 2018 GreenWaves Technologies
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+#ifndef __PMSIS_DRIVERS_UART_H__
+#define __PMSIS_DRIVERS_UART_H__
+
+#include "pmsis/pmsis_types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @ingroup groupDrivers
+ */
+
+/**
+ * @defgroup UART UART
+ *
+ * \brief UART Universal Asynchronous Receiver Transmitter
+ *
+ * This API provides support for transferring data between an external UART
+ * device and the processor running this driver.
+ *
+ */
+
+/**
+ * @addtogroup UART
+ * @{
+ */
+
+/**
+ * \struct pi_uart_conf
+ *
+ * \brief UART device configuration structure.
+ *
+ * This structure is used to pass the desired UART configuration to the runtime
+ * when opening the device.
+ */
+struct pi_uart_conf
+{
+    uint32_t baudrate_bps;  /*!< Required baudrate, in baud per second. */
+    uint8_t stop_bit_count; /*!< Number of stop bits, 1 stop bit (default) or
+                              2 stop bits  */
+    uint8_t parity_mode;    /*!< 1 to activate it, 0 to deactivate it. */
+    uint8_t word_size;      /*!< Word size, in bits. */
+    uint8_t enable_rx;      /*!< 1 to activate reception, 0 to deactivate it. */
+    uint8_t enable_tx;      /*!< 1 to activate transmission, 0 to deactivate it. */
+    uint8_t uart_id;        /*!< Uart interface ID. */
+    uint8_t use_ctrl_flow;  /*!< 1 to activate control flow. */
+    uint8_t is_usart;       /*!< 1 to activate usart */
+    uint8_t usart_polarity; /*!< If 1, the clock polarity is reversed. */
+    uint8_t usart_phase;    /*!< If 0, the data are sampled on the first clock
+        edge, otherwise on the second clock edge. */
+    uint8_t use_fast_clk;   /*!< If 0, use fll periph as source otherwise 
+                              use external fast clock. */
+    uint32_t rts_pad;
+};
+
+/**
+ * \enum pi_uart_stop_bits
+ *
+ * \brief Stop bits enum.
+ */
+enum pi_uart_stop_bits
+{
+    PI_UART_STOP_BITS_ONE = 0,  /*!< One stop bit. */
+    PI_UART_STOP_BITS_TWO = 1   /*!< Two stop bits. */
+};
+
+/**
+ * \enum pi_uart_parity_mode
+ *
+ * \brief Parity mode enum.
+ */
+enum pi_uart_parity_mode
+{
+    PI_UART_PARITY_DISABLE = 0, /*!< Disable parity mode. */
+    PI_UART_PARITY_ENABLE  = 1  /*!< Enable parity mode. */
+};
+
+/**
+ * \enum pi_uart_word_size
+ *
+ * \brief Bit length of each word.
+ */
+enum pi_uart_word_size
+{
+    PI_UART_WORD_SIZE_5_BITS = 0, /*!< 5 bits length. */
+    PI_UART_WORD_SIZE_6_BITS = 1, /*!< 6 bits length. */
+    PI_UART_WORD_SIZE_7_BITS = 2, /*!< 7 bits length. */
+    PI_UART_WORD_SIZE_8_BITS = 3  /*!< 8 bits length. */
+};
+
+
+/**
+ * \enum pi_uart_ioctl_cmd
+ *
+ * \brief UART ioctl commands.
+ *
+ * UART ioctl commands to configure, enable device.
+ */
+enum pi_uart_ioctl_cmd
+{
+    /**
+     * \brief Setup UART device.
+     *
+     * Setup UART with given conf.
+     * The parameter for this command is a struct pi_uart_conf.
+     *
+     * \param conf       Pointer to struct pi_uart_conf.
+     */
+    PI_UART_IOCTL_CONF_SETUP = 0,
+    /**
+     * \brief Abort RX transfers.
+     *
+     * Disable RX channel, abort current RX transfert,
+     * and flush all pending transferts.
+     *
+     * \note This function disables reception channel after clearing UDMA
+     *       channels. In order to send again data, the reception channel
+     *       must re-enabled.
+     */
+    PI_UART_IOCTL_ABORT_RX   = 1,
+    /**
+     * \brief Abort TX transfers.
+     *
+     * Disable TX channel, abort current TX transfert,
+     * and flush all pending transferts.
+     *
+     * \note This function disables transmission channel after clearing UDMA
+     *       channels. In order to send again data, the transmission channel
+     *       must re-enabled.
+     */
+    PI_UART_IOCTL_ABORT_TX   = 2,
+    /**
+     * \brief Enable reception.
+     *
+     * This command enables reception on UART device.
+     */
+    PI_UART_IOCTL_ENABLE_RX  = 3,
+    /**
+     * \brief Enable transmission.
+     *
+     * This command enables transmission on UART device.
+     */
+    PI_UART_IOCTL_ENABLE_TX  = 4,
+    /**
+     * \brief Enable flow control.
+     *
+     * This command enables flow control on UART device.
+     *
+     * \note On GAP8, flow control is emulated using a PWM device(Timer0, channel2)
+     *       and two GPIOs(PI_GPIO_A1_PAD_9_B3, PI_GPIO_A0_PAD_8_A4).
+     * \note On GAP9 this will disable and re-enable TX and RX.
+     */
+    PI_UART_IOCTL_ENABLE_FLOW_CONTROL = 5,
+    /**
+     * \brief Disable flow control.
+     *
+     * This command disables flow control on UART device.
+     */
+    PI_UART_IOCTL_DISABLE_FLOW_CONTROL = 6,
+    /**
+     * \brief Flush UART TX.
+     *
+     * This command will wait until all pending buffers are flushed outside
+     */
+    PI_UART_IOCTL_FLUSH = 7,
+    /**
+     * \brief Attach UDMA timer.
+     *
+     * This command attaches a UDMA timer channel to UDMA reception channel.
+     *
+     * \param timeout_id UDMA timeout channel ID.
+     */
+    PI_UART_IOCTL_ATTACH_TIMEOUT_RX = 8,
+    /**
+     * \brief Detach UDMA timer.
+     *
+     * This command removes a UDMA timer channel attached to UDMA reception channel.
+     *
+     * \param timeout_id UDMA timeout channel ID.
+     */
+    PI_UART_IOCTL_DETACH_TIMEOUT_RX = 9,
+    /**
+     * \brief Attach UDMA timer.
+     *
+     * This command attaches a UDMA timer channel to UDMA transmission channel.
+     *
+     * \param timeout_id UDMA timeout channel ID.
+     */
+    PI_UART_IOCTL_ATTACH_TIMEOUT_TX = 10,
+    /**
+     * \brief Detach UDMA timer.
+     *
+     * This command removes a UDMA timer channel attached to UDMA transmission channel.
+     *
+     * \param timeout_id UDMA timeout channel ID.
+     */
+    PI_UART_IOCTL_DETACH_TIMEOUT_TX = 11,
+    /**
+     * \brief Detach UDMA timer.
+     *
+     * This command removes a UDMA timer channel attached to UDMA transmission channel.
+     *
+     * \param timeout_id UDMA timeout channel ID.
+     */
+    PI_UART_IOCTL_RESUME_TX = 12,
+    /**
+     * \brief Detach UDMA timer.
+     *
+     * This command removes a UDMA timer channel attached to UDMA transmission channel.
+     *
+     * \param timeout_id UDMA timeout channel ID.
+     */
+    PI_UART_IOCTL_RESUME_RX = 13
+};
+
+typedef enum 
+{
+     /**
+     * \brief Use hw based timeout
+     */   
+    PI_UART_TIMEOUT_FLAG_HW = 0,
+     /**
+     * \brief Use SW based timeout
+     */   
+    PI_UART_TIMEOUT_FLAG_SW = 1,
+     /**
+     * \brief Use SW based timeout + HW
+     * Use the same timeout_us
+     */   
+    PI_UART_TIMEOUT_FLAG_SW_HW = 2
+}pi_uart_timeout_flags;
+
+/**
+ * \brief UART cluster request structure.
+ *
+ * This structure is used by the runtime to manage a cluster remote copy with
+ * the UART. It must be instantiated once for each copy and must be kept
+ * alive until the copy is finished. It can be instantiated as a normal
+ * variable, for example as a global variable, a local one on the stack,
+ * or through a memory allocator.
+ */
+typedef struct pi_cl_uart_req_s pi_cl_uart_req_t;
+
+/**
+ * \brief Initialize a UART configuration with default values.
+ *
+ * This function can be called to get default values for all parameters before
+ * setting some of them.
+ * The structure containing the configuration must be kept alive until the uart
+ * device is opened.
+ *
+ * \param conf           Pointer to the UART configuration.
+ */
+void pi_uart_conf_init(struct pi_uart_conf *conf);
+
+/**
+ * \brief Open a UART device.
+ *
+ * This function must be called before the UART device can be used.
+ * It will do all the needed configuration to make it usable and initialize
+ * the handle used to refer to this opened device when calling other functions.
+ *
+ * \param device         Pointer to device structure of the device to open.
+ *
+ * \retval 0             If the operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ *
+ * \note This structure is allocated by the called and must be kept alive until the
+ *       device is closed.
+ */
+int pi_uart_open(struct pi_device *device);
+
+/**
+ * \brief Close an opened UART device.
+ *
+ * This function can be called to close an opened UART device once it is
+ * not needed anymore, in order to free all allocated resources. Once this
+ * function is called, the device is not accessible anymore and must be opened
+ * again before being used.
+ *
+ * \param device         Pointer to device structure of the device to close.
+ */
+void pi_uart_close(struct pi_device *device);
+
+/**
+ * \brief Dynamically change device configuration.
+ *
+ * This function allows to send different commands to UART device.
+ * The commands are listed above, cf. enum pi_uart_ioctl_cmd.
+ *
+ * \param device         Pointer to device descriptor of the UART device.
+ * \param cmd            Ioctl command.
+ * \param arg            Ioctl command args.
+ *
+ * \retval -1            If wrong ioctl command.
+ * \retval Value         Otherwise return value depending on ioctl command.
+ */
+int pi_uart_ioctl(struct pi_device *device, uint32_t cmd, void *arg);
+
+/**
+ * \brief Write data to an UART.
+ *
+ * This writes data to the specified UART.
+ * The caller is blocked until the transfer is finished.
+ * Depending on the chip, there may be some restrictions on the memory which
+ * can be used. Check the chip-specific documentation for more details.
+ *
+ * \param device         Pointer to device descriptor of the UART device.
+ * \param buffer         Pointer to data buffer.
+ * \param size           Size of data to copy in bytes.
+ *
+ * \retval 0             If operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ */
+int pi_uart_write(struct pi_device *device, void *buffer, uint32_t size);
+
+/**
+ * \brief Read data from an UART.
+ *
+ * This reads data from the specified UART.
+ * The caller is blocked until the transfer is finished.
+ * Depending on the chip, there may be some restrictions on the memory which
+ * can be used. Check the chip-specific documentation for more details.
+ *
+ * \param device         Pointer to device descriptor of the UART device.
+ * \param buffer         Pointer to data buffer.
+ * \param size           Size of data to copy in bytes.
+ *
+ * \retval 0             If operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ */
+int pi_uart_read(struct pi_device *device, void *buffer, uint32_t size);
+
+/**
+ * \brief Write a byte to an UART.
+ *
+ * This writes a byte to the specified UART.
+ * The caller is blocked until the transfer is finished.
+ *
+ * \param device         Pointer to device descriptor of the UART device.
+ * \param byte         Pointer to data buffer.
+ *
+ * \retval 0             If operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ */
+int pi_uart_write_byte(struct pi_device *device, uint8_t *byte);
+
+/**
+ * \brief Read a byte from an UART.
+ *
+ * This reads a byte from the specified UART.
+ * The caller is blocked until the transfer is finished.
+ *
+ * \param device         Pointer to device descriptor of the UART device.
+ * \param byte           Pointer to data buffer.
+ *
+ * \retval 0             If operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ */
+int pi_uart_read_byte(struct pi_device *device, uint8_t *byte);
+
+/**
+ * \brief Write data to an UART asynchronously.
+ *
+ * This writes data to the specified UART asynchronously.
+ * A task must be specified in order to specify how the caller should be
+ * notified when the transfer is finished.
+ * Depending on the chip, there may be some restrictions on the memory which
+ * can be used. Check the chip-specific documentation for more details.
+ *
+ * \param device         Pointer to device descriptor of the UART device.
+ * \param buffer         Pointer to data buffer.
+ * \param size           Size of data to copy in bytes.
+ * \param callback       Event task used to notify the end of transfer. See the
+ *                       documentation of pi_task_t for more details.
+ *
+ * \retval 0             If operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ */
+int pi_uart_write_async(struct pi_device *device, void *buffer, uint32_t size,
+                        pi_task_t* callback);
+
+/**
+ * \brief Read data from an UART asynchronously.
+ *
+ * This reads data from the specified UART asynchronously.
+ * A task must be specified in order to specify how the caller should be
+ * notified when the transfer is finished.
+ * Depending on the chip, there may be some restrictions on the memory which
+ * can be used. Check the chip-specific documentation for more details.
+ *
+ * \param device         Pointer to device descriptor of the UART device.
+ * \param buffer         Pointer to data buffer.
+ * \param size           Size of data to copy in bytes.
+ * \param callback       Event task used to notify the end of transfer. See the
+ *                       documentation of pi_task_t for more details.
+ *
+ * \retval 0             If operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ */
+int pi_uart_read_async(struct pi_device *device, void *buffer, uint32_t size,
+                       pi_task_t* callback);
+
+/**
+ * \brief Write data to an UART synchronously, with timeout.
+ *
+ * This function is the same as pi_uart_write(), with timeout feat enabled.
+ * This timeout value is used to abort/cancel a transfer when timeout is reached.
+ *
+ * \param device         Pointer to device descriptor of the UART device.
+ * \param buffer         Pointer to data buffer.
+ * \param size           Size of data to copy in bytes.
+ * \param timeout_us     Timeout value in us.
+ *
+ * \retval 0             If operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ *
+ * \note To use this feature, a UDMA timeout channel must be allocated before a
+ *       call to this functions :
+ *       * pi_udma_timeout_alloc()
+ *       * pi_uart_ioctl()   //PI_UART_IOCTL_ATTACH_TIMEOUT_TX
+ *       * pi_uart_write_timeout()
+ *
+ * \note To use this feature asynchronously, proceed as follows :
+ *       * pi_udma_timeout_alloc()
+ *       * pi_uart_ioctl()   //PI_UART_IOCTL_ATTACH_TIMEOUT_TX
+ *       * pi_task_timeout_set()
+ *       * pi_uart_write_async()
+ */
+int pi_uart_write_timeout(struct pi_device *device, void *buffer, uint32_t size,
+                          uint32_t timeout_us, pi_task_t *timeout_task,
+                          pi_uart_timeout_flags flags);
+
+/**
+ * \brief Read data from an UART synchronously, with timeout.
+ *
+ * This function is the same as pi_uart_read(), with timeout feat enabled.
+ * This timeout value is used to abort/cancel a transfer when timeout is reached.
+ *
+ * \param device         Pointer to device descriptor of the UART device.
+ * \param buffer         Pointer to data buffer.
+ * \param size           Size of data to copy in bytes.
+ * \param timeout_us     Timeout value in us.
+ * \param timeout_task   Task which will be used to hold the timeout status,
+ *                       can be used for callback too.
+ * \param flags          Flags to configure actual timeout
+ *
+ * \retval 0             If operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ *
+ * \note To use this feature, a UDMA timeout channel must be allocated before a
+ *       call to this functions :
+ *       * pi_udma_timeout_alloc()
+ *       * pi_uart_ioctl()   //PI_UART_IOCTL_ATTACH_TIMEOUT_RX
+ *       * pi_uart_read_timeout()
+ *
+ * \note To use this feature asynchronously, proceed as follows :
+ *       * pi_udma_timeout_alloc()
+ *       * pi_uart_ioctl()   //PI_UART_IOCTL_ATTACH_TIMEOUT_RX
+ *       * pi_task_timeout_set()
+ *       * pi_uart_read_async()
+ */
+int pi_uart_read_timeout(struct pi_device *device, void *buffer, uint32_t size,
+                         uint32_t timeout_us, pi_task_t *timeout_task,
+                          pi_uart_timeout_flags flags);
+
+/**
+ * \brief Write a byte to an UART asynchronously.
+ *
+ * This writes a byte to the specified UART asynchronously.
+ * A task must be specified in order to specify how the caller should be
+ * notified when the transfer is finished.
+ *
+ * \param device         Pointer to device descriptor of the UART device.
+ * \param byte           Pointer to data buffer.
+ * \param callback       Event task used to notify the end of transfer. See the
+ *                       documentation of pi_task_t for more details.
+ *
+ * \retval 0             If operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ */
+int pi_uart_write_byte_async(struct pi_device *device, uint8_t *byte, pi_task_t* callback);
+
+
+/**
+ * \brief Write data to an UART from cluster side.
+ *
+ * This function implements the same feature as pi_uart_write but can be called
+ * from cluster side in order to expose the feature on the cluster.
+ * A pointer to a request structure must be provided so that the runtime can
+ * properly do the remote call.
+ *
+ * \param device         Pointer to device descriptor of the UART device.
+ * \param buffer         Pointer to data buffer.
+ * \param size           Size of data to copy in bytes.
+ * \param req            Request structure used for termination.
+ *
+ * \retval 0             If operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ */
+int pi_cl_uart_write(pi_device_t *device, void *buffer, uint32_t size, pi_cl_uart_req_t *req);
+
+/**
+ * \brief Write a byte to an UART from cluster side.
+ *
+ * This function implements the same feature as pi_uart_write_byte but can be
+ * called from cluster side in order to expose the feature on the cluster.
+ * A pointer to a request structure must be provided so that the runtime can
+ * properly do the remote call.
+ *
+ * \param device         Pointer to device descriptor of the UART device.
+ * \param byte           Pointer to data buffer.
+ * \param req            Request structure used for termination.
+ *
+ * \retval 0             If operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ */
+int pi_cl_uart_write_byte(pi_device_t *device, uint8_t *byte, pi_cl_uart_req_t *req);
+
+/**
+ * \brief Wait until the specified UART cluster write request has finished.
+ *
+ * This blocks the calling core until the specified cluster remote copy is
+ * finished.
+ *
+ * \param req            Request structure used for termination.
+ */
+static inline void pi_cl_uart_write_wait(pi_cl_uart_req_t *req);
+
+/**
+ * \brief Read a byte from an UART from cluster side.
+ *
+ * This function implements the same feature as pi_uart_read_byte but can be
+ * called from cluster side in order to expose the feature on the cluster.
+ * A pointer to a request structure must be provided so that the runtime can
+ * properly do the remote call.
+ *
+ * \param device         Pointer to device descriptor of the UART device.
+ * \param buffer         Pointer to data buffer.
+ * \param size           Size of data to copy in bytes.
+ * \param req            Request structure used for termination.
+ *
+ * \retval 0             If operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ */
+int pi_cl_uart_read(pi_device_t *device, void *buffer, uint32_t size, pi_cl_uart_req_t *req);
+
+/**
+ * \brief Read a byte from an UART.
+ *
+ * This reads a byte from the specified UART.
+ * The caller is blocked until the transfer is finished.
+ *
+ * \param device         Pointer to device descriptor of the UART device.
+ * \param byte           Pointer to data buffer.
+ * \param req            Request structure used for termination.
+ *
+ * \retval 0             If operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ */
+int pi_cl_uart_read_byte(pi_device_t *device, uint8_t *byte, pi_cl_uart_req_t *req);
+
+/**
+ * \brief Wait until the specified UART cluster read request has finished.
+ *
+ * This blocks the calling core until the specified cluster remote copy is
+ * finished.
+ *
+ * \param req            Request structure used for termination.
+ */
+static inline void pi_cl_uart_read_wait(pi_cl_uart_req_t *req);
+
+/**
+ * \brief Pause the current uart transfer
+ *
+ * This blocks the driver from executing any transfer until a resume happens.
+ *
+ * \param device            Uart device structure.
+ * \param channel           Channel (RX_CHANNEL or TX_CHANNEL).
+ * \param task              Task that will be filled with necessary info to 
+ *                          resume the transfer.
+ */
+uint32_t pi_uart_pause(struct pi_device *device, int channel,
+        pi_task_t *task);
+
+/**
+ * \brief Resume the current uart transfer
+ *
+ * This resumes the transfer, potentially with a timeout again
+ *
+ * \param device            Uart device structure.
+ * \param channel           Channel (RX_CHANNEL or TX_CHANNEL).
+ * \param task              Task that will be filled with necessary info to 
+ *                          resume the transfer.
+ * \param timeout_us        Number of micro seconds before next timeout.
+ */
+int pi_uart_resume(struct pi_device *device, int channel,
+        pi_task_t *task, uint32_t timeout_us);
+
+/**
+ * \brief Abort the current uart transfer
+ *
+ * Aborts the current transfer, executes the next one if it exists.
+ *
+ * \param device            Uart device structure.
+ * \param channel           Channel (RX_CHANNEL or TX_CHANNEL).
+ * \param task              Task that will be filled with necessary info to 
+ *                          resume the transfer.
+ */
+uint32_t pi_uart_abort(struct pi_device *device, int channel,
+        pi_task_t *task);
+
+/**
+ * \brief Returns number of bytes left, at the moment of timeout irq.
+ *
+ * \param timeout_task  pi_task used for timeout access
+ * \retval uint32_t number of bytes left in transfer
+ */
+uint32_t pi_uart_timeout_get_bytes_left(pi_task_t *task_timeout);
+
+/**
+ * \brief Returns current pointer in l2 buffer, at the moment of timeout irq.
+ *
+ * \param timeout_task  pi_task used for timeout access
+ * \retval uint32_t Pointer to current l2 address in the buffer
+ */
+uint32_t pi_uart_timeout_get_curr_addr(pi_task_t *task_timeout);
+
+/**
+ * @}
+ */
+
+#ifdef __cplusplus
+}
+#endif
+#endif  /* __PMSIS_DRIVERS_UART_H__ */

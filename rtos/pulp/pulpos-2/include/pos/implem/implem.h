@@ -23,8 +23,6 @@
 
 #include <stdlib.h>
 
-#define POS_CL_WAIT_TASK_EVT 1
-
 #define   likely(x) __builtin_expect(x, 1)
 #define unlikely(x) __builtin_expect(x, 0)
 
@@ -49,60 +47,11 @@ static inline uint32_t pi_cluster_id()
     return hal_cluster_id();
 }
 
-static inline int pi_cl_cluster_nb_cores_with_cc()
-{
-#if !defined(ARCHI_CORE_HAS_PULPV2) || defined(PLP_NO_BUILTIN)
-    return ((pulp_read32(ARCHI_APB_SOC_CTRL_ADDR)>>16)) + 1;
-#else
-    return __builtin_pulp_CoreCount() + 1;
-#endif
-}
-
-
-static inline int pi_cl_cluster_nb_cores()
-{
-#ifdef ARCHI_HAS_CC
-#if !defined(ARCHI_CORE_HAS_PULPV2) || defined(PLP_NO_BUILTIN)
-    return ((pulp_read32(ARCHI_APB_SOC_CTRL_ADDR)>>16));
-#else
-    return __builtin_pulp_CoreCount();
-#endif
-#else
-#if !defined(ARCHI_CORE_HAS_PULPV2) || defined(PLP_NO_BUILTIN)
-    return (pulp_read32(ARCHI_APB_SOC_CTRL_ADDR)>>16);
-#else
-    return __builtin_pulp_CoreCount();
-#endif
-#endif
-}
-
-static inline uint32_t pi_cl_cluster_nb_pe_cores()
-{
-#if !defined(ARCHI_CORE_HAS_PULPV2) || defined(PLP_NO_BUILTIN)
-    return (pulp_read32(ARCHI_APB_SOC_CTRL_ADDR)>>16);
-#else
-    return __builtin_pulp_CoreCount();
-#endif
-}
-
 static inline uint32_t pi_is_fc()
 {
     return hal_is_fc();
 }
 
-
-#if defined(ARCHI_HAS_CLUSTER)
-
-static inline int pos_nb_cluster()
-{
-#ifndef ARCHI_NB_CLUSTER
-    return 1;
-#else
-    return ARCHI_NB_CLUSTER;
-#endif
-}
-
-#endif
 
 extern int pos_kernel_pmsis_exit_value;
 
@@ -121,8 +70,12 @@ static inline void pmsis_exit(int err)
 
 
 
+#include "thread.h"
 #include "task.h"
+#if !defined(__GAP9__)
 #include "alloc.h"
+#include "alloc_pool.h"
+#endif
 #include "irq.h"
 #include "link.h"
 #include "soc_event.h"
@@ -135,13 +88,14 @@ static inline void pmsis_exit(int err)
 #if defined(UDMA_VERSION) && UDMA_VERSION == 4
 #include "pos/implem/udma-v4.h"
 #endif
-#include "alloc.h"
-#include "alloc_pool.h"
 #include "trace.h"
 #include "soc.h"
 #include "perf.h"
-#include "cluster.h"
-#include "pe.h"
+
+#if defined(__GAP9__)
+#include "chips/gap9/drivers/cluster/implem.h"
+#endif
+
 #include "kernel.h"
 #include "dma.h"
 #include "lock.h"
@@ -167,20 +121,6 @@ static inline void pmsis_exit(int err)
 #endif
 
 
-static inline void *pos_cluster_tiny_addr(int cid, void *data)
-{
-  // TODO due to a compiler bug, we have to cast the tiny data to avoid the propagation of the tiny attribute
-  return (void *)(ARCHI_CLUSTER_GLOBAL_ADDR(cid) + ((int)data & 0xFFF));
-}
-
-
-static inline void cl_wait_task(unsigned char *done)
-{
-    while ((*(volatile char *)done) == 0)
-    {
-        eu_evt_maskWaitAndClr(1<<POS_CL_WAIT_TASK_EVT);
-    }
-}
 
 static inline void pi_yield()
 {
@@ -189,9 +129,6 @@ static inline void pi_yield()
     hal_irq_restore(irq);
 
 }
-
-extern unsigned char __l1_heap_start;
-extern unsigned char __l1_heap_size;
 
 #define rt_platform() __PLATFORM__
 

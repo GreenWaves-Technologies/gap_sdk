@@ -1,0 +1,73 @@
+name: rom_flash_cs_itf
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    hyper_cs0_itf0:
+        name: hyper_cs0_itf0
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: FLASH_ITF=0 FLASH_CS=0
+        compile_only: true
+    hyper_cs1_itf0:
+        name: hyper_cs1_itf0
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: FLASH_ITF=0 FLASH_CS=1
+        compile_only: true
+    hyper_cs0_itf1:
+        name: hyper_cs0_itf1
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: FLASH_ITF=1 FLASH_CS=0
+        compile_only: true
+    hyper_cs1_itf1:
+        name: hyper_cs1_itf1
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: FLASH_ITF=1 FLASH_CS=1
+        compile_only: true
+    #spi_cs0_itf0:
+    #    name: spi_cs0_itf0
+    #    tags:
+    #        - integration
+    #        - release
+    #    duration: standard
+    #    flags: CONFIG_BOOT_DEVICE=spiflash FLASH_ITF=0 FLASH_CS=0
+    #    compile_only: true
+    #spi_cs1_itf0:
+    #    name: spi_cs1_itf0
+    #    tags:
+    #        - integration
+    #        - release
+    #    duration: standard
+    #    flags: CONFIG_BOOT_DEVICE=spiflash FLASH_ITF=0 FLASH_CS=1
+    #    compile_only: true
+    #spi_cs0_itf1:
+    #    name: spi_cs0_itf1
+    #    tags:
+    #        - integration
+    #        - release
+    #    duration: standard
+    #    flags: CONFIG_BOOT_DEVICE=spiflash FLASH_ITF=1 FLASH_CS=0
+    #    compile_only: true
+    #spi_cs1_itf1:
+    #    name: spi_cs1_itf1
+    #    tags:
+    #        - integration
+    #        - release
+    #    duration: standard
+    #    flags: CONFIG_BOOT_DEVICE=spiflash FLASH_ITF=1 FLASH_CS=1
+    #    compile_only: true

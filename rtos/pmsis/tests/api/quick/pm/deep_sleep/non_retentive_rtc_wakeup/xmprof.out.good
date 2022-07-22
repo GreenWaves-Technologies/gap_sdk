@@ -1,0 +1,402 @@
+xmsim(64): 19.09-s016: (c) Copyright 1995-2020 Cadence Design Systems, Inc.
+
+Linux localhost.localdomain 4.15.0-1100-oem #110-Ubuntu SMP Thu Oct 15 15:02:18 UTC 2020 x86_64 8 CPUs, 15756 Meg RAM, 500 hits/sec, (haugoug)
+
+	model name:Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz
+ 
+	cache size:8192 KB
+ 
+xmelab options:
+	-NOWARN
+	STRINT:CUDEFB:NXIEEE:DTSTAR
+	-NOWARN
+	ENUMERR
+	-NOWARN
+	CUVWSP
+	-NOWARN
+	INTWID
+	-NOWARN
+	CSINFI
+	-NOWARN
+	CUVWSI
+	-NOWARN
+	CUVWSB
+	-NOWARN
+	COVDNC
+	-CDSLIB
+	/home/haugoug/src/gap9/sim/xcsim/xcelium.d/run.lnx8664.19.09.d/cds.lib
+	-HDLVAR
+	/home/haugoug/src/gap9/sim/xcsim/xcelium.d/run.lnx8664.19.09.d/hdl.var
+	-SHOW_FORCES
+	-DISABLE_SEM2009
+	-ALWAYS_TRIGGER
+	-GATELOOPWARN
+	+fsmdebug
+	-ENABLE_SVMEMOPT
+	-NTCNOTCHKS
+	-NONOTIFIER
+	-NO_TCHK_MSG
+	-SDF_CMD_FILE
+	/home/haugoug/src/gap9/sim/xcsim/scripts/sdf/xmelab.sdf_cmd
+	-SDF_NO_WARNINGS
+	-SDF_VERBOSE
+	+define+CDNS_UVMREG_CONFIG_DATA_DIR=/home/haugoug/src/gap9/sim/xcsim/../tb_uvm/apbregs/metadata/reg_verifier_dir/uvmreg
+	-TIMESCALE
+	1ns/1ps
+	-MESSAGES
+	-DEFPARAM
+	tb.tb_test_i.HYPER_FLASH_LOAD_MEM=1
+	-DEFPARAM
+	tb.tb_test_i.SPI_FLASH_LOAD_MEM=0
+	-DEFPARAM
+	tb.tb_test_i.BAUDRATE=115200
+	-DEFPARAM
+	tb.tb_test_i.LOAD_L2=NORMAL_BOOT
+	-DEFPARAM
+	tb.tb_test_i.USE_CSI2_UVM_VIP=0
+	-ACCESS
+	+rwc
+	-MCCODEGEN
+	-loadpli1
+	/home/haugoug/install/cadence/XCELIUM1909-016/tools/methodology/UVM/CDNS-1.2/additions/sv/lib/64bit/libuvmpli.so:uvm_pli_boot
+	-loadvpi
+	/home/haugoug/src/gap9/scripts/denali/verilog/libcdnsv.so:cdnsvVIP:export
+	-CREATEDEBUGDB
+	tb_lib.tb
+	tb_uvm_lib.tb_uvm
+	-BINDING
+	hier_icache_lib.APB_BUS:sv
+	-BINDING
+	hier_icache_lib.AXI_BUS_ASYNC:sv
+	-BINDING
+	hier_icache_lib.AXI_BUS:sv
+	-BINDING
+	hier_icache_lib.CVP_BUS:sv
+	-BINDING
+	hier_icache_lib.UNICAD_MEM_BUS_32:sv
+	-BINDING
+	hier_icache_lib.XBAR_TCDM_BUS:sv
+	-BINDING
+	hier_icache_lib.XBAR_PERIPH_BUS:sv
+	-BINDING
+	hier_icache_lib.XBAR_DEMUX_BUS:sv
+	-BINDING
+	hier_icache_lib.TCDM_BANK_MEM_BUS:sv
+	-BINDING
+	hier_icache_lib.MESSAGE_BUS:sv
+
+Profiled Intervals: 
+	         #start	          #stop
+[1]	           0 NS	 to 33875620.174833 NS 
+
+Memory Usage - 44.7M program + 3360.3M data + 65.6M profile = 3470.5M total
+CPU Usage - 1.7s system + 144.2s user = 145.8s total (100.0% cpu)
+
+License Acquisition Time - 1.4s
+Snapshot Loading: CPU Usage - 1.2s system + 0.7s user = 1.9s total (3.2s, 58.7% cpu)
+
+------------------------------------------------------------
+Stream Counts (35911 hits total)
+------------------------------------------------------------
+%hits #hits  #inst  name
+  9.7  3477 [     ] Method SSS_KM_CL2TA (method)
+  4.0  1447 [     ] Method SSS_MT_DU_BYTENFW (method)
+  3.2  1141 [     ] WAKEUP, head, tail, rtn (method)
+  3.2  1133 [     ] Process statement: PDINFILTER (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_TOP/gf22_DCO_model.tc.vhd, line: 70, in design unit FLL_NEW_LIB.GF22_DCO:BEHAVIORAL)
+  2.4   862 [ 2164] Continuous Assignment (file: /home/haugoug/src/gap9/fe/ips/tech_cells_generic/src/pulp_clock_gating.sv, line: 30 in tech_cells_generic_lib.pulp_clock_gating [module])
+  2.3   814 [     ] Method SSS_KM_FINDRFT (method)
+  2.1   766 [     ] WAKEUP, head, rtn (method)
+  2.1   759 [    4] Continuous Assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_glitchfree_clkdiv.sv, line: 52 in fll_new_lib.FLL_glitchfree_clkdiv [module])
+  2.0   730 [     ] Method SSS_MT_ENTPES (method)
+  2.0   721 [    1] Always stmt (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/soc_event_arbiter.sv, line: 56 in ulpsoc_lib.soc_event_arbiter [module])
+  2.0   703 [    4] Always stmt (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_glitchfree_clkdiv.sv, line: 96 in fll_new_lib.FLL_glitchfree_clkdiv [module])
+  1.5   539 [     ] POSEDGE WAKEUP, head, tail, rtn (method)
+  1.4   498 [    1] Parallel block sub-process (file: /home/haugoug/src/gap9/sim/tb/padframe_dpi_wrapper.sv, line/pos: 137/7 in tb_lib.$unit_0x3115ea13 [compilation unit])
+  1.4   491 [    4] Always stmt (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_glitchfree_clkdiv.sv, line: 67 in fll_new_lib.FLL_glitchfree_clkdiv [module])
+  1.3   472 [    4] Continuous Assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_glitchfree_clkdiv.sv, line: 134 in fll_new_lib.FLL_glitchfree_clkdiv [module])
+  1.2   431 [    4] Non-blocking Assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_glitchfree_clkdiv.sv, line: 75 in fll_new_lib.FLL_glitchfree_clkdiv [module])
+  1.2   423 [  128] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/common_cells/src/deprecated/pulp_sync_wedge.sv, line/pos: 65/26 in common_cells_lib.pulp_sync_wedge [module])
+  1.2   417 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/rtl/udma_subsystem/udma_subsystem.sv, line/pos: 542/47 in udma_subsystem_lib.udma_subsystem [module])
+  1.1   379 [     ] NEGEDGE WAKEUP, tail, rtn (method)
+  1.0   363 [    4] Always stmt (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_glitchfree_clkdiv.sv, line: 119 in fll_new_lib.FLL_glitchfree_clkdiv [module])
+  1.0   363 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_TOP/gf22_FLL_model.sv, line/pos: 40/25 in fll_new_lib.gf22_FLL [module])
+  1.0   355 [     ] WAKEUP/FWD, head, tail, rtn (method)
+  1.0   353 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_glitchfree_clkdiv.sv, line/pos: 64/33 in fll_new_lib.FLL_glitchfree_clkdiv [module])
+  0.9   335 [  594] Always stmt (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_FanInPrimitive_Req.sv, line: 83 in logint_xbar_lib.logint_FanInPrimitive_Req [module])
+  0.9   325 [    5] Initial stmt (file: /home/haugoug/src/gap9/sim/tb/models/spi_flash/S25fs256s/model/s25fs256s.v, line: 972 in models_lib.s25fs256s [module])
+  0.8   304 [     ] Process statement: CLK_OUT (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_TOP/gf22_DCO_model.tc.vhd, line: 117, in design unit FLL_NEW_LIB.GF22_DCO:BEHAVIORAL)
+  0.8   288 [     ] Method SSS_MT_PW2 (method)
+  0.8   279 [     ] Method SSS_MT_PW (method)
+  0.8   271 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/rtl/udma_subsystem/udma_subsystem.sv, line/pos: 543/48 in udma_subsystem_lib.udma_subsystem [module])
+  0.7   238 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_glitchfree_clkdiv.sv, line/pos: 61/31 in fll_new_lib.FLL_glitchfree_clkdiv [module])
+  0.6   221 [     ] Method SSS_MT_DU_LONGNFW (method)
+  0.6   217 [     ] Method SSS_KM_ST_TCYCLE_TRIP (method)
+  0.6   217 [   36] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_RequestBlock2CH.sv, line/pos: 357/46 in logint_xbar_lib.logint_RequestBlock2CH [module])
+  0.5   191 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_glitchfree_clkdiv.sv, line/pos: 90/31 in fll_new_lib.FLL_glitchfree_clkdiv [module])
+  0.5   175 [  165] Always stmt (file: /home/haugoug/src/gap9/fe/ips/tech_cells_generic/src/pulp_clock_mux2.sv, line: 22 in tech_cells_generic_lib.pulp_clock_mux2 [module])
+  0.5   174 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/udma/udma_core/rtl/core/udma_core.sv, line/pos: 576/24 in udma_core_lib.udma_core [module])
+  0.5   172 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_glitchfree_clkdiv.sv, line/pos: 116/34 in fll_new_lib.FLL_glitchfree_clkdiv [module])
+  0.5   170 [     ] Method SSS_MT_DU_BYTE (method)
+  0.5   166 [     ] POSEDGE WAKEUP (method)
+  0.5   165 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_clk_divider.sv, line/pos: 87/25 in fll_new_lib.FLL_clk_divider [module])
+  0.4   154 [     ] WAKEUP(n) (method)
+  0.4   150 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_digital.sv, line/pos: 258/31 in fll_new_lib.FLL_digital [module])
+  0.4   148 [  128] Always stmt (file: /home/haugoug/src/gap9/fe/ips/common_cells/src/deprecated/pulp_sync_wedge.sv, line: 33 in common_cells_lib.pulp_sync_wedge [module])
+  0.4   147 [    5] Always stmt (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_xbar.sv, line: 234 in logint_xbar_lib.logint_xbar [module])
+  0.4   146 [    4] Continuous Assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_glitchfree_clkdiv.sv, line: 142 in fll_new_lib.FLL_glitchfree_clkdiv [module])
+  0.4   145 [     ] Method SSS_MT_CSA (method)
+  0.4   141 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_digital.sv, line/pos: 317/33 in fll_new_lib.FLL_digital [module])
+  0.4   138 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/soc_clk_rst_gen.sv, line/pos: 147/28 in ulpsoc_lib.soc_clk_rst_gen [module])
+  0.4   133 [    2] Initial stmt (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/dolphin/NEVA_054_088_162_198_01_ACU_SW0123_mtdm.v, line: 200 in gf22_fe_lib.NEVA_054_088_162_198_01_ACU_SW0123 [module])
+  0.4   131 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_digital.sv, line/pos: 197/25 in fll_new_lib.FLL_digital [module])
+  0.4   130 [    1] Initial stmt (file: /home/haugoug/src/gap9/sim/tb/models/MX25UM51245G/MX25UM51245G.v, line: 841 in models_lib.MX25UM51245G [module])
+  0.4   129 [    2] Initial stmt (file: /home/haugoug/src/gap9/sim/tb/models/s26ks512s/bmod/s26ks512s.v, line: 1131 in models_lib.s26ks512s [module])
+  0.3   125 [    5] ### protected region ###
+  0.3   122 [     ] WAKEUP, head, tail, zmeth (method)
+  0.3   121 [  520] Always stmt (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_FanInPrimitive_Resp.sv, line: 73 in logint_xbar_lib.logint_FanInPrimitive_Resp [module])
+  0.3   115 [     ] Method SSS_MT_REGUPDATE_BYTE (method)
+  0.3   113 [   36] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_RequestBlock2CH.sv, line/pos: 359/48 in logint_xbar_lib.logint_RequestBlock2CH [module])
+  0.3   109 [     ] Method SSS_MT_RTNPES (method)
+  0.3   106 [     ] WAKEUP/FWD, head, rtn (method)
+  0.3   103 [    1] Initial stmt (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/dolphin/POR_BOR_144_198_06_18_02_mtdm.v, line: 192 in gf22_fe_lib.POR_BOR_144_198_06_18_02 [module])
+  0.3   102 [    1] Always stmt (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/dolphin/RAR_eSR_qLR_OV_LB_ref_19_55_05_33_I100HDO_08a_mtdm.sv, line: 671 in gf22_fe_lib.RAR_GENERIC [module])
+  0.3   100 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_glitchfree_clkdiv.sv, line/pos: 113/31 in fll_new_lib.FLL_glitchfree_clkdiv [module])
+  0.3    96 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_clk_divider.sv, line/pos: 86/29 in fll_new_lib.FLL_clk_divider [module])
+  0.3    96 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_clk_divider.sv, line/pos: 102/25 in fll_new_lib.FLL_clk_divider [module])
+  0.3    93 [     ] Method SSS_MT_HO2 (method)
+  0.2    88 [    2] Initial stmt (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/dolphin/abbpvt02_fbb_core_d002_0450_0945_mtdm.sv, line: 366 in gf22_fe_lib.abbpvt02_fbb_core_d002_0450_0945 [module])
+  0.2    87 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/rtl/pulp_chip/pulp_chip.sv, line/pos: 2604/60 in pulp_chip_lib.pulp_chip [module])
+  0.2    83 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/ulpsoc.sv, line/pos: 1969/44 in ulpsoc_lib.ulpsoc [module])
+  0.2    81 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/ulpsoc.sv, line/pos: 1968/47 in ulpsoc_lib.ulpsoc [module])
+  0.2    81 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/common_cells/src/deprecated/clock_divider.sv, line/pos: 120/25 in common_cells_lib.clock_divider [module])
+  0.2    80 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/soc_clk_rst_gen.sv, line/pos: 120/42 in ulpsoc_lib.soc_clk_rst_gen [module])
+  0.2    80 [    4] Always stmt (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_clk_period_quantizer.sv, line: 73 in fll_new_lib.FLL_clk_period_quantizer [module])
+  0.2    78 [    1] Continuous Assignment (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/soc_clk_rst_gen.sv, line: 196 in ulpsoc_lib.soc_clk_rst_gen [module])
+  0.2    77 [   10] Task printInstrTrace (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_tracer.sv, line: 193 in riscv_gwt_lib.riscv_tracer [module])
+  0.2    76 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_digital.sv, line/pos: 257/27 in fll_new_lib.FLL_digital [module])
+  0.2    75 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_TOP/gf22_FLL_model.sv, line/pos: 50/23 in fll_new_lib.gf22_FLL [module])
+  0.2    73 [     ] Method SSS_MT_RETURN_BYTE (method)
+  0.2    73 [   10] Always stmt (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_cs_registers.sv, line: 1191 in riscv_gwt_lib.riscv_cs_registers [module])
+  0.2    73 [    4] Always stmt (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_clk_divider.sv, line: 154 in fll_new_lib.FLL_clk_divider [module])
+  0.2    69 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/udma/udma_core/rtl/core/udma_core.sv, line/pos: 595/28 in udma_core_lib.udma_core [module])
+  0.2    68 [  128] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/common_cells/src/deprecated/pulp_sync_wedge.sv, line/pos: 54/26 in common_cells_lib.pulp_sync_wedge [module])
+  0.2    68 [   13] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/udma/udma_core/rtl/common/udma_clk_div_cnt.sv, line/pos: 140/21 in udma_core_lib.udma_clk_div_cnt [module])
+  0.2    67 [    2] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/udma/udma_hyperbus_octospi/rtl/hyperbus_clkgen_sync.sv, line/pos: 213/35 in udma_hyperbus_octospi_lib.hyperbus_clkgen_sync [module])
+  0.2    67 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_TOP/gf22_FLL_model.sv, line/pos: 49/25 in fll_new_lib.gf22_FLL [module])
+  0.2    66 [     ] WAKEUP(n), head, rtn (method)
+  0.2    65 [    2] Continuous Assignment (file: /home/haugoug/src/gap9/fe/ips/power_manager_vega/ABB/GREENWAVES_abbpvt02_fbb_d002_CUSTOMER_Delivery_r1.0.0_20200325/abbpvt02_fbb_wrappers_20191218/RTL_Soft/abbpvt02_fbb_wrappers/abbpvt02_fbb_dtm_wrapper/model/rtl/rtl/abbpvt02_fbb_dtm_wrapper_core.sv, line: 179 in power_manager_vega_lib.abbpvt02_fbb_dtm_wrapper_abbpvt02_fbb_dtm_wrapper_core [module])
+  0.2    65 [    1] Initial stmt (file: /home/haugoug/src/gap9/sim/tb/models/spi_flash/S25fl256s/model/s25fl256s.v, line: 1080 in models_lib.s25fl256s [module])
+  0.2    64 [   38] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/tech_cells_generic/src/pulp_clock_gating_async.sv, line/pos: 39/24 in tech_cells_generic_lib.pulp_clock_gating_async [module])
+  0.2    63 [     ] ftio_functions
+  0.2    61 [   10] Always stmt (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_tracer.sv, line: 1009 in riscv_gwt_lib.riscv_tracer [module])
+  0.2    61 [   10] Task new (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_tracer.sv, line: 138 in riscv_gwt_lib.riscv_tracer [module])
+  0.2    59 [     ] Method SSS_MT_SA_PROCESS (method)
+  0.2    59 [   36] Continuous Assignment (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_RequestBlock2CH.sv, line: 210 in logint_xbar_lib.logint_RequestBlock2CH [module])
+  0.2    59 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_digital.sv, line/pos: 237/24 in fll_new_lib.FLL_digital [module])
+  0.2    58 [     ] WAKEUP/FWD(2), head, rtn (method)
+  0.2    57 [    1] Initial stmt (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/dolphin/RAR_eSR_qLR_OV_LB_ref_19_55_05_33_I100HDO_08a_mtdm.sv, line: 720 in gf22_fe_lib.RAR_GENERIC [module])
+  0.2    55 [     ] NEGEDGE WAKEUP(n) (method)
+  0.2    55 [    1] Task preloadMemArray (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/mram/MRAM_eFLASH_128Kx144.v, line: 1539 in gf22_fe_lib.MRAM_eFLASH_128Kx144 [module])
+  0.2    55 [    2] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/udma/udma_hyperbus_octospi/rtl/hyperbus_clkgen_sync.sv, line/pos: 232/32 in udma_hyperbus_octospi_lib.hyperbus_clkgen_sync [module])
+  0.2    54 [     ] POSEDGE WAKEUP(4) (method)
+  0.2    54 [     ] Continuous Assignment Group (CAG2(2)) (file: /home/haugoug/src/gap9/fe/ips/power_manager_vega/ABB/GREENWAVES_abbpvt02_fbb_d002_CUSTOMER_Delivery_r1.0.0_20200325/abbpvt02_fbb_wrappers_20191218/RTL_Soft/abbpvt02_fbb_wrappers/abbpvt02_fbb_dtm_wrapper/model/rtl/rtl/hard_clk_mux2.v, line: 75) (zero delay) (method)
+  0.1    53 [   36] Continuous Assignment (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_RequestBlock2CH.sv, line: 206 in logint_xbar_lib.logint_RequestBlock2CH [module])
+  0.1    51 [    2] Continuous Assignment (file: /home/haugoug/src/gap9/fe/ips/power_manager_vega/ABB/GREENWAVES_abbpvt02_fbb_d002_CUSTOMER_Delivery_r1.0.0_20200325/abbpvt02_fbb_wrappers_20191218/RTL_Soft/abbpvt02_fbb_wrappers/abbpvt02_fbb_dtm_wrapper/model/rtl/rtl/abbpvt02_fbb_dtm_wrapper_core.sv, line: 154 in power_manager_vega_lib.abbpvt02_fbb_dtm_wrapper_abbpvt02_fbb_dtm_wrapper_core [module])
+  0.1    51 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/soc_peripherals.sv, line/pos: 1105/57 in ulpsoc_lib.soc_peripherals [module])
+  0.1    51 [   48] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_ResponseBlock.sv, line/pos: 150/39 in logint_xbar_lib.logint_ResponseBlock [module])
+  0.1    50 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/rtl/pulp_chip/pulp_chip.sv, line/pos: 1420/52 in pulp_chip_lib.pulp_chip [module])
+  0.1    50 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_digital.sv, line/pos: 179/35 in fll_new_lib.FLL_digital [module])
+  0.1    49 [    2] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/power_manager_vega/ABB/GREENWAVES_abbpvt02_fbb_d002_CUSTOMER_Delivery_r1.0.0_20200325/abbpvt02_fbb_wrappers_20191218/RTL_Soft/abbpvt02_fbb_wrappers/abbpvt02_fbb_dtm_wrapper/model/rtl/rtl/abbpvt02_fbb_dtm_wrapper.sv, line/pos: 207/54 in power_manager_vega_lib.abbpvt02_fbb_dtm_wrapper [module])
+  0.1    49 [    2] Always stmt (file: /home/haugoug/src/gap9/sim/tb/models/i2s/i2s_vip_channel.sv, line: 406 in models_lib.i2s_vip_channel [module])
+  0.1    48 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/ulpsoc.sv, line/pos: 1255/35 in ulpsoc_lib.ulpsoc [module])
+  0.1    48 [    1] Initial stmt (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/dolphin/qLR_Aubrey_OV_ref_162_363_05_18_I1_Iq150_05_mtdm.sv, line: 241 in gf22_fe_lib.qLR_Aubrey_OV_ref_162_363_05_18_GEN_05 [module])
+  0.1    48 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_clk_divider.sv, line/pos: 170/26 in fll_new_lib.FLL_clk_divider [module])
+  0.1    47 [     ] WAKEUP(2), head, rtn (method)
+  0.1    46 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/ulpsoc.sv, line/pos: 1975/44 in ulpsoc_lib.ulpsoc [module])
+  0.1    45 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/rtl/pulp_chip/pad_frame_hs_r.sv, line/pos: 180/43 in pulp_chip_lib.pad_frame_hs_r [module])
+  0.1    44 [   36] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/tech_cells_generic/src/pulp_clock_inverter.sv, line/pos: 21/21 in tech_cells_generic_lib.pulp_clock_inverter [module])
+  0.1    44 [    2] Continuous Assignment (file: /home/haugoug/src/gap9/fe/ips/udma/udma_hyperbus_octospi/rtl/udma_hyperbus.sv, line: 269 in udma_hyperbus_octospi_lib.udma_hyper_top [module])
+  0.1    43 [     ] POSEDGE WAKEUP, head, zmeth (method)
+  0.1    43 [     ] Continuous Assignment Group (CAG2(0)) (file: /home/haugoug/src/gap9/fe/ips/power_manager_vega/ethaddon/power_studio_wrapper.sv, line: 261) (zero delay) (method)
+  0.1    43 [     ] Continuous Assignment Group (CAG2(0)) (file: /home/haugoug/src/gap9/fe/ips/power_manager_vega/ethaddon/power_studio_wrapper.sv, line: 257) (zero delay) (method)
+  0.1    43 [    5] Always stmt (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_xbar.sv, line: 184 in logint_xbar_lib.logint_xbar [module])
+  0.1    43 [    1] Always stmt (file: /home/haugoug/src/gap9/fe/ips/udma/udma_core/rtl/core/udma_core.sv, line: 269 in udma_core_lib.udma_core [module])
+  0.1    43 [   13] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/udma/udma_core/rtl/common/udma_clkgen.sv, line/pos: 79/39 in udma_core_lib.udma_clkgen [module])
+  0.1    42 [     ] POSEDGE WAKEUP, tail, rtn (method)
+  0.1    42 [     ] Method SSS_MT_RTNS (method)
+  0.1    42 [    1] Always stmt (file: /home/haugoug/src/gap9/fe/ips/common_cells/src/deprecated/clock_divider.sv, line: 167 in common_cells_lib.clock_divider [module])
+  0.1    42 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/common_cells/src/deprecated/clock_divider_counter.sv, line/pos: 163/21 in common_cells_lib.clock_divider_counter [module])
+  0.1    41 [     ] Logic primitive 'not' (1 outputs) (zero delay) (method)
+  0.1    41 [    2] Continuous Assignment (file: /home/haugoug/src/gap9/fe/ips/power_manager_vega/ABB/GREENWAVES_abbpvt02_fbb_d002_CUSTOMER_Delivery_r1.0.0_20200325/abbpvt02_fbb_wrappers_20191218/RTL_Soft/abbpvt02_fbb_wrappers/abbpvt02_fbb_dtm_wrapper/model/rtl/rtl/abbpvt02_fbb_dtm_wrapper_core.sv, line: 161 in power_manager_vega_lib.abbpvt02_fbb_dtm_wrapper_abbpvt02_fbb_dtm_wrapper_core [module])
+  0.1    41 [     ] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/power_manager_vega/ABB/GREENWAVES_abbpvt02_fbb_d002_CUSTOMER_Delivery_r1.0.0_20200325/abbpvt02_fbb_wrappers_20191218/RTL_Soft/abbpvt02_fbb_wrappers/abbpvt02_fbb_dtm_wrapper/model/rtl/rtl/abbpvt02_fbb_dtm_wrapper_core.sv, line/pos: 211/44 in power_manager_vega_lib.abbpvt02_fbb_dtm_wrapper_abbpvt02_fbb_dtm_wrapper_core [module])
+  0.1    41 [    2] Always stmt (file: /home/haugoug/src/gap9/fe/ips/udma/udma_hyperbus_octospi/rtl/hyperbus_clk_gen.sv, line: 31 in udma_hyperbus_octospi_lib.hyperbus_clk_gen [module])
+  0.1    40 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/rtl/udma_subsystem/udma_subsystem.sv, line/pos: 699/55 in udma_subsystem_lib.udma_subsystem [module])
+  0.1    40 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/rtl/pulp_chip/soc_domain.sv, line/pos: 1673/66 in pulp_chip_lib.soc_domain [module])
+  0.1    40 [    4] Continuous Assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_clk_divider.sv, line: 118 in fll_new_lib.FLL_clk_divider [module])
+  0.1    39 [     ] WAKEUP/FWD(4), head, rtn (method)
+  0.1    39 [     ] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_ArbitrationTree.sv, line/pos: 528/61 in logint_xbar_lib.logint_ArbitrationTree [module])
+  0.1    38 [   36] Continuous Assignment (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_RequestBlock2CH.sv, line: 199 in logint_xbar_lib.logint_RequestBlock2CH [module])
+  0.1    38 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/udma/udma_core/rtl/core/udma_core.sv, line/pos: 317/44 in udma_core_lib.udma_core [module])
+  0.1    37 [     ] POSEDGE WAKEUP(3) (method)
+  0.1    37 [     ] Method SSS_MT_CNE_FW_AB_8LU_NRM (method)
+  0.1    37 [    4] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_clk_divider.sv, line/pos: 99/23 in fll_new_lib.FLL_clk_divider [module])
+  0.1    36 [    1] Always stmt (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/memories/ROM_2048_32.v, line: 929 in gf22_fe_lib.ROM_2048_32_memory_generic [module])
+  0.1    36 [    1] Anonymous continuous assignment (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/soc_interconnect.sv, line/pos: 607/53 in ulpsoc_lib.soc_interconnect [module])
+  0.1    36 [   10] Always stmt (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_decoder.sv, line: 222 in riscv_gwt_lib.riscv_decoder [module])
+  0.1    36 [    1] Task memory_clear (file: /home/haugoug/src/gap9/sim/tb/models/APMemory/APM_APS25608N-OB_Xccela_APM_model_v1.1_NC.vp, line: 909 in models_lib.psram_model [module])
+  0.1    36 [     ] engine support
+
+------------------------------------------------------------
+Most Active Modules (behavioral)
+------------------------------------------------------------
+%hits #hits  #inst  name
+ 12.3  4431 [    4] fll_new_lib.FLL_glitchfree_clkdiv:sv (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_glitchfree_clkdiv.sv line: 5)
+  4.0  1437 [    4] FLL_NEW_LIB.BEHAVIORAL:GF22_DCO (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_TOP/gf22_DCO_model.tc.vhd line: 59)
+  2.9  1035 [    1] udma_subsystem_lib.udma_subsystem:sv (file: /home/haugoug/src/gap9/fe/rtl/udma_subsystem/udma_subsystem.sv line: 17)
+  2.4   870 [ 2164] tech_cells_generic_lib.pulp_clock_gating:sv (file: /home/haugoug/src/gap9/fe/ips/tech_cells_generic/src/pulp_clock_gating.sv line: 11)
+  2.0   722 [    1] ulpsoc_lib.soc_event_arbiter:sv (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/soc_event_arbiter.sv line: 17)
+  2.0   708 [    4] fll_new_lib.FLL_clk_divider:sv (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_clk_divider.sv line: 11)
+  1.9   670 [    4] fll_new_lib.FLL_digital:sv (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_digital.sv line: 1)
+  1.8   641 [  128] common_cells_lib.pulp_sync_wedge:sv (file: /home/haugoug/src/gap9/fe/ips/common_cells/src/deprecated/pulp_sync_wedge.sv line: 13)
+  1.5   547 [   36] logint_xbar_lib.logint_RequestBlock2CH:sv (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_RequestBlock2CH.sv line: 31)
+  1.4   507 [    4] fll_new_lib.gf22_FLL:sv (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_TOP/gf22_FLL_model.sv line: 2)
+  1.4   498 [    1] tb_lib.$unit_0x3115ea13:compilation_unit (file: /home/haugoug/src/gap9/sim/xcsim/ips_inputs/lnt_csi2_rx/vip/sim/interfaces/ltts_csi2_cci_if.sv line: 10)
+  1.1   392 [    1] ulpsoc_lib.soc_clk_rst_gen:sv (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/soc_clk_rst_gen.sv line: 4)
+  1.1   384 [    5] logint_xbar_lib.logint_xbar:sv (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_xbar.sv line: 30)
+  1.0   374 [    1] udma_core_lib.udma_core:sv (file: /home/haugoug/src/gap9/fe/ips/udma/udma_core/rtl/core/udma_core.sv line: 22)
+  1.0   359 [    1] ulpsoc_lib.ulpsoc:sv (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/ulpsoc.sv line: 27)
+  1.0   348 [  594] logint_xbar_lib.logint_FanInPrimitive_Req:sv (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_FanInPrimitive_Req.sv line: 30)
+  1.0   347 [    5] models_lib.s25fs256s:v (file: /home/haugoug/src/gap9/sim/tb/models/spi_flash/S25fs256s/model/s25fs256s.v line: 56)
+  0.8   293 [   10] riscv_gwt_lib.riscv_tracer:sv (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_tracer.sv line: 37)
+  0.7   267 [    2] power_manager_vega_lib.abbpvt02_fbb_dtm_wrapper_abbpvt02_fbb_dtm_wrapper_core:sv (file: /home/haugoug/src/gap9/fe/ips/power_manager_vega/ABB/GREENWAVES_abbpvt02_fbb_d002_CUSTOMER_Delivery_r1.0.0_20200325/abbpvt02_fbb_wrappers_20191218/RTL_Soft/abbpvt02_fbb_wrappers/abbpvt02_fbb_dtm_wrapper/model/rtl/rtl/abbpvt02_fbb_dtm_wrapper_core.sv line: 65)
+  0.7   254 [    2] udma_hyperbus_octospi_lib.hyperbus_clkgen_sync:sv (file: /home/haugoug/src/gap9/fe/ips/udma/udma_hyperbus_octospi/rtl/hyperbus_clkgen_sync.sv line: 3)
+  0.7   247 [    1] gf22_fe_lib.RAR_GENERIC:sv (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/dolphin/RAR_eSR_qLR_OV_LB_ref_19_55_05_33_I100HDO_08a_mtdm.sv line: 457)
+  0.7   237 [    2] udma_hyperbus_octospi_lib.hyperbus_clk_gen:sv (file: /home/haugoug/src/gap9/fe/ips/udma/udma_hyperbus_octospi/rtl/hyperbus_clk_gen.sv line: 11)
+  0.6   229 [    1] ulpsoc_lib.soc_interconnect:sv (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/soc_interconnect.sv line: 5)
+  0.6   221 [   10] riscv_gwt_lib.riscv_alu:sv (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_alu.sv line: 31)
+  0.6   206 [    2] gf22_fe_lib.abbpvt02_fbb_core_d002_0450_0945:sv (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/dolphin/abbpvt02_fbb_core_d002_0450_0945_mtdm.sv line: 77)
+  0.5   190 [    1] pulp_chip_lib.pulp_chip:sv (file: /home/haugoug/src/gap9/fe/rtl/pulp_chip/pulp_chip.sv line: 9)
+  0.5   190 [   10] riscv_gwt_lib.riscv_id_stage:sv (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_id_stage.sv line: 40)
+  0.5   179 [    2] models_lib.s26ks512s:v (file: /home/haugoug/src/gap9/sim/tb/models/s26ks512s/bmod/s26ks512s.v line: 104)
+  0.5   175 [  165] tech_cells_generic_lib.pulp_clock_mux2:sv (file: /home/haugoug/src/gap9/fe/ips/tech_cells_generic/src/pulp_clock_mux2.sv line: 11)
+  0.5   166 [    1] models_lib.MX25UM51245G:v (file: /home/haugoug/src/gap9/sim/tb/models/MX25UM51245G/MX25UM51245G.v line: 185)
+  0.5   164 [    2] gf22_fe_lib.NEVA_054_088_162_198_01_ACU_SW0123:v (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/dolphin/NEVA_054_088_162_198_01_ACU_SW0123_mtdm.v line: 74)
+  0.4   160 [    1] gf22_fe_lib.POR_BOR_144_198_06_18_02:v (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/dolphin/POR_BOR_144_198_06_18_02_mtdm.v line: 35)
+  0.4   159 [   62] logint_xbar_lib.logint_ArbitrationTree:sv (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_ArbitrationTree.sv line: 30)
+  0.4   156 [    1] common_cells_lib.clock_divider:sv (file: /home/haugoug/src/gap9/fe/ips/common_cells/src/deprecated/clock_divider.sv line: 43)
+  0.4   143 [    5] power_manager_vega_lib.maestro_pd_icu:sv (file: /home/haugoug/src/gap9/fe/ips/power_manager_vega/Maestro_rev2.3_2020_04_08__10_26/model/encrypted_rtl/cadence/maestro_pd_icu.sv line: 39)
+  0.4   131 [  520] logint_xbar_lib.logint_FanInPrimitive_Resp:sv (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_FanInPrimitive_Resp.sv line: 30)
+  0.4   126 [    4] fll_new_lib.FLL_clk_period_quantizer:sv (file: /home/haugoug/src/gap9/fe/ips/fll_new/RTL_SV/FLL_clk_period_quantizer.sv line: 13)
+  0.4   126 [   48] logint_xbar_lib.logint_ResponseBlock:sv (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_ResponseBlock.sv line: 30)
+  0.3   122 [   10] riscv_gwt_lib.riscv_cs_registers:sv (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_cs_registers.sv line: 37)
+  0.3   118 [   10] riscv_gwt_lib.riscv_core:sv (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_core.sv line: 37)
+  0.3   115 [   48] logint_xbar_lib.logint_ResponseTree:sv (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/RTL/logint_ResponseTree.sv line: 30)
+  0.3   113 [    1] ulpsoc_lib.soc_peripherals:sv (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/soc_peripherals.sv line: 21)
+  0.3   106 [   13] udma_core_lib.udma_clkgen:sv (file: /home/haugoug/src/gap9/fe/ips/udma/udma_core/rtl/common/udma_clkgen.sv line: 20)
+  0.3   102 [   13] udma_core_lib.udma_clk_div_cnt:sv (file: /home/haugoug/src/gap9/fe/ips/udma/udma_core/rtl/common/udma_clk_div_cnt.sv line: 21)
+  0.3    98 [    2] models_lib.i2s_vip_channel:sv (file: /home/haugoug/src/gap9/sim/tb/models/i2s/i2s_vip_channel.sv line: 4)
+  0.3    98 [   10] riscv_gwt_lib.riscv_register_file:sv (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_register_file_latch.sv line: 32)
+  0.3    93 [    1] common_cells_lib.clock_divider_counter:sv (file: /home/haugoug/src/gap9/fe/ips/common_cells/src/deprecated/clock_divider_counter.sv line: 43)
+  0.2    85 [    2] power_manager_vega_lib.abbpvt02_fbb_dtm_wrapper:sv (file: /home/haugoug/src/gap9/fe/ips/power_manager_vega/ABB/GREENWAVES_abbpvt02_fbb_d002_CUSTOMER_Delivery_r1.0.0_20200325/abbpvt02_fbb_wrappers_20191218/RTL_Soft/abbpvt02_fbb_wrappers/abbpvt02_fbb_dtm_wrapper/model/rtl/rtl/abbpvt02_fbb_dtm_wrapper.sv line: 63)
+  0.2    79 [    2] udma_hyperbus_octospi_lib.udma_hyper_top:sv (file: /home/haugoug/src/gap9/fe/ips/udma/udma_hyperbus_octospi/rtl/udma_hyperbus.sv line: 25)
+  0.2    79 [    1] pulp_chip_lib.soc_domain:sv (file: /home/haugoug/src/gap9/fe/rtl/pulp_chip/soc_domain.sv line: 25)
+  0.2    78 [   10] riscv_gwt_lib.riscv_prefetch_L0_buffer:sv (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_prefetch_L0_buffer.sv line: 26)
+  0.2    71 [    1] ulpsoc_lib.soc_event_generator:sv (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/soc_event_generator.sv line: 55)
+  0.2    67 [    1] gf22_fe_lib.ROM_2048_32_memory_generic:v (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/memories/ROM_2048_32.v line: 477)
+  0.2    65 [    1] models_lib.s25fl256s:v (file: /home/haugoug/src/gap9/sim/tb/models/spi_flash/S25fl256s/model/s25fl256s.v line: 130)
+  0.2    64 [   38] tech_cells_generic_lib.pulp_clock_gating_async:sv (file: /home/haugoug/src/gap9/fe/ips/tech_cells_generic/src/pulp_clock_gating_async.sv line: 11)
+  0.2    62 [    1] gf22_fe_lib.OPM_G2_19_55_18_01:v (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/dolphin/OPM_G2_19_55_18_01_mtdm.v line: 37)
+  0.2    62 [    1] gf22_fe_lib.qLR_Aubrey_OV_ref_162_363_05_18_GEN_05:sv (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/dolphin/qLR_Aubrey_OV_ref_162_363_05_18_I1_Iq150_05_mtdm.sv line: 118)
+  0.2    62 [    1] ne16_lib.ne16_binconv_array:sv (file: /home/haugoug/src/gap9/fe/ips/ne16/rtl/ne16_binconv_array.sv line: 14)
+  0.2    61 [    1] gf22_fe_lib.MRAM_eFLASH_128Kx144:v (file: /home/haugoug/src/gap9/fe/ips/gf22_fe/mram/MRAM_eFLASH_128Kx144.v line: 68)
+  0.2    61 [    1] logint_xbar_lib.new_XBAR_BRIDGE:sv (file: /home/haugoug/src/gap9/fe/ips/logint_xbar/WRAPPER/new_XBAR_BRIDGE.sv line: 1)
+  0.2    60 [    1] ulpsoc_lib.gf22_FLL_ICALPS:sv (file: /home/haugoug/src/gap9/fe/rtl/ulpsoc/gf22_FLL_ICALPS.sv line: 2)
+  0.2    55 [   10] riscv_gwt_lib.riscv_controller:sv (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_controller.sv line: 32)
+  0.1    48 [   10] riscv_gwt_lib.riscv_decoder:sv (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_decoder.sv line: 33)
+  0.1    47 [   60] scm_lib.register_file_1r_1w:sv (file: /home/haugoug/src/gap9/fe/ips/scm/latch_scm/register_file_1r_1w.sv line: 36)
+  0.1    47 [    1] pulp_chip_lib.pad_frame_hs_r:sv (file: /home/haugoug/src/gap9/fe/rtl/pulp_chip/pad_frame_hs_r.sv line: 1)
+  0.1    46 [    1] tb_uvm_lib.tb_uvm:sv (file: /home/haugoug/src/gap9/sim/tb_uvm/tb_top_uvm.sv line: 20)
+  0.1    46 [   10] riscv_gwt_lib.riscv_if_stage:sv (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_if_stage.sv line: 31)
+  0.1    45 [    2] pulp_chip_lib.hyperbus_clkgen_sync_top:sv (file: /home/haugoug/src/gap9/fe/rtl/pulp_chip/hyperbus_clkgen_sync_top.sv line: 1)
+  0.1    44 [   36] tech_cells_generic_lib.pulp_clock_inverter:sv (file: /home/haugoug/src/gap9/fe/ips/tech_cells_generic/src/pulp_clock_inverter.sv line: 11)
+  0.1    42 [    1] fc_icache_lib.fc_icache:sv (file: /home/haugoug/src/gap9/fe/ips/fc_icache/fc_icache.sv line: 27)
+  0.1    42 [   10] riscv_gwt_lib.riscv_load_store_unit:sv (file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_load_store_unit.sv line: 27)
+  0.1    40 [    1] fc_icache_lib.fc_icache_controller:sv (file: /home/haugoug/src/gap9/fe/ips/fc_icache/fc_icache_controller.sv line: 26)
+  0.1    39 [    1] udma_core_lib.udma_rx_channels:sv (file: /home/haugoug/src/gap9/fe/ips/udma/udma_core/rtl/core/udma_rx_channels.sv line: 22)
+  0.1    39 [    1] pulp_chip_lib.pad_hyperbus_wrapper:sv (file: /home/haugoug/src/gap9/fe/rtl/pulp_chip/pad_hyperbus_wrapper.sv line: 1)
+  0.1    38 [    2] udma_hyperbus_octospi_lib.sdio_txrx_data:sv (file: /home/haugoug/src/gap9/fe/ips/udma/udma_hyperbus_octospi/rtl/udma_sdio/sdio_txrx_data.sv line: 20)
+  0.1    37 [    1] vip_lib.cam_vip:sv (file: /home/haugoug/src/gap9/fe/ips/vip/camera/cam_vip.sv line: 1)
+  0.1    36 [    1] models_lib.psram_model:vp (file: /home/haugoug/src/gap9/sim/tb/models/APMemory/APM_APS25608N-OB_Xccela_APM_model_v1.1_NC.vp line: 78)
+
+------------------------------------------------------------
+Assertion Summary Counts (32 hits, 0.1% of total)
+Evaluation Load Summary Counts (12 hits, 0.0% of total) blocks hit (189)
+Sampling Load Summary Counts (20 hits, 0.1% of total) blocks hit (200)
+Abort Load Summary Counts (0 hits, 0.0% of total) blocks hit (78)
+Miscellaneous Load Summary Counts (0 hits, 0.0% of total) blocks hit (180)
+------------------------------------------------------------
+%hits #hits #eval #samp  #inst  name
+  0.0    12    12     0 [   10] __assert_1 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_controller.sv, line: 1191) 
+  0.0     7     0     7 [   10] __assert_3 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_id_stage.sv, line: 1794) 
+  0.0     5     0     5 [   10] __assert_3 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_load_store_unit.sv, line: 498) 
+  0.0     3     0     3 [ 4931] HWPE_STREAM_VALUE_CHANGE (assert stmt, file: /home/haugoug/src/gap9/fe/ips/hwpe-stream/rtl/hwpe_stream_interfaces.sv, line: 114) 
+  0.0     2     0     2 [   10] __assert_1 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_load_store_unit.sv, line: 491) 
+  0.0     2     0     2 [   10] __assert_2 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_load_store_unit.sv, line: 494) 
+  0.0     1     0     1 [   10] __assert_1 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_prefetch_L0_buffer.sv, line: 569) 
+  0.0     0     0     0 [    1] all_zero (assert stmt, file: /home/haugoug/src/gap9/fe/ips/udma/udma_anc/rtl/anc_interco/anc_interco_lfsr.sv, line: 304) 
+  0.0     0     0     0 [   10] __assert_1 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_apu_disp.sv, line: 251) 
+  0.0     0     0     0 [   10] __assert_2 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_controller.sv, line: 1193) 
+  0.0     0     0     0 [ 4931] HWPE_STREAM_VALID_DEASSERT (assert stmt, file: /home/haugoug/src/gap9/fe/ips/hwpe-stream/rtl/hwpe_stream_interfaces.sv, line: 117) 
+  0.0     0     0     0 [  217] hot_one (assert stmt, file: /home/haugoug/src/gap9/fe/ips/common_cells/src/rr_arb_tree.sv, line: 217) 
+  0.0     0     0     0 [  217] gnt0 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/common_cells/src/rr_arb_tree.sv, line: 221) 
+  0.0     0     0     0 [  217] gnt1 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/common_cells/src/rr_arb_tree.sv, line: 225) 
+  0.0     0     0     0 [  217] gnt_idx (assert stmt, file: /home/haugoug/src/gap9/fe/ips/common_cells/src/rr_arb_tree.sv, line: 229) 
+  0.0     0     0     0 [  217] req0 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/common_cells/src/rr_arb_tree.sv, line: 233) 
+  0.0     0     0     0 [    2] valid_2_ready (assert stmt, file: /home/haugoug/src/gap9/fe/ips/hier-icache/RTL/L1.5_CACHE/shared_icache.sv, line: 401) 
+  0.0     0     0     0 [  217] req1 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/common_cells/src/rr_arb_tree.sv, line: 237) 
+  0.0     0     0     0 [   10] __assert_2 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_prefetch_L0_buffer.sv, line: 573) 
+  0.0     0     0     0 [   10] __assert_3 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_prefetch_L0_buffer.sv, line: 575) 
+  0.0     0     0     0 [   13] ### protected ###
+  0.0     0     0     0 [    2] ready_2_valid (assert stmt, file: /home/haugoug/src/gap9/fe/ips/hier-icache/RTL/L1.5_CACHE/shared_icache.sv, line: 407) 
+  0.0     0     0     0 [    1] haltsum (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv-dbg/src/dm_csrs.sv, line: 637) 
+  0.0     0     0     0 [   10] __assert_2 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_id_stage.sv, line: 1790) 
+  0.0     0     0     0 [   10] __assert_1 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_mult.sv, line: 348) 
+  0.0     0     0     0 [   10] __assert_2 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_mult.sv, line: 354) 
+  0.0     0     0     0 [   10] __assert_3 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_mult.sv, line: 360) 
+  0.0     0     0     0 [   32] HWPE_TCDM_R_VALID (assert stmt, file: /home/haugoug/src/gap9/fe/ips/hwpe-stream/rtl/hwpe_stream_interfaces.sv, line: 61) 
+  0.0     0     0     0 [   10] __assert_1 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_if_stage.sv, line: 414) 
+  0.0     0     0     0 [    1] empty_read (assert stmt, file: /home/haugoug/src/gap9/fe/ips/common_cells/src/fifo_v3.sv, line: 145) 
+  0.0     0     0     0 [    1] full_write (assert stmt, file: /home/haugoug/src/gap9/fe/ips/common_cells/src/fifo_v3.sv, line: 141) 
+  0.0     0     0     0 [   10] __assert_1 (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv_gwt/rtl/riscv_hwloop_regs.sv, line: 131) 
+  0.0     0     0     0 [    2] full_write (assert stmt, file: /home/haugoug/src/gap9/fe/ips/new_decompr/RTL/COMMON/fifo_mod_v3.sv, line: 129) 
+  0.0     0     0     0 [    1] dm_sba_access_size (assert stmt, file: /home/haugoug/src/gap9/fe/ips/riscv-dbg/src/dm_sba.sv, line: 166) 
+
+
+------------------------------------------------------------
+Stream Type Summary Counts (35911 hits total)
+------------------------------------------------------------
+%hits #hits  #inst  name
+ 24.3  8711 [     ] Simulation Engine Time 
+ 23.1  8300 [41676] Anonymous continuous assignments 
+ 15.0  5375 [60404] Always statements 
+ 12.6  4509 [     ] Gate Evaluation Methods 
+ 11.0  3953 [56256] Continuous assignments 
+  4.0  1437 [     ] VHDL process 
+  3.5  1254 [14631] Initial statements 
+  2.1   769 [25796] Non-blocking assignments 
+  1.4   498 [  101] Parallel block sub-processes 
+  0.8   280 [ 5980] Verilog tasks 
+  0.8   273 [     ] CAG2 stream 
+  0.5   193 [12111] Protected regions 
+  0.4   150 [     ] Logic primitives 
+  0.2    63 [     ] File IO  
+  0.1    36 [     ] Engine support 
+  0.1    33 [   23] Clocking Block 
+  0.1    27 [     ] IOPATH Delays 
+  0.1    25 [     ] TCL Functions 
+  0.0    13 [     ] Wire evaluation 
+  0.0     6 [    9] Force/assign statements 
+  0.0     3 [     ] User-defined primitives 
+  0.0     2 [     ] Outside engine 
+  0.0     1 [     ] Support for callbacks (or UI) 
+

@@ -238,7 +238,7 @@ class SSBL(Binary):
         flashOffset = 0
 
 
-        if os.environ.get('TARGET_CHIP') == 'GAP9_V2':
+        if os.environ.get('TARGET_CHIP_FAMILY') == 'GAP9':
             # flash_header_t is 13*int + 1024 bytes AC, 128 for KC
             if os.environ.get('GAP9_OLD_ROM') is not None:
                 flashOffset += 4*16 + 16 * 4 * len(self.segments)
@@ -294,7 +294,7 @@ class SSBL(Binary):
         xip_l2_nb_pages = 16
         flash_nb_pages = int((xip_flash_size + xip_page_size-1) / xip_page_size)
 
-        if os.environ.get('TARGET_CHIP') == 'GAP9_V2':
+        if os.environ.get('TARGET_CHIP_FAMILY') == 'GAP9':
             # XIP config
             header.appendInt(xip_dev) # Device
             header.appendInt(xip_vaddr) # Virtual address
@@ -340,6 +340,10 @@ class SSBL(Binary):
             self.bin.padToOffset(self.partitionTableOffset)
         else:
             # In case no boot binary is there, we must have at least the offset of the partition table
-            self.partitionTableOffset = 8
+            ssbl_size = os.environ.get('GAP_SSBL_SIZE')
+            if ssbl_size is None:
+                self.partitionTableOffset = 8
+            else:
+                self.partitionTableOffset = int(ssbl_size)
             self.bin.appendLongInt(self.partitionTableOffset)
         return self.bin

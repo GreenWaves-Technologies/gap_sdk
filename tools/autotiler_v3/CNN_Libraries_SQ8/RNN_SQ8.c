@@ -42,7 +42,7 @@ static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
 
 #define B_CLR(x, bits)	((x)&(~((1<<(bits))-1)))
 
-static inline void Copy(char *__restrict__ To, char *__restrict__ From, unsigned int Size, unsigned int CoreId)
+static inline void __attribute__((always_inline)) Copy(char *__restrict__ To, char *__restrict__ From, unsigned int Size, unsigned int CoreId)
 
 {
         unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
@@ -58,7 +58,7 @@ static inline void Copy(char *__restrict__ To, char *__restrict__ From, unsigned
 	if (Iter & 0x1) *((signed char *) (To + First + Iter - 1)) = *((signed char *) (From + First + Iter - 1));
 }
 
-static inline void Zero(char *__restrict__ To, unsigned int Size, unsigned int CoreId)
+static inline void __attribute__((always_inline)) Zero(char *__restrict__ To, unsigned int Size, unsigned int CoreId)
 
 {
         unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);

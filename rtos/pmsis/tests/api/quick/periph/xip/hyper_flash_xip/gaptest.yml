@@ -1,0 +1,33 @@
+name: xip_hyper_flash
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    fc:
+        name: fc
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ASYNC=0
+        compile_only: true
+    fc_ro_violation:
+        name: fc_ro_violation
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: XIP_RO_FC=1
+        compile_only: true
+    xip_cluster_dma:
+        name: xip_cluster_dma
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: CLUSTER=1 DMA=1
+        compile_only: true

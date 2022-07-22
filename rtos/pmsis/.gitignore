@@ -3,3 +3,6 @@
 build/
 __pycache__/
 junit-reports/
+BUILD/
+sdk.config
+cmake.config

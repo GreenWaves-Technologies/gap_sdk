@@ -12,7 +12,5 @@ Profiler
    running
    starting
    commands/index
-   signals_stat
    windows/index
-   tutorials
-
+   settings

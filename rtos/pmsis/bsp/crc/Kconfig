@@ -1,0 +1,3 @@
+config BSP_DRIVER_CRC_MD5
+    bool "CRC MD5"
+    default n

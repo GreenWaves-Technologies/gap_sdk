@@ -154,44 +154,32 @@ static inline int iss_io_req(iss_t *_this, uint64_t addr, uint8_t *data, uint64_
   return _this->data.req(&_this->io_req);
 }
 
-static inline int iss_fetch_req_common(iss_t *_this, uint64_t addr, uint8_t *data, uint64_t size, bool is_write, bool timed)
+static inline int iss_fetch_req(iss_t *_this, uint64_t addr, uint8_t *data, uint64_t size, bool is_write)
 {
   vp::io_req *req = &_this->fetch_req;
+
   req->init();
   req->set_addr(addr);
   req->set_size(size);
   req->set_is_write(is_write);
   req->set_data(data);
-  if (!timed)
-  {
-    req->set_debug(true);
-  }
   vp::io_req_status_e err = _this->fetch.req(req);
   if (err != vp::IO_REQ_OK)
   {
     if (err == vp::IO_REQ_INVALID)
+    {
       _this->trace.force_warning("Invalid fetch request (addr: 0x%x, size: 0x%x)\n", addr, size);
+      return 0;
+    }
     else
     {
-      iss_exec_insn_stall(_this);
+      return -1;
     }
-    return -1;
   }
 
-  int64_t latency = req->get_latency();
-
-  if (timed && latency)
-  {
-    _this->cpu.state.fetch_cycles += latency;
-    iss_pccr_account_event(_this, CSR_PCER_IMISS, latency);
-  }
+  _this->cpu.state.fetch_cycles = req->get_latency();
 
   return 0;
-}
-
-static inline int iss_fetch_req(iss_t *_this, uint64_t addr, uint8_t *data, uint64_t size, bool is_write, bool timed)
-{
-  return iss_fetch_req_common(_this, addr, data, size, is_write, timed);
 }
 
 static inline int iss_irq_ack(iss_t *iss, int irq)
@@ -233,7 +221,7 @@ static inline void iss_csr_ext_counter_get(iss_t *iss, int id, unsigned int *val
 
 static inline void iss_unstall(iss_t *iss)
 {
-  iss->stalled.set(false);
+  iss->stalled.dec(1);
 }
 
 static inline void iss_lsu_load_resume(iss_t *iss)

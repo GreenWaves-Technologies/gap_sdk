@@ -27,5 +27,10 @@ BitVector *BitVectorCopy(
         unsigned int N
         );
 
+int BitVectorSetCount(
+        BitVector *V,
+        int Offset,
+        int Len);
+
 #endif
 

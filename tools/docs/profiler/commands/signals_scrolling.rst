@@ -1,17 +1,15 @@
 Scrolling the Timeline window vertically
 ----------------------------------------
 
-The signals tree vertical scroll bar synchronously pilotes the scrolling of the three following windows: 
+The signals tree vertical scroll bar synchronously pilotes the scrolling of the two following windows: 
 
 * The signals tree window (on the left) 
 
-* The Timeline Window (central) 
+* The Timeline Window (on the right) 
 
-* The signals Statistics view (on the right)
+In the following picture, the user has scrolled down the signal tree to watch all stall signals of core #3. 
 
-In the following picture, the user scroll down the signal tree. 
-
-.. image:: /source/tools/docs/profiler/commands/images/image_4.png
+.. image:: /source/tools/docs/profiler/commands/images/image_5.png
 
 
-**Fig 5: Scrolling down the Signals Tree**
+**Fig 5: Scrolling down the Signals Tree to see stall signals**

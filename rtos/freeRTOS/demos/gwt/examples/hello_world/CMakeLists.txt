@@ -91,8 +91,8 @@ set(GWT_PMSIS           ${GWT_TARGET}/pmsis)
 set(GWT_PMSIS_BACKEND   ${GWT_PMSIS}/backend)
 set(GWT_PMSIS_RTOS      ${GWT_PMSIS}/rtos)
 set(GWT_PMSIS_IMPLEM    ${GWT_TARGET}/gap9/pmsis)
-set(GWT_PMSIS_API       $ENV{GAP_SDK_HOME}/rtos/pmsis/pmsis_api)
-set(GWT_PMSIS_BSP       $ENV{GAP_SDK_HOME}/rtos/pmsis/pmsis_bsp)
+set(GWT_PMSIS_API       $ENV{GAP_SDK_HOME}/rtos/pmsis/api)
+set(GWT_PMSIS_BSP       $ENV{GAP_SDK_HOME}/rtos/pmsis/bsp)
 
 # Include dir
 include_directories(
@@ -171,7 +171,6 @@ LIST(APPEND FREERTOS_SOURCES
   ${GWT_PMSIS_IMPLEM}/cluster/drivers/cluster_team/cl_team.c
   ${GWT_PMSIS_IMPLEM}/cluster/drivers/delegate/uart/uart_cl_internal.c
   ${GWT_PMSIS_IMPLEM}/cluster/drivers/decompressor/cl_dma_decompressor.c
-  ${GWT_PMSIS_IMPLEM}/cluster/drivers/decompressor/cl_dma_decompressor_internal.c
 
   # Drivers sources.
   ${GWT_PMSIS_IMPLEM}/drivers/dmacpy/dmacpy.c

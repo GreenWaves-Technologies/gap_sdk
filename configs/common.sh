@@ -16,25 +16,26 @@ export DEP_DIRS=$INSTALL_DIR
 export RULES_DIR=$GAP_SDK_HOME/utils/rules
 
 export NNTOOL_DIR=$GAP_SDK_HOME/tools/nntool
-export NNTOOL_PATH=$GAP_SDK_HOME/tools/nntool
+export NNTOOL_PATH=$GAP_SDK_HOME/tools/nntool/scripts
 export NNTOOL_KERNELS_PATH=$NNTOOL_DIR/autotiler/kernels
 export NNTOOL_MATH_PATH=$NNTOOL_DIR/autotiler/math_funcs
 export NNTOOL_GENERATOR_PATH=$NNTOOL_DIR/autotiler/generators
 export PATH=$PATH:"$GAP_SDK_HOME"
-export PATH="$NNTOOL_DIR":$PATH
+export PATH="$NNTOOL_PATH":$PATH
+export PYTHONPATH="$NNTOOL_DIR":$PYTHONPATH
 
 # OpenMP
 export OPENMP_DIR="$GAP_SDK_HOME/libs/openmp"
 
 # PulpOS 2
 export PULPOS_HOME=$GAP_SDK_HOME/rtos/pulp/pulpos-2
-export PULPOS_MODULES="$GAP_SDK_HOME/rtos/pmsis/pmsis_implem $GAP_SDK_HOME/rtos/pulp/pulpos-2_gap8 $GAP_SDK_HOME/rtos/pulp/pulpos-2_gap9 $GAP_SDK_HOME/rtos/pmsis/pmsis_bsp $OPENMP_DIR $GAP_SDK_HOME/rtos/sfu"
+export PULPOS_MODULES="$GAP_SDK_HOME/rtos/pmsis/implem $GAP_SDK_HOME/rtos/pulp/pulpos-2_gap8 $GAP_SDK_HOME/rtos/pulp/pulpos-2_gap9 $GAP_SDK_HOME/rtos/pmsis/bsp $OPENMP_DIR $GAP_SDK_HOME/rtos/sfu"
 export PULPOS_GAP8_HOME=$GAP_SDK_HOME/rtos/pulp/pulpos-2_gap8
 export PULPOS_GAP9_HOME=$GAP_SDK_HOME/rtos/pulp/pulpos-2_gap9
 export GAP_PULPOS_ARCHI=$GAP_SDK_HOME/rtos/pulp/gap_archi
 export PULPOS_ARCHI=$GAP_SDK_HOME/rtos/pulp/archi_pulp
 export PULPOS_HAL=$GAP_SDK_HOME/rtos/pulp/hal_pulp
-export PMSIS_API=$GAP_SDK_HOME/rtos/pmsis/pmsis_api
+export PMSIS_API=$GAP_SDK_HOME/rtos/pmsis/api
 
 # SFU
 export SFU_RUNTIME=$GAP_SDK_HOME/rtos/sfu
@@ -70,6 +71,8 @@ if [ -d "$GAP_SDK_HOME/gvsoc/gvsoc_libs" ]; then
 fi
 export PYTHONPATH=$GAP_SDK_HOME/gvsoc/gvsoc_gap/models:$PYTHONPATH
 export PYTHONPATH=$GAP_SDK_HOME/gvsoc/gvsoc/engine/python:$PYTHONPATH
+export PYTHONPATH=$GAP_SDK_HOME/gvsoc/gvsoc/generators:$PYTHONPATH
+export PYTHONPATH=$GAP_SDK_HOME/gvsoc/gvsoc_gap/generators:$PYTHONPATH
 
 # gaptest
 

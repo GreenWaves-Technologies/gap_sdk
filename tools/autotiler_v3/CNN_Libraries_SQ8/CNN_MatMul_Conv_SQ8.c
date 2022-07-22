@@ -83,7 +83,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_SQ8_act(
 	int Wo = Arg->Wo, Ho = Arg->Ho;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	/* ColBuff must be large enough to accomodate Align(Fx*InFeat, 8) elements */
 	v4s * __restrict__ VBuff = (v4s *) ColBuff;
@@ -238,7 +238,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1x1_HWC_SQ8_act(
 	int Wo = Arg->Wo, Ho = Arg->Ho;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	unsigned int CoreId = gap_coreid();
 	unsigned int ChunkCell = ChunkSize(OutFeat), First = CoreId*ChunkCell, Last  = Min(OutFeat, First+ChunkCell);
@@ -465,7 +465,7 @@ static inline void __attribute__((always_inline)) Ker_MM_Conv1x1_HWC_SQ8_act(
 	int Wo = Arg->Wo, Ho = Arg->Ho;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	unsigned int CoreId = gap_coreid();
 	unsigned int ChunkCell = ChunkSize(Ho), First = Min(Ho, CoreId*ChunkCell), Last  = Min(Ho, First+ChunkCell);
@@ -690,7 +690,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_HWC_SQ8_act(
 	int Wo = Arg->Wo, Ho = Arg->Ho;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	/* ColBuff must be large enough to accomodate Align(Fx*InFeat, 8) elements */
 	v4s * __restrict__ VBuff = (v4s *) ColBuff;
@@ -966,7 +966,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_DxDy_SQ8_act(
 	int Wo = Arg->Wo, Ho = Arg->Ho;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	/* ColBuff must be large enough to accomodate Align(Fx*InFeat, 8) elements */
 	v4s * __restrict__ VBuff = (v4s *) ColBuff;
@@ -1092,7 +1092,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv1D_DxDy_HWC_SQ8_
 
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	/* ColBuff must be large enough to accomodate Align(Fx*InFeat, 8) elements */
 	v4s * __restrict__ VBuff = (v4s *) ColBuff;
@@ -1400,7 +1400,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv2D_SQ8_act(
 
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	/* ColBuff must be large enough to accomodate Align(Fx*InFeat, 8) elements */
 	v4s * __restrict__ VBuff = (v4s *) ColBuff;
@@ -1583,7 +1583,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv2D_HWC_SQ8_act(
 	int Wo = Arg->Wo, Ho = Arg->Ho;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	/* ColBuff must be large enough to accomodate Align(Fx*InFeat, 8) elements */
 	v4s * __restrict__ VBuff = (v4s *) ColBuff;
@@ -1905,7 +1905,7 @@ static inline void __attribute__((always_inline)) Ker_MM_Conv2D_HWC_SQ8_act(
 	int Wo = Arg->Wo, Ho = Arg->Ho;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 
 	unsigned int W_In1 = InFeat*Fx*Fy;
@@ -2241,7 +2241,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv2D_DxDy_SQ8_act(
 	int Wo = Arg->Wo, Ho = Arg->Ho;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	/* ColBuff must be large enough to accomodate Align(Fx*InFeat, 8) elements */
 	v4s * __restrict__ VBuff = (v4s *) ColBuff;
@@ -2373,7 +2373,7 @@ static inline void __attribute__((always_inline)) KerPar_MM_Conv2D_DxDy_HWC_SQ8_
 	int Wo = Arg->Wo, Ho = Arg->Ho;
 	unsigned char * Infos = (unsigned char *) Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = *((unsigned char *) &Infos[AT_INF_A0]); int B0 = *((unsigned char *) &Infos[AT_INF_B0]); int C0 = *((unsigned char *) &Infos[AT_INF_C0]);
+	int A0 = *((signed char *) &Infos[AT_INF_A0]); int B0 = *((signed char *) &Infos[AT_INF_B0]); int C0 = *((signed char *) &Infos[AT_INF_C0]);
 
 	/* ColBuff must be large enough to accomodate Align(Fx*InFeat, 8) elements */
 	v4s * __restrict__ VBuff = (v4s *) ColBuff;

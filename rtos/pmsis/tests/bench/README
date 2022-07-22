@@ -1,0 +1,14 @@
+This repository contains a benchmark suite for PMSIS to track performance regressions and compare different implementations in terms of performances.
+
+The benchmark can be launched with:
+
+make test
+
+The following items can be configured (default values are displayed):
+
+make test PMSIS_OS=pulpos PLATFORM=gvsoc
+
+The benchmark results can be found in result.csv and the score can be displayed with:
+
+make score
+

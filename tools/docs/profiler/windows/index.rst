@@ -3,19 +3,19 @@
 Other Profiler Windows
 ======================
 
-Around the central Profiler Window, which comprises the Signals Tree , the Timeline and the Signals Time up statistics (optional) windows, many other dock windows can be displayed. Whether they show up or not can be monitored by the user through the View Menu.
+Around the central Profiler Window, which comprises the Signals Tree and the Timeline windows, other dock windows can be displayed. Whether they show up or not can be monitored by the user through the View Menu.
 
-This menu displays the name of all those optional windows, along with a button that can be checked or not by the user, depending on whether he wants this window to show up or not.
+This menu displays the name of all those optional windows, along with a button that can be checked or not by the user, depending on whether he/she wants this window to show up or not.
 
-* Overview
+* Source code 
 
-* Functions
+* Hotspots (by time)
 
-* Source Code
+* Hotspots by functions
 
-* ASM Code
+* Hotspots by file
 
-* Signals Statistics
+* Hotspots by line
 
 Additionally, each of those dock windows is independent and can be:
 
@@ -27,12 +27,15 @@ Additionally, each of those dock windows is independent and can be:
 
 * Closed by clicking on the "cross button “ on its upper right corner
 
-.. image:: ./images/image_12.png
+* Tabbed together as it is by defauld
+
+
+.. image:: ./images/image_23.png
 
 
 **Fig 13: Dock Windows Placement within the profiler window**
 
-.. image:: ./images/image_13.png
+.. image:: ./images/image_24.png
 
 
 **Fig 14: Source code Dock Window independent placement above the Profiler window**
@@ -41,8 +44,10 @@ Additionally, each of those dock windows is independent and can be:
    :maxdepth: 2
    :caption: Contents:
 
-   overview
-   functions
+   hotspots
    source_code
-   asm_code
-
+   hotspots_by_functions
+   hotspots_by_file
+   hotspots_by_line
+   hotspots_by_interval
+   

@@ -1,0 +1,25 @@
+name: uart_ble_nina_b112
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    std:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ~
+        compile_only: true
+    flow_control:
+        name: flow_control
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: FLOW_CONTROL=1
+        compile_only: true

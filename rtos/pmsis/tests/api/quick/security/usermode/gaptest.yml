@@ -1,0 +1,24 @@
+name: security_usermode
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap9
+variants:
+    std:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ~
+    xip:
+        name: xip
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: CONFIG_XIP=1
+        compile_only: true

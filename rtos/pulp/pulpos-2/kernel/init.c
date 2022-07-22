@@ -56,7 +56,7 @@ static void pos_init_do_dtors(void)
 static void pos_init_bss()
 {
 #ifdef __GAP9__
-    if (pi_pmu_get_prev_state(PI_PMU_DOMAIN_CHIP) != PI_PMU_DOMAIN_STATE_DEEP_SLEEP_RETENTIVE)
+    if (pi_pmu_boot_state_get() != PI_PMU_DOMAIN_STATE_DEEP_SLEEP_RETENTIVE)
     {
         unsigned int *bss = (unsigned int *)pos_bss_start();
         unsigned int *bss_end = (unsigned int *)pos_bss_end();
@@ -79,9 +79,15 @@ void __attribute__((weak)) pi_bsp_init()
 
 void pos_init_start()
 {
+    pos_io_init();
+
     INIT_INF("Starting runtime initialization\n");
 
     pos_kernel_init();
+
+#if defined(CONFIG_MULTI_THREADING)
+    __pi_thread_sched_init();
+#endif
 
     pos_irq_init();
 

@@ -37,6 +37,7 @@ if(${WithFrameBuffer})
     target_link_libraries(FFT2D_generator_test PRIVATE SDL2)
     target_link_libraries(FFT2D_generator_test PRIVATE SDL2_ttf)
 endif()
+target_link_libraries(FFT2D_generator_test PRIVATE m)
 
 add_dependencies(FFT2D_generator_test libtile)
 

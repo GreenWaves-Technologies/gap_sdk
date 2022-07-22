@@ -25,6 +25,5 @@
 int insn_cache_init(iss_t *iss);
 void iss_cache_flush(iss_t *iss);
 iss_insn_t *insn_cache_get(iss_t *iss, iss_addr_t pc);
-iss_insn_t *insn_cache_get_decoded(iss_t *iss, iss_addr_t pc);
 
 #endif

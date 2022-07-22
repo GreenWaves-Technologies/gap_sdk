@@ -31,7 +31,7 @@ public:
     Clock(js::config *config);
 
     int build();
-    void start();
+    void reset(bool active);
 
 private:
     static void edge_handler(void *__this, vp::clock_event *event);
@@ -131,14 +131,20 @@ int Clock::build()
     return 0;
 }
 
-void Clock::start()
+void Clock::reset(bool active)
 {
-    this->frequency = this->get_clock()->get_frequency();
-    this->clock_sync_itf.set_frequency(this->get_clock()->get_frequency() / 2);
-
-    if (this->powered_on)
+    if (!active)
     {
-        this->event_enqueue(this->event, 1);
+        this->frequency = this->get_clock()->get_frequency();
+        this->clock_sync_itf.set_frequency(this->get_clock()->get_frequency() / 2);
+
+        if (this->powered_on)
+        {
+            if (!this->event->is_enqueued())
+            {
+                this->event_enqueue(this->event, 1);
+            }
+        }
     }
 }
 

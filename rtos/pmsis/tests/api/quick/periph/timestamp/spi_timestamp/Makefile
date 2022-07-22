@@ -1,0 +1,22 @@
+-include $(RULES_DIR)/properties.mk
+
+CONFIG_SPIM=1
+
+APP_CFLAGS = $(TEST_CFLAGS)
+
+APP_CFLAGS += -DSPIM_ITF=0
+APP_CFLAGS += -DSPIM_CS=0
+
+APP_CFLAGS += -DSPIS_ITF=1
+APP_CFLAGS += -DSPIS_CS=0
+
+APP_CFLAGS += -DPOLARITY=0
+APP_CFLAGS += -DPHASE=0
+
+#APP_CFLAGS += -DLOOPBACK_TEST
+
+APP = test
+APP_SRCS += test.c
+APP_CFLAGS += -Os -g
+
+include $(RULES_DIR)/pmsis_rules.mk

@@ -1,0 +1,4 @@
+/* make the page width fill the window */
+.wy-nav-content {
+   max-width: none;
+}

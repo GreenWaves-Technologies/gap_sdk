@@ -9,3 +9,8 @@ vp_model(NAME eu_v4_impl
     PREFIX ${EVENT_UNIT_PREFIX}
     SOURCES "eu_v4_impl.cpp"
     )
+
+vp_model(NAME eu_v5_impl
+    PREFIX ${EVENT_UNIT_PREFIX}
+    SOURCES "eu_v5_impl.cpp"
+)

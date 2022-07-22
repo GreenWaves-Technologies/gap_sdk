@@ -3,17 +3,17 @@
 Running the Profiler
 ====================
 
-To run the profiler, first go to an example. Let’s try the mnist  example: 
+To run the profiler, first go to an example. Let’s try the fork  example: 
 
->cd ~/gap_sdk/examples/nntool/mnist
+>cd ~/gap_sdk/tests/pmsis_tests/quick/cluster/fork
 
-Then run the profiler:
+Then build the example and run the profiler:
 
->make all run profiler PMSIS_OS=pulpos platform=gvsoc
+>make all profile platform=gvsoc
 
 This launches the profiler graphics application and the profiler window is displayed with an empty timeline window that will later on display all the GAP9 signals transferred from Gvsoc. 
 
-.. image:: /source/tools/docs/profiler/images/image_0.png
+.. image:: /source/tools/docs/profiler/images/image_1.png
 
 
 **Fig 1: Profiler Window**

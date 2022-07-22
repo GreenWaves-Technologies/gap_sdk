@@ -32,7 +32,7 @@ class Gap9_core(Riscv_core):
                 IsaDecodeTree('priv', [priv]),
                 IsaDecodeTree('pulp_v2', [pulp_v2]),
                 IsaDecodeTree('f', [rv32f]),
-                IsaDecodeTree('sfloat', [Xf16, Xf16alt, Xf8, Xfvec, Xfaux]),
+                IsaDecodeTree('sfloat', [Xf16, Xf16alt, Xfvec]),
                 IsaDecodeTree('gap9', [gap9]),
                 IsaDecodeTree('int64', [int64]),
             ]

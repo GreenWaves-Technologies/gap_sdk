@@ -74,6 +74,15 @@
 
 #endif  /* HW_VERIF_ONLY */
 
+/* PMSIS implem includes */
+#ifdef __GAP9__
+#include "chips/gap9/drivers/cluster/implem.h"
+#include "malloc/alloc_types.h"
+#include "malloc/cl_alloc.h"
+#include <malloc/alloc.h>
+#include <malloc/alloc_pool.h>
+#endif
+
 /* Hal includes. */
 #include "pmsis/implem/hal/hal.h"
 

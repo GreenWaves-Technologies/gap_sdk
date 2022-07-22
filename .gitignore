@@ -25,5 +25,4 @@ __pycache__*
 
 # Miscellaneous files
 *.log
-*.wav
 .scon*

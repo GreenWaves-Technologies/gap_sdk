@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import os
 import json
 import numpy as np
@@ -19,6 +18,8 @@ def create_parser():
 						help="numpy window function (e.g. hanning)")
 	parser.add_argument('--frame_size', required="--params_json" not in sys.argv, type=int,
 						help="size in number of samples of one frame")
+	parser.add_argument('--window_size', default=None, type=int,
+						help="size in number of samples of each window (center padded if less than frame_size)")
 	parser.add_argument('--gen_inv', action="store_true",
 						help="generate the inverse window lut")
 	parser.add_argument('--dtype', default="int")
@@ -37,6 +38,8 @@ def main():
 
 	win_lut_file     = args.win_lut_file     if not "win_lut_file"	   in models_params else models_params["win_lut_file"]
 	frame_size       = args.frame_size       if not "frame_size"	   in models_params else models_params["frame_size"]
+	window_size      = args.window_size      if not "window_size"	   in models_params else models_params["window_size"]
+	window_size 	 = window_size if window_size is not None else frame_size
 	window_fn        = args.win_func         if not "win_func"		   in models_params else models_params["win_func"]
 	gen_inv		     = args.gen_inv     	 if not "gen_inv"	 	   in models_params else models_params["gen_inv"]
 	dtype     		 = args.dtype 		     if not "dtype"	   		   in models_params else models_params["dtype"]
@@ -52,7 +55,11 @@ def main():
 
 	print(dtype)
 	win_func = getattr(np, window_fn)
-	win_lut = win_func(frame_size)
+	win_lut = win_func(window_size)
+	if window_size < frame_size:
+		pad_before = int((frame_size - window_size) // 2)
+		pad_after = int((frame_size - window_size) - pad_before)
+		win_lut = np.pad(win_lut, (pad_before, pad_after))
 	if dtype == "int":
 		Window = (win_lut * 2**(15)).astype(np.int16)
 	else:

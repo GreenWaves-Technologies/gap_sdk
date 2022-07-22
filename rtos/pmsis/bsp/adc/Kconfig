@@ -1,0 +1,6 @@
+menu "ADC"
+    config BSP_DRIVER_ADC_ADS1014
+        bool "ADS1014"
+        default n
+        select PMSIS_IMPLEM_I2C
+endmenu

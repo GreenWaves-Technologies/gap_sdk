@@ -1,0 +1,54 @@
+name: flash_simple
+platforms:
+    - gvsoc
+os:
+    - freertos
+    - pulpos
+chips:
+    - gap8
+    - gap9
+variants:
+    mram:
+        name: 'mram'
+        chips:
+            - gap9
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: 'FLASH_TYPE=MRAM'
+    octospi:
+        name: 'octospi_flash'
+        chips:
+            - gap9
+        tags:
+            - integration
+            - release
+        duration: standard
+        boards:
+            - gap9_evk
+        platforms:
+            - rtl
+            - board
+        flags: 'FLASH_TYPE=SPI_FLASH'
+    spiflash:
+        name: 'spiflash'
+        chips:
+            - gap8
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: 'FLASH_TYPE=SPI_FLASH'
+    hyperflash:
+        name: 'hyperflash'
+        tags:
+            - integration
+            - release
+        duration: standard
+        boards:
+            - gap9_v2
+        platforms:
+            - gvsoc
+            - rtl
+        flags: 'FLASH_TYPE=HYPER_FLASH'

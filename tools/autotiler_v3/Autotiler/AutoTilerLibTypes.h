@@ -112,6 +112,7 @@ typedef enum {
 	KOP_COLLAPSE,
 	KOP_COPY,
 	KOP_CONCAT,
+	KOP_SPLIT,
 
 	KOP_RNN,
 	KOP_LSTM,
@@ -192,6 +193,8 @@ typedef enum {
 	KOP_CONVERT_FP_FP_SCALE,
 	KOP_CONVERT_FL_FP,
 	KOP_CONVERT_FP_FL,
+
+        KOP_CUSTOM,             /* Custom activation - name defined in generator control */
 
 	KOP_LAST
 
@@ -439,31 +442,32 @@ typedef enum {
 	KER_ARG_FIRST_PARTILE_SIZE = 34,/**< Size of first tile from a parametric space */
 	KER_ARG_NEXT_PARTILE_SIZE = 35,	/**< Size of next tile from a parametric space */
 	KER_ARG_NEXT_TILELAST = 36,	/**< Predicate, != 0 if next tile is the last one */
+	KER_ARG_NAME = 37,		/**< Kernel argument name */
 
-	KER_IT_INDEX = 37,		/**< Actual value of a given kernel iterator */
+	KER_IT_INDEX = 38,		/**< Actual value of a given kernel iterator */
 
-	TC_ARG = 38,			/**< A C argument */
-	TC_IMM = 39,			/**< An immediate int value */
-	TC_USYMB = 40,			/**< A user defined symbol */
-	TC_KDIM = 41,			/**< One of the user Kernel Dimensions */
-	TC_ARG_IND = 42,		/**< An indirection on a C argument */
-	TC_ARG_IND_IT_INDEX = 43, 	/**< An indirection on a C argument with respect to actual value of ItSpace */
-	TC_ARG_PLUS_IT_INDEX = 44, 	/**< A C argument added to actual value of ItSpace, ItSpace multiplied by a constant */
+	TC_ARG = 39,			/**< A C argument */
+	TC_IMM = 40,			/**< An immediate int value */
+	TC_USYMB = 41,			/**< A user defined symbol */
+	TC_KDIM = 42,			/**< One of the user Kernel Dimensions */
+	TC_ARG_IND = 43,		/**< An indirection on a C argument */
+	TC_ARG_IND_IT_INDEX = 44, 	/**< An indirection on a C argument with respect to actual value of ItSpace */
+	TC_ARG_PLUS_IT_INDEX = 45, 	/**< A C argument added to actual value of ItSpace, ItSpace multiplied by a constant */
 
 
 	/* Deprecated */
-	KER_ARG_INPLANEINDEX = 45,	/**< Current Input Plane index for related user kernel argument, starts at 0 */
-	KER_ARG_OUTPLANEINDEX = 46,	/**< Current Output Plane index for related user kernel argument, starts at 0 */
+	KER_ARG_INPLANEINDEX = 46,	/**< Current Input Plane index for related user kernel argument, starts at 0 */
+	KER_ARG_OUTPLANEINDEX = 47,	/**< Current Output Plane index for related user kernel argument, starts at 0 */
 
-	TC_ARG_IND_IP = 47,		/**< A C argument subscripted by the current In Data Plane iteration index */ // SHOULD BE REPLACED BY TC_ARG_IND_DIM Carg[Dim_Index]
-	TC_ARG_IND_OP = 48,		/**< A C argument subscripted by the current Out Data Plane iteration index */
-	TC_ARG_IND_TILE = 49,		/**< A C argument subscripted by the current current most inner iteration index on argument basic data plane */
-	TC_ARG_PLUS_IND_IP = 50,	/**< A C argument added to the current In Data Plane iteration index multiplied by a constant */
-	TC_ARG_PLUS_IND_OP = 51,	/**< A C argument added to the current Out Data Plane iteration index multiplied by a constant*/
-	TC_ARG_PLUS_IND_TILE = 52,	/**< A C argument added to the current current most inner iteration index on argument basic data plane multiplied by a constant */
+	TC_ARG_IND_IP = 48,		/**< A C argument subscripted by the current In Data Plane iteration index */ // SHOULD BE REPLACED BY TC_ARG_IND_DIM Carg[Dim_Index]
+	TC_ARG_IND_OP = 49,		/**< A C argument subscripted by the current Out Data Plane iteration index */
+	TC_ARG_IND_TILE = 50,		/**< A C argument subscripted by the current current most inner iteration index on argument basic data plane */
+	TC_ARG_PLUS_IND_IP = 51,	/**< A C argument added to the current In Data Plane iteration index multiplied by a constant */
+	TC_ARG_PLUS_IND_OP = 52,	/**< A C argument added to the current Out Data Plane iteration index multiplied by a constant*/
+	TC_ARG_PLUS_IND_TILE = 53,	/**< A C argument added to the current current most inner iteration index on argument basic data plane multiplied by a constant */
 
-	TC_ARG_PLUS_OFFSET = 53,	/**< A C argument plus an immediate offset */
-	TC_ARG_PLUS_C_OFFSET = 54,	/**< A C argument plus a C variable name offset */
+	TC_ARG_PLUS_OFFSET = 54,	/**< A C argument plus an immediate offset */
+	TC_ARG_PLUS_C_OFFSET = 55,	/**< A C argument plus a C variable name offset */
 	KER_ARG_SEL_LAST
 } KernelArgSelect_T;
 
@@ -524,78 +528,48 @@ typedef enum {
 
 
 
-/**< Argument is an input */
-#define	O_IN      	((uint64_t) ((uint64_t)1<<0))
-/**< Argument is not an input */
-#define	O_NIN     	((uint64_t) ((uint64_t)1<<1))
-/**< Argument is an output */
-#define	O_OUT     	((uint64_t) ((uint64_t)1<<2))
-/**< Argument is not an output */
-#define	O_NOUT    	((uint64_t) ((uint64_t)1<<3))
-/**< Argument is a buffer */
-#define	O_BUFF    	((uint64_t) ((uint64_t)1<<4))
-/**< Argument is not a buffer */
-#define	O_NBUFF   	((uint64_t) ((uint64_t)1<<5))
-/**< Argument should be tiled */
-#define	O_TILED   	((uint64_t) ((uint64_t)1<<6))
-/**< Argument should not be tiled */
-#define	O_NTILED  	((uint64_t) ((uint64_t)1<<7))
-/**< Argument should be exactly one tile in shared L1 */
-#define	O_ONETILE 	((uint64_t) ((uint64_t)1<<8))
-/**< Argument should can have multiple tiles in shared L1 */
-#define	O_NONETILE	((uint64_t) ((uint64_t)1<<9))
-/**< Argument should be double buffered ((or triple) */
-#define	O_DB      	((uint64_t) ((uint64_t)1<<10))
-/**< Argument should be single buffered */
-#define	O_NDB     	((uint64_t) ((uint64_t)1<<11))
-/**< Argument is in L3 and should be double or triple buffered in L2 */
-#define	O_L2DB    	((uint64_t) ((uint64_t)1<<12))
-/**< Argument is not in L3 */
-#define	O_NL2DB   	((uint64_t) ((uint64_t)1<<13))
-/**< Argument is aliased to another argument, different name but same memory location */
-#define	O_ALIAS   	((uint64_t) ((uint64_t)1<<14))
-/**< Argument is not aliased */
-#define	O_NALIAS  	((uint64_t) ((uint64_t)1<<15))
-/**< Argument tile size is adjusted dynamically */
-#define	O_DYNTILE 	((uint64_t) ((uint64_t)1<<16))
-/**< Argument is constant, applies to input only */
-#define	O_CONST		((uint64_t) ((uint64_t)1<<17))
-/**< Argument should be allocated without alignment padding between it and prev in declaration list */
-#define	O_STACK_PRED	((uint64_t) ((uint64_t)1<<18))
-/**< Argument has O_IN and O_BUFF attribute and load is always performed even if no iteration */
-#define	O_ALWAYS_LOAD	((uint64_t) ((uint64_t)1<<19))
-/**< Argument has O_IN and O_BUFF attribute but load is not performed */
-#define	O_NO_LOAD	((uint64_t) ((uint64_t)1<<20))
-/**< Argument has O_OUT and O_BUFF attribute but store is not performed */
-#define	O_NO_STORE	((uint64_t) ((uint64_t)1<<21))
-/**< Argument Item Size is expressed in bits instead of bytes */
-#define	O_BIT		((uint64_t) ((uint64_t)1<<22))
-/**< Argument is always accessed with a 1D access, may require layout reorg prior as a consequence Arg should be const */
-#define	O_LINEAR	((uint64_t) ((uint64_t)1<<23))
-/**< Argument is a NE16 weights tensor for pointwise convolution */
-#define	O_NE16_PW	((uint64_t) ((uint64_t)1<<24))
-/**< Argument is a NE16 weights tensor for depthwise convolution */
-#define	O_NE16_DW	((uint64_t) ((uint64_t)1<<25))
-/**< Argument is a NE16 weights tensor for linear layer */
-#define	O_NE16_LIN	((uint64_t) ((uint64_t)1<<26))
-/**< Argument is a NE16 weights tensor for basic 3x3 mode layer */
-#define	O_NE16_3X3	((uint64_t) ((uint64_t)1<<27))
-/**< Argument is a float */
-#define	O_FLOAT		((uint64_t) ((uint64_t)1<<28))
-/**< Argument is a HWC tensor */
-#define	O_HWC		((uint64_t) ((uint64_t)1<<29))
-/**< Argument is a NE16 weights tensor for RNN layer */
-#define	O_NE16_RNN	((uint64_t) ((uint64_t)1<<30))
-/**< Argument is a NE16 interleaved tensor for RNN layer */
-#define	O_NE16_INTER	((uint64_t) ((uint64_t)1<<31))
-/**< Argument is a NE16 mode16*/
-#define	O_NE16_MODE16	((uint64_t) ((uint64_t)1<<32))
-/**< Argument traverses the 3rd level of iteration on the basic data plane */
-#define	O_TILE2   	((uint64_t) ((uint64_t)1<<59))
-/**< Argument traverses the 2nd level of iteration on the basic data plane */
-#define	O_TILE1   	((uint64_t) ((uint64_t)1<<60))
-/**< Argument traverses the 1st level of iteration on the basic data plane, this should always be the case if tiled */
-#define	O_TILE0   	((uint64_t) ((uint64_t)1<<61))
+#define	O_IN      	((uint64_t) ((uint64_t)1<<0)) 	/**< Argument is an input */
+#define	O_NIN     	((uint64_t) ((uint64_t)1<<1))	/**< Argument is not an input */
+#define	O_OUT     	((uint64_t) ((uint64_t)1<<2))	/**< Argument is an output */
+#define	O_NOUT    	((uint64_t) ((uint64_t)1<<3))	/**< Argument is not an output */
+#define	O_BUFF    	((uint64_t) ((uint64_t)1<<4))	/**< Argument is a buffer */
+#define	O_NBUFF   	((uint64_t) ((uint64_t)1<<5))	/**< Argument is not a buffer */
+#define	O_TILED   	((uint64_t) ((uint64_t)1<<6))	/**< Argument should be tiled */
+#define	O_NTILED  	((uint64_t) ((uint64_t)1<<7))	/**< Argument should not be tiled */
+#define	O_ONETILE 	((uint64_t) ((uint64_t)1<<8))	/**< Argument should be exactly one tile in shared L1 */
+#define	O_NONETILE	((uint64_t) ((uint64_t)1<<9))	/**< Argument should can have multiple tiles in shared L1 */
+#define	O_DB      	((uint64_t) ((uint64_t)1<<10))	/**< Argument should be double buffered ((or triple) */
+#define	O_NDB     	((uint64_t) ((uint64_t)1<<11))	/**< Argument should be single buffered */
+#define	O_L2DB    	((uint64_t) ((uint64_t)1<<12))	/**< Argument is in L3 and should be double or triple buffered in L2 */
+#define	O_NL2DB   	((uint64_t) ((uint64_t)1<<13))	/**< Argument is not in L3 */
+#define	O_ALIAS   	((uint64_t) ((uint64_t)1<<14))	/**< Argument is aliased to another argument, different name but same memory location */
+#define	O_NALIAS  	((uint64_t) ((uint64_t)1<<15))	/**< Argument is not aliased */
+#define	O_DYNTILE 	((uint64_t) ((uint64_t)1<<16))	/**< Argument tile size is adjusted dynamically */
+#define	O_CONST		((uint64_t) ((uint64_t)1<<17))	/**< Argument is constant, applies to input only */
+#define	O_STACK_PRED	((uint64_t) ((uint64_t)1<<18))	/**< Argument should be allocated without alignment padding between it and prev in declaration list */
+#define	O_ALWAYS_LOAD	((uint64_t) ((uint64_t)1<<19))	/**< Argument has O_IN and O_BUFF attribute and load is always performed even if no iteration */
+#define	O_NO_LOAD	((uint64_t) ((uint64_t)1<<20))	/**< Argument has O_IN and O_BUFF attribute but load is not performed */
+#define	O_NO_STORE	((uint64_t) ((uint64_t)1<<21))	/**< Argument has O_OUT and O_BUFF attribute but store is not performed */
+#define	O_BIT		((uint64_t) ((uint64_t)1<<22))	/**< Argument Item Size is expressed in bits instead of bytes */
+#define	O_LINEAR	((uint64_t) ((uint64_t)1<<23))	/**< Argument is always accessed with a 1D access, may require layout reorg prior as a consequence Arg should be const */
+#define	O_NE16_PW	((uint64_t) ((uint64_t)1<<24))	/**< Argument is a NE16 weights tensor for pointwise convolution */
+#define	O_NE16_DW	((uint64_t) ((uint64_t)1<<25))	/**< Argument is a NE16 weights tensor for depthwise convolution */
+#define	O_NE16_LIN	((uint64_t) ((uint64_t)1<<26))	/**< Argument is a NE16 weights tensor for linear layer */
+#define	O_NE16_3X3	((uint64_t) ((uint64_t)1<<27))	/**< Argument is a NE16 weights tensor for basic 3x3 mode layer */
+#define	O_FLOAT		((uint64_t) ((uint64_t)1<<28))	/**< Argument is a float */
+#define	O_HWC		((uint64_t) ((uint64_t)1<<29))	/**< Argument is a HWC tensor */
+#define	O_NE16_RNN	((uint64_t) ((uint64_t)1<<30))	/**< Argument is a NE16 weights tensor for RNN layer */
+#define	O_NE16_INTER	((uint64_t) ((uint64_t)1<<31))	/**< Argument is a NE16 interleaved tensor for RNN layer */
+#define	O_NE16_MODE16	((uint64_t) ((uint64_t)1<<32))	/**< Argument is a NE16 mode16 */
+
+#define	O_GROUP_HEAD	((uint64_t) ((uint64_t)1<<33))	/**< Argument is part of grouped arg and is the representent of this group */
+#define	O_IN_GROUP	((uint64_t) ((uint64_t)1<<34))	/**< Argument is part of grouped arg */
+
+#define	O_COMPRESSED	((uint64_t) ((uint64_t)1<<35))	/**< Argument is compressed */
+
+#define	O_TILE2   	((uint64_t) ((uint64_t)1<<59))	/**< Argument traverses the 3rd level of iteration on the basic data plane */
+#define	O_TILE1   	((uint64_t) ((uint64_t)1<<60))	/**< Argument traverses the 2nd level of iteration on the basic data plane */
+#define	O_TILE0   	((uint64_t) ((uint64_t)1<<61))	/**< Argument traverses the 1st level of iteration on the basic data plane, this should always be the case if tiled */
 typedef uint64_t BasicObjectType_T;
 
 /// @cond PrivateStuff
@@ -708,10 +682,12 @@ typedef enum {
 brief User Kernel optimization
 */
 typedef enum {
-	KER_OPT_NONE  = 0, /**< No optimization */
+	KER_OPT_NONE  = 0, 		/**< No optimization */
 	KER_OPT_BUFFER_PROMOTE = (1<<0), /**< When all user kernel arguments can fit into given L1 memory promote them to buffer */
 	KER_OPT_PARTIAL_BUFFER_PROMOTE = (1<<1), /**< When all tile of a user kernel argument across In Planes can fit into given L1 memory promote them to partial buffer */
-	KER_OPT_KEEP_GROUP = (1<<2), /**< When in part of a group and expanded in a graph all elements of the group should be kept together */
+	KER_OPT_KEEP_GROUP = (1<<2), 	/**< When in part of a group and expanded in a graph all elements of the group should be kept together */
+	KER_OPT_GROUP_HEAD = (1<<3),	/**< Kernel is part of a KEEP_GROUP sequence and is the first one of this group */
+	KER_OPT_GROUP_TAIL = (1<<4),	/**< Kernel is part of a KEEP_GROUP sequence and is the last one of this group */
 } KernelOptimizationT;
 
 /**
@@ -900,11 +876,11 @@ typedef struct {
 typedef struct {
 	unsigned int Dim;		/* Number of items in this particular dimension */
 	KernelIteratorT KerIterSpace;	/* A tiled Iterator (possibly a single tile) or a regular iterator, in case of a Ker Arg Sub Space only the most inner dim can be tiled */
-	uint64_t SpaceSize[2];		/* Total size of this sub space */
+	uint64_t SpaceSize[2];		/* Total size of this sub space - sub space indicates internal space including this one */
 	uint64_t PaddedSpaceSize;	/* Total size of this sub space with forced padding taken into account */
 	uint64_t SubSpaceSize[4];	/* In bytes size of one item of this sub space, In case sub space is parametric index 0 is std tile dim, index 1 is last tile dim  */
 	uint64_t UnitSubSpaceSize;	/* Size in bytes of the full sub space for a unit stride in space */
-	int64_t UnitStride;			/* Unit move stride along KerIterSpace */
+	int64_t UnitStride;		/* Unit move stride along KerIterSpace */
 	char IsAbs:1;			/* If 1 this subspace is addressable through Base (relative or not) + subscript, if 0 it is relative */
 	char InL1:1;			/* If 1 this subspace is entirely in L1 addressable through Base (relative or not) + subscript */
 	char Promoted:1;		/* If 1 this subspace has been promoted to buffer */
@@ -915,6 +891,7 @@ typedef struct {
 typedef struct {
 	unsigned int Dim;				/* Number of dimensions of this kernel argument */
 	uint64_t Size;					/* Total size in bytes or bits of this kernel argument, byte aligned */
+	uint64_t CompressedSize;			/* Total size in bytes of compressed constant */
 	uint64_t PaddedSize;				/* Total size in bytes or bits of this kernel argument, byte aligned, forced padding taken into account */
 	uint64_t BitSize;				/* Total size in bits of this kernel argument (unaligned) */
 	uint64_t PaddedBitSize;				/* Total size in bits of this kernel argument (unaligned), forced padding taken into account */
@@ -979,10 +956,12 @@ typedef enum {
 	AT_MEM_L3_HRAM,
 	AT_MEM_L3_QSPIRAM,
 	AT_MEM_L3_OSPIRAM,
+	AT_MEM_L3_DEFAULTRAM,
 	AT_MEM_L3_HFLASH,
 	AT_MEM_L3_QSPIFLASH,
 	AT_MEM_L3_OSPIFLASH,
 	AT_MEM_L3_MRAMFLASH,
+	AT_MEM_L3_DEFAULTFLASH,
 	AT_MEM_L2,
 	AT_MEM_L1,
 	AT_MEM_LAST
@@ -994,17 +973,21 @@ typedef enum {
 	AT_DUMP_OUT = 4,
 } AT_DumpTensor_T;
 
-#define IS_EXTERNAL_MEM(Mem) (((Mem)>=AT_MEM_L3_HRAM) && ((Mem)<=AT_MEM_L3_MRAMFLASH))
-#define IS_L3_RAM(Mem) (((Mem)>=AT_MEM_L3_HRAM) && ((Mem)<=AT_MEM_L3_OSPIRAM))
-#define IS_FLASH_LOC(Loc) (((Loc)==AT_MEM_L3_HFLASH)||((Loc)==AT_MEM_L3_QSPIFLASH)||((Loc)==AT_MEM_L3_OSPIFLASH)||((Loc)==AT_MEM_L3_MRAMFLASH))
+#define IS_EXTERNAL_MEM(Mem) (((Mem)>=AT_MEM_L3_HRAM) && ((Mem)<=AT_MEM_L3_DEFAULTFLASH))
+#define IS_L3_RAM(Mem) (((Mem)>=AT_MEM_L3_HRAM) && ((Mem)<=AT_MEM_L3_DEFAULTRAM))
+#define IS_FLASH_LOC(Loc) (((Loc)==AT_MEM_L3_DEFAULTFLASH)||((Loc)==AT_MEM_L3_HFLASH)||((Loc)==AT_MEM_L3_QSPIFLASH)||((Loc)==AT_MEM_L3_OSPIFLASH)||((Loc)==AT_MEM_L3_MRAMFLASH))
 #define IS_VALID_MEM(Mem) (((Mem)>=AT_MEM_L3_HRAM) && ((Mem)<=AT_MEM_L1))
 
 typedef struct {
-	char *FileName;	/* Name of the file containing the initial values */
-	int Format;	/* Float or fixed point */
-	int Binary;	/* 1: file content is binary, 0: file content is text */
-	int Size;	/* When Format is Fract Size in bits of the container */
-	int Fract;	/* When format is fract position of the point */
+	char *FileName;		/* Name of the file containing the initial values */
+	int Format;		/* Float or fixed point */
+	int Binary;		/* 1: file content is binary, 0: file content is text */
+	int Size;		/* When Format is Fract Size in bits of the container */
+	int Fract;		/* When format is fract position of the point */
+	char *LUTFileName; 	/* Name of the file containing lookup table values */
+	int LUTSize; 		/* Number of values in table */
+	int LUTBits; 		/* Bits for LUT index */
+	int LUTSparse; 		/* Table has a sparse value in last table entry */
 } ConstInit_T;
 
 typedef struct {
@@ -1021,9 +1004,11 @@ typedef struct {
 	NameT *ExportSymbolLoc;		/* For Graph CArg allocated by the autotiler external name to be used to export CArg mem location to outside world */
 } CArg_Descriptor_T;
 
+#define IS_COMPRESSED(Arg) 	((Arg) && ((Arg)->Init) && ((Arg)->Init->LUTFileName))
+#define IS_SPARSE(Arg) 		(IS_COMPRESSED(Arg) && (Arg)->Init->LUTSparse)
 #define HAS_ARG_INFO(Arg)	((Arg) && (Arg)->CArg && (Arg)->CArg->ArgInfo)
 #define ARG_IN_L2(Arg)		(HAS_ARG_INFO((Arg)) && ((Arg)->CArg->ArgInfo->ExecLoc==AT_MEM_L2))
-#define ARG_IN_L3(Arg)		(HAS_ARG_INFO((Arg)) && ((Arg)->CArg->ArgInfo->ExecLoc>=AT_MEM_L3_HRAM) && ((Arg)->CArg->ArgInfo->ExecLoc<=AT_MEM_L3_MRAMFLASH))
+#define ARG_IN_L3(Arg)		(HAS_ARG_INFO((Arg)) && ((Arg)->CArg->ArgInfo->ExecLoc>=AT_MEM_L3_HRAM) && ((Arg)->CArg->ArgInfo->ExecLoc<=AT_MEM_L3_DEFAULTFLASH))
 
 typedef struct AArgBindingDescr_T ArgBindingDescr_T;
 
@@ -1128,6 +1113,25 @@ typedef struct {
 	unsigned int Stride2D;
 } KerArgCost_T;
 
+typedef struct A_KerArgLUT_T {
+	Kernel_Arg_T *LUTKArg;		/* KArg with this LUT */
+	int RefCnt;			/* Number of KArgs using this LUT */
+	Kernel_Arg_T **LUTForKArg;	/* KArgs using this LUT */
+	int Bits;			/* Bits in LUT index - excluding sparse */
+	int Sparse;			/* 1 if has sparse bit */
+	int ElemBytes;			/* Size in bytes of the LUT element */
+	int ArgsCreated;		/* KerArg and CArg has been created */
+} KerArgLUT_T;
+
+typedef struct A_KerArgCompressed_T {
+	KerArgLUT_T *LUT;		/* Pointer to LUT */
+	int NTiles;
+	int *TileSizes;			/* Array of sizes of each Tile byte alligned */
+	int TotalTileSizes;
+	int MaxTileSize;		/* Maximum tile size i.e. L2 Buffer Size if in L3 */
+	int TotalExtSize;
+} KerArgCompressed_T;
+
 typedef struct A_Kernel_T Kernel_T;
 typedef struct A_Kernel_Arg_T {
 	NameT        *KerArgName;
@@ -1167,6 +1171,7 @@ typedef struct A_Kernel_Arg_T {
 	int BuffCount;
 	CKernel_Arg_T *CArg;
 	unsigned int Index;
+	int GroupIndex;
 	unsigned char R_Event;
 	unsigned char W_Event;
 	unsigned char R_Channel;
@@ -1176,8 +1181,21 @@ typedef struct A_Kernel_Arg_T {
 	KerArgCost_T *Cost;
 	Kernel_T *KerRef;
 	Kernel_Arg_T *Alias;
+	KerArgCompressed_T *Compressed;
+	KerArgLUT_T *LUT;
 } Kernel_Arg_T;
 
+typedef struct AKernel_Arg_List_T Kernel_Arg_List_T;
+typedef struct AKernel_Arg_List_T {
+	Kernel_Arg_T *Arg;
+	Kernel_Arg_List_T *Next;
+} Kernel_Arg_List_T;
+
+typedef struct {
+	Kernel_Arg_List_T *Args;
+	unsigned int GroupSize;
+	unsigned int BufferSize;
+} Kernel_Arg_Group_T;
 
 typedef struct A_Object_T {
 	NameT 	     *KerArgName;
@@ -1219,6 +1237,8 @@ typedef struct A_Object_T {
 	} Alias;
 	KerArgCost_T *Cost;
 	int PadValue;
+	KerArgCompressed_T *Compressed;
+	KerArgLUT_T *LUT;
 } Object_T;
 
 typedef enum {
@@ -1231,6 +1251,12 @@ typedef struct {
 	unsigned long long int Bandwidth;
 	float OperRatio;
 } KernelInfos_T;
+
+typedef enum {
+	AT_STACKEDTENSOR_NOTSET = 0,
+	AT_STACKEDTENSOR_SIZE_SET = 1,
+	AT_STACKEDTENSOR_OFFSET_SET = 2,
+} AT_StackedTensorsFlags_T;
 
 /* Stacked tensor:
  	Can be used in the following context;
@@ -1264,8 +1290,18 @@ typedef struct A_StackedTensors_T {
         NameT **InTensors;
         int *InTensorsSize;
         int *InTensorsOffset;
+        AT_StackedTensorsFlags_T *Flags;
         StackedTensors_T *Next;
 } StackedTensors_T;
+
+#define AT_STACK_MEMBER_MAGIC -1
+typedef struct {
+	char Magic;
+	char * DummyName;
+	int TensorSize;
+	int TensorOffset;
+	AT_StackedTensorsFlags_T Flags;
+} StackedTensorMember_T;
 
 typedef struct {
 	unsigned int L1Mem;
@@ -1295,7 +1331,11 @@ typedef struct A_Kernel_T {
 	Kernel_Arg_T **Arg;
 	Kernel_Arg_T **RefArg;
 	short int *ArgOrder;
+	Object_T *SparseArgObj;
 	unsigned int CArgCount;
+	unsigned int LUTCount;
+	KerArgLUT_T **LUTs;
+	KerArgCompressed_T *ActiveCompressed;
 	CKernel_Arg_T **CArg;
 	StackedTensors_T *StackedTensors;
 	unsigned int CCallsCount;
@@ -1308,6 +1348,9 @@ typedef struct A_Kernel_T {
 	KernelInfos_T *KerInfos;
 	NodeTypeTemplate_T *NodeTypeTemplate;
 	KernelCost_T *Cost;
+	Kernel_Arg_Group_T *ArgGroup;
+	int ArgGroupCount;
+	unsigned int MergedArgCount;
 } Kernel_T;
 
 typedef struct {
@@ -1335,7 +1378,10 @@ typedef struct {
 	char InDataSize;
 	char OutDataSize;
 	int GatePrenorm;
-	char FloatDump; /* if != 0 dump tensors as floats in operations that take multiple input types */
+	char FloatDump;         /* if != 0 dump tensors as floats in operations that take multiple input types */
+        char *CustomActivationName;    /* Name of activation function when kop is KOP_CUSTOM */
+        int CustomActivationInfos; /* Length of custom activation infos. If 0 custom activation has no infos */
+	int CompressedInputBits; /* If any input is a compressed constant number of bits in LUT index & 0x80 if sparse. 0 indicates input not compressed. Stored as 4 unsigned bytes in little endian int.*/
 } CNN_GenControl_T;
 
 typedef struct {
@@ -1499,6 +1545,7 @@ typedef struct AGraphEdgeWeb_T {
 	GraphEdgeWeb_T *Next;		/* Next Symbol */
 	SymbolAlloc_T *Alloc;		/* Memory allocation infos */
 	int IsLocal;			/* 1 if this symbol is local to the graph */
+	int GroupedArg;			/* if >=0 This symbol has been merged with another one and GroupedArg gives the symbol index, <0 if not grouped */
 } GraphEdgeWeb_T;
 
 typedef struct AGraphNodeCalls_T GraphNodeCalls_T;
@@ -1572,6 +1619,9 @@ typedef enum {
 	AT_GRAPH_SIZE_OPT,			/* Graph constructor, runner and destructor are compiled with -Os */
 	AT_GRAPH_WARM_CONSTRUCT,		/* If Warm arg should be added to constructor to bypass all but L1 mem allocation */
 	AT_GRAPH_CHECKSUM,			/* Trace checksum output tensors at inference time */
+	AT_GRAPH_GROUP_WEIGHTS,			/* Group const inputs of a user kernel when they have identical structure */
+	AT_GRAPH_ASYNC_FORK,			/* Replace sync fork by async one when feasible (inner call and a single call) */
+	AT_GRAPH_DUMP_GRAPH_OUTPUTS,		/* Trace graph output tensors at inference time */
 } AT_GraphCtrl_T;
 /*
 #define AT_OPT_ON	((void *) 1)
@@ -1598,8 +1648,11 @@ typedef struct {
 	NameT *DumpTensorNode;			/* Dump tensor defined by DumpTensorFilter for this specific node, if null dump all */
 	int PromoteArgsToStruct;		/* When 1 function calls arguments are promoted to structure */
 	int OptRunnerForSize;			/* When 1 forces CNN graph construct, runner and destruct to be compiled in Os */
-	int XtructWarmArg;			/* When 1 add Warm as an arg to xtruct */
+	unsigned int XtructWarmArg;		/* When 1 add Warm as an arg to xtruct, if 1 L1 alloc/dealloc, if 2 L1 alloc/dealloc and L2 dynamic alloc/dealloc */
 	int Checksum;
+	int GroupWeights;			/* When 1 const inputs with similar structure are grouped */
+	int AsyncFork;				/* When 1 fork are replaced by async fork if in inner loop and a single call */
+	int DumpGraphOutputs;
 } GraphControl_T;
 
 #define Q2F(V, N)               ((float) (((float) (V))/((1<<(N))-0)))
@@ -1633,6 +1686,7 @@ extern char *OutputDir;
 extern char *ConstDir;
 extern char *FlashDir;
 extern char *LibTemplateName;
+extern int ReentrantMode;
 
 extern Device_T L3_L2_Device[];
 extern Device_T L3_L2_Device_FC[];

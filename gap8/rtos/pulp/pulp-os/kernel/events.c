@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, ETH (germain.haugou@iis.ee.ethz.ch)
  */
 
@@ -77,7 +77,7 @@ void __rt_event_free(rt_event_t *event)
 {
 #if PULP_CHIP_FAMILY == CHIP_GAP
   rt_free(RT_ALLOC_PERIPH, (void *)event->implem.copy.periph_data, RT_PERIPH_COPY_PERIPH_DATA_SIZE);
-#endif  
+#endif
   rt_free(RT_ALLOC_FC_DATA, (void *)event, sizeof(rt_event_t));
 }
 
@@ -195,7 +195,7 @@ void __rt_event_execute(rt_event_sched_t *sched, int wait)
     if (wait) {
       // Pop first event from the queue. Loop until we pop a null event
       // We must always read again the queue head, as the executed
-      // callback can modify the queue 
+      // callback can modify the queue
       rt_wait_for_interrupt();
       rt_irq_enable();
 #if defined(ARCHI_CORE_RISCV_ITC)
@@ -273,6 +273,11 @@ void __rt_event_sched_init()
 void pi_task_push_delayed_us(pi_task_t *task, uint32_t delay)
 {
   rt_event_push_delayed(task, delay);
+}
+
+void pi_task_cancel_delayed_us(pi_task_t *task)
+{
+  rt_event_cancel_delayed(task);
 }
 
 #ifdef ARCHI_HAS_CLUSTER

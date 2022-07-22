@@ -53,6 +53,25 @@ Each of the available core is given a bucket. A synchronization barrier is used 
 line management. Delay line copy itself is handled by the core 0 of the cluster, note that the copy could have been parallelized.
 
 */
+
+void KerFirParallelInit(KerFirParallelInit_ArgT *Arg){
+	short int *In = Arg->In;
+	unsigned int NCoeffs = Arg->NCoeffs;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(NCoeffs);
+	unsigned int First = CoreId*ChunkCell;
+	unsigned int Last  = Min(First+ChunkCell, NCoeffs);
+	unsigned int i;
+
+	//for (i=0; i<NSamples; i++) {
+	/*The input is copied with an offset (padded) that here we init a 0*/
+	for (i=First; (unsigned int)i<Last; i++) {
+		In[i-NCoeffs]=0;
+	}
+	gap_waitbarrier(0);
+}
+
 void KerFirParallelNTaps(KerFirParallel_ArgT *Arg)
 
 {
@@ -65,17 +84,17 @@ void KerFirParallelNTaps(KerFirParallel_ArgT *Arg)
 	unsigned int Norm = Arg->Norm;
 
 	unsigned int CoreId = gap_coreid();
-        unsigned int ChunkCell = ChunkSize(NSamples);
-        unsigned int First = CoreId*ChunkCell;
-        unsigned int Last  = Min(First+ChunkCell, NSamples);
+    unsigned int ChunkCell = ChunkSize(NSamples);
+    unsigned int First = CoreId*ChunkCell;
+    unsigned int Last  = Min(First+ChunkCell, NSamples);
 
 	unsigned int i, j;
 	// Assume Number of taps is even, if not simply pad with one zero
 	//for (i=0; i<NSamples; i++) {
 	for (i=First; (unsigned int)i<Last; i++) {
 		int Acc = 0;
-		//		v2s *InV = (v2s *) &In[i-NCoeffs-1];
-		v2s *InV = (v2s *) &In[i-NCoeffs];
+		v2s *InV = (v2s *) &In[i-NCoeffs+1];
+		//v2s *InV = (v2s *) &In[i-NCoeffs];
 		v2s *CoeffV = (v2s *) Coeffs;
 		for (j=0; j<(NCoeffs/2); j++) 		  Acc = gap_sumdotp2(InV[j], CoeffV[j], Acc);
 
@@ -87,7 +106,7 @@ void KerFirParallelNTaps(KerFirParallel_ArgT *Arg)
 	parallel implementation since NSamples can be < NCoeffs and in this case conurrent copy
 	is not guaranteed to work ok */
 
-	if (CoreId==0) for (j=0, i=NSamples-(NCoeffs-1); (unsigned int)i<NSamples; i++, j++) NextIn[j-(NCoeffs-1)] = In[i];
+	if (CoreId==0 && NextIn != 0) for (j=0, i=NSamples-(NCoeffs-1); (unsigned int)i<NSamples; i++, j++) NextIn[j-(NCoeffs-1)] = In[i];
 	gap_waitbarrier(0);
 }
 
@@ -115,9 +134,9 @@ void KerFirParallel20Taps(KerFirParallel_ArgT *Arg)
 	v2s C5 = VCoeffs[5], C6 = VCoeffs[6], C7 = VCoeffs[7], C8 = VCoeffs[8], C9 = VCoeffs[9];
 
 	unsigned int CoreId = gap_coreid();
-        unsigned int ChunkCell = ChunkSize(NSamples);
-        unsigned int First = CoreId*ChunkCell;
-        unsigned int Last  = Min(First+ChunkCell, NSamples);
+	unsigned int ChunkCell = ChunkSize(NSamples);
+	unsigned int First = CoreId*ChunkCell;
+	unsigned int Last  = Min(First+ChunkCell, NSamples);
 
 	int i, j;
 
@@ -126,8 +145,8 @@ void KerFirParallel20Taps(KerFirParallel_ArgT *Arg)
 	//==> must swap InV[i] (in0,in1)=>(in1,in0)
 	for (i=First; (unsigned int)i<Last; i++) {
 		int Acc = 0;
-		//		v2s *InV = (v2s *) &In[i-NCoeffs-1];
-		v2s *InV = (v2s *) &In[i-NCoeffs];
+		v2s *InV = (v2s *) &In[i-NCoeffs+1];
+		//v2s *InV = (v2s *) &In[i-NCoeffs];
 		Acc = gap_dotp2   (InV[0], C0);
 		Acc = gap_sumdotp2(InV[1], C1, Acc);
 		Acc = gap_sumdotp2(InV[2], C2, Acc);
@@ -146,7 +165,7 @@ void KerFirParallel20Taps(KerFirParallel_ArgT *Arg)
 	parallel implementation since NSamples can be < NCoeffs and in this case conurrent copy
 	is not guaranteed to work ok */
 
-	if (CoreId==0) for (j=0, i=NSamples-(NCoeffs-1); (unsigned int)i<NSamples; i++, j++) NextIn[j-(NCoeffs-1)] = In[i];
+	if (CoreId==0 && NextIn != 0) for (j=0, i=NSamples-(NCoeffs-1); (unsigned int)i<NSamples; i++, j++) NextIn[j-(NCoeffs-1)] = In[i];
 	gap_waitbarrier(0);
 }
 
@@ -178,9 +197,9 @@ void KerFirParallel10Taps(KerFirParallel_ArgT *Arg)
 	v2s C0 = VCoeffs[0], C1 = VCoeffs[1], C2 = VCoeffs[2], C3 = VCoeffs[3], C4 = VCoeffs[4];
 
 	unsigned int CoreId = gap_coreid();
-        unsigned int ChunkCell = ChunkSize(NSamples);
-        unsigned int First = CoreId*ChunkCell;
-        unsigned int Last  = Min(First+ChunkCell, NSamples);
+	unsigned int ChunkCell = ChunkSize(NSamples);
+	unsigned int First = CoreId*ChunkCell;
+	unsigned int Last  = Min(First+ChunkCell, NSamples);
 
 	int i, j;
 
@@ -188,7 +207,7 @@ void KerFirParallel10Taps(KerFirParallel_ArgT *Arg)
 	//for (i=0; i<NSamples; i++) {
 	for (i=First; (unsigned int)i<Last; i++) {
 		int Acc = 0;
-		v2s *InV = (v2s *) &In[i-NCoeffs];
+		v2s *InV = (v2s *) &In[i-NCoeffs+1];
 		Acc = gap_dotp2   (InV[0], C0);
 		Acc = gap_sumdotp2(InV[1], C1, Acc);
 		Acc = gap_sumdotp2(InV[2], C2, Acc);
@@ -202,7 +221,7 @@ void KerFirParallel10Taps(KerFirParallel_ArgT *Arg)
 	parallel implementation since NSamples can be < NCoeffs and in this case conurrent copy
 	is not guaranteed to work ok */
 
-	if (CoreId==0) for (j=0, i=NSamples-(NCoeffs-1); (unsigned int)i<NSamples; i++, j++) NextIn[j-(NCoeffs-1)] = In[i];
+	if (CoreId==0 && NextIn != 0) for (j=0, i=NSamples-(NCoeffs-1); (unsigned int)i<NSamples; i++, j++) NextIn[j-(NCoeffs-1)] = In[i];
 	gap_waitbarrier(0);
 }
 
@@ -225,17 +244,16 @@ void KerFirParallelScalarNTaps(KerFirParallel_ArgT *Arg)
 	unsigned int Norm = Arg->Norm;
 
 	unsigned int CoreId = gap_coreid();
-        unsigned int ChunkCell = ChunkSize(NSamples);
-        unsigned int First = CoreId*ChunkCell;
-        unsigned int Last  = Min(First+ChunkCell, NSamples);
+	unsigned int ChunkCell = ChunkSize(NSamples);
+	unsigned int First = CoreId*ChunkCell;
+	unsigned int Last  = Min(First+ChunkCell, NSamples);
 
 	unsigned int i, j;
-	// Assume Number of taps is even, if not simply pad with one zero
 	//for (i=0; i<NSamples; i++) {
 	for (i=First; (unsigned int)i<Last; i++) {
 		int Acc = 0;
-		//for (j=0; j<NCoeffs; j++) Acc += In[i-NCoeffs+j+1]*Coeffs[j];
-		for (j=0; j<NCoeffs; j++) Acc += In[i-NCoeffs+j]*Coeffs[j];
+		for (j=0; j<NCoeffs; j++) Acc += In[i-NCoeffs+j+1]*Coeffs[j];
+		//for (j=0; j<NCoeffs; j++) Acc += In[i-NCoeffs+j]*Coeffs[j];
 		Out[i] = gap_clip(gap_roundnorm_reg(Acc, Norm), 15);
 	}
 	gap_waitbarrier(0);
@@ -244,6 +262,116 @@ void KerFirParallelScalarNTaps(KerFirParallel_ArgT *Arg)
 	parallel implementation since NSamples can be < NCoeffs and in this case conurrent copy
 	is not guaranteed to work ok */
 
-	if (CoreId==0) for (j=0, i=NSamples-(NCoeffs-1); (unsigned int)i<NSamples; i++, j++) NextIn[j-(NCoeffs-1)] = In[i];
+	if (CoreId==0 && NextIn != 0)
+		for (j=0, i=NSamples-(NCoeffs-1); (unsigned int)i<NSamples; i++, j++) 
+			NextIn[j-(NCoeffs-1)] = In[i];
+	gap_waitbarrier(0);
+}
+
+void KerFirNTapsInit_f16(KerFirNTapsInit_f16_ArgT *Arg){
+	F16_DSP *In = Arg->In;
+	unsigned int NCoeffs = Arg->NCoeffs;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(NCoeffs);
+	unsigned int First = CoreId*ChunkCell;
+	unsigned int Last  = Min(First+ChunkCell, NCoeffs);
+	unsigned int i;
+
+	//for (i=0; i<NSamples; i++) {
+	/*The input is copied with an offset (padded) that here we init a 0*/
+	for (i=First; (unsigned int)i<Last; i++) {
+		In[i-NCoeffs]=0;
+	}
+	gap_waitbarrier(0);
+
+}
+
+
+void KerFirNTaps_f16(KerFirNTaps_f16_ArgT *Arg)
+
+{
+	F16_DSP *In = Arg->In;
+	F16_DSP *NextIn = Arg->NextIn;
+	F16_DSP *Coeffs = Arg->Coeffs;
+	F16_DSP *Out = Arg->Out;
+	unsigned int NSamples = Arg->NSamples;
+	unsigned int NCoeffs = Arg->NCoeffs;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(NSamples);
+	unsigned int First = CoreId*ChunkCell;
+	unsigned int Last  = Min(First+ChunkCell, NSamples);
+
+	unsigned int i, j;
+	//for (i=0; i<NSamples; i++) {
+	for (i=First; (unsigned int)i<Last; i++) {
+		F16_DSP Acc = 0;
+		for (j=0; j<NCoeffs; j++) Acc += In[i-NCoeffs+j+1]*Coeffs[j];
+		//for (j=0; j<NCoeffs; j++) Acc += In[i-NCoeffs+j]*Coeffs[j];
+		Out[i] = Acc;
+
+		//printf("%d\n",Acc);
+	}
+	gap_waitbarrier(0);
+
+	/* Copy the last NCoeffs samples into the bottom part of NextTile buffer, avoid
+	parallel implementation since NSamples can be < NCoeffs and in this case conurrent copy
+	is not guaranteed to work ok */
+
+	if (CoreId==0 && NextIn != 0)
+		for (j=0, i=NSamples-(NCoeffs-1); (unsigned int)i<NSamples; i++, j++) 
+			NextIn[j-(NCoeffs-1)] = In[i];
+	gap_waitbarrier(0);
+}
+
+void KerFirNTapsInit_f32(KerFirNTapsInit_f32_ArgT *Arg){
+	float *In = Arg->In;
+	unsigned int NCoeffs = Arg->NCoeffs;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(NCoeffs);
+	unsigned int First = CoreId*ChunkCell;
+	unsigned int Last  = Min(First+ChunkCell, NCoeffs);
+	unsigned int i;
+	//for (i=0; i<NSamples; i++) {
+	for (i=First; (unsigned int)i<Last; i++) {
+		In[i-NCoeffs]=0;
+	}
+	gap_waitbarrier(0);
+
+}
+
+void KerFirNTaps_f32(KerFirNTaps_f32_ArgT *Arg)
+
+{
+	float *In = Arg->In;
+	float *NextIn = Arg->NextIn;
+	float *Coeffs = Arg->Coeffs;
+	float *Out = Arg->Out;
+	unsigned int NSamples = Arg->NSamples;
+	unsigned int NCoeffs = Arg->NCoeffs;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(NSamples);
+	unsigned int First = CoreId*ChunkCell;
+	unsigned int Last  = Min(First+ChunkCell, NSamples);
+
+	unsigned int i, j;
+	//for (i=0; i<NSamples; i++) {
+	for (i=First; (unsigned int)i<Last; i++) {
+		float Acc = 0;
+		for (j=0; j<NCoeffs; j++) Acc += In[i-NCoeffs+j+1]*Coeffs[j];
+		//for (j=0; j<NCoeffs; j++) Acc += In[i-NCoeffs+j]*Coeffs[j];
+		Out[i] = Acc;
+	}
+	gap_waitbarrier(0);
+
+	/* Copy the last NCoeffs samples into the bottom part of NextTile buffer, avoid
+	parallel implementation since NSamples can be < NCoeffs and in this case conurrent copy
+	is not guaranteed to work ok */
+	if (CoreId==0 && NextIn != 0) 
+		for (j=0, i=NSamples-(NCoeffs-1); (unsigned int)i<NSamples; i++, j++) 
+			NextIn[j-(NCoeffs-1)] = In[i];
 	gap_waitbarrier(0);
 }

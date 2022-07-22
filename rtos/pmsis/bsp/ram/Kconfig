@@ -1,0 +1,18 @@
+menu "RAM"
+
+    config BSP_DRIVER_RAM_HYPERRAM
+        bool "HyperRAM"
+        default n
+        select PMSIS_GAP9_IMPLEM_UDMA_HYPERBUS
+    
+    config BSP_DRIVER_RAM_SPIRAM_APS25XXXN
+        bool "APS25XXXN"
+        default n
+        select PMSIS_GAP9_IMPLEM_UDMA_OCTOSPI
+
+    config BSP_DRIVER_RAM_SPIRAM
+        bool "SPIRAM"
+        default n
+        select PMSIS_IMPLEM_SPIM
+        
+endmenu

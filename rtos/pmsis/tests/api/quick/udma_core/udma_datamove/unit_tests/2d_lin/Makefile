@@ -1,0 +1,12 @@
+# User Test
+#------------------------------------
+
+APP              = test_udma_datamove_2d_lin
+APP_SRCS         = test_udma_datamove_2d_lin.c
+APP_INC	         =
+APP_CFLAGS       =
+APP_LDFLAGS      =
+
+override PMSIS_OS=freertos
+
+include $(RULES_DIR)/pmsis_rules.mk

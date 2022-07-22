@@ -12,8 +12,11 @@ While the Timeline Window is being filled up with the signal elements, many func
    signal_select
    signal_tree
    signals_scrolling
+   zoom_in_out
    timeline_scrolling
-   timestamp_extracting
-   signals_stat
+   timestamp_selecting
+   time_interval_selecting
+   zoom_on_timestamp
+   
 
 

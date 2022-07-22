@@ -91,7 +91,14 @@ sub load_test_base {
 
     if(defined $file_content->[0]->{boards})
     {
-        $test_base{boards} = [ @{$file_content->[0]->{boards}} ];
+        if(scalar(@{$file_content->[0]->{boards}}) > 0)
+        {
+            $test_base{boards} = [ @{$file_content->[0]->{boards}} ];
+        }
+        else
+        {
+            $test_base{boards} = undef;
+        }
     }
     else
     {
@@ -209,7 +216,14 @@ sub load_test_variant {
 
     if(defined($section->{boards}))
     {
-        $test_variant{boards} = [ @{$section->{boards}} ];
+        if(scalar(@{$section->{boards}}) > 0)
+        {
+            $test_variant{boards} = [ @{$section->{boards}} ];
+        }
+        else
+        {
+            $test_variant{boards} = undef;
+        }
     }
     elsif(defined($test_base{boards}))
     {
