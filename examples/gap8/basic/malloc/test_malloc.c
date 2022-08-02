@@ -91,7 +91,7 @@ void test_malloc(void)
     }
 
     struct pi_cluster_conf *conf = (struct pi_cluster_conf *) pmsis_l2_malloc(sizeof(struct pi_cluster_conf));
-    if (cluster_dev == NULL)
+    if (conf == NULL)
     {
         printf("Cluster conf alloc failed !\n");
         pmsis_l2_malloc_free(cluster_dev, sizeof(struct pi_device));
