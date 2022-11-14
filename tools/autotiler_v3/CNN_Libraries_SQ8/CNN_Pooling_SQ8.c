@@ -1375,21 +1375,6 @@ static void KerParPoolActivation(signed char *__restrict__ InOut, int W, int H, 
 			int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0];
 			Ker_ActivationScale1_SQ8(InOut+Off, Size, ACT_RELUMN, A0, B0);
 		}
-	} else if (Activation == ACT_RELU) {
-		unsigned int Off = W*H*FirstFeat, Size = W*H*(LastFeat-FirstFeat);
-		Ker_ActivationScale1_SQ8(InOut+Off, Size, ACT_RELU, 0, 0);
-	} else if (Activation == ACT_RELUN) {
-		unsigned int Off = W*H*FirstFeat, Size = W*H*(LastFeat-FirstFeat);
-		int A0 = Infos[AT_INF_A0];
-		Ker_ActivationScale1_SQ8(InOut+Off, Size, ACT_RELUN, A0, 0);
-	} else if (Activation == ACT_RELUM) {
-		unsigned int Off = W*H*FirstFeat, Size = W*H*(LastFeat-FirstFeat);
-		int A0 = Infos[AT_INF_A0];
-		Ker_ActivationScale1_SQ8(InOut+Off, Size, ACT_RELUM, A0, 0);
-	} else if (Activation == ACT_RELUMN) {
-		unsigned int Off = W*H*FirstFeat, Size = W*H*(LastFeat-FirstFeat);
-		int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0];
-		Ker_ActivationScale1_SQ8(InOut+Off, Size, ACT_RELUMN, A0, B0);
 	}
 }
 
