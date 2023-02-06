@@ -1,0 +1,4 @@
+.ipynb_*
+BUILD*
+irfft_emul
+res.txt

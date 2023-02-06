@@ -1,0 +1,17 @@
+adjust
+fusions --pow2
+aquant images/* -s POW2 -f 16
+imageformat input_1 bw16 out_int16
+set graph_dump_tensor 7
+set graph_reorder_constant_in true
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+
+set graph_warm_construct 2
+
+# RAM/FLASH Settings
+set l3_ram_device $(MODEL_L3_RAM)
+set l3_flash_device $(MODEL_L3_FLASH)
+
+save_state

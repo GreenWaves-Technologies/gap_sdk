@@ -1,0 +1,13 @@
+set debug true
+adjust
+fusions -a expression_matcher
+set input_norm_func 'x:x/128'
+aquant samples/input_0.dat samples/input_1.dat samples/input_2.dat samples/input_3.dat --nptype int8
+qshow
+set graph_dump_tensor 7
+
+# RAM/FLASH Settings
+set l3_ram_device $(MODEL_L3_RAM)
+set l3_flash_device $(MODEL_L3_FLASH)
+
+save_state

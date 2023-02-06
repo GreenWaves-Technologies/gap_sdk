@@ -1,0 +1,13 @@
+{
+	"n_fft": 512,
+	"win_func": "hanning",
+	"frame_size": 400,
+	"frame_step": 160,
+	"sample_rate": 16000,
+	"n_mels": 40,
+	"n_dct": 40,
+	"fmin": 20.0,
+	"fmax": 4000.0,
+	"dtype": "fix16",
+	"use_librosa": true
+}

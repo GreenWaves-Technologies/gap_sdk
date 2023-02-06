@@ -1,0 +1,29 @@
+name: visual_wake
+boards: []
+platforms:
+    - board
+    - gvsoc
+os:
+    - freertos
+chips:
+    - gap8
+    - gap9
+variants:
+    std:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        flags: ~
+    # gap9:
+    #     name: standard
+    #     tags:
+    #         - integration
+    #         - release
+    #     os:
+    #        - pulpos
+    #     chips:
+    #         - gap9
+    #     duration: standard
+    #     flags: ~

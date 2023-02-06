@@ -1,0 +1,34 @@
+name: firFloat
+boards: []
+platforms: 
+    - board
+    - gvsoc
+os: 
+    - freertos
+    - pulpos
+chips: 
+    - gap9
+variants:
+    std:
+        name: standard
+        tags:
+            - integration
+            - release
+        duration: standard
+        os: 
+           - pulpos
+           - freertos
+        chips:
+            - gap9
+        flags: ~
+    # gap9:
+    #     name: standard
+    #     tags:
+    #         - integration
+    #         - release
+    #     os: 
+    #        - pulpos
+    #     chips:
+    #         - gap9
+    #     duration: standard
+    #     flags: ~

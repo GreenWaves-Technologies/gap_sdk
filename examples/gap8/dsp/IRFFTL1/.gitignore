@@ -1,0 +1,5 @@
+BUILD*
+fft_emul
+.ipynb_checkpoints
+GenInData
+In_Data.h

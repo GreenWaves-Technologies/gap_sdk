@@ -1,0 +1,52 @@
+# User Test
+#------------------------------------------
+MFCCBUILD_DIR     ?= $(CURDIR)/BUILD_MODEL
+MFCC_MODEL_GEN     = $(MFCCBUILD_DIR)/GenMFCC
+MFCC_SRCG 				+= $(TILER_DSP_GENERATOR_PATH)/DSP_Generators.c
+MFCC_PARAMS_JSON   = MfccConfig.json
+MFCC_PARAMS_HEADER = $(MFCCBUILD_DIR)/MFCC_params.h
+MFCC_SRC_CODE 		 = $(MFCCBUILD_DIR)/MfccKernels.c
+
+# Everything bellow is not application specific
+TABLE_CFLAGS=-lm
+CLUSTER_STACK_SIZE?=2048
+CLUSTER_SLAVE_STACK_SIZE?=1024
+ifeq '$(TARGET_CHIP_FAMILY)' 'GAP9'
+	TOTAL_STACK_SIZE = $(shell expr $(CLUSTER_STACK_SIZE) \+ $(CLUSTER_SLAVE_STACK_SIZE) \* 8)
+	MODEL_L1_MEMORY=$(shell expr 125000 \- $(TOTAL_STACK_SIZE))
+else
+	TOTAL_STACK_SIZE = $(shell expr $(CLUSTER_STACK_SIZE) \+ $(CLUSTER_SLAVE_STACK_SIZE) \* 7)
+	MODEL_L1_MEMORY=$(shell expr 60000 \- $(TOTAL_STACK_SIZE))
+endif
+ifdef MODEL_L1_MEMORY
+  MODEL_GEN_EXTRA_FLAGS += --L1 $(MODEL_L1_MEMORY)
+endif
+ifdef MODEL_L2_MEMORY
+  MODEL_GEN_EXTRA_FLAGS += --L2 $(MODEL_L2_MEMORY)
+endif
+ifdef MODEL_L3_MEMORY
+  MODEL_GEN_EXTRA_FLAGS += --L3 $(MODEL_L3_MEMORY)
+endif
+SDL_FLAGS= -lSDL2 -lSDL2_ttf -DAT_DISPLAY
+USE_POWER?=0
+
+$(MFCCBUILD_DIR):
+	mkdir $(MFCCBUILD_DIR)
+
+$(MFCC_PARAMS_HEADER): $(MFCC_PARAMS_JSON) | $(MFCCBUILD_DIR)
+	python $(TILER_DSP_GENERATOR_PATH)/DSP_LUTGen.py $(MFCC_PARAMS_JSON) --build_dir $(MFCCBUILD_DIR) --save_params_header $(MFCC_PARAMS_HEADER) --save_text
+
+# Build the code generator from the model code
+$(MFCC_MODEL_GEN): $(MFCC_PARAMS_HEADER) | $(MFCCBUILD_DIR)
+	gcc -g -o $(MFCC_MODEL_GEN) -I$(MFCCBUILD_DIR) -I$(TILER_DSP_GENERATOR_PATH) -I$(TILER_INC) -I$(TILER_EMU_INC) $(CURDIR)/MfccModel.c $(MFCC_SRCG) $(TILER_LIB) $(TABLE_CFLAGS) $(COMPILE_MODEL_EXTRA_FLAGS) -DUSE_POWER=$(USE_POWER) $(SDL_FLAGS)
+
+# Run the code generator  kernel code
+$(MFCC_SRC_CODE): $(MFCC_MODEL_GEN) | $(MFCCBUILD_DIR)
+	$(MFCC_MODEL_GEN) -o $(MFCCBUILD_DIR) -c $(MFCCBUILD_DIR) $(MODEL_GEN_EXTRA_FLAGS)
+
+gen_mfcc_code: $(MFCC_SRC_CODE)
+
+clean_mfcc_code:
+	rm -rf $(MFCCBUILD_DIR)
+
+.PHONY: gen_mfcc_code clean_mfcc_code

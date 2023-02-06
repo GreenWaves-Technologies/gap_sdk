@@ -33,11 +33,21 @@ void helloworld(void)
     cl_conf.id = 0;                /* Set cluster ID. */
     /* Configure & open cluster. */
     pi_open_from_conf(&cluster_dev, &cl_conf);
+
+    pi_perf_conf(1 << PI_PERF_CYCLES | 1 << PI_PERF_ACTIVE_CYCLES);
+    pi_perf_reset();
+    pi_perf_start();
+
     if (pi_cluster_open(&cluster_dev))
     {
         printf("Cluster open failed !\n");
         pmsis_exit(-1);
     }
+
+    pi_perf_stop();
+    uint32_t cycles = pi_perf_read(PI_PERF_ACTIVE_CYCLES);
+    uint32_t tim_cycles = pi_perf_read(PI_PERF_CYCLES);
+    printf("Perf : %d cycles Timer : %d cycles\n", cycles, tim_cycles);
 
     /* Prepare cluster task and send it to cluster. */
     struct pi_cluster_task cl_task;
