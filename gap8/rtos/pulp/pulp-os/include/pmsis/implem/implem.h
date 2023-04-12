@@ -31,7 +31,7 @@
 
 #if PULP_CHIP_FAMILY != CHIP_VIVOSOC3 && PULP_CHIP_FAMILY != CHIP_VIVOSOC3_1 && PULP_CHIP_FAMILY != CHIP_VIVOSOC4
 
-static inline int __pi_freq_get_domain(int domain)
+static inline rt_freq_domain_e __pi_freq_get_domain(int domain)
 {
     return domain == PI_FREQ_DOMAIN_FC ? RT_FREQ_DOMAIN_FC : domain == PI_FREQ_DOMAIN_CL ? RT_FREQ_DOMAIN_CL : RT_FREQ_DOMAIN_PERIPH;
 }
