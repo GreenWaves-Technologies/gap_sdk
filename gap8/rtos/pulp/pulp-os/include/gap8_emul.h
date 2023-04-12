@@ -1,6 +1,10 @@
 #ifndef __GAP8_EMUL_H__
 #define __GAP8_EMUL_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef   signed short v2s __attribute__((vector_size (4)));
 typedef unsigned short v2u __attribute__((vector_size (4)));
 
@@ -374,6 +378,7 @@ static int Private_call(void (*fn)(void *), void * arg, __event_cb * event)
 #define FP2FIXR(Val, Precision)		((int)((Val)*((1 << (Precision))-1) + 0.5))
 #define FP2FIX(Val, Precision)		((int)((Val)*((1 << (Precision))-1)))
 
-
-
+#ifdef __cplusplus
+}
+#endif
 #endif

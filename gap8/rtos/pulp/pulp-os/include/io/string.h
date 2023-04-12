@@ -35,6 +35,9 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 //#define NULL ((void *)0)
 
 void *memset(void *s, int c, size_t n);
@@ -60,4 +63,7 @@ extern char *strcat(char *dest, const char *src);
 
 size_t strlen(const char *str);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

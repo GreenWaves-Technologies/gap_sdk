@@ -21,6 +21,10 @@
 #include "pulp.h"
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if defined(TIMER_VERSION) && TIMER_VERSION == 1
 
 static inline void start_timer() {*(volatile int*) START_TIME_ADDR = 1;}
@@ -235,4 +239,7 @@ static inline void rt_bench_power_stop()
   pulp_write32(RT_BENCH_ADDR, RT_BENCH_STOP_VAL);
 }
 
+#ifdef __cplusplus
+}
+#endif
 #endif

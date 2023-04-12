@@ -20,6 +20,10 @@
 #include "pulp.h"
 #include <rt/rt_api.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef unsigned int omp_lock_t;
 
 int omp_get_thread_num(void);
@@ -46,4 +50,7 @@ void __kmpc_fork_call(ident_t *loc, kmp_int32 argc, kmpc_micro microtask, ...);
 void __kmpc_fork_call(ident_t *loc, kmp_int32 argc, kmpc_micro microtask, int **args);
 #endif
 
+#ifdef __cplusplus
+}
+#endif
 #endif

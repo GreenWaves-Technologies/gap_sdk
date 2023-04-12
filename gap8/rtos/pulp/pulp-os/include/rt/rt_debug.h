@@ -37,6 +37,10 @@
 #include "rt/rt_data.h"     // RT_FC_GLOBAL_DATA
 #include "rt/rt_utils.h"    // rt_{cluster,core}_id(),
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /// @cond IMPLEM
 
 #define RT_LOG_FATAL    0   // Fatal condition, the system should terminate execution ASAP
@@ -202,5 +206,8 @@ static inline int rt_debug_config_werror() {
 
 /// @endcond
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif
