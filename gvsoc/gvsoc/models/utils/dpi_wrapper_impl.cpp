@@ -310,7 +310,7 @@ void dpi_wrapper::raise_event()
 void dpi_wrapper::raise_event_from_ext()
 {
   while(this->get_clock() == NULL)
-    pthread_yield();
+    sched_yield();
 
   this->get_clock()->get_engine()->lock();
   if (!this->wakeup_evt->is_enqueued())
