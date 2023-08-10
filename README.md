@@ -46,7 +46,7 @@ We provide you with a set of tools and two different operating systems for GAP:
 
 ## Getting started with the GAP SDK
 
-### Ubuntu 18.04/20.04
+### Ubuntu 20.04
 
 #### OS Requirements installation
 
@@ -137,7 +137,7 @@ source sourceme.sh
 or
 
 ```bash
-source config/<the target you want to use>.sh
+source configs/<the target you want to use>.sh
 ```
 
 For GAP8, if you directly source the board config, you need to source the appropriate
@@ -327,7 +327,7 @@ cd gap_sdk
 git checkout master && git pull
 git checkout <release tag name>
 # For minimal install
-make clean minimal_sdk
+make clean minimal
 # for full install
 make clean sdk
 ```

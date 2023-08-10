@@ -172,7 +172,7 @@ openocd.checkout:
 
 openocd.build: openocd.checkout
 	cd utils/gap8-openocd && ./bootstrap
-	cd utils/gap8-openocd && ./configure --prefix=$(INSTALL_DIR)/gap8-openocd --program-prefix=gap8-
+	cd utils/gap8-openocd && ./configure --prefix=$(INSTALL_DIR)/gap8-openocd --program-prefix=gap8- --disable-werror
 	cd utils/gap8-openocd && make -j install
 	mkdir -p $(INSTALL_DIR)/gap8-openocd/share/openocd/scripts/tcl
 	cd utils/openocd_tools && cp -r tcl/* $(INSTALL_DIR)/gap8-openocd/share/openocd/scripts/tcl
