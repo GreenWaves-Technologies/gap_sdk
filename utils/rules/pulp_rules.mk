@@ -139,7 +139,7 @@ BOOTFLAGS	  = -Os -g -DUSE_AES -fno-jump-tables -Wextra -Wall -Wno-unused-parame
 CFLAGS        = $(COMMON) -MMD -MP -c
 
 
-CXXFLAGS      = -std=gnu++98 -fno-rtti 
+CXXFLAGS      = -std=c++14 -fno-rtti
 
 ifeq '$(platform)' 'board'
 ifeq '$(TARGET_CHIP)' 'GAP9'
