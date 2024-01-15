@@ -4,6 +4,9 @@
 #include "string.h"
 #include "rt/rt_api.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 typedef int __os_native_task_t;
 
 static inline void pmsis_mutex_take(pmsis_mutex_t *mutex) {}
@@ -27,4 +30,7 @@ static inline void *pmsis_task_create(void (*entry)(void*),
 
 static inline void pmsis_task_suspend(__os_native_task_t *task) {}
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -35,6 +35,10 @@
 
 #include "stdarg.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef int FILE;
 
 #define stdin  ((FILE *) 1)
@@ -57,4 +61,7 @@ int sprintf(char *str, const char *fmt, ...) ;
 
 int fputc(int c, FILE *stream);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -138,6 +138,9 @@ BOOTFLAGS	  = -Os -g -DUSE_AES -fno-jump-tables -Wextra -Wall -Wno-unused-parame
 
 CFLAGS        = $(COMMON) -MMD -MP -c
 
+
+CXXFLAGS      = -std=gnu++98 -fno-rtti 
+
 ifeq '$(platform)' 'board'
 ifeq '$(TARGET_CHIP)' 'GAP9'
 io ?= bridge
@@ -178,8 +181,10 @@ APP          ?= test
 BIN           = $(BUILDDIR)/$(APP)
 
 T_OBJECTS_C   = $(patsubst %.c, $(BUILDDIR)/%.o, $(PULP_APP_FC_SRCS) $(PULP_APP_SRCS))
+T_OBJECTS_CXX = $(patsubst %.cpp, $(BUILDDIR)/%.o, $(PULP_APP_SRCS_CXX))
 
 OBJECTS       = $(T_OBJECTS_C)
+OBJECTS      += $(T_OBJECTS_CXX) 
 
 OBJECTS   += $(BUILDDIR)/pulp-os/conf.o
 
@@ -222,6 +227,10 @@ $(T_OBJECTS_C) : $(BUILDDIR)/%.o : %.c
 $(BUILDDIR)/pulp-os/conf.o: $(GAP_SDK_HOME)/gap8/rtos/pulp/pulp-os/kernel/conf.c
 	@mkdir -p $(dir $@)
 	$(CC) $(PULP_CFLAGS) $(TCFLAGS) $< $(INC_PATH) -MD -MF $(basename $@).d -o $@
+
+$(T_OBJECTS_CXX) : $(BUILDDIR)/%.o : %.cpp
+	mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) $(TCFLAGS) $< $(INC_PATH) -MD -MF $(basename $@).d -o $@
 
 $(BIN): $(OBJECTS)
 	$(CC) $(PULP_ARCH_LDFLAGS) -MMD -MP $(WRAP_FLAGS) $(PULP_LDFLAGS) $(INC_PATH) -o $(BIN) $(OBJECTS) $(LIBS) $(LDFLAGS) $(LIBSFLAGS) $(INC_DEFINE)

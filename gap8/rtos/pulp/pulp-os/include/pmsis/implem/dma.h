@@ -317,7 +317,7 @@ static inline void pi_cl_dma_flush()
 
 static inline void pi_cl_dma_wait(void *copy)
 {
-  __cl_dma_wait(copy);
+  __cl_dma_wait((pi_cl_dma_cmd_t*) copy);
 }
 
 static inline void pi_cl_dma_cmd(uint32_t ext, uint32_t loc, uint32_t size, pi_cl_dma_dir_e dir, pi_cl_dma_cmd_t *cmd)
