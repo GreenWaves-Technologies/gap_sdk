@@ -139,7 +139,7 @@ BOOTFLAGS	  = -Os -g -DUSE_AES -fno-jump-tables -Wextra -Wall -Wno-unused-parame
 CFLAGS        = $(COMMON) -MMD -MP -c
 
 
-CXXFLAGS      = -std=gnu++98 -fno-rtti 
+CXXFLAGS      = -std=c++14 -fno-rtti
 
 ifeq '$(platform)' 'board'
 ifeq '$(TARGET_CHIP)' 'GAP9'
@@ -230,7 +230,7 @@ $(BUILDDIR)/pulp-os/conf.o: $(GAP_SDK_HOME)/gap8/rtos/pulp/pulp-os/kernel/conf.c
 
 $(T_OBJECTS_CXX) : $(BUILDDIR)/%.o : %.cpp
 	mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(TCFLAGS) $< $(INC_PATH) -MD -MF $(basename $@).d -o $@
+	$(CXX) $(CXXFLAGS) $(PULP_CXXFLAGS) $(TCFLAGS) $< $(INC_PATH) -MD -MF $(basename $@).d -o $@
 
 $(BIN): $(OBJECTS)
 	$(CC) $(PULP_ARCH_LDFLAGS) -MMD -MP $(WRAP_FLAGS) $(PULP_LDFLAGS) $(INC_PATH) -o $(BIN) $(OBJECTS) $(LIBS) $(LDFLAGS) $(LIBSFLAGS) $(INC_DEFINE)
