@@ -83,9 +83,9 @@ def postprocess(img_in, h, w, c, **kwargs):
         else:
             raise ValueError('expect norm_func to be callable or a string of the form "x: f(x)"')
         img_in = compiled_norm_func(img_in)
-        img_in = np.array(img_in, dtype=np.float)
+        img_in = np.array(img_in, dtype=float)
     else:
-        img_in = (img_in.astype(np.float) / divisor) + offset
+        img_in = (img_in.astype(float) / divisor) + offset
 
     if kwargs.get('rgb888_rgb565'):
         r = np.bitwise_and(img_in[:, :, 0].flatten().astype(np.int16), 0xf8) << 8
