@@ -26,3 +26,7 @@ __pycache__*
 # Miscellaneous files
 *.log
 .scon*
+
+
+# LibTile
+tools/autotiler_v3/Autotiler/LibTile.a
