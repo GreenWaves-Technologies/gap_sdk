@@ -29,6 +29,7 @@ __pycache__*
 
 
 # LibTile
+tools/autotiler_v3/Makefile
 tools/autotiler_v3/Autotiler/LibTile.a
 
 # VSCode
