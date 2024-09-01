@@ -16,7 +16,7 @@ def create_parser():
     # create the top-level parser
     parser = argparse.ArgumentParser(prog='save_samples')
     parser.add_argument('-d', '--directory',
-                        default="sample_project/images",
+                        default="../samples/",
                         help='directory to save samples to')
     parser.add_argument('-n', '--number_of_examples',
                         default=1,
