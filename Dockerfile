@@ -1,17 +1,16 @@
 FROM ubuntu:20.04
 ENV DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update
-
 RUN apt install -y openssh-server
-
-RUN sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+RUN echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
 
 # Install needed packages
 RUN apt-get install -y build-essential \
+    gcc-multilib \
     autoconf \
     automake \
     bison \
-    build-essential \
     cmake \
     curl \
     doxygen \
@@ -27,13 +26,12 @@ RUN apt-get install -y build-essential \
     libtool \
     libusb-1.0-0-dev \
     pkg-config \
-    python3-pip \
     rsync \
     scons \
     texinfo \
     wget \
-    sudo
-
+    sudo \
+    tmux
 
 RUN mkdir -p ~/miniconda3
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
@@ -48,17 +46,14 @@ RUN /bin/bash -c "cd gap_riscv_toolchain_ubuntu; ./install.sh '/usr/lib/gap_risc
 
 RUN git clone https://github.com/GreenWaves-Technologies/gap_sdk
 
+RUN cd /gap_sdk; ~/miniconda3/bin/pip install -r requirements.txt; ~/miniconda3/bin/pip install -r doc/requirements.txt
+
 COPY ./libtile.4.3.5.a /gap_sdk/tools/autotiler_v3/Autotiler/LibTile.a
 
-RUN /bin/bash  -c "cd gap_sdk; source configs/gapuino_v3.sh; rm /gap_sdk/tools/autotiler_v3/Makefile; make all"
-
-RUN apt-get install -y vim tmux 
+RUN /bin/bash  -c "cd gap_sdk; source configs/gapuino_v3.sh; mv /gap_sdk/tools/autotiler_v3/Makefile /gap_sdk/tools/autotiler_v3/Makefile_tmp; make all; mv /gap_sdk/tools/autotiler_v3/Makefile_tmp /gap_sdk/tools/autotiler_v3/Makefile"
 
 RUN curl -fsSL 'https://raw.githubusercontent.com/hyeondg/config/main/.tmux.conf' >$HOME/.tmux.conf
 
-RUN curl -fsSL 'https://raw.githubusercontent.com/hyeondg/config/main/.vimrc' >$HOME/.vimrc
-
-RUN cd /gap_sdk; pip3 install -r requirements.txt; pip3 install -r doc/requirements.txt
 
 RUN git clone https://github.com/hyeondg/config.git; mkdir -p ~/.config; cp -r config/starter ~/.config/nvim
 
