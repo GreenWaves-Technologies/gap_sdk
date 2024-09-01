@@ -26,7 +26,6 @@ from nntool.execution.kernels.kernel_base import KernelBase, params_type, qrec_t
 from nntool.quantization.new_qrec import AllFloatQRec, QRec
 from nntool.utils.np_erf import np_erf
 
-
 class PieceWiseFloat32Mixin():
     @classmethod
     def execute_piecewise(cls, params,
@@ -254,7 +253,6 @@ class UnaryOpFloat32(KernelBase):
         return qrec.get_outputs(params, [output], ktype="float")
 
 
-@params_type(ExpOpNode)
 @qrec_type('float')
 class ExpFloat32(UnaryOpFloat32):
     FUNC = np.exp
@@ -276,7 +274,6 @@ class SinFloat32(UnaryOpFloat32):
 @qrec_type('float')
 class AbsFloat32(UnaryOpFloat32):
     FUNC = np.abs
-
 
 @params_type(LogOpNode)
 @qrec_type('float')

@@ -26,6 +26,7 @@ class Neg(BasicMathMixin, BackendHandler):
 
     @classmethod
     def _common(cls, node, **kwargs):
+        print("HI")
         return super(Neg, cls)._common(node,
                                        params_class=UnaryOpNodeBase,
                                        params_args={'op_type': 'neg'},

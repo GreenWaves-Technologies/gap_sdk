@@ -514,6 +514,7 @@ class CodeGenerator(NewGenerator):
         code_block = CodeBlock(starting_indent=indent)
         for node in self.sorted_nodes:
             name = node.name
+            print(">>>", node.__repr__())
             cname = self.get_node_cname(node)
             if node.at_options.vcd_trace_on is not None:
                 self.add_vcd_trace_binding(cname, node.at_options.vcd_trace_on)

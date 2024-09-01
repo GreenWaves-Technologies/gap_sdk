@@ -25,7 +25,8 @@ else
   endif
 endif
 #TRAINED_MODEL=model/$(MODEL_PREFIX).tflite
-TRAINED_MODEL=hi.onnx
+#TRAINED_MODEL=mnist_torch.onnx
+TRAINED_MODEL=mnist_torch.onnx
 
 include ../common/model_decl.mk
 
